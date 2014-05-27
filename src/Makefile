@@ -1,12 +1,14 @@
 CC=gcc
 CFLAGS=-I
+OBJFLD=./obj
 DEPS = Building.h Constraint.h Crop.h Family.h Good.h HashTable.h Herald.h LinkedList.h Manor.h Person.h Population.h Random.h
-OBJ = Building.o Constraint.o Crop.o Family.o Good.o HashTable.o Herald.o LinkedList.o Manor.o Person.o Population.o Random.o	
-ODIR=.
+OBJ = $(OBJFLD)/Building.o $(OBJFLD)/Constraint.o $(OBJFLD)/Crop.o $(OBJFLD)/Family.o $(OBJFLD)/Good.o $(OBJFLD)/HashTable.o $(OBJFLD)/Herald.o $(OBJFLD)/LinkedList.o $(OBJFLD)/Manor.o $(OBJFLD)/Person.o $(OBJFLD)/Population.o $(OBJFLD)/Random.o	
+ODIR=
+
 %.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< 
+	$(CC) -c -o $(OBJFLD)/$@ $< 
 herald: main.c $(OBJ)
-	$(CC) -o $@ $^ 
+	$(CC) -o ../$@ $^ 
 .PHONY: clean
 
 clean:

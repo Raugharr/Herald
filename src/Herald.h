@@ -36,6 +36,7 @@ extern struct Constraint** g_FamilySize;//Average number of families sharing the
 extern struct Constraint** g_AgeAvg;//Distribution of ages.
 //! Percentages of how the probability of the number of children a family will have 3.125 will have 0 babies, etc.
 extern struct Constraint** g_BabyAvg;
+extern struct MemoryPool* g_PersonPool;
 
 void HeraldInit();
 void HeraldDestroy();

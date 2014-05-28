@@ -44,7 +44,7 @@ void PopulateManor(struct Manor* _Manor) {
 			LnkLst_PushBack(&_Manor->Families, _Family);
 			_FamilySize -= Family_Size(_Family);
 		}
-		_Population -= Family_Size(_Parent);;
+		_Population -= Family_Size(_Parent);
 	}
 }
 

@@ -6,14 +6,14 @@
 #include "Manor.h"
 
 #include "Herald.h"
-#include "Random.h"
 #include "Good.h"
-#include "LinkedList.h"
 #include "Building.h"
-#include "HashTable.h"
 #include "Person.h"
 #include "Constraint.h"
 #include "Family.h"
+#include "sys/Random.h"
+#include "sys/LinkedList.h"
+#include "sys/HashTable.h"
 
 #include <stdlib.h>
 #include <string.h>

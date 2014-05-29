@@ -6,7 +6,7 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
-#include "LinkedList.h"
+#include "sys/LinkedList.h"
 
 struct Good;
 

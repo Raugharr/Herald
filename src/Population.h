@@ -6,7 +6,7 @@
 #ifndef __POPULATION_H
 #define __POPULATION_H
 
-#include "LinkedList.h"
+#include "sys/LinkedList.h"
 
 struct Population {
 	const char* Name;

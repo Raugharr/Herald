@@ -6,7 +6,7 @@
 #ifndef __HERALD_H
 #define __HERALD_H
 
-#include "HashTable.h"
+#include "sys/HashTable.h"
 
 #define AGEDIST_SIZE (17)
 #define TO_YEARS(__MONTHS) (__MONTHS * 12)

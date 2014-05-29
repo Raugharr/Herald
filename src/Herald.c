@@ -5,9 +5,9 @@
 
 #include "Herald.h"
 
-#include "LinkedList.h"
 #include "Constraint.h"
 #include "Person.h"
+#include "sys/LinkedList.h"
 
 #include <stdio.h>
 #include <stdlib.h>

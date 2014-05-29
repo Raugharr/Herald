@@ -7,7 +7,7 @@
 
 #include "Person.h"
 #include "Constraint.h"
-#include "Random.h"
+#include "sys/Random.h"
 
 #include <stdlib.h>
 #include <assert.h>

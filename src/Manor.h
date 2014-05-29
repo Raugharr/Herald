@@ -6,9 +6,9 @@
 #ifndef __MANOR_H
 #define __MANOR_H
 
-#include "LinkedList.h"
 #include "Population.h"
-#include "HashTable.h"
+#include "sys/LinkedList.h"
+#include "sys/HashTable.h"
 
 struct Building;
 

@@ -1,11 +1,10 @@
-SUBDIR = ./src
+SRC=src/
 
-all: $(SUBDIR)
+.PHONY: src clean
 
-$(SUBDIR):
-	$(MAKE) -C $@
-
-.PHONY: $(SUBDIR) clean
+src:
+	$(MAKE) -C $(SRC)
 
 clean:
-	$(MAKE) -C $(SUBDIR) $@
+	rm herald*
+	$(MAKE) -C $(SRC) clean

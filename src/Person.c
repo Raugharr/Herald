@@ -5,10 +5,10 @@
 
 #include "Person.h"
 
-#include "Family.h"
-#include "Random.h"
-#include "LinkedList.h"
 #include "Herald.h"
+#include "Family.h"
+#include "sys/Random.h"
+#include "sys/LinkedList.h"
 
 #include <stdlib.h>
 

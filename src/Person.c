@@ -9,16 +9,26 @@
 #include "Family.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
+#include "events/EventPerson.h"
 
 #include <stdlib.h>
+
+#define POOLSIZE (10000)
 
 #ifndef NULL
 #define NULL (((void*)0))
 #endif
 #define BIRTH_TIME (10)
 
-//struct Array g_BoyNames = LoadCSV("Boy.txt", &((char**)g_BoyNames.Table), &g_BoyNames.Size);
-//struct Array g_GirlNames = LoadCSV("Girl.txt", (char***)g_GirlNames.Table, &g_GirlNames.Size);
+static struct MemoryPool* g_PersonPool = NULL;
+
+void Person_Init() {
+	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), POOLSIZE);
+}
+
+void Person_Quit() {
+	DestroyMemoryPool(g_PersonPool);
+}
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition) {
 	struct Person* _Person = (struct Person*) malloc(sizeof(struct Person));
@@ -56,25 +66,31 @@ struct Pregancy* CreatePregancy(struct Person* _Person) {
 	return _Pregancy;
 };
 
-void BirthCheck(struct Person* _Person) {
-	if(_Person->Family->NumChildren < CHILDREN_SIZE && _Person->Gender == EFEMALE && Random(1, 100) > g_BabyAvg[_Person->Family->NumChildren] && Random(1, 100) > 10)
-		CreatePregancy(_Person);
+void Person_Update(struct Person* _Person, int _NutVal) {
+	if(_Person->Nutrition == -1)
+		return; //Don't update dead people.
+	if(_Person->Gender == EFEMALE) {
+		if(_Person->Family->NumChildren < CHILDREN_SIZE && Random(1, 100) > Fuzify(g_BabyAvg, _Person->Family->NumChildren) && Random(1, 100) > 10)
+			CreatePregancy(_Person);
+	}
+	if(_NutVal > _Person->Nutrition)
+		_Person->Nutrition = _Person->Nutrition + (_NutVal - _Person->Nutrition);
+	else
+		_Person->Nutrition = _Person->Nutrition - (_Person->Nutrition - _NutVal);
+	if(Random(0, 99) < (MAX_NUTRITION - _Person->Nutrition) / 100) {
+		_Person->Nutrition = -1;//Dead
+		Event_Push(CreateEventDeath(_Person));
+	}
 }
-
+	
 void Birth(struct Pregancy* _Pregancy) {
-	if(--_Pregancy->TTP <= 0)
-		_Pregancy->Mother->Family->Children[_Pregancy->Mother->Family->NumChildren++] = CreateChild(_Pregancy->Mother->Family);
+	if(--_Pregancy->TTP <= 0) {
+		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
+		_Pregancy->Mother->Family->Children[_Pregancy->Mother->Family->NumChildren++] = _Child;
+		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
+	}
 }
 
 void Person_DeleteNames() {
-	/*
-	 int i;
 
-	for(i = 0; i < g_BoyNames.Size; ++i)
-		free((char*)g_BoyNames.Table[i]);
-	for(i = 0; i < g_GirlNames.Size; ++i)
-		free((char*)g_GirlNames.Table[i]);
-	free(g_GirlNames.Table);
-	free(g_BoyNames.Table);
-	*/
 }

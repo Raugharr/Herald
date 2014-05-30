@@ -6,8 +6,6 @@
 #ifndef __EVENT_H
 #define __EVENT_H
 
-#include "EventPerson.h"
-
 enum {
 	EVENTBIRTH = 0,
 	EVENTDEATH
@@ -19,6 +17,6 @@ struct Event {
 
 void Event_Init();
 void Event_Quit();
-
+void Event_Push(struct Event* _Event);
 #endif
 

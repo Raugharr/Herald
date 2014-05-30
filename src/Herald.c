@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define AGEDIST_SIZE (17)
+
+int g_Date = 0;
 struct HashTable g_Crops;
 struct HashTable g_Goods;
 struct HashTable g_Buildings;
@@ -21,8 +24,7 @@ struct Constraint** g_AgeGroups;
 struct Constraint** g_AgeConstraints;
 struct Constraint** g_AgeDistr;
 struct Constraint** g_BabyAvg;
-struct MemoryPool* g_PersonPool;
-//double g_BabyAvg[] = {3.125, 6.25, 12.5, 25.0, 50.0, 25.0, 12.5, 6.25, 3.125};
+struct LinkedList* g_ManorList;
 
 void HeraldInit() {
 	int _Size = 0;
@@ -42,16 +44,25 @@ void HeraldInit() {
 	g_AgeConstraints = CreateConstrntLst(&_Size, 0, 1068, 60);
 	g_AgeDistr = CreateConstrntBnds(19, 0, 737, 1464, 2157, 2867, 3632, 4489, 5368, 6162, 6870, 7472, 7885, 8317, 8744, 9150, 9471, 9717, 9875, 9999);
 	g_BabyAvg = CreateConstrntBnds(8, 0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999);
-	g_PersonPool = CreateMemoryPool(sizeof(struct Person), 10000);
+	
+	g_ManorList = (struct LinkedList*) CreateLinkedList();
+	Person_Init();
 }
 
 void HeraldDestroy() {
+	struct LnkLst_Node* _Itr = g_ManorList->Front;
+
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeGroups);
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_AgeDistr);
 	DestroyConstrntBnds(g_BabyAvg);
-	DestroyMemoryPool(g_PersonPool);
+	while(_Itr != NULL) {
+		free(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	DestroyLinkedList(g_ManorList);
+	Person_Quit();
 }
 
 void LoadCSV(const char* _File, char*** _Array, int* _Size) {

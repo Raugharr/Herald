@@ -9,6 +9,8 @@
 extern char* g_EventBirthMsg;
 extern char* g_EventDeathMsg;
 
+struct Event;
+
 struct EventBirth {
 	int Id;
 	struct Person* Mother;
@@ -18,7 +20,9 @@ struct EventBirth {
 struct EventDeath {
 	int Id;
 	struct Person* Person;
-}
+};
 
- #endif
+struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child);
+struct Event* CreateEventDeath(struct Person* _Person);
+#endif
 

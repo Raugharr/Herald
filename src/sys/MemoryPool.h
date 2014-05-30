@@ -9,6 +9,10 @@
 struct MemoryPool {
 	struct Node {struct Node* Next;}* Free;
 	int SizeOf;
+#ifdef DEBUG
+	int MaxSize;
+	int Size;
+#endif
 };
 
 struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity);

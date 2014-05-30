@@ -21,7 +21,6 @@ struct Person {
 	int Nutrition;
 	struct Family* Family;
 	struct Family* Parent;
-	struct Job* Ocupation;
 };
 
 struct Pregancy {

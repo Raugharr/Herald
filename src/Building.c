@@ -39,4 +39,6 @@ void DestroyBuilding(struct Building* _Building) {
 	free(_Building);
 }
 
-
+int Building_Produce(const struct Building* _Building, struct HashTable* _Hash) {
+	return 0;
+}

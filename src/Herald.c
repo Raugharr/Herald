@@ -7,13 +7,22 @@
 
 #include "Constraint.h"
 #include "Person.h"
+#include "Manor.h"
+#include "Family.h"
+#include "sys/Random.h"
 #include "sys/LinkedList.h"
+#include "sys/MemoryPool.h"
+#include "sys/Array.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define AGEDIST_SIZE (17)
+#define MANORSZ_MIN (50)
+#define MANORSZ_INTRVL (50)
+#define MANORSZ_MAX (800)
 
 int g_Date = 0;
 struct HashTable g_Crops;
@@ -22,13 +31,13 @@ struct HashTable g_Buildings;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeGroups;
 struct Constraint** g_AgeConstraints;
-struct Constraint** g_AgeDistr;
 struct Constraint** g_BabyAvg;
+struct Constraint** g_ManorSize;
 struct LinkedList* g_ManorList;
 
-void HeraldInit() {
-	int _Size = 0;
+char g_DataFld[] = "Data/";
 
+void HeraldInit() {
 	g_Crops.TblSize = 512;
 	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Crops.TblSize);
 	SetArray((void***)&g_Crops.Table, g_Crops.TblSize, NULL);
@@ -41,71 +50,79 @@ void HeraldInit() {
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);
-	g_AgeConstraints = CreateConstrntLst(&_Size, 0, 1068, 60);
-	g_AgeDistr = CreateConstrntBnds(19, 0, 737, 1464, 2157, 2867, 3632, 4489, 5368, 6162, 6870, 7472, 7885, 8317, 8744, 9150, 9471, 9717, 9875, 9999);
+	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_BabyAvg = CreateConstrntBnds(8, 0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999);
+	g_ManorSize = CreateConstrntLst(NULL, MANORSZ_MIN, MANORSZ_MAX, MANORSZ_INTRVL);
 	
-	g_ManorList = (struct LinkedList*) CreateLinkedList();
-	Person_Init();
+	World_Init();
 }
 
 void HeraldDestroy() {
-	struct LnkLst_Node* _Itr = g_ManorList->Front;
-
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeGroups);
 	DestroyConstrntBnds(g_AgeConstraints);
-	DestroyConstrntBnds(g_AgeDistr);
 	DestroyConstrntBnds(g_BabyAvg);
+	//DestroyConstrntBnds(g_ManorSize);
+
+	World_Quit();
+}
+
+struct Array* LoadFile(const char* _File, char _Delimiter) {
+	int _Pos = 0;
+	int _Size = 1;
+	char* _Name = NULL;
+	char _Char = 0;
+	char _Buffer[256];
+	FILE* _FilePtr = fopen(_File, "r");
+	struct Array* _Array = NULL;
+
+	if(_FilePtr == NULL)
+		return NULL;
+
+	while((_Char = fgetc(_FilePtr)) != EOF) {
+		if(_Char == _Delimiter)
+			++_Size;
+	}
+	rewind(_FilePtr);
+	_Array = CreateArray(_Size);
+	while((_Char = fgetc(_FilePtr)) != EOF) {
+			if(_Char == _Delimiter && _Pos > 0) {
+				_Buffer[_Pos] = 0;
+				_Name = (char*) malloc(sizeof(char) * _Pos + 1);
+				_Name[0] = 0;
+				strncat(_Name, _Buffer, _Pos);
+				Array_Insert(_Array, _Name);
+				_Pos = 0;
+			} else {
+				if(_Pos >= 256)
+					return _Array;
+				_Buffer[_Pos++] = _Char;
+			}
+		}
+	return _Array;
+}
+
+void World_Init() {
+	g_ManorList = (struct LinkedList*) CreateLinkedList();
+	struct Array* _Array = NULL;
+
+	chdir(g_DataFld);
+	_Array = LoadFile("FirstNames.txt", '\n');
+	Person_Init();
+	Family_Init(_Array);
+
+	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));
+
+	Person_Quit();
+	Family_Quit();
+}
+
+void World_Quit() {
+	struct LnkLst_Node* _Itr = g_ManorList->Front;
+
 	while(_Itr != NULL) {
-		free(_Itr->Data);
+		DestroyManor(_Itr->Data);
 		_Itr = _Itr->Next;
 	}
 	DestroyLinkedList(g_ManorList);
-	Person_Quit();
-}
-
-void LoadCSV(const char* _File, char*** _Array, int* _Size) {
-	char _Char = 0;
-	char _Buffer[256];
-	char* _Name;
-	int _Pos = 0;
-	struct LinkedList _List;
-	struct LnkLst_Node* _Itr = NULL;
-	int i = 0;
-	FILE* _FilePtr = fopen(_File, "r");
-
-	_List.Size = 0;
-	_List.Front = NULL;
-	_List.Back = NULL;
-
-	if(_FilePtr == NULL)
-		return;
-
-	while((_Char = fgetc(_FilePtr)) != EOF) {
-		if(_Char == ',' && _Pos > 0) {
-			_Name = (char*) malloc(sizeof(char) * _Pos + 1);
-			strncpy(_Name, _Buffer, _Pos);
-			LnkLst_PushBack(&_List, _Name);
-			++(*_Size);
-			_Pos = 0;
-		} else {
-			if(_Pos >= 256)
-				return;
-			_Buffer[_Pos++] = _Char;
-		}
-	}
-	_Itr = _List.Front;
-	*_Array = (char**) malloc(sizeof(char*) * *_Size);
-	while(_Itr != NULL) {
-		*_Array[i++] = (char*) _Itr->Data;
-		_Itr = _Itr->Next;
-	}
-	fclose(_FilePtr);
-}
-
-void SetArray(void*** _Array, int _Size, void* _Value) {
-	int i;
-	for(i = 0; i < _Size; ++i)
-		_Array[i] = NULL;
 }

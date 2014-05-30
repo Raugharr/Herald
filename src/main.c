@@ -11,11 +11,7 @@
 #endif
 
 int main(int argv, char** argc) {
-	struct Manor* _Manor = NULL;
-
 	HeraldInit();
-	_Manor = CreateManor("Test", 500);
-	DestroyManor(_Manor);
 	HeraldDestroy();
 	return 0;
 }

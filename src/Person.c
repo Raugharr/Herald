@@ -7,9 +7,12 @@
 
 #include "Herald.h"
 #include "Family.h"
+#include "Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
-#include "events/EventPerson.h"
+#include "sys/MemoryPool.h"
+#include "events/Event.h"
+
 
 #include <stdlib.h>
 
@@ -39,7 +42,6 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Nutrition = _Nutrition;
 	_Person->Family = NULL;
 	_Person->Parent = NULL;
-	_Person->Ocupation = NULL;
 	return _Person;
 }
 

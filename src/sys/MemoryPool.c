@@ -6,6 +6,9 @@
 #include "MemoryPool.h"
 
 #include <stdlib.h>
+#ifdef DEBUG
+#include <assert.h>
+#endif
 
 #define MEMPOOL_NEXT(__MemPool, __Index) ((struct Node*)((char*)(__MemPool)->Free) + ((__Index) * ((__MemPool)->SizeOf + sizeof(struct Node))))
 
@@ -23,9 +26,16 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 		_Node = _Node->Next;
 	}
 	MEMPOOL_NEXT(_MemPool, _Quantity - 1)->Next = NULL;
+#ifdef DEBUG
+	_MemPool->MaxSize = _Quantity;
+	_MemPool->Size = _MemPool->MaxSize;
+#endif
 	return _MemPool;
 }
 void DestroyMemoryPool(struct MemoryPool* _MemPool) {
+#ifdef DEBUG
+	assert(_MemPool->MaxSize == _MemPool->Size);
+#endif
 	free(_MemPool->Free);
 	free(_MemPool);
 }
@@ -36,6 +46,9 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 		return NULL;
 	_Node = _MemPool->Free;
 	_MemPool->Free = _MemPool->Free->Next;
+#ifdef DEBUG
+	--_MemPool->Size;
+#endif
 	return _Node + sizeof(struct Node);
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
@@ -47,5 +60,7 @@ void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
 	}
 	_Node->Next = _MemPool->Free;
 	_MemPool->Free = _Node;
+#ifdef DEBUG
+	++_MemPool->Size;
+#endif
 }
-

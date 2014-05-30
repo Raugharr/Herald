@@ -13,10 +13,6 @@
 #define YEAR(__Date) (__Date >> 9) 
 #define MONTH(__Date) ((__Date >> 5) & 15)
 #define DAY(__Date) (__Date & 31)
-struct Array {
-	void** Table;
-	int Size;
-};
 
 enum {
 	BABY = 0,
@@ -33,7 +29,7 @@ extern struct HashTable g_Goods;
 extern struct HashTable g_Buildings;
 extern struct HashTable g_Strings;
 
-extern struct Constraint** g_AgeDistr;
+//extern struct Constraint** g_AgeDistr;
 extern struct Constraint** g_AgeConstraints;
 extern struct Constraint** g_AgeGroups;
 //TODO: g_FamilySize and g_AgeAvg are only used for generation of manor's and should only be exposed to the function that does this.
@@ -47,7 +43,8 @@ extern struct LinkedList* g_ManorList;
 
 void HeraldInit();
 void HeraldDestroy();
-void LoadCSV(const char* _File, char*** _Array, int* _Size);
-void SetArray(void*** _Array, int _Size, void* _Value);
+struct Array* LoadFile(const char* _File, char _Delimiter);
+void World_Init();
+void World_Quit();
 
 #endif

@@ -6,6 +6,8 @@
 #ifndef __EVENT_H
 #define __EVENT_H
 
+#include "EventPerson.h"
+
 enum {
 	EVENTBIRTH = 0,
 	EVENTDEATH

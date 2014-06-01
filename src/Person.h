@@ -21,6 +21,7 @@ struct Person {
 	int Nutrition;
 	struct Family* Family;
 	struct Family* Parent;
+	struct Occupation* Occupation;
 };
 
 struct Pregancy {
@@ -31,6 +32,7 @@ struct Pregancy {
 void Person_Init();
 void Person_Quit();
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition);
+void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
 void Person_Update(struct Person* _Person, int _NutVal);

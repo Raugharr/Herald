@@ -7,7 +7,7 @@
 
 #include "Herald.h"
 #include "Family.h"
-#include "Constraint.h"
+#include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
 #include "sys/MemoryPool.h"
@@ -42,7 +42,12 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Nutrition = _Nutrition;
 	_Person->Family = NULL;
 	_Person->Parent = NULL;
+	_Person->Occupation = NULL;
 	return _Person;
+}
+
+void DestroyPerson(struct Person* _Person) {
+	free(_Person);
 }
 
 struct Person* CreateChild(struct Family* _Family) {
@@ -54,7 +59,7 @@ struct Person* CreateChild(struct Family* _Family) {
 	else
 		_Child->Name = "Foo";
 	_Child->Age = 0;
-	_Child->Nutrition = _Family->Wife->Nutrition;
+	_Child->Nutrition = _Family->People[WIFE]->Nutrition;
 	_Child->Family = NULL;
 	_Child->Parent = _Family;
 	return _Child;
@@ -88,7 +93,7 @@ void Person_Update(struct Person* _Person, int _NutVal) {
 void Birth(struct Pregancy* _Pregancy) {
 	if(--_Pregancy->TTP <= 0) {
 		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
-		_Pregancy->Mother->Family->Children[_Pregancy->Mother->Family->NumChildren++] = _Child;
+		_Pregancy->Mother->Family->People[CHILDREN + _Pregancy->Mother->Family->NumChildren++] = _Child;
 		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
 	}
 }

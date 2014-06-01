@@ -8,15 +8,16 @@
 
 #define CHILDREN_SIZE (8)
 
+#define HUSBAND (0)
+#define WIFE (1)
+#define CHILDREN (2)
+
 struct Person;
 struct Array;
 
 struct Family {
 	const char* Name;
-	struct Person* Husband;
-	struct Person* Wife;
-	struct Person** Children;
-	struct Occupation* Occupation;
+	struct Person** People;
 	int NumChildren;
 };
 
@@ -27,6 +28,8 @@ struct Family* CreateRandFamily(const char* _Name, int _Size);
 void DestroyFamily(struct Family* _Family);
 int Family_Size(struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
+int Family_Work(const struct Family* _Family);
+void Family_Update(struct Family* _Family);
 
 #endif
 

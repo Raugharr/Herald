@@ -9,8 +9,8 @@
 #include "Good.h"
 #include "Building.h"
 #include "Person.h"
-#include "Constraint.h"
 #include "Family.h"
+#include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
 #include "sys/HashTable.h"
@@ -128,4 +128,13 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	}
 	LnkLst_PushBack(_List, _NewBuilding);
 	return 1;
+}
+
+int Manor_Tick(struct Manor* _Manor) {
+	struct LnkLst_Node* _Itr = _Manor->Families.Front;
+
+	while(_Itr != NULL) {
+		Family_Update(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 }

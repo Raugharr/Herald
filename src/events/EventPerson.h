@@ -6,8 +6,8 @@
  #ifndef __EVENTPERSON_H
  #define __EVENTPERSON_H
 
-extern char* g_EventBirthMsg;
-extern char* g_EventDeathMsg;
+extern char g_EventBirthMsg[];
+extern char g_EventDeathMsg[];
 
 struct Event;
 

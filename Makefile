@@ -2,7 +2,7 @@ SRC=src/
 
 .PHONY: src clean
 
-src:
+all:
 	$(MAKE) -C $(SRC)
 
 clean:

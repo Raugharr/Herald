@@ -10,7 +10,8 @@
 
 enum {
 	EVENTBIRTH = 0,
-	EVENTDEATH
+	EVENTDEATH,
+	EVENTHARVEST
 };
 
 struct Event {

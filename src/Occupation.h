@@ -7,6 +7,7 @@
 #define __OCCUPATION_H
 
 enum {
+	ENONE = 0,
 	EFARMER
 };
 
@@ -15,20 +16,16 @@ struct Workplace {
 	struct Building* Workplace;
 };
 
-union JobUnion{
-	struct Workplace* Workplace;
-	int Occupation;
-};
-
 struct Occupation {
 	int Id;
 	const char* Name;
-	union JobUnion Job;
+	struct Workplace Job;
 	int SpecialJob;
 	struct Constraint* AgeConst;
 };
 
-struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, struct Building* _Workplace);
+struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, struct Building* _Workplace, struct Constraint* AgeConst);
+struct Occupation* CreateOccupationSpecial(const char* _Name, int _Job);
 struct Occupation* CopyOccupation(const struct Occupation* _Occupation);
 void DestroyOccupation(struct Occupation* _Occupation);
 

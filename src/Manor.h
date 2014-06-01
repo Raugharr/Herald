@@ -21,10 +21,6 @@ struct Manor {
 	int Income; //Last year's profits.
 	struct Population PopCenter;
 	struct LinkedList Families;
-	/*
-	 * Note: m_Goods, m_Crops, m_Animals, and m_Production might no longer be needed as these should be handled by each household.
-	 * Note: m_Production might be needed to keep a priority list so when goods are produced prerequiste goods are made first.
-	 */
 	struct HashTable Goods;//Key is name of Good, pair is struct Good*
 	struct LinkedList Crops;//Key is name of crop, pair is struct Crop*
 	struct LinkedList Animals;//Key is name of Population, pair is struct Population*
@@ -36,6 +32,7 @@ struct Manor {
 
 struct Manor* CreateManor(const char* _Name, int _Population);
 void DestroyManor(struct Manor* _Manor);
-int AddBuilding(struct Manor* _Manor, const struct Building* _Building);
+int AddBulding(struct Manor* _Manor, const struct Building* _Building);
+int Manor_Tick(struct Manor* _Manor);
 
 #endif

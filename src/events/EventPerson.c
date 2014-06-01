@@ -9,6 +9,9 @@
 
 #include <stdlib.h>
 
+char g_EventBirthMsg[] = "%s has given birth to %s.";
+char g_EventDeathMsg[] = "%s has died.";
+
 struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child) {
 	struct EventBirth* _EventBirth = (struct EventBirth*) malloc(sizeof(struct EventBirth));
 
@@ -17,6 +20,7 @@ struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child) {
 	_EventBirth->Child = _Child;
 	return ((struct Event*)_EventBirth);
 }
+
 struct Event* CreateEventDeath(struct Person* _Person) {
 	struct EventDeath* _EventDeath = (struct EventDeath*) malloc(sizeof(struct EventDeath));
 

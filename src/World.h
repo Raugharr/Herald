@@ -19,7 +19,7 @@ extern struct Array* g_World;
 
 //Each tile represents a mile of the world.
 struct WorldTile {
-
+	int Temperature;
 };
 
 void World_Init(int _Area);

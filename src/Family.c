@@ -94,10 +94,15 @@ void Marry(struct Person* _Male, struct Person* _Female) {
 int Family_Work(const struct Family* _Family) {
 	int _Total = _Family->People[HUSBAND]->Nutrition;
 	int i;
+	int _Ct = 0;
 
 	for(i = 0; i < _Family->NumChildren; ++i) {
-		_Total += _Family->People[CHILDREN + i]->Nutrition;
+		if(_Family->People[CHILDREN + i]->Gender == EMALE) {
+			_Total += _Family->People[CHILDREN + i]->Nutrition;
+			++_Ct;
+		}
 	}
+	return _Total / (_Ct + 1);
 }
 
 void Family_Update(struct Family* _Family) {

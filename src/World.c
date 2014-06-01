@@ -24,7 +24,7 @@
 #endif
 
 int g_Date = 0;
-char g_DataFld[] = "Data/";
+char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
 

@@ -14,7 +14,8 @@ enum {
 	EARMOR = (1 << 4),
 	ESHIELD = (1 << 5),
 	ESEED = (1 << 6),
-	EOTHER = (1 << 7)
+	ETOOL = (1 << 7),
+	EOTHER = (1 << 8)
 };
 
 struct Good {

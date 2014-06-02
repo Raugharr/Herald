@@ -10,14 +10,19 @@
 #include "Manor.h"
 #include "Person.h"
 #include "Family.h"
+#include "Crop.h"
+#include "sys/LinkedList.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
 #include "sys/HashTable.h"
 #include "sys/Array.h"
 
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -27,22 +32,55 @@ int g_Date = 0;
 char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
+lua_State* g_LuaState = NULL;
+
+void LoadLuaFile(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
+	int _Error = luaL_loadfile(_State, _File);
+
+	switch(_Error) {
+		case LUA_ERRSYNTAX:
+			printf("%s", lua_tostring(_State, -1));
+			return;
+		case LUA_ERRFILE:
+			printf("Cannot load file: %s", _File);
+			return;
+	}
+	lua_pcall(_State, 0, 0, 0);
+	lua_getglobal(_State, _Global);
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(!lua_istable(_State, -1)) {
+			printf("Warning: index is not a table.");
+			continue;
+		}
+		LnkLst_PushBack(_Return, _Callback(_State, -1));
+		lua_pop(_State, 1);
+	}
+}
 
 void World_Init(int _Area) {
 	struct Array* _Array = NULL;
+	struct LinkedList* _CropList = CreateLinkedList();
+	struct LinkedList* _OccupationList = CreateLinkedList();
+	struct LnkLst_Node* _Itr = NULL;
 
 	g_World = CreateArray(_Area * _Area);
+	g_LuaState = luaL_newstate();
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	Hash_Insert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);
 	_Array = LoadFile("FirstNames.txt", '\n');
 	Person_Init();
 	Family_Init(_Array);
+	LoadLuaFile(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&LoadCrop, _CropList);
+	LoadLuaFile(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&LoadOccupation, _OccupationList);
+
+	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
+	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));
-
-	Person_Quit();
-	Family_Quit();
+	DestroyLinkedList(_CropList);
+	DestroyLinkedList(_OccupationList);
 }
 
 void World_Quit() {
@@ -54,6 +92,9 @@ void World_Quit() {
 	}
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);
+	Person_Quit();
+	Family_Quit();
+	lua_close(g_LuaState);
 }
 
 void NextDay(int* _Date) {

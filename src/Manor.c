@@ -64,7 +64,7 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 
 	_Manor->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	_Manor->Population = _Population;
-	_Manor->Acres = 0;
+	_Manor->Acres = 600;
 	_Manor->FreeAcres = 0;
 	_Manor->Treasury = Random(2, 4) * _Population;
 	_Manor->Income = 0;
@@ -137,4 +137,5 @@ int Manor_Tick(struct Manor* _Manor) {
 		Family_Update(_Itr->Data);
 		_Itr = _Itr->Next;
 	}
+	return 1;
 }

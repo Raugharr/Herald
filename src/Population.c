@@ -16,6 +16,7 @@ struct Population* CreatePopulation(const char* _Name, int _AdultFood, int _Chil
 	_Population->AdultAge = _AdultAge;
 	return _Population;
 }
+
 struct Population* CopyPopulation(const struct Population* _Population, int _Quantity) {
 	struct Population* _NewPopulation = (struct Population*) malloc(sizeof(struct Population));
 
@@ -26,6 +27,7 @@ struct Population* CopyPopulation(const struct Population* _Population, int _Qua
 	_NewPopulation->Quantity = _Population->AdultFood;
 	return _NewPopulation;
 }
+
 void DestroyPopulation(struct Population* _Population) {
 	free(_Population);
 }

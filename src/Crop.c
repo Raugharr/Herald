@@ -30,10 +30,13 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 	strcpy(_GoodName, _Name);
 	strcat(_GoodName, CROPGOOD);
 	RBTree_Insert(&g_Strings, _GoodName);
-	if(Hash_Find(&g_Goods, _GoodName, _Good)) {
+	if(Hash_Find(&g_Goods, _GoodName, _Good))
 		DestroyGood(_Good);
-	}
+	if(Hash_Find(&g_Goods, _Name, _Good))
+		DestroyGood(_Good);
+
 	Hash_Insert(&g_Goods, _GoodName, CreateGood(_GoodName, ESEED));
+	Hash_Insert(&g_Goods, _GoodName, CreateGood(_Name, EINGREDIENT));
 	_Crop->Name = _Name;
 	return _Crop;
 }

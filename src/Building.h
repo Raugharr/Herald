@@ -11,6 +11,11 @@
 struct Good;
 struct HashTable;
 
+struct BuildReq {
+	void* Req;
+	int Quantity;
+};
+
 struct Building {
 	char* Name;
 	struct Good* OutputGood;
@@ -19,10 +24,12 @@ struct Building {
 	int Tax;//Property tax on this building.
 	int Size; //Size in square feet.
 	int Id;
-	struct LinkedList BuildMats;//Goods that are required to build this building.
+	struct LinkedList BuildMats;//BuildMaterials that are required to build this building.
 	struct LinkedList Animals;
 };
 
+struct BuildReq* CreateBuildReq();
+void DestroyBuildReq(struct BuildReq* _Mat);
 struct Building* CreateBuilding(const char* _Name, struct Good* _Output, int _Tax, int _Throughput, int _SquareFeet);
 struct Building* CopyBuilding(const struct Building* _Building, struct Good* _Good);
 void DestroyBuilding(struct Building* _Building);

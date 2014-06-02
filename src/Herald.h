@@ -13,6 +13,14 @@
 #define MANORSZ_MIN (50)
 #define MANORSZ_INTRVL (50)
 #define MANORSZ_MAX (800)
+#define LISTTOHASH(__List, __Itr, __Hash, __Key)			\
+	(__Itr) = (__List)->Front;								\
+	while((__Itr) != NULL) {								\
+		Hash_Insert((__Hash), (__Key), (__Itr)->Data);		\
+		(__Itr) = (__Itr)->Next;							\
+	}
+
+typedef struct lua_State lua_State;
 
 enum {
 	BABY = 0,
@@ -26,6 +34,7 @@ extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_Buildings;
 extern struct HashTable g_Occupations;
+extern struct HashTable g_Populations;
 extern struct RBTree g_Strings;
 
 extern struct Constraint** g_AgeConstraints;
@@ -43,6 +52,10 @@ extern struct LinkedList* g_ManorList;
 void HeraldInit();
 void HeraldDestroy();
 struct Array* LoadFile(const char* _File, char _Delimiter);
+struct Crop* LoadCrop(lua_State* _State, int _Index);
+struct Building* LoadBuilding(lua_State* _State, int _Index);
+struct Population* LoadPopulation(lua_State* _State, int _Index);
+struct Occupation* LoadOccupation(lua_State* _State, int _Index);
 int Tick();
 
 #endif

@@ -5,6 +5,8 @@
 
 #include "LuaHelper.h"
 
+#include <lua/lauxlib.h>
+
 int AddInteger(lua_State* _State, int _Index, int* _Number) {
 	if(lua_isnumber(_State, _Index)) {
 		*_Number = lua_tointeger(_State, _Index);

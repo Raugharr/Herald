@@ -5,8 +5,22 @@
 
 #include "Building.h"
 
+#include "sys/LinkedList.h"
+
 #include <stdlib.h>
 #include <string.h>
+
+struct BuildReq* CreateBuildReq() {
+	struct BuildReq* _Mat = (struct BuildReq*) malloc(sizeof(struct BuildReq));
+
+	_Mat->Req = NULL;
+	_Mat->Quantity = 0;
+	return _Mat;
+}
+
+void DestroyBuildReq(struct BuildReq* _Mat) {
+	free(_Mat);
+}
 
 struct Building* CreateBuilding(const char* _Name, struct Good* _Output, int _Tax, int _Throughput, int _SquareFeet) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
@@ -35,6 +49,13 @@ struct Building* CopyBuilding(const struct Building* _Building, struct Good* _Go
 }
 
 void DestroyBuilding(struct Building* _Building) {
+	struct LnkLst_Node* _Itr = _Building->BuildMats.Front;
+
+	while(_Itr != NULL) {
+		DestroyBuildReq(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+
 	free(_Building->Name);
 	free(_Building);
 }

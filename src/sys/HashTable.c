@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int Hash(const char* _Key) {
+unsigned int Hash(const char* _Key) {
 	int _Len = strlen(_Key);
 	int _Hash = 0;
 	int i;
@@ -32,7 +32,7 @@ int Hash(const char* _Key) {
 }
 
 int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair) {
-	int _Index = Hash(_Key);
+	int _Index = Hash(_Key) % _Hash->TblSize;
 	struct HashNode* _Node = _Hash->Table[_Index];
 
 	if(_Hash->TblSize == 0)
@@ -49,9 +49,10 @@ int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 
 void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 	char* _Str = (char*)malloc(sizeof(char) * strlen(_Key));
+	int _HashVal = Hash(_Key) % _Hash->TblSize;
 
 	strcpy(_Str, _Key);
-	struct HashNode* i = _Hash->Table[Hash(_Key)];
+	struct HashNode* i = _Hash->Table[_HashVal];
 	if(i != 0) {
 		while(1) {
 			if(i->Next == 0) {
@@ -69,7 +70,7 @@ void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 		i->Key = _Str;
 		i->Pair = _Pair;
 		i->Next = 0;
-		_Hash->Table[Hash(_Key)] = i;
+		_Hash->Table[_HashVal] = i;
 	}
 	++_Hash->Size;
 }

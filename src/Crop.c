@@ -13,9 +13,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CROPGOOD " Seeds"
+#define WORKMULT (1000)
 
-struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _StartMonth, int _EndMonth) {
+#define NextStatus(__Crop)				\
+{										\
+	if(__Crop->Status == EHARVESTING) {	\
+		__Crop->Status = EFALLOW;		\
+	} else {							\
+		++__Crop->Status;				\
+	}									\
+}
+
+struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
 	char* _GoodName = (char*) malloc(sizeof(char*) * strlen(_Name) + strlen(CROPGOOD) + 1);
 	struct Good* _Good = NULL;
@@ -24,9 +33,10 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
-	_Crop->StartMonth = _StartMonth;
-	_Crop->EndMonth = _EndMonth;
+	_Crop->GrowDays = _GrowDays;
 	_Crop->YieldTotal = 0;
+	_Crop->Acres = 0;
+	_Crop->Status = EFALLOW;
 	strcpy(_GoodName, _Name);
 	strcat(_GoodName, CROPGOOD);
 	RBTree_Insert(&g_Strings, _GoodName);
@@ -48,9 +58,10 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
-	_NewCrop->StartMonth = _Crop->StartMonth;
-	_NewCrop->EndMonth = _Crop->EndMonth;
-	_NewCrop->YieldTotal = 0;
+	_NewCrop->GrowDays = _Crop->GrowDays;
+	_NewCrop->YieldTotal = _Crop->YieldTotal;
+	_NewCrop->Acres = _Crop->Acres;
+	_NewCrop->Status = _Crop->Status;
 	return _NewCrop;
 }
 
@@ -58,9 +69,56 @@ void DestroyCrop(struct Crop* _Crop) {
 	free(_Crop);
 }
 
+int CropPlant(struct Crop* _Crop, struct Good* _Seeds) {
+	char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
+
+	if(_Crop->Status != EFALLOW)
+		return 0;
+
+	strcpy(_SeedName, _Crop->Name);
+	strcat(_SeedName, CROPGOOD);
+	if(strcmp(_Seeds->Name, _SeedName) != 0)
+		return 0;
+	if(_Seeds->Quantity < _Crop->PerAcre * _Crop->Acres)
+		return 0;
+	_Seeds->Quantity -= _Crop->PerAcre * _Crop->Acres;
+	_Crop->Status = EPLOWING;
+	_Crop->StatusTime = _Crop->Acres * WORKMULT;
+	return 1;
+}
+
 void CropWork(struct Crop* _Crop, int _Total) {
 	int _Val = _Total;
 
-	_Crop->YieldTotal += _Val / DaysBetween(TO_DATE(0, _Crop->StartMonth, 0), TO_DATE(0, _Crop->EndMonth, 0));
+	switch(_Crop->Status) {
+		case EGROWING:
+			_Crop->YieldTotal += _Val / _Crop->GrowDays;
+			break;
+		case EFALLOW:
+			return;
+		default:
+			_Crop->StatusTime -= _Total * WORKMULT;
+			if(_Crop->StatusTime <= 0)
+				NextStatus(_Crop);
+			break;
+	}
 }
 
+void CropHarvest(struct Crop* _Crop, struct Good* _Seeds) {
+	char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
+
+	strcpy(_SeedName, _Crop->Name);
+	strcat(_SeedName, CROPGOOD);
+	if(strcmp(_Seeds->Name, _SeedName) != 0)
+		return;
+	if(_Crop->Status != EHARVESTING)
+		return;
+	_Crop->Acres = _Crop->Acres - (_Crop->Acres -_Crop->StatusTime);
+	_Seeds->Quantity = TOPOUND(_Crop->Acres * _Crop->PerAcre / WORKMULT);
+}
+
+int Crop_Update(struct Crop* _Crop) {
+	if(_Crop->Status == EGROWING)
+		--_Crop->StatusTime;
+	return 1;
+}

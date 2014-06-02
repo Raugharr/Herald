@@ -202,12 +202,10 @@ struct Good* LoadGood(lua_State* _State, int _Index) {
 struct Crop* LoadCrop(lua_State* _State, int _Index) {
 	const char* _Name = NULL;
 	const char* _Key = NULL;
-	const char* _Temp = NULL;
 	int _PerAcre = 0;
 	double _YieldMult = 0;
 	int _NutValue = 0;
-	int _StartMonth = 0;
-	int _EndMonth = 0;
+	int _GrowTime = 0;
 	int _Return = -2;
 
 	lua_getmetatable(_State, _Index);
@@ -225,22 +223,14 @@ struct Crop* LoadCrop(lua_State* _State, int _Index) {
 			_Return = AddInteger(_State, -1, &_NutValue);
 		else if (!strcmp("Name", _Key))
 			_Return = AddString(_State, -1, &_Name);
-		else if (!strcmp("StartMonth", _Key)) {
-			_Return = AddString(_State, -1, &_Temp);
-			_StartMonth = MonthToInt(_Temp);
-			if(_StartMonth == -1)
-				_Return = 0;
-		} else if (!strcmp("EndMonth", _Key)) {
-			_Return = AddString(_State, -1, &_Temp);
-			_EndMonth = MonthToInt(_Temp);
-			if(_EndMonth == -1)
-				_Return = 0;
+		else if (!strcmp("GrowTime", _Key)) {
+			_Return = AddInteger(_State, -1, &_GrowTime);
 		}
 		lua_pop(_State, 1);
 		if(!(_Return > 0))
 			return NULL;
 	}
-	return CreateCrop(_Name, _PerAcre, _NutValue, _YieldMult, _StartMonth, _EndMonth);
+	return CreateCrop(_Name, _PerAcre, _NutValue, _YieldMult, _GrowTime);
 }
 
 
@@ -410,7 +400,7 @@ int Tick() {
 	struct LnkLst_Node* _Itr = g_ManorList->Front;
 
 	while(_Itr != NULL) {
-		if(Manor_Tick(_Itr->Data) == 0)
+		if(Manor_Update(_Itr->Data) == 0)
 			return 0;
 		_Itr = _Itr->Next;
 	}

@@ -10,6 +10,7 @@
 #include "Building.h"
 #include "Person.h"
 #include "Family.h"
+#include "Crop.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
@@ -18,17 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-struct ManorCrop {
-	struct Crop* Crop;
-	int Acres;
-	/*
-	 * m_FreeAcres represents the number of acres that couldn't be
-	 * used because of a lack of seeds.
-	 */
-	int FreeAcres;
-	int Seeds;
-};
 
 void PopulateManor(struct Manor* _Manor) {
 	int _Population = _Manor->Population;
@@ -46,17 +36,6 @@ void PopulateManor(struct Manor* _Manor) {
 		}
 		_Population -= Family_Size(_Parent);
 	}
-}
-
-struct ManorCrop* CreateManorCrop(struct Crop* _Crop, int _Acres) {
-	struct ManorCrop* _ManorCrop = (struct ManorCrop*) malloc(sizeof(struct ManorCrop));
-
-	_ManorCrop->Crop = _Crop;
-	_ManorCrop->Acres = _Acres;
-	_ManorCrop->FreeAcres = 0;
-	_ManorCrop->Seeds = 0;
-
-	return _ManorCrop;
 }
 
 struct Manor* CreateManor(const char* _Name, int _Population) {
@@ -99,6 +78,22 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 }
 
 void DestroyManor(struct Manor* _Manor) {
+	struct LnkLst_Node* _Itr = _Manor->Families.Front;
+
+	while(_Itr != NULL) {
+		DestroyFamily(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	_Itr = _Manor->Crops.Front;
+	while(_Itr != NULL) {
+		DestroyCrop(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	_Itr = _Manor->Animals.Front;
+	while(_Itr != NULL) {
+		DestroyPopulation(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 	free(_Manor->Name);
 	free(_Manor);
 }
@@ -130,11 +125,35 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	return 1;
 }
 
-int Manor_Tick(struct Manor* _Manor) {
+int Manor_Update(struct Manor* _Manor) {
 	struct LnkLst_Node* _Itr = _Manor->Families.Front;
 
 	while(_Itr != NULL) {
 		Family_Update(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	_Itr = _Manor->Crops.Front;
+	while(_Itr != NULL) {
+		struct Crop* _Crop = (struct Crop*)_Itr->Data;
+		struct Good* _Good = NULL;
+		char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
+
+		Crop_Update(_Itr->Data);
+		Hash_Find(&_Manor->Goods, _SeedName, _Good);
+		if(_Crop->Status == EFALLOW) {
+			if(_Good == NULL)
+				continue;
+			CropPlant(_Itr->Data, _Good);
+		} else if(_Crop->Status == EHARVESTING) {
+			struct Good* _CropSeed = NULL;
+
+			if(Hash_Find(&g_Goods, _SeedName, _CropSeed) == 0)
+				return 0;
+			_Good = CopyGood(_CropSeed);
+			if(_Good == NULL)
+				Hash_Insert(&_Manor->Goods, _SeedName, _Good);
+			CropHarvest(_Crop, _Good);
+		}
 		_Itr = _Itr->Next;
 	}
 	return 1;

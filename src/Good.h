@@ -6,6 +6,8 @@
 #ifndef __GOOD_H
 #define __GOOD_H
 
+#include "sys/LinkedList.h"
+
 enum {
 	EFOOD = (1 << 0),
 	EINGREDIENT = (1 << 1),
@@ -24,6 +26,7 @@ struct Good {
 	int Quantity;
 	int Id;
 	int Price;
+	struct LinkedList InputGoods;
 };
 
 struct Good* CreateGood(const char* _Name, int _Category);

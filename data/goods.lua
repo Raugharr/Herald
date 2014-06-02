@@ -9,5 +9,15 @@ Goods = {
 		Name = "Bread Loaf",
 		Categories = {"Food"},
 		InputGoods = {{"Flour", 1}}
+	},
+	
+	{
+		Name = "Scyth",
+		Categories = {"Tool"}
+	},
+	
+	{
+		Name = "Plow",
+		Categories = {"Tool"}
 	}
 }

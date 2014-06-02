@@ -5,6 +5,8 @@
 
 #include "Good.h"
 
+#include "Herald.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,6 +35,12 @@ struct Good* CopyGood(const struct Good* _Good) {
 }
 
 void DestroyGood(struct Good* _Good) {
+	struct LnkLst_Node* _Itr = _Good->InputGoods.Front;
+
+	while(_Itr != NULL) {
+		DestroyInputReq(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 	free(_Good->Name);
 	free(_Good);
 }

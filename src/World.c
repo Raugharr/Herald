@@ -11,6 +11,7 @@
 #include "Person.h"
 #include "Family.h"
 #include "Crop.h"
+#include "Building.h"
 #include "sys/LinkedList.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
@@ -61,6 +62,8 @@ void LoadLuaFile(lua_State* _State, const char* _File, const char* _Global, void
 void World_Init(int _Area) {
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
+	struct LinkedList* _BuildList = CreateLinkedList();
+	struct LinkedList* _PopList = CreateLinkedList();
 	struct LinkedList* _OccupationList = CreateLinkedList();
 	struct LnkLst_Node* _Itr = NULL;
 
@@ -73,9 +76,13 @@ void World_Init(int _Area) {
 	Person_Init();
 	Family_Init(_Array);
 	LoadLuaFile(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&LoadCrop, _CropList);
+	LoadLuaFile(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&LoadBuilding, _BuildList);
+	LoadLuaFile(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&LoadPopulation, _PopList);
 	LoadLuaFile(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&LoadOccupation, _OccupationList);
 
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
+	LISTTOHASH(_BuildList, _Itr, &g_Buildings, ((struct Building*)_Itr->Data)->Name);
+	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));

@@ -11,6 +11,7 @@
 #include "Manor.h"
 #include "Building.h"
 #include "World.h"
+#include "Good.h"
 #include "LuaWrappers.h"
 #include "Occupation.h"
 #include "Population.h"
@@ -83,6 +84,18 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_ManorSize);
 }
 
+struct InputReq* CreateInputReq() {
+	struct InputReq* _Mat = (struct InputReq*) malloc(sizeof(struct InputReq));
+
+	_Mat->Req = NULL;
+	_Mat->Quantity = 0;
+	return _Mat;
+}
+
+void DestroyInputReq(struct InputReq* _Mat) {
+	free(_Mat);
+}
+
 struct Array* LoadFile(const char* _File, char _Delimiter) {
 	int _Pos = 0;
 	int _Size = 1;
@@ -116,6 +129,74 @@ struct Array* LoadFile(const char* _File, char _Delimiter) {
 			}
 		}
 	return _Array;
+}
+
+struct Good* LoadGood(lua_State* _State, int _Index) {
+	struct Good* _Good = NULL;
+	const char* _Name = NULL;
+	const char* _Temp = NULL;
+	int _Categories = 0;
+	int _Return = -2;
+
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_isstring(_State, -2)) {
+			if(!strcmp("Name", lua_tostring(_State, -2)))
+				_Return = AddString(_State, -1, &_Name);
+			else if(!strcmp("Categories", lua_tostring(_State, -2))) {
+
+				lua_pushnil(_State);
+				while(lua_next(_State, -2) != 0) {
+					if(lua_isstring(_State, -1) == 1) {
+						_Temp = lua_tostring(_State, -1);
+					if(!strcmp("Food", _Temp))
+						_Categories |= EFOOD;
+					else if(!strcmp("Ingredient", _Temp))
+						_Categories |= EINGREDIENT;
+					else if(!strcmp("Animal", _Temp))
+						_Categories |= EANIMAL;
+					else if(!strcmp("Weapon", _Temp))
+						_Categories |= EWEAPON;
+					else if(!strcmp("Armor", _Temp))
+						_Categories |= EARMOR;
+					else if(!strcmp("Shield", _Temp))
+						_Categories |= ESHIELD;
+					else if(!strcmp("Seed", _Temp))
+						_Categories |= ESEED;
+					else if(!strcmp("Tool", _Temp))
+						_Categories |= ETOOL;
+					else if(!strcmp("Other", _Temp))
+						_Categories |= EOTHER;
+					}
+					lua_pop(_State, 1);
+				}
+			}
+		}
+		lua_pop(_State, 1);
+	}
+	_Good = CreateGood(_Name, _Categories);
+	lua_getfield(_State, -1, "InputGoods");
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_isstring(_State, -2) == 1) {
+			struct InputReq* _Req = CreateInputReq();
+			_Temp = lua_tostring(_State, -2);
+			if(Hash_Find(&g_Goods, _Temp, _Req->Req) == 1) {
+				_Return = AddInteger(_State, -1, &_Req->Quantity);
+				LnkLst_PushBack(&_Good->InputGoods, _Req);
+			} else {
+				DestroyInputReq(_Req);
+				goto fail;
+			}
+		}
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
+	if(_Return > 0)
+		return _Good;
+	fail:
+	DestroyGood(_Good);
+	return NULL;
 }
 
 struct Crop* LoadCrop(lua_State* _State, int _Index) {
@@ -201,7 +282,7 @@ struct Building* LoadBuilding(lua_State* _State, int _Index) {
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
 				if(lua_isstring(_State, -2)) {
-					struct BuildReq* _Good = CreateBuildReq();
+					struct InputReq* _Good = CreateInputReq();
 					int _Return = AddInteger(_State, -1, &_Good->Quantity);
 					if(_Return == -1) {
 						_Building = NULL;
@@ -219,7 +300,7 @@ struct Building* LoadBuilding(lua_State* _State, int _Index) {
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
 				if(lua_isstring(_State, -2)) {
-					struct BuildReq* _Animal = CreateBuildReq();
+					struct InputReq* _Animal = CreateInputReq();
 					struct Population* _Info = NULL;
 					int _Return = AddInteger(_State, -1, &_Animal->Quantity);
 					if(_Return == -1) {
@@ -285,7 +366,7 @@ struct Population* LoadPopulation(lua_State* _State, int _Index) {
 		if(!(_Return > 0))
 			return NULL;
 	}
-	return CreatePopulation(_Name, _AdultFood, _ChildFood, _AdultAge);;
+	return CreatePopulation(_Name, _AdultFood, _ChildFood, _AdultAge);
 }
 
 struct Occupation* LoadOccupation(lua_State* _State, int _Index) {

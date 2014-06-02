@@ -30,6 +30,11 @@ enum {
 	SENIOR
 };
 
+struct InputReq {
+	void* Req;
+	int Quantity;
+};
+
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_Buildings;
@@ -51,6 +56,8 @@ extern struct LinkedList* g_ManorList;
 
 void HeraldInit();
 void HeraldDestroy();
+struct InputReq* CreateInputReq();
+void DestroyInputReq(struct InputReq* _Mat);
 struct Array* LoadFile(const char* _File, char _Delimiter);
 struct Crop* LoadCrop(lua_State* _State, int _Index);
 struct Building* LoadBuilding(lua_State* _State, int _Index);

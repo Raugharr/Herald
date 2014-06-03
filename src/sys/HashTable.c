@@ -32,8 +32,13 @@ unsigned int Hash(const char* _Key) {
 }
 
 int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair) {
-	int _Index = Hash(_Key) % _Hash->TblSize;
-	struct HashNode* _Node = _Hash->Table[_Index];
+	int _Index = 0;
+	struct HashNode* _Node = NULL;
+
+	if(_Key == NULL)
+		return 0;
+	_Index = Hash(_Key) % _Hash->TblSize;
+	_Node = _Hash->Table[_Index];
 
 	if(_Hash->TblSize == 0)
 		return 0;

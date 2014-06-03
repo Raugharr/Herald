@@ -46,7 +46,7 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 		DestroyGood(_Good);
 
 	Hash_Insert(&g_Goods, _GoodName, CreateGood(_GoodName, ESEED));
-	Hash_Insert(&g_Goods, _GoodName, CreateGood(_Name, EINGREDIENT));
+	Hash_Insert(&g_Goods, _Name, CreateGood(_Name, EINGREDIENT));
 	_Crop->Name = _Name;
 	return _Crop;
 }

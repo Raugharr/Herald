@@ -31,7 +31,7 @@ unsigned int Hash(const char* _Key) {
 	return (_Hash & 0x7FFFFFFF);
 }
 
-int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair) {
+int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair) {
 	int _Index = 0;
 	struct HashNode* _Node = NULL;
 
@@ -44,7 +44,7 @@ int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 		return 0;
 	while(_Node != 0) {
 		if(!strcmp(_Node->Key, _Key)) {
-			_Pair = _Node->Pair;
+			*_Pair = _Node->Pair;
 			return 1;
 		}
 		_Node = _Node->Next;

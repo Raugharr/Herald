@@ -18,7 +18,7 @@ struct HashTable {
 	int Size;
 };
 
-int Hash_Find(struct HashTable* _Hash, const char* _Key, void* _Pair);
+int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair);
 void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair);
 
 #endif /* HASHTABLE_H */

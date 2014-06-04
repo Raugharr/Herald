@@ -12,6 +12,7 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Building.h"
+#include "Good.h"
 #include "sys/LinkedList.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
@@ -35,26 +36,38 @@ char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 struct Array* g_World = NULL;
 lua_State* g_LuaState = NULL;
 
-void LoadLuaFile(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
+int LoadLuaFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
 
 	switch(_Error) {
 		case LUA_ERRSYNTAX:
 			printf("%s", lua_tostring(_State, -1));
-			return;
+			return _Error;
 		case LUA_ERRFILE:
 			printf("Cannot load file: %s", _File);
-			return;
+			return _Error ;
 	}
 	lua_pcall(_State, 0, 0, 0);
+	return 1;
+}
+
+void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
+	void* _CallRet = NULL;
+
+	if(LoadLuaFile(_State, _File) != 1)
+		return;
 	lua_getglobal(_State, _Global);
+	if(!lua_istable(_State, -1))
+		return;
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(!lua_istable(_State, -1)) {
 			printf("Warning: index is not a table.");
+			lua_pop(_State, 1);
 			continue;
 		}
-		LnkLst_PushBack(_Return, _Callback(_State, -1));
+		if((_CallRet = _Callback(_State, -1)) != NULL)
+				LnkLst_PushBack(_Return, _CallRet);
 		lua_pop(_State, 1);
 	}
 }
@@ -62,6 +75,7 @@ void LoadLuaFile(lua_State* _State, const char* _File, const char* _Global, void
 void World_Init(int _Area) {
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
+	struct LinkedList* _GoodList = CreateLinkedList();
 	struct LinkedList* _BuildList = CreateLinkedList();
 	struct LinkedList* _PopList = CreateLinkedList();
 	struct LinkedList* _OccupationList = CreateLinkedList();
@@ -72,13 +86,28 @@ void World_Init(int _Area) {
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	Hash_Insert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);
-	_Array = LoadFile("FirstNames.txt", '\n');
+	_Array = FileLoad("FirstNames.txt", '\n');
 	Person_Init();
 	Family_Init(_Array);
-	LoadLuaFile(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&LoadCrop, _CropList);
-	LoadLuaFile(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&LoadBuilding, _BuildList);
-	LoadLuaFile(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&LoadPopulation, _PopList);
-	LoadLuaFile(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&LoadOccupation, _OccupationList);
+	LoadLuaToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
+	LoadLuaToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
+	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct Good*)_Itr->Data)->Name);
+	LoadLuaFile(g_LuaState, "goods.lua");
+	_Itr = _GoodList->Front;
+	lua_getglobal(g_LuaState, "Goods");
+	lua_pushnil(g_LuaState);
+	while(lua_next(g_LuaState, -2) != 0) {
+		if(!lua_istable(g_LuaState, -1)) {
+			lua_pop(g_LuaState, 1);
+			continue;
+		}
+		GoodLoadInput(g_LuaState, -1, _Itr->Data);
+		_Itr = _Itr->Next;
+		lua_pop(g_LuaState, 1);
+	}
+	LoadLuaToList(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&BuildingLoad, _BuildList);
+	LoadLuaToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
+	LoadLuaToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
 
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_BuildList, _Itr, &g_Buildings, ((struct Building*)_Itr->Data)->Name);

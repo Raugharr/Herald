@@ -108,14 +108,14 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	if(_Building == NULL)
 		return 0;
 	_GoodName = _Building->OutputGood->Name;
-	if(Hash_Find(&_Manor->Goods, _GoodName, _Good) == 0) {
-		if(Hash_Find(&g_Goods, _GoodName, _Good) == 0)
+	if(Hash_Find(&_Manor->Goods, _GoodName, (void**)&_Good) == 0) {
+		if(Hash_Find(&g_Goods, _GoodName, (void**)&_Good) == 0)
 			return 0;
 		Hash_Insert(&_Manor->Goods, _GoodName, CopyGood(_Good));
 	}
 	_NewBuilding = CopyBuilding(_Building, _Good);
 	_Output = _NewBuilding->OutputGood;
-	if(Hash_Find(&_Manor->Production, _Output->Name, _List) == 0) {
+	if(Hash_Find(&_Manor->Production, _Output->Name, (void**)&_List) == 0) {
 		CreateLinkedList(_List);
 		LnkLst_PushBack(_List, _NewBuilding);
 		Hash_Insert(&_Manor->Production, _Output->Name, _List);
@@ -139,7 +139,7 @@ int Manor_Update(struct Manor* _Manor) {
 		char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
 
 		Crop_Update(_Itr->Data);
-		Hash_Find(&_Manor->Goods, _SeedName, _Good);
+		Hash_Find(&_Manor->Goods, _SeedName, (void**)&_Good);
 		if(_Crop->Status == EFALLOW) {
 			if(_Good == NULL)
 				continue;
@@ -147,7 +147,7 @@ int Manor_Update(struct Manor* _Manor) {
 		} else if(_Crop->Status == EHARVESTING) {
 			struct Good* _CropSeed = NULL;
 
-			if(Hash_Find(&g_Goods, _SeedName, _CropSeed) == 0)
+			if(Hash_Find(&g_Goods, _SeedName, (void**)&_CropSeed) == 0)
 				return 0;
 			_Good = CopyGood(_CropSeed);
 			if(_Good == NULL)

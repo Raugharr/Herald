@@ -9,7 +9,7 @@
 #include <lua/lua.h>
 
 int AddInteger(lua_State* _State, int _Index, int* _Number);
-int AddString(lua_State* _State, int _Index, const char** _String);
+int AddString(lua_State* _State, int _Index, char** _String);
 int AddNumber(lua_State* _State, int _Index, double* _Number);
 
 #endif

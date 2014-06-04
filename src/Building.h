@@ -14,7 +14,6 @@ struct HashTable;
 struct Building {
 	char* Name;
 	struct Good* OutputGood;
-	int Price;//Price of the output good.
 	int Throughput;
 	int Tax;//Property tax on this building.
 	int Size; //Size in square feet.

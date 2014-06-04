@@ -8,6 +8,8 @@
 
 #include "sys/LinkedList.h"
 
+#define TOPOUND(__Quantity) (__Quantity * 16);
+
 enum {
 	EFOOD = (1 << 0),
 	EINGREDIENT = (1 << 1),
@@ -23,10 +25,19 @@ enum {
 struct Good {
 	char* Name;
 	int Category;
-	int Quantity;
+	int Quantity; //Described either as fluid ounces, ounces, or per item.
 	int Id;
-	int Price;
 	struct LinkedList InputGoods;
+};
+
+struct Food {
+	struct Good* Good;
+	int Nutrition;
+};
+
+struct Tool {
+	struct Good* Good;
+	int Function;
 };
 
 struct Good* CreateGood(const char* _Name, int _Category);

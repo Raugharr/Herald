@@ -19,18 +19,25 @@ struct Good* CreateGood(const char* _Name, int _Category) {
 	_Good->Category = _Category;
 	_Good->Quantity = 0;
 	_Good->Id = ++g_GoodId;
-	_Good->Price = 0;
+	_Good->InputGoods.Size = 0;
+	_Good->InputGoods.Front = NULL;
+	_Good->InputGoods.Back = NULL;
+	strcpy(_Good->Name, _Name);
 	return _Good;
 }
 
 struct Good* CopyGood(const struct Good* _Good) {
 	struct Good* _NewGood = (struct Good*) malloc(sizeof(struct Good));
+	struct LnkLst_Node* _Itr = _Good->InputGoods.Front;
 
 	_NewGood->Name = (char*) malloc(sizeof(char) * strlen(_Good->Name) + 1);
 	_NewGood->Category = _Good->Category;
 	_NewGood->Quantity = _Good->Quantity;
 	_NewGood->Id = _Good->Id;
-	_NewGood->Price = _Good->Price;
+	while(_Itr != NULL) {
+		DestroyInputReq(_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 	return _NewGood;
 }
 

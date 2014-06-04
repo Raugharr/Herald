@@ -48,6 +48,7 @@ void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
 	}
 	if(_List->Front == _List->Back) {
 		_List->Back = _Node;
+		_List->Front->Next = _Node;
 		++_List->Size;
 		return;
 	}

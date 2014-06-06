@@ -6,8 +6,6 @@
 #ifndef __MEMORYPOOL_H
 #define __MEMORYPOOL_H
 
-#define DEBUG
-
 struct MemoryPool {
 	struct Node {struct Node* Next;}* Free;
 	int SizeOf;

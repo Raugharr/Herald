@@ -11,8 +11,6 @@
 #include <assert.h>
 #endif
 
-#define MEMPOOL_NEXT(__MemPool, __Index) ((struct Node*)((char*)(__MemPool)->Free) + ((__Index) * ((__MemPool)->SizeOf + sizeof(struct Node))))
-
 struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 	struct MemoryPool* _MemPool = (struct MemoryPool*) malloc(sizeof(struct MemoryPool));
 	struct Node* _Node = NULL;
@@ -20,7 +18,9 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 	int i;
 
 	_MemPool->Free = (struct Node*) malloc((sizeof(struct Node) + _SizeOf) * _Quantity);
-	memset(_MemPool->Free, 2, (sizeof(struct Node) + _SizeOf) * _Quantity);
+#ifdef DEBUG
+	memset(_MemPool->Free, 0, (sizeof(struct Node) + _SizeOf) * _Quantity);
+#endif
 	_MemPool->SizeOf = _SizeOf;
 	_Node = _MemPool->Free;
 
@@ -48,11 +48,11 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 	if(_MemPool->Free == NULL)
 		return NULL;
 	_Node = _MemPool->Free;
-	_MemPool->Free = _MemPool->Free->Next;
+	_MemPool->Free = _Node->Next;
 #ifdef DEBUG
 	--_MemPool->Size;
 #endif
-	return _Node + sizeof(struct Node);
+	return _Node + (sizeof(struct Node) / sizeof(int));
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
 	struct Node* _Node = _Ptr - sizeof(struct Node);

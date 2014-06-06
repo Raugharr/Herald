@@ -53,6 +53,19 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	PopulateManor(_Manor);
 	strcpy(_Manor->Name, _Name);
 
+	_Manor->Goods.TblSize = 1024;
+	_Manor->Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * _Manor->Goods.TblSize);
+	_Manor->Goods.Size = 0;
+	memset(_Manor->Goods.Table, 0, _Manor->Goods.TblSize * sizeof(struct HashNode*));
+
+	_Manor->Crops.Size = 0;
+	_Manor->Crops.Front = NULL;
+	_Manor->Crops.Back = NULL;
+
+	_Manor->Animals.Size = 0;
+	_Manor->Animals.Front = NULL;
+	_Manor->Animals.Back = NULL;
+
 #ifdef DEBUG
 	struct Crop* _Crop = NULL;
 	struct Population* _CowInfo = NULL;

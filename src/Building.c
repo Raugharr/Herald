@@ -5,6 +5,7 @@
 
 #include "Building.h"
 
+#include "Herald.h"
 #include "sys/LinkedList.h"
 
 #include <stdlib.h>
@@ -15,7 +16,6 @@ struct Building* CreateBuilding(const char* _Name, struct Good* _Output, int _Ta
 
 	_Building->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	_Building->OutputGood = _Output;
-	_Building->Price = 0;
 	_Building->Tax = _Tax;
 	_Building->Throughput = _Throughput;
 	_Building->Size = _SquareFeet;
@@ -28,7 +28,6 @@ struct Building* CopyBuilding(const struct Building* _Building, struct Good* _Go
 
 	_NewBuilding->Name = (char*) malloc(sizeof(char) * strlen(_Building->Name) + 1);
 	_NewBuilding->OutputGood = _Building->OutputGood;
-	_NewBuilding->Price = _Building->Price;
 	_NewBuilding->Tax = _Building->Tax;
 	_NewBuilding->Throughput = _Building->Throughput;
 	_NewBuilding->Size = _Building->Size;

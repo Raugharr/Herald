@@ -1,10 +1,9 @@
 Crops = {
 	{
 		Name = "Wheat",
-		PoundsPerAcre = 90,
+		PoundsPerAcre = 60,
 		YieldPerSeed = 4.0,
 		NutritionalValue = 240,
-		StartMonth = "Apr",
-		EndMonth = "Nov"
+		GrowTime = 120
 	}
 }

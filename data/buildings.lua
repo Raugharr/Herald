@@ -2,15 +2,12 @@ Buildings = {
 	{
 		Name = "Mill",
 		Output = "Flour",
-		Tax = 150,
-		Throughput = 1000,
+		Throughput = 1000
 	},
 	
 	{
-		Name = "Mill",
+		Name = "Bakery",
 		Output = "Bread Loaf",
-		Tax = 300,
-		Throughput = 135;
+		Throughput = 135
 	}
 }
-			

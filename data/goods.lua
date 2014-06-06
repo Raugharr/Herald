@@ -1,23 +1,31 @@
 Goods = {
 	{
 		Name = "Flour",
-		Categories = {"Ingredients"},
+		Category = "Ingredient",
 		InputGoods = {{"Wheat", 1}}
 	},
 	
 	{
 		Name = "Bread Loaf",
-		Categories = {"Food"},
-		InputGoods = {{"Flour", 1}}
+		Category = "Food",
+		InputGoods = {{"Flour", 12}}
 	},
 	
 	{
 		Name = "Scyth",
-		Categories = {"Tool"}
+		Category = "Tool",
+		InputGoods = {{"Iron", 1}, {"Wood", 1}},
 	},
 	
 	{
-		Name = "Plow",
-		Categories = {"Tool"}
+		Name = "Shear",
+		Category = "Tool",
+		InputGoods = {{"Iron", 2}, {"Wood", 2}} 
+	},
+	
+	{
+		Name = "Scratch Plow",
+		Category = "Tool",
+		InputGoods = {{"Wood", 6}} 
 	}
 }

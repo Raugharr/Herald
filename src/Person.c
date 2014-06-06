@@ -34,7 +34,7 @@ void Person_Quit() {
 }
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition) {
-	struct Person* _Person = (struct Person*) malloc(sizeof(struct Person));
+	struct Person* _Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 
 	_Person->Name = _Name;
 	_Person->Age = _Age;
@@ -47,11 +47,11 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 }
 
 void DestroyPerson(struct Person* _Person) {
-	free(_Person);
+	MemPool_Free(g_PersonPool, _Person);
 }
 
 struct Person* CreateChild(struct Family* _Family) {
-	struct Person* _Child = (struct Person*) malloc(sizeof(struct Person));
+	struct Person* _Child = (struct Person*) MemPool_Alloc(g_PersonPool);
 	
 	_Child->Gender = Random(1, 2);
 	if(_Child->Gender == EMALE)

@@ -60,15 +60,19 @@ struct Family* CreateRandFamily(const char* _Name, int _Size) {
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
-		while(_Size-- > 0)
-			_Family->People[CHILDREN + _Family->NumChildren++] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 100);
+		while(_Size-- > 0) {
+			int _Child = CHILDREN + _Family->NumChildren;
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 100);
+			_Family->People[_Child]->Family = _Family;
+			++_Family->NumChildren;
+		}
 	} else
 		return NULL;
 	return _Family;
 }
 
 void DestroyFamily(struct Family* _Family) {\
-	int _Max = _Family->NumChildren + 2;
+	int _Max = _Family->NumChildren + 1;
 	while(_Max > 0) {
 		DestroyPerson(_Family->People[_Max]);
 		--_Max;
@@ -107,11 +111,11 @@ int Family_Work(const struct Family* _Family) {
 }
 
 void Family_Update(struct Family* _Family) {
-	int i = _Family->NumChildren + 2;
+	int i;
 
-	while(i > 0) {
+	for(i = _Family->NumChildren + 1; i >= 0; i--) {
 		if(_Family->People[i] == NULL)
 			continue;
-		Person_Update(_Family->People[i--], 1500);
+		Person_Update(_Family->People[i], 1500);
 	}
 }

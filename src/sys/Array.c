@@ -29,10 +29,5 @@ int Array_Insert(struct Array* _Array, void* _Data) {
 	return 1;
 }
 
-void SetArray(void** _Array, int _Size, void* _Value) {
-	int i;
-	for(i = 0; i < _Size; ++i)
-		_Array[i] = NULL;
-}
 
 

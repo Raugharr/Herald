@@ -51,23 +51,23 @@ struct LinkedList* g_ManorList;
 void HeraldInit() {
 	g_Crops.TblSize = CROPS_TBLSZ;
 	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Crops.TblSize);
-	SetArray((void**)g_Crops.Table, g_Crops.TblSize, NULL);
+	memset(g_Crops.Table, 0, g_Crops.TblSize);
 
 	g_Goods.TblSize = GOODS_TBLSZ;
 	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
-	SetArray((void**)g_Goods.Table, g_Goods.TblSize, NULL);
+	memset(g_Goods.Table, 0, g_Goods.TblSize);
 
 	g_Buildings.TblSize = BUILDINGS_TBLSZ;
 	g_Buildings.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Buildings.TblSize);
-	SetArray((void**)g_Buildings.Table, g_Buildings.TblSize, NULL);
+	memset(g_Buildings.Table, 0, g_Buildings.TblSize);
 
 	g_Occupations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
-	SetArray((void**)g_Occupations.Table, g_Occupations.TblSize, NULL);
+	memset(g_Occupations.Table, 0, g_Occupations.TblSize);
 
 	g_Populations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
-	SetArray((void**)g_Populations.Table, g_Populations.TblSize, NULL);
+	memset(g_Populations.Table, 0, g_Populations.TblSize);
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);

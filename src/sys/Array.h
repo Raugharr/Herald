@@ -15,6 +15,5 @@ struct Array {
 struct Array* CreateArray(int _Size);
 void DestroyArray(struct Array* _Array);
 int Array_Insert(struct Array* _Array, void* _Data);
-void SetArray(void** _Array, int _Size, void* _Value);
 
 #endif

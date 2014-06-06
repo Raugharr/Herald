@@ -22,6 +22,7 @@
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
 #include "sys/Constraint.h"
+#include "events/Event.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,29 +52,35 @@ struct LinkedList* g_ManorList;
 void HeraldInit() {
 	g_Crops.TblSize = CROPS_TBLSZ;
 	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Crops.TblSize);
-	memset(g_Crops.Table, 0, g_Crops.TblSize);
+	g_Crops.Size = 0;
+	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
 
 	g_Goods.TblSize = GOODS_TBLSZ;
 	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
-	memset(g_Goods.Table, 0, g_Goods.TblSize);
+	g_Goods.Size = 0;
+	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
 	g_Buildings.TblSize = BUILDINGS_TBLSZ;
 	g_Buildings.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Buildings.TblSize);
-	memset(g_Buildings.Table, 0, g_Buildings.TblSize);
+	g_Buildings.Size = 0;
+	memset(g_Buildings.Table, 0, g_Buildings.TblSize * sizeof(struct HashNode*));
 
 	g_Occupations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
-	memset(g_Occupations.Table, 0, g_Occupations.TblSize);
+	g_Occupations.Size = 0;
+	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
 	g_Populations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
-	memset(g_Populations.Table, 0, g_Populations.TblSize);
+	g_Populations.Size = 0;
+	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_BabyAvg = CreateConstrntBnds(8, 0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999);
 	g_ManorSize = CreateConstrntLst(NULL, MANORSZ_MIN, MANORSZ_MAX, MANORSZ_INTRVL);
+	Event_Init();
 }
 
 void HeraldDestroy() {
@@ -82,6 +89,7 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_BabyAvg);
 	DestroyConstrntBnds(g_ManorSize);
+	Event_Quit();
 }
 
 struct InputReq* CreateInputReq() {

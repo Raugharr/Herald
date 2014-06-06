@@ -55,8 +55,11 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 	return _Node + (sizeof(struct Node) / sizeof(int));
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
-	struct Node* _Node = _Ptr - sizeof(struct Node);
+	struct Node* _Node = NULL;
 
+	if(_Ptr == NULL)
+		return;
+	_Node = _Ptr - (sizeof(struct Node) / sizeof(int));
 	if(_MemPool->Free == NULL) {
 		_MemPool->Free = _Node;
 		return;

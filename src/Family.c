@@ -12,6 +12,7 @@
 #include "sys/Random.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 struct Constraint** g_AgeDistr = NULL;
@@ -37,12 +38,12 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	}
 
 	_Family->Name = _Name;
+	_Family->People = (struct Person**) malloc(sizeof(struct Person) * (CHILDREN_SIZE + 2));
+	memset(_Family->People, 0, sizeof(struct Person*) * CHILDREN_SIZE + 2);
 	_Family->People[HUSBAND] = _Husband;
 	_Husband->Family = _Family;
 	_Family->People[WIFE] = _Wife;
 	_Wife->Family = _Family;//If _Female is last of its family the family's name will be a memory leak.
-	_Family->People = (struct Person**) malloc(sizeof(struct Person) * (CHILDREN_SIZE + 2));
-	SetArray((void**)_Family->People[0] + (sizeof(struct Person) * 2), CHILDREN_SIZE, NULL);
 	_Family->NumChildren = 0;
 	for(i = 0; i < _ChildrenSize; ++i)
 		_Family->People[CHILDREN + i] = _Children[i];
@@ -55,7 +56,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size) {
 	if(_Size >= 2) {
 		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EMALE, 100);
 		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EFEMALE, 100);
-		Hash_Find(&g_Occupations, "Farmer", _Husband->Occupation);
+		Hash_Find(&g_Occupations, "Farmer", (void**)&_Husband->Occupation);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
@@ -111,6 +112,6 @@ void Family_Update(struct Family* _Family) {
 	while(i > 0) {
 		if(_Family->People[i] == NULL)
 			continue;
-		Person_Update(_Family->People[i], 1500);
+		Person_Update(_Family->People[i--], 1500);
 	}
 }

@@ -12,7 +12,7 @@
 #endif
 
 int main(int argv, char** argc) {
-	HeraldInit();
+ 	HeraldInit();
 	World_Init(300);
 	Tick();
 	World_Quit();

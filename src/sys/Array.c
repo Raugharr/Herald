@@ -29,5 +29,3 @@ int Array_Insert(struct Array* _Array, void* _Data) {
 	return 1;
 }
 
-
-

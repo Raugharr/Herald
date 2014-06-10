@@ -22,6 +22,20 @@ struct EventDeath {
 	struct Person* Person;
 };
 
+//Person decides to leave heir current settlement.
+struct EventLeave {
+	int Id;
+	struct Person* Person;
+	struct Manor* Leave;
+};
+
+//Person deciddes to join another settlement.
+struct EventEnter {
+	int Id;
+	struct Person* Person;
+	struct Manor* Enter;
+};
+
 struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child);
 struct Event* CreateEventDeath(struct Person* _Person);
 #endif

@@ -11,7 +11,11 @@
 enum {
 	EVENTBIRTH = 0,
 	EVENTDEATH,
-	EVENTHARVEST
+	EVENTLEAVE,
+	EVENTENTER,
+	EVENTHARVEST,
+	EVENTPLANT,
+	EVENTLAST //Do not remove.
 };
 
 struct Event {
@@ -21,5 +25,7 @@ struct Event {
 void Event_Init();
 void Event_Quit();
 void Event_Push(struct Event* _Event);
+void Event_Hook(int _EventId, void (*_Callback)(struct Event*));
+void Event_RemoveHook(int _EventId, void(*_Callback)(struct Event*));
 #endif
 

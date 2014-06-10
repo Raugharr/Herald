@@ -11,4 +11,8 @@ struct EventHarvest {
 
 };
 
+struct EventPlant {
+	int Id;
+};
+
 #endif

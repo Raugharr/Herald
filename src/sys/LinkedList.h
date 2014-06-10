@@ -20,5 +20,6 @@ struct LinkedList {
 struct LinkedList* CreateLinkedList();
 void DestroyLinkedList(struct LinkedList* _List);
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value);
-
+void LnkLst_PopFront(struct LinkedList* _List);
+void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct LnkLst_Node* _Node);
 #endif

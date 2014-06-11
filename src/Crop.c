@@ -39,7 +39,7 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 	_Crop->Status = EFALLOW;
 	strcpy(_GoodName, _Name);
 	strcat(_GoodName, CROPGOOD);
-	RBTree_Insert(&g_Strings, _GoodName);
+	RBInsert(&g_Strings, _GoodName);
 	if(Hash_Find(&g_Goods, _GoodName, (void**)&_Good))
 		DestroyGood(_Good);
 	if(Hash_Find(&g_Goods, _Name, (void**)&_Good))

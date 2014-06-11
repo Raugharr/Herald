@@ -20,5 +20,6 @@ struct HashTable {
 
 int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair);
 void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair);
+int Hash_Delete(struct HashTable* _Hash, const char* _Key);
 
 #endif /* HASHTABLE_H */

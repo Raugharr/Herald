@@ -20,14 +20,6 @@ unsigned int Hash(const char* _Key) {
 		_One *= _Two;
 	}
 
-	/*for(i = 0; i < _Len; i++) {
-		_Hash += _Key[i];
-		_Hash += (_Hash << 10);
-		_Hash += (_Hash >> 6);
-	}
-	_Hash += (_Hash << 3);
-	_Hash += (_Hash >> 11);
-	_Hash += (_Hash << 15);*/
 	return (_Hash & 0x7FFFFFFF);
 }
 
@@ -37,11 +29,11 @@ int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair) {
 
 	if(_Key == NULL)
 		return 0;
+	if(_Hash->TblSize == 0)
+		return 0;
 	_Index = Hash(_Key) % _Hash->TblSize;
 	_Node = _Hash->Table[_Index];
 
-	if(_Hash->TblSize == 0)
-		return 0;
 	while(_Node != 0) {
 		if(!strcmp(_Node->Key, _Key)) {
 			*_Pair = _Node->Pair;
@@ -53,11 +45,16 @@ int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair) {
 }
 
 void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
-	char* _Str = (char*)malloc(sizeof(char) * strlen(_Key));
-	int _HashVal = Hash(_Key) % _Hash->TblSize;
+	char* _Str = NULL;
+	int _HashVal = 0;
+	struct HashNode* i;
 
+	if(_Key == NULL)
+		return;
+	_Str = (char*)malloc(sizeof(char) * strlen(_Key));
+	_HashVal = Hash(_Key) % _Hash->TblSize;
 	strcpy(_Str, _Key);
-	struct HashNode* i = _Hash->Table[_HashVal];
+	i = _Hash->Table[_HashVal];
 	if(i != 0) {
 		while(1) {
 			if(i->Next == 0) {
@@ -80,3 +77,31 @@ void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 	++_Hash->Size;
 }
 
+int Hash_Delete(struct HashTable* _Hash, const char* _Key) {
+	int _HashVal = 0;
+	struct HashNode* _Itr;
+	struct HashNode* _Prev;
+
+	if(_Key == NULL)
+		return 0;
+	_HashVal = Hash(_Key) % _Hash->TblSize;
+	_Itr = _Hash->Table[_HashVal];
+
+	if(strcmp(_Key, _Itr->Key) == 0) {
+		free(_Itr->Key);
+		_Hash->Table[_HashVal] = _Itr->Next;
+		--_Hash->Size;
+		return 1;
+	}
+
+	_Prev = _Itr;
+	_Itr = _Itr->Next;
+	while(strcmp(_Key, _Itr->Key) != 0) {
+		_Prev = _Itr;
+		_Itr = _Itr->Next;
+	}
+	_Prev->Next = _Itr->Next;
+	free(_Itr->Key);
+	--_Hash->Size;
+	return 1;
+}

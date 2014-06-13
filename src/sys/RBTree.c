@@ -74,54 +74,46 @@ void RBReplace(struct RBNode* _Node, struct RBNode* _Rep) {
 	_Rep->Right = _Node->Right;
 }
 
-void RBRotateLeft(struct RBTree* _Tree, struct RBNode* _Pivot) {
-	struct RBNode* _Parent = _Pivot->Parent;
-	struct RBNode* _Node = _Pivot->Right;
+void RBRotateLeft(struct RBTree* _Tree, struct RBNode* _Root) {
+	struct RBNode* _Parent = _Root->Parent;
+	struct RBNode* _Pivot = _Root->Right;
 
-	if(_Node == NULL)
+	if(_Pivot == NULL)
 			return;
-	_Pivot->Right = _Node->Left;
-	if(_Node->Right != NULL) {
-		if(_Node->Left != NULL)
-			_Node->Left->Parent = _Pivot;
-		else
-			_Node->Left = NULL;
-	}
-	_Node->Parent = _Pivot->Parent;
-	if(_Pivot->Parent == NULL)
-		_Tree->Table = _Node;
+	_Root->Right = _Pivot->Left;
+	if(_Pivot->Left != NULL)
+		_Pivot->Left->Parent = _Root;
+	_Pivot->Parent = _Root->Parent;
+	if(_Root->Parent == NULL)
+		_Tree->Table = _Pivot;
 	else
-		if(_Pivot == _Parent->Left)
-			_Parent->Left = _Node;
+		if(_Root == _Parent->Left)
+			_Parent->Left = _Pivot;
 		else
-			_Parent->Right = _Node;
-	_Node->Left = _Pivot;
-	_Pivot->Parent = _Node;
+			_Parent->Right = _Pivot;
+	_Pivot->Left = _Root;
+	_Root->Parent = _Pivot;
 }
 
-void RBRotateRight(struct RBTree* _Tree, struct RBNode* _Pivot) {
-	struct RBNode* _Parent = _Pivot->Parent;
-	struct RBNode* _Node = _Pivot->Right;
+void RBRotateRight(struct RBTree* _Tree, struct RBNode* _Root) {
+	struct RBNode* _Parent = _Root->Parent;
+	struct RBNode* _Pivot = _Root->Left;
 
-	if(_Node == NULL)
+	if(_Pivot == NULL)
 		return;
-	_Pivot->Left = _Node->Right;
-	if(_Node->Left != NULL) {
-		if(_Node->Right != NULL)
-			_Node->Right->Parent = _Pivot;
-		else
-			_Node->Right = NULL;
-	}
-	_Node->Parent = _Pivot->Parent;
-	if(_Pivot->Parent == NULL)
-		_Tree->Table = _Node;
+	_Root->Left = _Pivot->Right;
+	if(_Pivot->Right != NULL)
+		_Pivot->Right->Parent = _Root;
+	_Pivot->Parent = _Root->Parent;
+	if(_Root->Parent == NULL)
+		_Tree->Table = _Pivot;
 	else
-		if(_Pivot == _Parent->Right)
-			_Parent->Right = _Node;
+		if(_Root == _Parent->Right)
+			_Parent->Right = _Pivot;
 		else
-			_Parent->Left = _Node;
-	_Node->Right = _Pivot;
-	_Pivot->Parent = _Node;
+			_Parent->Left = _Pivot;
+	_Pivot->Right = _Root;
+	_Root->Parent = _Pivot;
 }
 
 struct RBNode* RBGrandparent(struct RBNode* _Node) {
@@ -184,6 +176,7 @@ void RBTree_Balance(struct RBTree* _Tree, struct RBNode* _Node) {
 				if(_Node == _Parent->Right) {
 					_Node = _Parent;
 					RBRotateLeft(_Tree, _Node);
+					_Parent = _Node->Parent;
 				}
 				_Parent->Color = RB_BLACK;
 				_Parent->Parent->Color = RB_RED;
@@ -200,6 +193,7 @@ void RBTree_Balance(struct RBTree* _Tree, struct RBNode* _Node) {
 				if(_Node == _Parent->Left) {
 					_Node = _Parent;
 					RBRotateRight(_Tree, _Node);
+					_Parent = _Node->Parent;
 				}
 				_Parent->Color = RB_BLACK;
 				_Parent->Parent->Color = RB_RED;
@@ -264,7 +258,11 @@ void RBDeleteRoot(struct RBTree* _Tree) {
 }
 
 void RBDelete(struct RBTree* _Tree, void* _Data) {
-	struct RBNode* _Node = __RBTree_Search(_Tree, _Data);
+	RBDeleteNode(_Tree, __RBTree_Search(_Tree, _Data));
+
+}
+
+void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node) {
 	struct RBNode* _OldNode = NULL;
 	struct RBNode* _Parent = NULL;
 	struct RBNode* _Sibling = NULL;
@@ -352,7 +350,7 @@ void RBDelete(struct RBTree* _Tree, void* _Data) {
 	free(_OldNode);
 }
 
-struct RBItrStack* CreateRBStackNode(struct RBNode* _Node, struct RBItrStack* _Prev) {
+struct RBItrStack* RBStackPush(struct RBNode* _Node, struct RBItrStack* _Prev) {
 	struct RBItrStack* _Itr = (struct RBItrStack*) malloc(sizeof(struct RBItrStack));
 
 	_Itr->Node = _Node;
@@ -360,27 +358,39 @@ struct RBItrStack* CreateRBStackNode(struct RBNode* _Node, struct RBItrStack* _P
 	return _Itr;
 }
 
-void RBIterate(struct RBNode* _Node, void(*_Callback)(void*)) {
+int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 	struct RBItrStack* _Stack = NULL;
+	struct RBItrStack* _Temp = NULL;
 	struct RBItrStack* _Delete = NULL;
 	struct RBNode* _Itr = NULL;
 
-	_Stack = CreateRBStackNode(NULL, NULL);
-	_Itr = _Node;
+	if(_Tree->Table == NULL)
+		return 0;
+	_Stack = RBStackPush(NULL, NULL);
+	_Delete = RBStackPush(NULL, NULL);
+	_Itr = _Tree->Table;
 
 	while(_Itr != NULL) {
-		_Callback(_Itr->Data);
-		if(_Itr->Right != NULL) {
-			_Stack = CreateRBStackNode(_Itr->Right, _Stack);
-		}
-		if(_Itr->Left != NULL) {
-			_Stack = CreateRBStackNode(_Itr->Left, _Stack);
-		}
-		_Delete = _Stack;
+		if(_Callback(_Itr->Data) == 1)
+			_Delete = RBStackPush(_Itr->Right, _Delete);
+		if(_Itr->Right != NULL)
+			_Stack = RBStackPush(_Itr->Right, _Stack);
+		if(_Itr->Left != NULL)
+			_Stack = RBStackPush(_Itr->Left, _Stack);
+		_Temp = _Stack;
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;
-		free(_Delete);
+		free(_Temp);
 	}
+	_Itr = _Delete->Node;
+	while(_Itr != NULL) {
+		RBDeleteNode(_Tree, _Delete->Node);
+		_Temp = _Delete;
+		_Itr = _Delete->Node;
+		_Delete = _Delete->Prev;
+		free(_Temp);
+	}
+	return 0;
 }
 
 void* RBMax(struct RBNode* _Node) {

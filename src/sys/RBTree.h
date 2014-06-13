@@ -38,9 +38,15 @@ void DestroyRBTree(struct RBTree* _Tree);
 void RBInsert(struct RBTree* _Tree, void* _Data);
 void* RBSearch(struct RBTree* _Tree, void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
-void RBDeleteRoot(struct RBTree* _Tree);
+void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
 
-void RBIterate(struct RBNode* _Node, void(*_Callback)(void*));
+/**
+ * _Callback takes a single argument that will contain a pointer to an RBNode's Data field.
+ * _Callback will remove the RBNode that contains _Callback's argument from the tree if _Callback returns 1
+ * otherwise nothing will happen.
+ * @return How many elements from the red black tree that have been deleted.
+ */
+int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*));
 
 void* RBMax(struct RBNode* _Node);
 void* RBMin(struct RBNode* _Node);

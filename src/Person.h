@@ -8,15 +8,20 @@
 
 #include "Herald.h"
 
+#include "World.h"
+
 #define EMALE (1)
 #define EFEMALE (2)
 #define AVKID (3)
 #define MAX_NUTRITION (2000)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
+#define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
+#define PersonDead(__Person) (__Person->Nutrition == 0)
 
 struct Person {
 	const char* Name;
-	int Age; //In months.
+	int Id;
+	int Age;
 	int Gender;
 	int Nutrition;
 	struct Family* Family;
@@ -36,6 +41,7 @@ void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
 void Person_Update(struct Person* _Person, int _NutVal);
-void Birth();
+void Person_Death(struct Person* _Person);
+int Pregancy_Update();
 #endif
 

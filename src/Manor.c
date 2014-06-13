@@ -40,11 +40,13 @@ void PopulateManor(struct Manor* _Manor) {
 
 struct Manor* CreateManor(const char* _Name, int _Population) {
 	struct Manor* _Manor = (struct Manor*) malloc(sizeof(struct Manor));
+	struct Crop* _Crop = NULL;
+	struct Good* _Wheat = NULL;
 
 	_Manor->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	_Manor->Population = _Population;
-	_Manor->Acres = 600;
-	_Manor->FreeAcres = 0;
+	_Manor->Acres = 0;
+	_Manor->FreeAcres = 600;
 	_Manor->Treasury = Random(2, 4) * _Population;
 	_Manor->Income = 0;
 	_Manor->Families.Size = 0;
@@ -66,27 +68,18 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	_Manor->Animals.Front = NULL;
 	_Manor->Animals.Back = NULL;
 
-#ifdef DEBUG
-	struct Crop* _Crop = NULL;
-	struct Population* _CowInfo = NULL;
-	struct Good* _Wheat = NULL;
-	struct Building* _Building = NULL;
 
-	Hash_Find(&g_Crops, "Wheat", _Crop);
-	Hash_Find(&g_Crops, "Cow", _CowInfo);
-	LnkLst_PushBack(&_Manor->Crops, CreateManorCrop(_Crop, 400));
-	LnkLst_PushBack(&_Manor->Animals, CopyPopulation(_CowInfo, 100));
-	_Manor->Acres = 400;
-	Hash_Find(&g_Goods, "Wheat", _Wheat);
+	Hash_Find(&g_Crops, "Wheat", (void**)&_Crop);
+	_Crop = CopyCrop(_Crop);
+	CropReset(_Crop);
+	LnkLst_PushBack(&_Manor->Crops, _Crop);
+	Hash_Find(&g_Goods, "Wheat Seeds", (void**)&_Wheat);
 	_Wheat = CopyGood(_Wheat);
-	_Wheat->Quantity = _Manor->PopCenter.AdultFood * _Population * 5;
-	Hash_Insert(&_Manor->Goods, "Wheat", _Wheat);
-
-	Hash_Find(&g_Buildings, "Edge Mill", _Building);
-	AddBuilding(_Manor, _Building);
-
-	Hash_Find(&g_Buildings, "House", _Building);
-#endif
+	_Wheat->Quantity = _Crop->PerAcre * _Manor->FreeAcres;
+	Hash_Insert(&_Manor->Goods, "Wheat Seeds", _Wheat);
+	_Crop->Acres = _Manor->FreeAcres;
+	_Manor->Acres = _Manor->FreeAcres;
+	_Manor->FreeAcres = 0;
 	return _Manor;
 }
 
@@ -140,23 +133,30 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 
 int Manor_Update(struct Manor* _Manor) {
 	struct LnkLst_Node* _Itr = _Manor->Families.Front;
+	int _Population = 0;
 
 	while(_Itr != NULL) {
 		Family_Update(_Itr->Data);
+		_Population += Family_Size(_Itr->Data);
 		_Itr = _Itr->Next;
 	}
+	_Manor->Population = _Population;
 	_Itr = _Manor->Crops.Front;
 	while(_Itr != NULL) {
 		struct Crop* _Crop = (struct Crop*)_Itr->Data;
 		struct Good* _Good = NULL;
 		char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
 
-		Crop_Update(_Itr->Data);
+		Crop_Update(_Crop);
+		strcpy(_SeedName, _Crop->Name);
+		strcat(_SeedName, CROPGOOD);
 		Hash_Find(&_Manor->Goods, _SeedName, (void**)&_Good);
 		if(_Crop->Status == EFALLOW) {
-			if(_Good == NULL)
+			if(_Good == NULL) {
+				_Itr = _Itr->Next;
 				continue;
-			CropPlant(_Itr->Data, _Good);
+			}
+			CropPlant(_Crop, _Good);
 		} else if(_Crop->Status == EHARVESTING) {
 			struct Good* _CropSeed = NULL;
 

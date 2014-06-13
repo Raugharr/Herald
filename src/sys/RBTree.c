@@ -372,7 +372,7 @@ int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 
 	while(_Itr != NULL) {
 		if(_Callback(_Itr->Data) == 1)
-			_Delete = RBStackPush(_Itr->Right, _Delete);
+			_Delete = RBStackPush(_Itr, _Delete);
 		if(_Itr->Right != NULL)
 			_Stack = RBStackPush(_Itr->Right, _Stack);
 		if(_Itr->Left != NULL)
@@ -381,6 +381,10 @@ int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;
 		free(_Temp);
+	}
+	if(_Delete->Node == NULL) {
+		free(_Delete);
+		return 0;
 	}
 	_Itr = _Delete->Node;
 	while(_Itr != NULL) {

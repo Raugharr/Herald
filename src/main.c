@@ -12,9 +12,11 @@
 #endif
 
 int main(int argv, char** argc) {
+	int i;
  	HeraldInit();
 	World_Init(300);
-	Tick();
+	for(i = 0; i < 366; ++i)
+		Tick();
 	World_Quit();
 	HeraldDestroy();
 	return 0;

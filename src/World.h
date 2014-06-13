@@ -10,11 +10,13 @@
 #define MONTH(__Date) ((__Date >> 5) & 15)
 #define MONTHS (12)
 #define DAY(__Date) (__Date & 31)
-#define TO_DATE(__Year, __Month, __Day) (DAY(__Day) & MONTH(__Month) & YEAR(__Year))
+#define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
 
 struct Array;
 
-extern int g_Date;
+#define DATE int
+
+extern DATE g_Date;
 extern struct Array* g_World;
 
 //Each tile represents a mile of the world.
@@ -29,5 +31,7 @@ int World_Tick();
 int MonthToInt(const char* _Month);
 int DaysBetween(int _DateOne, int _DateTwo);
 int DateToDays(int _Date);
+int DateAdd(int _Left, int _Right);
+int DateSub(int _Left, int _Right);
 
 #endif

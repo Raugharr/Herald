@@ -9,7 +9,9 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
-#define TO_YEARS(__MONTHS) (__MONTHS * 12)
+#define TO_YEARS(__Months) (__Months * 12)
+#define TO_MONTHS(__Days) ((int)(_Days / 30))
+#define TO_DAYS(__Months) (__Months * 30)
 #define MANORSZ_MIN (50)
 #define MANORSZ_INTRVL (50)
 #define MANORSZ_MAX (800)
@@ -41,13 +43,13 @@ extern struct HashTable g_Buildings;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct RBTree g_Strings;
+extern struct RBTree g_PregTree;
 
 extern struct Constraint** g_AgeConstraints;
 extern struct Constraint** g_AgeGroups;
 //TODO: g_FamilySize and g_AgeAvg are only used for generation of manor's and should only be exposed to the function that does this.
 extern struct Constraint** g_FamilySize;//Average number of families sharing the same last name.
 extern struct Constraint** g_AgeAvg;//Distribution of ages.
-//TODO: Found more accurate USA census data that should replace this Constraint
 //! Percentages of how the probability of the number of children a family will have 3.125 will have 0 babies, etc.
 extern struct Constraint** g_BabyAvg;
 extern struct Constraint** g_ManorSize;
@@ -58,6 +60,7 @@ void HeraldInit();
 void HeraldDestroy();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
+
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Good* GoodLoad(lua_State* _State, int _Index);
 int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good);
@@ -65,6 +68,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index);
 struct Building* BuildingLoad(lua_State* _State, int _Index);
 struct Population* PopulationLoad(lua_State* _State, int _Index);
 struct Occupation* OccupationLoad(lua_State* _State, int _Index);
+
 int Tick();
 
 #endif

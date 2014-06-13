@@ -42,12 +42,21 @@ struct HashTable g_Buildings;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct RBTree g_Strings;
+struct RBTree g_PregTree;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeGroups;
 struct Constraint** g_AgeConstraints;
 struct Constraint** g_BabyAvg;
 struct Constraint** g_ManorSize;
 struct LinkedList* g_ManorList;
+
+int PregancyICallback(struct Pregancy* _PregOne, struct Pregancy* _PregTwo) {
+	return _PregOne->Mother->Id - _PregTwo->Mother->Id;
+}
+
+int PregancySCallback(struct Person* _Mother, struct Pregancy* _Preg) {
+	return _Mother->Id - _Preg->Mother->Id;
+}
 
 void HeraldInit() {
 	g_Crops.TblSize = CROPS_TBLSZ;
@@ -74,6 +83,11 @@ void HeraldInit() {
 	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
 	g_Populations.Size = 0;
 	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
+
+	g_PregTree.Table = NULL;
+	g_PregTree.Size = 0;
+	g_PregTree.ICallback = (int (*)(void*, void*))&PregancyICallback;
+	g_PregTree.SCallback = (int (*)(void*, void*))&PregancySCallback;
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);
@@ -377,6 +391,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	int _AdultFood = 0;
 	int _ChildFood = 0;
 	int _Return = -2;
+	int _Top = lua_gettop(_State);
 
 	lua_getmetatable(_State, _Index);
 	lua_pushnil(_State);
@@ -393,8 +408,11 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 			_Return = AddInteger(_State, -1, &_ChildFood);
 		else if (!strcmp("Name", _Key))
 			_Return = AddString(_State, -1, &_Name);
-		if(!(_Return > 0))
+		if(!(_Return > 0)) {
+			lua_settop(_State, _Top);
 			return NULL;
+		}
+		lua_pop(_State, 1);
 	}
 	return CreatePopulation(_Name, _AdultFood, _ChildFood, _AdultAge);
 }
@@ -439,6 +457,7 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 int Tick() {
 	struct LnkLst_Node* _Itr = g_ManorList->Front;
 
+	RBIterate(&g_PregTree, (int(*)(void*))Pregancy_Update);
 	while(_Itr != NULL) {
 		if(Manor_Update(_Itr->Data) == 0)
 			return 0;

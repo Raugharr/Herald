@@ -39,7 +39,7 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 
 	_Family->Name = _Name;
 	_Family->People = (struct Person**) malloc(sizeof(struct Person) * (CHILDREN_SIZE + 2));
-	memset(_Family->People, 0, sizeof(struct Person*) * CHILDREN_SIZE + 2);
+	memset(_Family->People, 0, sizeof(struct Person*) * (CHILDREN_SIZE + 2));
 	_Family->People[HUSBAND] = _Husband;
 	_Husband->Family = _Family;
 	_Family->People[WIFE] = _Wife;
@@ -56,7 +56,6 @@ struct Family* CreateRandFamily(const char* _Name, int _Size) {
 	if(_Size >= 2) {
 		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EMALE, 100);
 		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EFEMALE, 100);
-		Hash_Find(&g_Occupations, "Farmer", (void**)&_Husband->Occupation);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
@@ -82,12 +81,13 @@ void DestroyFamily(struct Family* _Family) {\
 
 int Family_Size(struct Family* _Family) {
 	int _Size = 0;
+	int i;
 
-	if(_Family->People[HUSBAND] != NULL)
+	for(i = 0; i < CHILDREN_SIZE + 2; ++i) {
+		if(_Family->People[i] == NULL || _Family->People[i]->Nutrition == -1)
+			continue;
 		++_Size;
-	if(_Family->People[WIFE] != NULL)
-		++_Size;
-	_Size += _Family->NumChildren;
+	}
 	return _Size;
 }
 

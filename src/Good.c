@@ -34,8 +34,12 @@ struct Good* CopyGood(const struct Good* _Good) {
 	_NewGood->Category = _Good->Category;
 	_NewGood->Quantity = _Good->Quantity;
 	_NewGood->Id = _Good->Id;
+	strcpy(_NewGood->Name, _Good->Name);
 	while(_Itr != NULL) {
-		DestroyInputReq(_Itr->Data);
+		struct InputReq* _Req = CreateInputReq();
+		_Req->Req = ((struct InputReq*)_Itr->Data)->Req;
+		_Req->Quantity = ((struct InputReq*)_Itr->Data)->Quantity;
+		LnkLst_PushBack(&_NewGood->InputGoods, _Req);
 		_Itr = _Itr->Next;
 	}
 	return _NewGood;

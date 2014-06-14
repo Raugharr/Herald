@@ -25,7 +25,7 @@ void Event_Init() {
 	int i;
 
 	g_EventQueue = CreateQueue(EVENTPOOL);
-	g_EventHooks = (struct LinkedList**) malloc(sizeof(struct LinkedList**));
+	g_EventHooks = (struct LinkedList**) malloc(sizeof(struct LinkedList**) * EVENTLAST);
 	g_MemoryPool = CreateMemoryPool(sizeof(struct Event), EVENTPOOL);
 	for(i = 0; i < EVENTLAST; ++i)
 		g_EventHooks[i] = CreateLinkedList();

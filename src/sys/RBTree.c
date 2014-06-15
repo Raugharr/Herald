@@ -249,14 +249,6 @@ void* RBSearch(struct RBTree* _Tree, void* _Data) {
 	return NULL;
 }
 
-struct RBNode* __RBDeleteRoot(struct RBTree* _Tree) {
-	return _Tree->Table;
-}
-
-void RBDeleteRoot(struct RBTree* _Tree) {
-	__RBDeleteRoot(_Tree);
-}
-
 void RBDelete(struct RBTree* _Tree, void* _Data) {
 	RBDeleteNode(_Tree, __RBTree_Search(_Tree, _Data));
 

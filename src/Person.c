@@ -96,6 +96,7 @@ void PersonUpdate(struct Person* _Person, int _NutVal) {
 	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
 		PersonDeath(_Person);
 	}
+	NextDay(&_Person->Age);
 }
 
 void PersonDeath(struct Person* _Person) {
@@ -104,7 +105,7 @@ void PersonDeath(struct Person* _Person) {
 
 	_Person->Nutrition = 0;
 	if(_Person->Gender == EFEMALE)
-		RBDelete(&g_PregTree, RBSearch(&g_PregTree, _Person));
+		RBDelete(&g_PregTree, _Person);
 	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;

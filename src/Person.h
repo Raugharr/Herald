@@ -21,7 +21,7 @@
 struct Person {
 	const char* Name;
 	int Id;
-	int Age;
+	DATE Age;
 	int Gender;
 	int Nutrition;
 	struct Family* Family;

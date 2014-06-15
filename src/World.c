@@ -87,7 +87,7 @@ void World_Init(int _Area) {
 	Hash_Insert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);
 	_Array = FileLoad("FirstNames.txt", '\n');
-	Person_Init();
+	PersonInit();
 	Family_Init(_Array);
 	LoadLuaToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
 	LoadLuaToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
@@ -128,7 +128,7 @@ void World_Quit() {
 	}
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);
-	Person_Quit();
+	PersonQuit();
 	Family_Quit();
 	lua_close(g_LuaState);
 }

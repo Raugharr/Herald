@@ -116,6 +116,6 @@ void Family_Update(struct Family* _Family) {
 	for(i = _Family->NumChildren + 1; i >= 0; i--) {
 		if(_Family->People[i] == NULL)
 			continue;
-		Person_Update(_Family->People[i], 1500);
+		PersonUpdate(_Family->People[i], 1500);
 	}
 }

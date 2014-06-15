@@ -142,7 +142,7 @@ struct Array* FileLoad(const char* _File, char _Delimiter) {
 				_Name = (char*) malloc(sizeof(char) * _Pos + 1);
 				_Name[0] = 0;
 				strncat(_Name, _Buffer, _Pos);
-				Array_Insert(_Array, _Name);
+				ArrayInsert(_Array, _Name);
 				_Pos = 0;
 			} else {
 				if(_Pos >= 256)
@@ -457,7 +457,7 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 int Tick() {
 	struct LnkLst_Node* _Itr = g_ManorList->Front;
 
-	RBIterate(&g_PregTree, (int(*)(void*))Pregancy_Update);
+	RBIterate(&g_PregTree, (int(*)(void*))PregancyUpdate);
 	while(_Itr != NULL) {
 		if(Manor_Update(_Itr->Data) == 0)
 			return 0;

@@ -34,14 +34,14 @@ struct Pregancy {
 	struct Person* Mother;
 };
 
-void Person_Init();
-void Person_Quit();
+void PersonInit();
+void PersonQuit();
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition);
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
-void Person_Update(struct Person* _Person, int _NutVal);
-void Person_Death(struct Person* _Person);
-int Pregancy_Update();
+void PersonUpdate(struct Person* _Person, int _NutVal);
+void PersonDeath(struct Person* _Person);
+int PregancyUpdate();
 #endif
 

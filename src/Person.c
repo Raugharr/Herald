@@ -27,11 +27,11 @@
 static struct MemoryPool* g_PersonPool = NULL;
 static int g_Id = 0;
 
-void Person_Init() {
+void PersonInit() {
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), POOLSIZE);
 }
 
-void Person_Quit() {
+void PersonQuit() {
 	DestroyMemoryPool(g_PersonPool);
 }
 
@@ -78,9 +78,9 @@ struct Pregancy* CreatePregancy(struct Person* _Person) {
 	return _Pregancy;
 };
 
-void Person_Update(struct Person* _Person, int _NutVal) {
+void PersonUpdate(struct Person* _Person, int _NutVal) {
 	if(PersonDead(_Person) == 1)
-		return; //Don't update dead people.
+		return;
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& RBSearch(&g_PregTree, _Person) == NULL
@@ -94,29 +94,39 @@ void Person_Update(struct Person* _Person, int _NutVal) {
 	else
 		_Person->Nutrition = _Person->Nutrition - (_Person->Nutrition - _NutVal);
 	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
-		Person_Death(_Person);
+		PersonDeath(_Person);
 	}
 }
 
-void Person_Death(struct Person* _Person) {
+void PersonDeath(struct Person* _Person) {
+	int i;
+	struct Family* _Family = _Person->Family;
+
 	_Person->Nutrition = 0;
 	if(_Person->Gender == EFEMALE)
 		RBDelete(&g_PregTree, RBSearch(&g_PregTree, _Person));
+	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
+		if(_Family->People[i] == _Person) {
+			_Family->People[i] = NULL;
+			if(i >= CHILDREN) {
+				if(_Family->NumChildren < CHILDREN_SIZE)
+					_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren + 1];
+				--_Family->NumChildren;
+			}
+			break;
+		}
+	DestroyPerson(_Person);
 	Event_Push(CreateEventDeath(_Person));
 }
 	
-int Pregancy_Update(struct Pregancy* _Pregancy) {
+int PregancyUpdate(struct Pregancy* _Pregancy) {
 	if(--_Pregancy->TTP <= 0) {
 		if(_Pregancy->Mother->Family->NumChildren >= CHILDREN_SIZE)
-			return 0;
+			return 1;
 		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
 		_Pregancy->Mother->Family->People[2 + _Pregancy->Mother->Family->NumChildren++] = _Child;
 		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
 		return 1;
 	}
 	return 0;
-}
-
-void Person_DeleteNames() {
-
 }

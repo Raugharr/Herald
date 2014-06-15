@@ -33,20 +33,14 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
-	_Crop->GrowDays = _GrowDays;
-	_Crop->YieldTotal = 0;
-	_Crop->Acres = 0;
-	_Crop->Status = EFALLOW;
 	strcpy(_GoodName, _Name);
 	strcat(_GoodName, CROPGOOD);
 	RBInsert(&g_Strings, _GoodName);
 	if(Hash_Find(&g_Goods, _GoodName, (void**)&_Good))
 		DestroyGood(_Good);
-	if(Hash_Find(&g_Goods, _Name, (void**)&_Good))
-		DestroyGood(_Good);
 
-	Hash_Insert(&g_Goods, _GoodName, CreateGood(_GoodName, ESEED));
-	Hash_Insert(&g_Goods, _Name, CreateGood(_Name, EINGREDIENT));
+	Hash_Insert(&g_Goods, _GoodName, _Good = CreateGood(_GoodName, ESEED));
+	Hash_Insert(&g_Goods, _Name, _Good = CreateGood(_Name, EINGREDIENT));
 	_Crop->Name = _Name;
 	return _Crop;
 }
@@ -58,10 +52,6 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
-	_NewCrop->GrowDays = _Crop->GrowDays;
-	_NewCrop->YieldTotal = _Crop->YieldTotal;
-	_NewCrop->Acres = _Crop->Acres;
-	_NewCrop->Status = _Crop->Status;
 	return _NewCrop;
 }
 
@@ -69,56 +59,73 @@ void DestroyCrop(struct Crop* _Crop) {
 	free(_Crop);
 }
 
-int CropPlant(struct Crop* _Crop, struct Good* _Seeds) {
-	char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
+struct Field* CreateField() {
+	struct Field* _Field = (struct Field*) malloc(sizeof(struct Field));
 
-	if(_Crop->Status != EFALLOW)
+	_Field->Status = EFALLOW;
+	return _Field;
+}
+
+void DestroyField(struct Field* _Field) {
+	free(_Field);
+}
+
+void FieldReset(struct Field* _Crop) {
+	_Crop->YieldTotal = 0;
+	_Crop->Acres = 0;
+	_Crop->Status = EFALLOW;
+}
+
+int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
+	char _SeedName[strlen(_Field->Crop->Name) + strlen(CROPGOOD) + 1];
+
+	if(_Field->Status != EFALLOW)
 		return 0;
 
-	strcpy(_SeedName, _Crop->Name);
+	strcpy(_SeedName, _Field->Crop->Name);
 	strcat(_SeedName, CROPGOOD);
 	if(strcmp(_Seeds->Name, _SeedName) != 0)
 		return 0;
-	if(_Seeds->Quantity < _Crop->PerAcre * _Crop->Acres)
+	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres)
 		return 0;
-	_Seeds->Quantity -= _Crop->PerAcre * _Crop->Acres;
-	_Crop->Status = EPLOWING;
-	_Crop->StatusTime = _Crop->Acres * WORKMULT;
+	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
+	_Field->Status = EPLOWING;
+	_Field->StatusTime = _Field->Acres * WORKMULT;
 	return 1;
 }
 
-void CropWork(struct Crop* _Crop, int _Total) {
+void FieldWork(struct Field* _Field, int _Total) {
 	int _Val = _Total;
 
-	switch(_Crop->Status) {
+	switch(_Field->Status) {
 		case EGROWING:
-			_Crop->YieldTotal += _Val / _Crop->GrowDays;
+			_Field->YieldTotal += _Val / _Field->GrowDays;
 			break;
 		case EFALLOW:
 			return;
 		default:
-			_Crop->StatusTime -= _Total * WORKMULT;
-			if(_Crop->StatusTime <= 0)
-				NextStatus(_Crop);
+			_Field->StatusTime -= _Total * WORKMULT;
+			if(_Field->StatusTime <= 0)
+				NextStatus(_Field);
 			break;
 	}
 }
 
-void CropHarvest(struct Crop* _Crop, struct Good* _Seeds) {
-	char _SeedName[strlen(_Crop->Name) + strlen(CROPGOOD) + 1];
+void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
+	char _SeedName[strlen(_Field->Crop->Name) + strlen(CROPGOOD) + 1];
 
-	strcpy(_SeedName, _Crop->Name);
+	strcpy(_SeedName, _Field->Crop->Name);
 	strcat(_SeedName, CROPGOOD);
 	if(strcmp(_Seeds->Name, _SeedName) != 0)
 		return;
-	if(_Crop->Status != EHARVESTING)
+	if(_Field->Status != EHARVESTING)
 		return;
-	_Crop->Acres = _Crop->Acres - (_Crop->Acres -_Crop->StatusTime);
-	_Seeds->Quantity = TOPOUND(_Crop->Acres * _Crop->PerAcre / WORKMULT);
+	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);
+	_Seeds->Quantity = TOPOUND(_Field->Acres * _Field->Crop->PerAcre / WORKMULT);
 }
 
-int Crop_Update(struct Crop* _Crop) {
-	if(_Crop->Status == EGROWING)
-		--_Crop->StatusTime;
+int FieldUpdate(struct Field* _Field) {
+	if(_Field->Status == EGROWING)
+		--_Field->StatusTime;
 	return 1;
 }

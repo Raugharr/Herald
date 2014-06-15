@@ -21,7 +21,7 @@ struct Manor {
 	int Income; //Last year's profits.
 	struct LinkedList Families;
 	struct HashTable Goods;//Key is name of Good, pair is struct Good*
-	struct LinkedList Crops;//Contains struct Crop*.
+	struct LinkedList Crops;//Contains struct Field*.
 	struct LinkedList Animals;//Key is name of Population, pair is struct Population*
 	/* @brief The HashTable's key is the name of the Good that the Buildings in the
 	 * LinkedList<Building*> can produce.

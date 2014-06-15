@@ -22,7 +22,7 @@ void DestroyArray(struct Array* _Array) {
 	free(_Array);
 }
 
-int Array_Insert(struct Array* _Array, void* _Data) {
+int ArrayInsert(struct Array* _Array, void* _Data) {
 	if(_Array->Size >= _Array->TblSize)
 		return 0;
 	_Array->Table[_Array->Size++] = _Data;

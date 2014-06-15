@@ -14,6 +14,5 @@ struct Array {
 
 struct Array* CreateArray(int _Size);
 void DestroyArray(struct Array* _Array);
-int Array_Insert(struct Array* _Array, void* _Data);
-
+int ArrayInsert(struct Array* _Array, void* _Data);
 #endif

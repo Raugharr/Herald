@@ -10,16 +10,15 @@
 #include "sys/LinkedList.h"
 #include "sys/HashTable.h"
 
+#define ManorPop(__Manor) (__Manor.People.Size)
+
 struct Building;
 
 struct Manor {
 	char* Name;
-	int Population;
 	int Acres;
 	int FreeAcres;
-	int Treasury;
-	int Income; //Last year's profits.
-	struct LinkedList Families;
+	struct LinkedList People;
 	struct HashTable Goods;//Key is name of Good, pair is struct Good*
 	struct LinkedList Crops;//Contains struct Field*.
 	struct LinkedList Animals;//Key is name of Population, pair is struct Population*
@@ -32,6 +31,6 @@ struct Manor {
 struct Manor* CreateManor(const char* _Name, int _Population);
 void DestroyManor(struct Manor* _Manor);
 int AddBulding(struct Manor* _Manor, const struct Building* _Building);
-int Manor_Update(struct Manor* _Manor);
+int ManorUpdate(struct Manor* _Manor);
 
 #endif

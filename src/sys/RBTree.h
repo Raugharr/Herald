@@ -47,6 +47,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
  * @return How many elements from the red black tree that have been deleted.
  */
 int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*));
+void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*));
 
 void* RBMax(struct RBNode* _Node);
 void* RBMin(struct RBNode* _Node);

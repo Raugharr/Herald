@@ -38,6 +38,7 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	}
 
 	_Family->Name = _Name;
+	_Family->Id = NextId();
 	_Family->People = (struct Person**) malloc(sizeof(struct Person) * (CHILDREN_SIZE + 2));
 	memset(_Family->People, 0, sizeof(struct Person*) * (CHILDREN_SIZE + 2));
 	_Family->People[HUSBAND] = _Husband;
@@ -110,12 +111,3 @@ int Family_Work(const struct Family* _Family) {
 	return _Total / (_Ct + 1);
 }
 
-void Family_Update(struct Family* _Family) {
-	int i;
-
-	for(i = _Family->NumChildren + 1; i >= 0; i--) {
-		if(_Family->People[i] == NULL)
-			continue;
-		PersonUpdate(_Family->People[i], 1500);
-	}
-}

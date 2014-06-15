@@ -43,12 +43,23 @@ struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct RBTree g_Strings;
 struct RBTree g_PregTree;
+struct RBTree g_Families;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeGroups;
 struct Constraint** g_AgeConstraints;
 struct Constraint** g_BabyAvg;
 struct Constraint** g_ManorSize;
 struct LinkedList* g_ManorList;
+
+int g_Id = 0;
+
+int FamilyICallback(struct Family* _One, struct Family* _Two) {
+	return _One->Id - _Two->Id;
+}
+
+int FamilySCallback(int* _One, struct Family* _Two) {
+	return (*_One) - _Two->Id;
+}
 
 int PregancyICallback(struct Pregancy* _PregOne, struct Pregancy* _PregTwo) {
 	return _PregOne->Mother->Id - _PregTwo->Mother->Id;
@@ -89,6 +100,11 @@ void HeraldInit() {
 	g_PregTree.ICallback = (int (*)(void*, void*))&PregancyICallback;
 	g_PregTree.SCallback = (int (*)(void*, void*))&PregancySCallback;
 
+	g_Families.Table = NULL;
+	g_Families.Size = 0;
+	g_Families.ICallback = (int (*)(void*, void*))&FamilyICallback;
+	g_Families.SCallback = (int (*)(void*, void*))&FamilySCallback;
+
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
@@ -103,6 +119,8 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_BabyAvg);
 	DestroyConstrntBnds(g_ManorSize);
+	RBRemoveAll(&g_PregTree, (void(*)(void*))&DestroyPregancy);
+	RBRemoveAll(&g_Families, (void(*)(void*))&DestroyFamily);
 	Event_Quit();
 }
 
@@ -158,7 +176,7 @@ int Tick() {
 
 	RBIterate(&g_PregTree, (int(*)(void*))PregancyUpdate);
 	while(_Itr != NULL) {
-		if(Manor_Update(_Itr->Data) == 0)
+		if(ManorUpdate(_Itr->Data) == 0)
 			return 0;
 		_Itr = _Itr->Next;
 	}
@@ -166,3 +184,5 @@ int Tick() {
 		return 0;
 	return 1;
 }
+
+int NextId() {return g_Id++;}

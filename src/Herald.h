@@ -44,6 +44,7 @@ extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct RBTree g_Strings;
 extern struct RBTree g_PregTree;
+extern struct RBTree g_Families;
 
 extern struct Constraint** g_AgeConstraints;
 extern struct Constraint** g_AgeGroups;
@@ -60,6 +61,7 @@ void HeraldInit();
 void HeraldDestroy();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
+int NextId();
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
 

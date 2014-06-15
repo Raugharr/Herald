@@ -25,7 +25,6 @@
 #define BIRTH_TIME (9)
 
 static struct MemoryPool* g_PersonPool = NULL;
-static int g_Id = 0;
 
 void PersonInit() {
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), POOLSIZE);
@@ -39,7 +38,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	struct Person* _Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 
 	_Person->Name = _Name;
-	_Person->Id = g_Id++;
+	_Person->Id = NextId();
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
 	_Person->Nutrition = _Nutrition;
@@ -61,7 +60,7 @@ struct Person* CreateChild(struct Family* _Family) {
 		_Child->Name = "Foo";
 	else
 		_Child->Name = "Foo";
-	_Child->Id = g_Id++;
+	_Child->Id = NextId();
 	_Child->Age = 0;
 	_Child->Nutrition = _Family->People[WIFE]->Nutrition;
 	_Child->Family = NULL;
@@ -77,6 +76,10 @@ struct Pregancy* CreatePregancy(struct Person* _Person) {
 	_Pregancy->Mother = _Person;
 	return _Pregancy;
 };
+
+void DestroyPregancy(struct Pregancy* _Pregancy) {
+	free(_Pregancy);
+}
 
 void PersonUpdate(struct Person* _Person, int _NutVal) {
 	if(PersonDead(_Person) == 1)
@@ -127,6 +130,7 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
 		_Pregancy->Mother->Family->People[2 + _Pregancy->Mother->Family->NumChildren++] = _Child;
 		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
+		DestroyPregancy(_Pregancy);
 		return 1;
 	}
 	return 0;

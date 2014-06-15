@@ -17,6 +17,7 @@ struct Array;
 
 struct Family {
 	const char* Name;
+	int Id;
 	struct Person** People;
 	int NumChildren;
 };
@@ -29,7 +30,6 @@ void DestroyFamily(struct Family* _Family);
 int Family_Size(struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
 int Family_Work(const struct Family* _Family);
-void Family_Update(struct Family* _Family);
 
 #endif
 

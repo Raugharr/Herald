@@ -40,6 +40,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
+void DestroyPregancy(struct Pregancy* _Pregancy);
 void PersonUpdate(struct Person* _Person, int _NutVal);
 void PersonDeath(struct Person* _Person);
 int PregancyUpdate();

@@ -13,15 +13,13 @@
 #include <string.h>
 #include <lua/lua.h>
 
-static int g_GoodId = 0;
-
 struct Good* CreateGood(const char* _Name, int _Category) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
 	_Good->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	_Good->Category = _Category;
 	_Good->Quantity = 0;
-	_Good->Id = ++g_GoodId;
+	_Good->Id = NextId();
 	_Good->InputGoods.Size = 0;
 	_Good->InputGoods.Front = NULL;
 	_Good->InputGoods.Back = NULL;

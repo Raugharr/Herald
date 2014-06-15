@@ -389,6 +389,33 @@ int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 	return 0;
 }
 
+void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*)) {
+	struct RBItrStack* _Stack = NULL;
+	struct RBItrStack* _Temp = NULL;
+	struct RBNode* _Itr = NULL;
+
+	if(_Tree->Table == NULL)
+		return;
+	_Stack = RBStackPush(NULL, NULL);
+	_Itr = _Tree->Table;
+
+	while(_Itr != NULL) {
+		_Callback(_Itr->Data);
+		if(_Itr->Right != NULL)
+			_Stack = RBStackPush(_Itr->Right, _Stack);
+		if(_Itr->Left != NULL)
+			_Stack = RBStackPush(_Itr->Left, _Stack);
+		_Temp = _Stack;
+		_Itr = _Stack->Node;
+		_Stack = _Stack->Prev;
+		free(_Temp);
+	}
+
+	while(_Tree->Size > 0) {
+		RBDeleteNode(_Tree, _Tree->Table);
+	}
+}
+
 void* RBMax(struct RBNode* _Node) {
 	return __RBMax(_Node)->Data;
 }

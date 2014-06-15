@@ -14,12 +14,10 @@
 #include <string.h>
 #include <lua/lua.h>
 
-static int g_Id = 0;
-
 struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, struct Building* _Workplace, struct Constraint* _AgeConst) {
 	struct Occupation* _Occupation = (struct Occupation*) malloc(sizeof(struct Occupation));
 
-	_Occupation->Id = ++g_Id;
+	_Occupation->Id = NextId();
 	_Occupation->Name = _Name;
 	_Occupation->Job.Output = _Output;
 	_Occupation->Job.Workplace = _Workplace;
@@ -31,7 +29,7 @@ struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, str
 struct Occupation* CreateOccupationSpecial(const char* _Name, int _Job) {
 	struct Occupation* _Occupation = (struct Occupation*) malloc(sizeof(struct Occupation));
 
-	_Occupation->Id = ++g_Id;
+	_Occupation->Id = NextId();
 	_Occupation->Name = _Name;
 	_Occupation->SpecialJob = _Job;
 	return _Occupation;

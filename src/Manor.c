@@ -20,8 +20,8 @@
 #include <string.h>
 #include <time.h>
 
-void PopulateManor(struct Manor* _Manor) {
-	int _Population = _Manor->Population;
+void PopulateManor(struct Manor* _Manor, int _Population) {
+	int i;
 	int _FamilySize = -1;
 	struct Family* _Family = NULL;
 	struct Family* _Parent = NULL;
@@ -29,9 +29,14 @@ void PopulateManor(struct Manor* _Manor) {
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		_Parent = CreateRandFamily("Bar", Fuzify(g_BabyAvg, Random(0, 9999)) + 2);
+		RBInsert(&g_Families, _Parent);
 		while(_FamilySize-- > 0) {
 			_Family = CreateRandFamily("Bar", Fuzify(g_BabyAvg, Random(0, 9999)) + 2);
-			LnkLst_PushBack(&_Manor->Families, _Family);
+			RBInsert(&g_Families, _Family);
+			for(i = 0; i < CHILDREN + CHILDREN_SIZE; ++i) {
+				if(_Family->People[i] != NULL)
+					LnkLst_PushBack(&_Manor->People, _Family->People[i]);
+			}
 			_FamilySize -= Family_Size(_Family);
 		}
 		_Population -= Family_Size(_Parent);
@@ -44,15 +49,12 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	struct Good* _Wheat = NULL;
 
 	_Manor->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
-	_Manor->Population = _Population;
 	_Manor->Acres = 0;
 	_Manor->FreeAcres = 600;
-	_Manor->Treasury = Random(2, 4) * _Population;
-	_Manor->Income = 0;
-	_Manor->Families.Size = 0;
-	_Manor->Families.Front = NULL;
-	_Manor->Families.Back = NULL;
-	PopulateManor(_Manor);
+	_Manor->People.Size = 0;
+	_Manor->People.Front = NULL;
+	_Manor->People.Back = NULL;
+	PopulateManor(_Manor, _Population);
 	strcpy(_Manor->Name, _Name);
 
 	_Manor->Goods.TblSize = 1024;
@@ -84,10 +86,10 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 }
 
 void DestroyManor(struct Manor* _Manor) {
-	struct LnkLst_Node* _Itr = _Manor->Families.Front;
+	struct LnkLst_Node* _Itr = _Manor->People.Front;
 
 	while(_Itr != NULL) {
-		DestroyFamily((struct Family*)_Itr->Data);
+		DestroyPerson((struct Person*)_Itr->Data);
 		_Itr = _Itr->Next;
 	}
 	_Itr = _Manor->Crops.Front;
@@ -131,16 +133,15 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	return 1;
 }
 
-int Manor_Update(struct Manor* _Manor) {
-	struct LnkLst_Node* _Itr = _Manor->Families.Front;
+int ManorUpdate(struct Manor* _Manor) {
+	struct LnkLst_Node* _Itr = _Manor->People.Front;
 	int _Population = 0;
 
 	while(_Itr != NULL) {
-		Family_Update(_Itr->Data);
+		PersonUpdate((struct Person*)_Itr->Data, 1500);
 		_Population += Family_Size(_Itr->Data);
 		_Itr = _Itr->Next;
 	}
-	_Manor->Population = _Population;
 	_Itr = _Manor->Crops.Front;
 	while(_Itr != NULL) {
 		struct Field* _Field = (struct Field*)_Itr->Data;

@@ -62,12 +62,6 @@ struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
-struct Good* GoodLoad(lua_State* _State, int _Index);
-int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good);
-struct Crop* CropLoad(lua_State* _State, int _Index);
-struct Building* BuildingLoad(lua_State* _State, int _Index);
-struct Population* PopulationLoad(lua_State* _State, int _Index);
-struct Occupation* OccupationLoad(lua_State* _State, int _Index);
 
 int Tick();
 

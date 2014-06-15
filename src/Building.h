@@ -8,6 +8,7 @@
 
 #include "sys/LinkedList.h"
 
+typedef struct lua_State lua_State;
 struct Good;
 struct HashTable;
 
@@ -27,5 +28,6 @@ struct Building* CopyBuilding(const struct Building* _Building, struct Good* _Go
 void DestroyBuilding(struct Building* _Building);
 //! Returns the number of OutputGood that are made.
 int Building_Produce(const struct Building* _Building, struct HashTable* _Hash);
+struct Building* BuildingLoad(lua_State* _State, int _Index);
 
 #endif

@@ -8,6 +8,8 @@
 
 #include "sys/LinkedList.h"
 
+typedef struct lua_State lua_State;
+
 struct Population {
 	const char* Name;
 	int AdultFood;
@@ -21,5 +23,6 @@ struct Population {
 struct Population* CreatePopulation(const char* _Name, int _AdultFood, int _ChildFood, int _AdultAge);
 struct Population* CopyPopulation(const struct Population* _Population, int _Quantity);
 void DestroyPopulation(struct Population* _Population);
+struct Population* PopulationLoad(lua_State* _State, int _Index);
 
 #endif

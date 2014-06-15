@@ -8,6 +8,7 @@
 
 #define CROPGOOD " Seeds"
 
+typedef struct lua_State lua_State;
 struct Good;
 
 enum {
@@ -38,6 +39,7 @@ struct Field {
 struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays);
 struct Crop* CopyCrop(const struct Crop* _Crop);
 void DestroyCrop(struct Crop* _Crop);
+struct Crop* CropLoad(lua_State* _State, int _Index);
 
 struct Field* CreateField();
 void DestroyField(struct Field* _Field);

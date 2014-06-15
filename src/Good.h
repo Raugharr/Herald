@@ -10,6 +10,8 @@
 
 #define TOPOUND(__Quantity) (__Quantity * 16);
 
+typedef struct lua_State lua_State;
+
 enum {
 	EFOOD = (1 << 0),
 	EINGREDIENT = (1 << 1),
@@ -43,5 +45,8 @@ struct Tool {
 struct Good* CreateGood(const char* _Name, int _Category);
 struct Good* CopyGood(const struct Good* _Good);
 void DestroyGood(struct Good* _Good);
+
+struct Good* GoodLoad(lua_State* _State, int _Index);
+int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good);
 
 #endif

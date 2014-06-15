@@ -9,9 +9,11 @@
 #include "Herald.h"
 #include "World.h"
 #include "sys/RBTree.h"
+#include "sys/LuaHelper.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <lua/lua.h>
 
 #define WORKMULT (1000)
 
@@ -57,6 +59,40 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 
 void DestroyCrop(struct Crop* _Crop) {
 	free(_Crop);
+}
+
+struct Crop* CropLoad(lua_State* _State, int _Index) {
+	char* _Name = NULL;
+	const char* _Key = NULL;
+	int _PerAcre = 0;
+	double _YieldMult = 0;
+	int _NutValue = 0;
+	int _GrowTime = 0;
+	int _Return = -2;
+
+	lua_getmetatable(_State, _Index);
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_isstring(_State, -2))
+			_Key = lua_tostring(_State, -2);
+		else
+			continue;
+		if(!strcmp("PoundsPerAcre", _Key))
+			_Return = AddInteger(_State, -1, &_PerAcre);
+		else if (!strcmp("YieldPerSeed", _Key))
+			_Return = AddNumber(_State, -1, &_YieldMult);
+		else if (!strcmp("NutritionalValue", _Key))
+			_Return = AddInteger(_State, -1, &_NutValue);
+		else if (!strcmp("Name", _Key))
+			_Return = AddString(_State, -1, &_Name);
+		else if (!strcmp("GrowTime", _Key)) {
+			_Return = AddInteger(_State, -1, &_GrowTime);
+		}
+		lua_pop(_State, 1);
+		if(!(_Return > 0))
+			return NULL;
+	}
+	return CreateCrop(_Name, _PerAcre, _NutValue, _YieldMult, _GrowTime);
 }
 
 struct Field* CreateField() {

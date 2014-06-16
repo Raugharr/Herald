@@ -20,7 +20,7 @@
 #define RB_STRDELM (1)
 #define RB_DELM " "
 
-struct RBNode* __RBTree_Search(struct RBTree* _Tree, void* _Data) {
+struct RBNode* __RBTree_Search(struct RBTree* _Tree, const void* _Data) {
 	struct RBNode* _Node = NULL;
 	int _Cmp = 0;
 
@@ -143,7 +143,7 @@ struct RBNode* CreateRBNode(struct RBNode* _Parent, void* _Data, int _Color) {
 	return _Node;
 }
 
-struct RBTree* CreateRBTree(int(*_ICallBack)(void*, void*), int(*_SCallBack)(void*, void*)) {
+struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*)) {
 	struct RBTree* _Tree = (struct RBTree*) malloc(sizeof(struct RBTree));
 
 	_Tree->Table = NULL;
@@ -241,7 +241,7 @@ void RBInsert(struct RBTree* _Tree, void* _Data) {
 	++_Tree->Size;
 }
 
-void* RBSearch(struct RBTree* _Tree, void* _Data) {
+void* RBSearch(struct RBTree* _Tree, const void* _Data) {
 	struct RBNode* _Node = __RBTree_Search(_Tree, _Data);
 
 	if(_Node != NULL)

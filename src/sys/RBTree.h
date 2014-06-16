@@ -29,14 +29,14 @@ struct RBTree {
 	 * than the second.
 	 * When Callback is called internally the user given data will always be passed to the first void*.
 	 */
-	int(*ICallback)(void*, void*);
-	int(*SCallback)(void*, void*);
+	int(*ICallback)(const void*, const void*);
+	int(*SCallback)(const void*, const void*);
 };
 
-struct RBTree* CreateRBTree(int(*_ICallBack)(void*, void*), int(*_SCallBack)(void*, void*));
+struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*));
 void DestroyRBTree(struct RBTree* _Tree);
 void RBInsert(struct RBTree* _Tree, void* _Data);
-void* RBSearch(struct RBTree* _Tree, void* _Data);
+void* RBSearch(struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
 

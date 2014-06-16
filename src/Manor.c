@@ -75,7 +75,7 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	Hash_Find(&g_Crops, "Wheat", (void**)&(_Field->Crop));
 	FieldReset(_Field);
 	LnkLst_PushBack(&_Manor->Crops, _Field);
-	Hash_Find(&g_Goods, "Wheat Seeds", (void**)&_Wheat);
+	Hash_Find(&g_Goods, "Wheat", (void**)&_Wheat);
 	_Wheat = CopyGood(_Wheat);
 	_Wheat->Quantity = _Field->Crop->PerAcre * _Manor->FreeAcres;
 	Hash_Insert(&_Manor->Goods, "Wheat Seeds", _Wheat);
@@ -146,12 +146,9 @@ int ManorUpdate(struct Manor* _Manor) {
 	while(_Itr != NULL) {
 		struct Field* _Field = (struct Field*)_Itr->Data;
 		struct Good* _Good = NULL;
-		char _SeedName[strlen(_Field->Crop->Name) + strlen(CROPGOOD) + 1];
 
 		FieldUpdate(_Field);
-		strcpy(_SeedName, _Field->Crop->Name);
-		strcat(_SeedName, CROPGOOD);
-		Hash_Find(&_Manor->Goods, _SeedName, (void**)&_Good);
+		Hash_Find(&_Manor->Goods, _Field->Crop->Name, (void**)&_Good);
 		if(_Field->Status == EFALLOW) {
 			if(_Good == NULL) {
 				_Itr = _Itr->Next;
@@ -161,11 +158,11 @@ int ManorUpdate(struct Manor* _Manor) {
 		} else if(_Field->Status == EHARVESTING) {
 			struct Good* _CropSeed = NULL;
 
-			if(Hash_Find(&g_Goods, _SeedName, (void**)&_CropSeed) == 0)
+			if(Hash_Find(&g_Goods, _Field->Crop->Name, (void**)&_CropSeed) == 0)
 				return 0;
 			_Good = CopyGood(_CropSeed);
 			if(_Good == NULL)
-				Hash_Insert(&_Manor->Goods, _SeedName, _Good);
+				Hash_Insert(&_Manor->Goods, _Field->Crop->Name, _Good);
 			FieldHarvest(_Field, _Good);
 		}
 		_Itr = _Itr->Next;

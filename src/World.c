@@ -14,6 +14,7 @@
 #include "Building.h"
 #include "Good.h"
 #include "sys/LinkedList.h"
+#include "sys/RBTree.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
@@ -34,6 +35,7 @@ int g_Date = 0;
 char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
+struct RBTree* g_BuildDep = NULL;
 lua_State* g_LuaState = NULL;
 
 int LoadLuaFile(lua_State* _State, const char* _File) {
@@ -115,7 +117,11 @@ void World_Init(int _Area) {
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));
+	g_BuildDep = GoodBuildDep(_CropList, &g_Goods);
 	DestroyLinkedList(_CropList);
+	DestroyLinkedList(_GoodList);
+	DestroyLinkedList(_BuildList);
+	DestroyLinkedList(_PopList);
 	DestroyLinkedList(_OccupationList);
 }
 
@@ -130,6 +136,7 @@ void World_Quit() {
 	DestroyArray(g_World);
 	PersonQuit();
 	Family_Quit();
+	DestroyRBTree(g_BuildDep);
 	lua_close(g_LuaState);
 }
 

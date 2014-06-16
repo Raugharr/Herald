@@ -37,6 +37,7 @@ struct InputReq {
 	int Quantity;
 };
 
+
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_Buildings;

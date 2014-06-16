@@ -28,29 +28,25 @@
 
 struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
-	char* _GoodName = (char*) malloc(sizeof(char*) * strlen(_Name) + strlen(CROPGOOD) + 1);
 	struct Good* _Good = NULL;
 
-	_Crop->Name = _Name;
+	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
+	strcpy(_Crop->Name, _Name);
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
-	strcpy(_GoodName, _Name);
-	strcat(_GoodName, CROPGOOD);
-	RBInsert(&g_Strings, _GoodName);
-	if(Hash_Find(&g_Goods, _GoodName, (void**)&_Good))
+	if(Hash_Find(&g_Goods, _Name, (void**)&_Good))
 		DestroyGood(_Good);
 
-	Hash_Insert(&g_Goods, _GoodName, _Good = CreateGood(_GoodName, ESEED));
-	Hash_Insert(&g_Goods, _Name, _Good = CreateGood(_Name, EINGREDIENT));
-	_Crop->Name = _Name;
+	Hash_Insert(&g_Goods, _Name, _Good = CreateGood(_Name, ESEED));
 	return _Crop;
 }
 
 struct Crop* CopyCrop(const struct Crop* _Crop) {
 	struct Crop* _NewCrop = (struct Crop*) malloc(sizeof(struct Crop));
 
-	_NewCrop->Name = _Crop->Name;
+	_NewCrop->Name = (char*) calloc(strlen(_Crop->Name) + 1, sizeof(char));
+	strcpy(_NewCrop->Name, _Crop->Name);
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
@@ -58,6 +54,7 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 }
 
 void DestroyCrop(struct Crop* _Crop) {
+	free(_Crop->Name);
 	free(_Crop);
 }
 
@@ -113,15 +110,9 @@ void FieldReset(struct Field* _Crop) {
 }
 
 int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
-	char _SeedName[strlen(_Field->Crop->Name) + strlen(CROPGOOD) + 1];
-
 	if(_Field->Status != EFALLOW)
 		return 0;
 
-	strcpy(_SeedName, _Field->Crop->Name);
-	strcat(_SeedName, CROPGOOD);
-	if(strcmp(_Seeds->Name, _SeedName) != 0)
-		return 0;
 	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres)
 		return 0;
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
@@ -148,12 +139,6 @@ void FieldWork(struct Field* _Field, int _Total) {
 }
 
 void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
-	char _SeedName[strlen(_Field->Crop->Name) + strlen(CROPGOOD) + 1];
-
-	strcpy(_SeedName, _Field->Crop->Name);
-	strcat(_SeedName, CROPGOOD);
-	if(strcmp(_Seeds->Name, _SeedName) != 0)
-		return;
 	if(_Field->Status != EHARVESTING)
 		return;
 	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);

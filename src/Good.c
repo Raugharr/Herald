@@ -6,12 +6,23 @@
 #include "Good.h"
 
 #include "Herald.h"
+#include "Log.h"
+#include "Crop.h"
 #include "sys/LuaHelper.h"
+#include "sys/Array.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
+
+int GoodDepICallback(struct GoodDep* _One, struct GoodDep* _Two) {
+	return _One->Good->Id - _Two->Good->Id;
+}
+
+int GoodDepSCallback(struct Good* _Good, struct GoodDep* _Pair) {
+	return _Good->Id - _Pair->Good->Id;
+}
 
 struct Good* CreateGood(const char* _Name, int _Category) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
@@ -155,3 +166,58 @@ int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good) {
 	return 0;
 }
 
+struct GoodDep* CreateGoodDep(const struct Good* _Good) {
+	struct GoodDep* _GoodDep = (struct GoodDep*) malloc(sizeof(struct GoodDep));
+
+	_GoodDep->DepTbl = CreateArray(5);
+	_GoodDep->Reachable = 0;
+	_GoodDep->Good = _Good;
+	return _GoodDep;
+}
+void DestroyGoodDep(struct GoodDep* _GoodDep) {
+	DestroyArray(_GoodDep->DepTbl);
+	free(_GoodDep);
+}
+
+struct RBTree* GoodBuildDep(const struct LinkedList* _CropList, const struct HashTable* _GoodList) {
+	struct LnkLst_Node* _Itr = NULL;
+	struct GoodDep* _Pair = NULL;
+	struct RBTree* _Prereq = CreateRBTree((int(*)(void*, void*))&GoodDepICallback, (int(*)(void*, void*))&GoodDepSCallback);
+	struct Good* _Good = NULL;
+
+	_Itr = _CropList->Front;
+	while(_Itr != NULL) {
+		Hash_Find(_GoodList, ((struct Crop*)_Itr->Data)->Name, (void**)&_Good);
+		if(_Good == NULL) {
+			return NULL;
+		}
+		_Pair = CreateGoodDep(_Good);
+		_Pair->Reachable = 1;
+		RBInsert(_Prereq, _Pair);
+		_Itr = _Itr->Next;
+	}
+	return _Prereq;
+}
+
+struct GoodDep* GoodDependencies(struct RBTree* _Tree, struct Good* _Good) {
+	struct GoodDep* _Pair = NULL;
+	struct GoodDep* _PairItr = NULL;
+	struct LnkLst_Node* _Itr = NULL;
+
+	if(_Good->Category != EFOOD && _Good->Category != EINGREDIENT)
+		return NULL;
+	if((_Pair = RBSearch(_Tree, _Good)) == NULL) {
+		_Pair = CreateGoodDep(_Good);
+		_Itr = _Good->InputGoods.Front;
+
+		_Pair = CreateGoodDep(_Good);
+		while(_Itr != NULL) {
+			if((_PairItr = RBSearch(_Tree, (struct Good*)_Itr->Data)) == NULL)
+				_PairItr = GoodDependencies(_Tree, (struct Good*)_Itr->Data);
+			if(ArrayInsert(_Pair->DepTbl, _PairItr) == 0)
+				ArrayResize(_Pair->DepTbl);
+			ArrayInsert(_Pair->DepTbl, _PairItr);
+		}
+	}
+	return _Pair;
+}

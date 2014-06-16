@@ -6,8 +6,6 @@
 #ifndef __CROP_H
 #define __CROP_H
 
-#define CROPGOOD " Seeds"
-
 typedef struct lua_State lua_State;
 struct Good;
 
@@ -20,7 +18,7 @@ enum {
 };
 
 struct Crop {
-	const char* Name;
+	char* Name;
 	int PerAcre;//How many pounds of seeds it takes to fill an acre.
 	int NutVal; //Nutritional Value per pound.
 	double YieldMult; //How many pounds of seed to expect from one pound.

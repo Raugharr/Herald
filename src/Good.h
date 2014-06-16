@@ -11,6 +11,7 @@
 #define TOPOUND(__Quantity) (__Quantity * 16);
 
 typedef struct lua_State lua_State;
+struct HashTable;
 
 enum {
 	EFOOD = (1 << 0),
@@ -32,6 +33,12 @@ struct Good {
 	struct LinkedList InputGoods;
 };
 
+struct GoodDep {
+	struct Array* DepTbl;
+	int Reachable;
+	const struct Good* Good;
+};
+
 struct Food {
 	struct Good* Good;
 	int Nutrition;
@@ -48,5 +55,9 @@ void DestroyGood(struct Good* _Good);
 
 struct Good* GoodLoad(lua_State* _State, int _Index);
 int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good);
+struct GoodDep* CreateGoodDep(const struct Good* _Good);
+void DestroyGoodDep(struct GoodDep* _GoodDep);
+struct RBTree* GoodBuildDep(const struct LinkedList* _CropList, const struct HashTable* _GoodList);
+struct GoodDep* GoodDependencies(struct RBTree* _Tree, struct Good* _Good);
 
 #endif

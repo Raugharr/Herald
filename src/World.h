@@ -13,11 +13,13 @@
 #define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
 
 struct Array;
+struct RBTree;
 
 #define DATE int
 
 extern DATE g_Date;
 extern struct Array* g_World;
+extern struct RBTree* g_BuildDep;
 
 //Each tile represents a mile of the world.
 struct WorldTile {

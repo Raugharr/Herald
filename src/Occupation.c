@@ -71,11 +71,11 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 			_Return = AddString(_State, -1, &_Name);
 		else if(!strcmp("Output", _Key)) {
 			_Return = AddString(_State, -1, &_Temp);
-			if(Hash_Find(&g_Goods, _Temp, (void**)&_Output) == 0)
+			if((_Output = HashSearch(&g_Goods, _Temp)) == 0)
 				return NULL;
 		} else if(!strcmp("Workplace", _Key)) {
 			_Return = AddString(_State, -1, &_Temp);
-			if(Hash_Find(&g_Buildings, _Temp, (void**)&_Workplace) == 0)
+			if((_Workplace = HashSearch(&g_Buildings, _Temp)) == 0)
 				return NULL;
 		} else if(!strcmp("AgeConst", _Key)) {
 			if((_AgeConst = ConstraintFromLua(_State, -1)) == NULL)

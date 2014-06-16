@@ -53,19 +53,19 @@ struct LinkedList* g_ManorList;
 
 int g_Id = 0;
 
-int FamilyICallback(struct Family* _One, struct Family* _Two) {
+int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
 	return _One->Id - _Two->Id;
 }
 
-int FamilySCallback(int* _One, struct Family* _Two) {
+int FamilySCallback(const int* _One, const struct Family* _Two) {
 	return (*_One) - _Two->Id;
 }
 
-int PregancyICallback(struct Pregancy* _PregOne, struct Pregancy* _PregTwo) {
+int PregancyICallback(const struct Pregancy* _PregOne, const struct Pregancy* _PregTwo) {
 	return _PregOne->Mother->Id - _PregTwo->Mother->Id;
 }
 
-int PregancySCallback(struct Person* _Mother, struct Pregancy* _Preg) {
+int PregancySCallback(const struct Person* _Mother, const struct Pregancy* _Preg) {
 	return _Mother->Id - _Preg->Mother->Id;
 }
 
@@ -97,13 +97,13 @@ void HeraldInit() {
 
 	g_PregTree.Table = NULL;
 	g_PregTree.Size = 0;
-	g_PregTree.ICallback = (int (*)(void*, void*))&PregancyICallback;
-	g_PregTree.SCallback = (int (*)(void*, void*))&PregancySCallback;
+	g_PregTree.ICallback = (int (*)(const void*, const void*))&PregancyICallback;
+	g_PregTree.SCallback = (int (*)(const void*, const void*))&PregancySCallback;
 
 	g_Families.Table = NULL;
 	g_Families.Size = 0;
-	g_Families.ICallback = (int (*)(void*, void*))&FamilyICallback;
-	g_Families.SCallback = (int (*)(void*, void*))&FamilySCallback;
+	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
+	g_Families.SCallback = (int (*)(const void*, const void*))&FamilySCallback;
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);

@@ -16,11 +16,11 @@
 #include <string.h>
 #include <lua/lua.h>
 
-int GoodDepICallback(struct GoodDep* _One, struct GoodDep* _Two) {
+int GoodDepICallback(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
 }
 
-int GoodDepSCallback(struct Good* _Good, struct GoodDep* _Pair) {
+int GoodDepSCallback(const struct Good* _Good, const struct GoodDep* _Pair) {
 	return _Good->Id - _Pair->Good->Id;
 }
 
@@ -100,6 +100,8 @@ struct Good* GoodLoad(lua_State* _State, int _Index) {
 						_Category = ESEED;
 					else if(!strcmp("Tool", _Temp))
 						_Category = ETOOL;
+					else if(!strcmp("Material", _Temp))
+						_Category = EMATERIAL;
 					else if(!strcmp("Other", _Temp))
 						_Category = EOTHER;
 					else _Return = -1;
@@ -137,23 +139,26 @@ int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good) {
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		lua_pushnil(_State);
-		while(lua_next(_State, -2) != 0) {
-			if(lua_isstring(_State, -2) == 1) {
-				_Req = CreateInputReq();
-				_Name = lua_tostring(_State, -1);
-				if(Hash_Find(&g_Goods, _Name, (void**)&_Req->Req) == 1) {
-					if(AddInteger(_State, -2, &_Req->Quantity) == -1) {
-						goto fail;
-						DestroyInputReq(_Req);
-						DestroyGood(_Good);
-						return 0;
-					}
-					LnkLst_PushBack(&_Good->InputGoods, _Req);
-				} else {
+		if(lua_next(_State, -2) == 0)
+			goto fail;
+		if(lua_isstring(_State, -2) == 1) {
+			_Req = CreateInputReq();
+			_Name = lua_tostring(_State, -1);
+			if((_Req->Req = HashSearch(&g_Goods, _Name)) != NULL) {
+				lua_pop(_State, 1);
+				if(lua_next(_State, -2) == 0)
 					goto fail;
+				if(AddInteger(_State, -1, &_Req->Quantity) == -1) {
+					goto fail;
+					DestroyInputReq(_Req);
+					DestroyGood(_Good);
+					return 0;
 				}
+				LnkLst_PushBack(&_Good->InputGoods, _Req);
+			} else {
+				goto fail;
 			}
-			lua_pop(_State, 1);
+			lua_pop(_State, 2);
 		}
 		lua_pop(_State, 1);
 	}
@@ -170,7 +175,6 @@ struct GoodDep* CreateGoodDep(const struct Good* _Good) {
 	struct GoodDep* _GoodDep = (struct GoodDep*) malloc(sizeof(struct GoodDep));
 
 	_GoodDep->DepTbl = CreateArray(5);
-	_GoodDep->Reachable = 0;
 	_GoodDep->Good = _Good;
 	return _GoodDep;
 }
@@ -179,44 +183,35 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 	free(_GoodDep);
 }
 
-struct RBTree* GoodBuildDep(const struct LinkedList* _CropList, const struct HashTable* _GoodList) {
-	struct LnkLst_Node* _Itr = NULL;
-	struct GoodDep* _Pair = NULL;
-	struct RBTree* _Prereq = CreateRBTree((int(*)(void*, void*))&GoodDepICallback, (int(*)(void*, void*))&GoodDepSCallback);
-	struct Good* _Good = NULL;
+struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
+	struct HashItrCons* _Itr = NULL;
+	struct RBTree* _Prereq = CreateRBTree((int(*)(const void*, const void*))&GoodDepICallback, (int(*)(const void*, const void*))&GoodDepSCallback);
 
-	_Itr = _CropList->Front;
+	_Itr = HashCreateItrCons(_GoodList);
 	while(_Itr != NULL) {
-		Hash_Find(_GoodList, ((struct Crop*)_Itr->Data)->Name, (void**)&_Good);
-		if(_Good == NULL) {
-			return NULL;
-		}
-		_Pair = CreateGoodDep(_Good);
-		_Pair->Reachable = 1;
-		RBInsert(_Prereq, _Pair);
-		_Itr = _Itr->Next;
+		RBInsert(_Prereq, GoodDependencies(_Prereq, ((const struct Good*)_Itr->Node->Pair)));
+		_Itr = HashNextCons(_GoodList, _Itr);
 	}
 	return _Prereq;
 }
 
-struct GoodDep* GoodDependencies(struct RBTree* _Tree, struct Good* _Good) {
+struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct Good* _Good) {
 	struct GoodDep* _Pair = NULL;
 	struct GoodDep* _PairItr = NULL;
 	struct LnkLst_Node* _Itr = NULL;
 
-	if(_Good->Category != EFOOD && _Good->Category != EINGREDIENT)
-		return NULL;
 	if((_Pair = RBSearch(_Tree, _Good)) == NULL) {
 		_Pair = CreateGoodDep(_Good);
 		_Itr = _Good->InputGoods.Front;
 
-		_Pair = CreateGoodDep(_Good);
 		while(_Itr != NULL) {
-			if((_PairItr = RBSearch(_Tree, (struct Good*)_Itr->Data)) == NULL)
-				_PairItr = GoodDependencies(_Tree, (struct Good*)_Itr->Data);
-			if(ArrayInsert(_Pair->DepTbl, _PairItr) == 0)
-				ArrayResize(_Pair->DepTbl);
-			ArrayInsert(_Pair->DepTbl, _PairItr);
+			if((_PairItr = RBSearch(_Tree, (struct Good*)((struct InputReq*)_Itr->Data)->Req)) == NULL)
+				_PairItr = GoodDependencies(_Tree, (struct Good*)((struct InputReq*)_Itr->Data)->Req);
+			if(ArrayInsert(_PairItr->DepTbl, _Pair) == 0) {
+				ArrayResize(_PairItr->DepTbl);
+				ArrayInsert(_PairItr->DepTbl, _PairItr);
+			}
+			_Itr = _Itr->Next;
 		}
 	}
 	return _Pair;

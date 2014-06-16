@@ -35,10 +35,10 @@ struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _Yi
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
-	if(Hash_Find(&g_Goods, _Name, (void**)&_Good))
+	if((_Good = HashSearch(&g_Goods, _Name)))
 		DestroyGood(_Good);
 
-	Hash_Insert(&g_Goods, _Name, _Good = CreateGood(_Name, ESEED));
+	HashInsert(&g_Goods, _Name, _Good = CreateGood(_Name, ESEED));
 	return _Crop;
 }
 

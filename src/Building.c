@@ -78,7 +78,7 @@ struct Building* BuildingLoad(lua_State* _State, int _Index) {
 			continue;
 		if(!strcmp("Output", _Key)) {
 			_Return = AddString(_State, -1, &_Temp);
-			if(Hash_Find(&g_Goods, _Temp, (void**)&_Output) == 0)
+			if((_Output = HashSearch(&g_Goods, _Temp)) == 0)
 				luaL_error(_State, "cannot find the good %s", _Temp);
 		} else if (!strcmp("Tax", _Key))
 			_Return = AddInteger(_State, -1, &_Tax);
@@ -102,7 +102,7 @@ struct Building* BuildingLoad(lua_State* _State, int _Index) {
 						_Building = NULL;
 						goto end;
 					}
-					if(Hash_Find(&g_Goods, lua_tostring(_State, -2), _Good->Req) == 0) {
+					if((_Good->Req = HashSearch(&g_Goods, lua_tostring(_State, -2))) == 0) {
 						_Building = NULL;
 						goto end;
 					}
@@ -120,7 +120,7 @@ struct Building* BuildingLoad(lua_State* _State, int _Index) {
 						_Building = NULL;
 						goto end;
 					}
-					if(Hash_Find(&g_Populations, lua_tostring(_State, -2), (void**)&_Info) == 0) {
+					if((_Info = HashSearch(&g_Populations, lua_tostring(_State, -2))) == 0) {
 						_Building = NULL;
 						goto end;
 					}

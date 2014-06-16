@@ -18,7 +18,7 @@
 #define LISTTOHASH(__List, __Itr, __Hash, __Key)			\
 	(__Itr) = (__List)->Front;								\
 	while((__Itr) != NULL) {								\
-		Hash_Insert((__Hash), (__Key), (__Itr)->Data);		\
+		HashInsert((__Hash), (__Key), (__Itr)->Data);		\
 		(__Itr) = (__Itr)->Next;							\
 	}
 

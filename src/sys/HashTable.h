@@ -6,10 +6,19 @@
 #ifndef __HASHTABLE_H
 #define __HASHTABLE_H
 
+struct HashItr {
+	int Index;
+	struct HashNode* Node;
+};
+
+struct HashItrCons {
+	int Index;
+	const struct HashNode* const Node;
+};
+
 struct HashNode {
 	void* Pair;
 	char* Key;
-	struct HashNode* Next;
 };
 
 struct HashTable {
@@ -18,8 +27,16 @@ struct HashTable {
 	int Size;
 };
 
-int Hash_Find(struct HashTable* _Hash, const char* _Key, void** _Pair);
-void Hash_Insert(struct HashTable* _Hash, const char* _Key, void* _Pair);
-int Hash_Delete(struct HashTable* _Hash, const char* _Key);
+void* HashSearch(const struct HashTable* _Hash, const char* _Key);
+void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair);
+int HashDelete(struct HashTable* _Hash, const char* _Key);
+
+struct HashItr* HashCreateItr(struct HashTable* _Hash);
+void HashDeleteItr(struct HashItr* _Itr);
+struct HashItr* HashNext(struct HashTable* _Hash, struct HashItr* _Itr);
+
+struct HashItrCons* HashCreateItrCons(const struct HashTable* _Hash);
+void HashDeleteItrCons(struct HashItrCons* _Itr);
+struct HashItrCons* HashNextCons(const struct HashTable* _Hash, struct HashItrCons* _Itr);
 
 #endif /* HASHTABLE_H */

@@ -86,7 +86,7 @@ void World_Init(int _Area) {
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
-	Hash_Insert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
+	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);
 	_Array = FileLoad("FirstNames.txt", '\n');
 	PersonInit();
@@ -117,7 +117,7 @@ void World_Init(int _Area) {
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));
-	g_BuildDep = GoodBuildDep(_CropList, &g_Goods);
+	g_BuildDep = GoodBuildDep(&g_Goods);
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);
 	DestroyLinkedList(_BuildList);

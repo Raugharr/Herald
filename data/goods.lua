@@ -1,5 +1,17 @@
 Goods = {
 	{
+		Name = "Iron",
+		Category = "Material",
+		InputGoods = {}
+	},
+	
+	{
+		Name = "Wood",
+		Category = "Material",
+		InputGoods = {}
+	},
+	
+	{
 		Name = "Flour",
 		Category = "Ingredient",
 		InputGoods = {{"Wheat", 1}}

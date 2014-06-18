@@ -47,6 +47,9 @@ struct Good* CopyGood(const struct Good* _Good) {
 	_NewGood->Quantity = _Good->Quantity;
 	_NewGood->Id = _Good->Id;
 	strcpy(_NewGood->Name, _Good->Name);
+	_NewGood->InputGoods.Size = 0;
+	_NewGood->InputGoods.Front = NULL;
+	_NewGood->InputGoods.Back = NULL;
 	while(_Itr != NULL) {
 		struct InputReq* _Req = CreateInputReq();
 		_Req->Req = ((struct InputReq*)_Itr->Data)->Req;

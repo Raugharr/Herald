@@ -42,16 +42,14 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 				if(_Family->People[i] != NULL)
 					RBInsert(&_Manor->People, _Family->People[i]);
 			}
-			_FamilySize -= Family_Size(_Family);
+			_FamilySize -= FamilySize(_Family);
 		}
-		_Population -= Family_Size(_Parent);
+		_Population -= FamilySize(_Parent);
 	}
 }
 
 struct Manor* CreateManor(const char* _Name, int _Population) {
 	struct Manor* _Manor = (struct Manor*) malloc(sizeof(struct Manor));
-	struct Field* _Field = NULL;
-	struct Good* _Wheat = NULL;
 
 	_Manor->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	_Manor->Acres = 0;
@@ -77,18 +75,6 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	_Manor->Animals.Front = NULL;
 	_Manor->Animals.Back = NULL;
 
-
-	_Field = CreateField();
-	_Field->Crop = HashSearch(&g_Crops, "Wheat");
-	FieldReset(_Field);
-	LnkLst_PushBack(&_Manor->Crops, _Field);
-	_Wheat = HashSearch(&g_Goods, "Wheat");
-	_Wheat = CopyGood(_Wheat);
-	_Wheat->Quantity = _Field->Crop->PerAcre * _Manor->FreeAcres;
-	HashInsert(&_Manor->Goods, "Wheat Seeds", _Wheat);
-	_Field->Acres = _Manor->FreeAcres;
-	_Manor->Acres = _Manor->FreeAcres;
-	_Manor->FreeAcres = 0;
 	return _Manor;
 }
 
@@ -142,32 +128,6 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 }
 
 int ManorUpdate(struct Manor* _Manor) {
-	struct LnkLst_Node* _Itr = _Manor->Crops.Front;
-
 	RBIterate(&_Manor->People, (int(*)(void*))PersonUpdate);
-	while(_Itr != NULL) {
-		struct Field* _Field = (struct Field*)_Itr->Data;
-		struct Good* _Good = NULL;
-
-		FieldUpdate(_Field);
-		_Good = HashSearch(&_Manor->Goods, _Field->Crop->Name);
-		if(_Field->Status == EFALLOW) {
-			if(_Good == NULL) {
-				_Itr = _Itr->Next;
-				continue;
-			}
-			FieldPlant(_Field, _Good);
-		} else if(_Field->Status == EHARVESTING) {
-			struct Good* _CropSeed = NULL;
-
-			if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
-				return 0;
-			_Good = CopyGood(_CropSeed);
-			if(_Good == NULL)
-				HashInsert(&_Manor->Goods, _Field->Crop->Name, _Good);
-			FieldHarvest(_Field, _Good);
-		}
-		_Itr = _Itr->Next;
-	}
 	return 1;
 }

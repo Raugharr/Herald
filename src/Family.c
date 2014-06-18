@@ -7,6 +7,8 @@
 
 #include "Person.h"
 #include "Herald.h"
+#include "Crop.h"
+#include "Good.h"
 #include "sys/Constraint.h"
 #include "sys/Array.h"
 #include "sys/Random.h"
@@ -48,21 +50,33 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	_Family->NumChildren = 0;
 	for(i = 0; i < _ChildrenSize; ++i)
 		_Family->People[CHILDREN + i] = _Children[i];
+	_Family->Field = NULL;
+	_Family->Buildings = CreateArray(2);
+	_Family->Goods = CreateArray(4);
 	return _Family;
 }
 
 struct Family* CreateRandFamily(const char* _Name, int _Size) {
 	struct Family* _Family = NULL;
+	struct Field* _Field = NULL;
+	struct Good* _Good = NULL;
 
 	if(_Size >= 2) {
-		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EMALE, 100);
-		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EFEMALE, 100);
+		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EMALE, 1500);
+		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EFEMALE, 1500);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
+		_Field = CreateField();
+		_Field->Crop = HashSearch(&g_Crops, "Wheat");
+		_Field->Acres = 30;
+		_Family->Field = _Field;
+		_Good = CopyGood(HashSearch(&g_Goods, "Wheat"));
+		_Good->Quantity = 30 * _Field->Crop->PerAcre;
+		ArrayInsert_S(_Family->Goods, _Good);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
 			int _Child = CHILDREN + _Family->NumChildren;
-			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 100);
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500);
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}
@@ -71,16 +85,25 @@ struct Family* CreateRandFamily(const char* _Name, int _Size) {
 	return _Family;
 }
 
-void DestroyFamily(struct Family* _Family) {\
+void DestroyFamily(struct Family* _Family) {
 	int _Max = _Family->NumChildren + 1;
+	int i;
+	struct Array* _Array = _Family->Goods;
+
+	for(i = 0; i < _Array->Size; ++i) {
+		DestroyGood(_Array->Table[i]);
+	}
 	while(_Max > 0) {
 		DestroyPerson(_Family->People[_Max]);
 		--_Max;
 	}
+	DestroyField(_Family->Field);
+	DestroyArray(_Family->Buildings);
+	DestroyArray(_Family->Goods);
 	free(_Family);
 }
 
-int Family_Size(struct Family* _Family) {
+int FamilySize(struct Family* _Family) {
 	int _Size = 0;
 	int i;
 
@@ -95,19 +118,5 @@ int Family_Size(struct Family* _Family) {
 void Marry(struct Person* _Male, struct Person* _Female) {
 	assert(_Male->Gender == EMALE && _Female->Gender == EFEMALE);
 	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0);
-}
-
-int Family_Work(const struct Family* _Family) {
-	int _Total = _Family->People[HUSBAND]->Nutrition;
-	int i;
-	int _Ct = 0;
-
-	for(i = 0; i < _Family->NumChildren; ++i) {
-		if(_Family->People[CHILDREN + i]->Gender == EMALE) {
-			_Total += _Family->People[CHILDREN + i]->Nutrition;
-			++_Ct;
-		}
-	}
-	return _Total / (_Ct + 1);
 }
 

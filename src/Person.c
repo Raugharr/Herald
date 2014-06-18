@@ -7,15 +7,17 @@
 
 #include "Herald.h"
 #include "Family.h"
+#include "Crop.h"
+#include "Good.h"
 #include "sys/RBTree.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
-#include "sys/LinkedList.h"
+#include "sys/Array.h"
 #include "sys/MemoryPool.h"
 #include "events/Event.h"
 
-
 #include <stdlib.h>
+#include <string.h>
 
 #define POOLSIZE (10000)
 
@@ -89,11 +91,12 @@ int PersonUpdate(struct Person* _Person) {
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& RBSearch(&g_PregTree, _Person) == NULL
-				&& _Person == _Person->Family->People[WIFE]/*PersonMature(_Person)*/
+				&& _Person == _Person->Family->People[WIFE]
 				&& _Person->Family->NumChildren < CHILDREN_SIZE
 				&& Random(1, 100) < 10)
 			RBInsert(&g_PregTree, CreatePregancy(_Person));
 	}
+	PersonWork(_Person);
 	if(_NutVal > _Person->Nutrition)
 		_Person->Nutrition = _Person->Nutrition + (_NutVal - _Person->Nutrition);
 	else
@@ -104,6 +107,38 @@ int PersonUpdate(struct Person* _Person) {
 	}
 	NextDay(&_Person->Age);
 	return 0;
+}
+
+void PersonWork(struct Person* _Person) {
+	struct Family* _Family = _Person->Family;
+	struct Field* _Field = _Family->Field;
+	struct Array* _Array = NULL;
+	int i;
+
+	if(_Field == NULL)
+		return;
+	if(_Field->Status == EFALLOW) {
+		_Array = _Family->Goods;
+		for(i = 0; i < _Array->Size; ++i) {
+			if(strcmp(((struct Good*)_Array->Table[i])->Name, _Field->Crop->Name) == 0) {
+				FieldPlant(_Field, _Array->Table[i]);
+				break;
+			}
+		}
+	} else if(_Field->Status == EHARVESTING) {
+		struct Good* _CropSeed = NULL;
+		struct Good* _Good = NULL;
+
+		if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
+			return;
+		_Good = CopyGood(_CropSeed);
+		if(_Good == NULL)
+			ArrayInsert_S(_Family->Goods, _Good);
+		FieldHarvest(_Field, _Good);
+	} else {
+		FieldWork(_Field, PersonWorkMult(_Person));
+	}
+
 }
 
 void PersonDeath(struct Person* _Person) {
@@ -138,4 +173,8 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 		return 1;
 	}
 	return 0;
+}
+
+int PersonWorkMult(struct Person* _Person) {
+	return (_Person->Nutrition / 15);
 }

@@ -42,7 +42,9 @@ struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
 void DestroyPregancy(struct Pregancy* _Pregancy);
 int PersonUpdate(struct Person* _Person);
+void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 int PregancyUpdate();
+int PersonWorkMult(struct Person* _Person);
 #endif
 

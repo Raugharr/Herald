@@ -126,7 +126,7 @@ int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
 	if(_Field->Status != EFALLOW)
 		return 0;
 
-	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres)
+	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Name, _Field->Crop->Name) != 0)
 		return 0;
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
 	_Field->Status = EPLOWING;
@@ -139,12 +139,12 @@ void FieldWork(struct Field* _Field, int _Total) {
 
 	switch(_Field->Status) {
 		case EGROWING:
-			_Field->YieldTotal += _Val / _Field->GrowDays;
+			_Field->YieldTotal += _Val / _Field->Crop->GrowDays;
 			break;
 		case EFALLOW:
 			return;
 		default:
-			_Field->StatusTime -= _Total * WORKMULT;
+			_Field->StatusTime -= _Total;
 			if(_Field->StatusTime <= 0)
 				NextStatus(_Field);
 			break;

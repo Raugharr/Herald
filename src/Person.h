@@ -19,11 +19,11 @@
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 
 struct Person {
-	const char* Name;
 	int Id;
-	DATE Age;
 	int Gender;
 	int Nutrition;
+	DATE Age;
+	const char* Name;
 	struct Family* Family;
 	struct Family* Parent;
 	struct Occupation* Occupation;
@@ -41,7 +41,7 @@ void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 struct Pregancy* CreatePregancy(struct Person* _Person); 
 void DestroyPregancy(struct Pregancy* _Pregancy);
-void PersonUpdate(struct Person* _Person, int _NutVal);
+int PersonUpdate(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 int PregancyUpdate();
 #endif

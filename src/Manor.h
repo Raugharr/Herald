@@ -7,6 +7,7 @@
 #define __MANOR_H
 
 #include "Population.h"
+#include "sys/RBTree.h"
 #include "sys/LinkedList.h"
 #include "sys/HashTable.h"
 
@@ -18,7 +19,7 @@ struct Manor {
 	char* Name;
 	int Acres;
 	int FreeAcres;
-	struct LinkedList People;
+	struct RBTree People;
 	struct HashTable Goods;//Key is name of Good, pair is struct Good*
 	struct LinkedList Crops;//Contains struct Field*.
 	struct LinkedList Animals;//Key is name of Population, pair is struct Population*

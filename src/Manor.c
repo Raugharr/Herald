@@ -21,6 +21,10 @@
 #include <string.h>
 #include <time.h>
 
+int PersonISCallback(const int* _One, const int* _Two) {
+	return (*_One) - (*_Two);
+}
+
 void PopulateManor(struct Manor* _Manor, int _Population) {
 	int i;
 	int _FamilySize = -1;
@@ -36,7 +40,7 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 			RBInsert(&g_Families, _Family);
 			for(i = 0; i < CHILDREN + CHILDREN_SIZE; ++i) {
 				if(_Family->People[i] != NULL)
-					LnkLst_PushBack(&_Manor->People, _Family->People[i]);
+					RBInsert(&_Manor->People, _Family->People[i]);
 			}
 			_FamilySize -= Family_Size(_Family);
 		}
@@ -53,8 +57,10 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	_Manor->Acres = 0;
 	_Manor->FreeAcres = 600;
 	_Manor->People.Size = 0;
-	_Manor->People.Front = NULL;
-	_Manor->People.Back = NULL;
+	_Manor->People.Table = NULL;
+	_Manor->People.Size = 0;
+	_Manor->People.ICallback = (int(*)(const void*, const void*))&PersonISCallback;
+	_Manor->People.SCallback = (int(*)(const void*, const void*))&PersonISCallback;
 	PopulateManor(_Manor, _Population);
 	strcpy(_Manor->Name, _Name);
 
@@ -87,13 +93,9 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 }
 
 void DestroyManor(struct Manor* _Manor) {
-	struct LnkLst_Node* _Itr = _Manor->People.Front;
+	struct LnkLst_Node* _Itr = _Manor->Crops.Front;
 
-	while(_Itr != NULL) {
-		DestroyPerson((struct Person*)_Itr->Data);
-		_Itr = _Itr->Next;
-	}
-	_Itr = _Manor->Crops.Front;
+	RBRemoveAll(&_Manor->People, (void(*)(void*))DestroyPerson);
 	while(_Itr != NULL) {
 		DestroyField((struct Field*)_Itr->Data);
 		_Itr = _Itr->Next;
@@ -140,15 +142,9 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 }
 
 int ManorUpdate(struct Manor* _Manor) {
-	struct LnkLst_Node* _Itr = _Manor->People.Front;
-	int _Population = 0;
+	struct LnkLst_Node* _Itr = _Manor->Crops.Front;
 
-	while(_Itr != NULL) {
-		PersonUpdate((struct Person*)_Itr->Data, 1500);
-		_Population += Family_Size(_Itr->Data);
-		_Itr = _Itr->Next;
-	}
-	_Itr = _Manor->Crops.Front;
+	RBIterate(&_Manor->People, (int(*)(void*))PersonUpdate);
 	while(_Itr != NULL) {
 		struct Field* _Field = (struct Field*)_Itr->Data;
 		struct Good* _Good = NULL;

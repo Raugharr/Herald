@@ -81,9 +81,11 @@ void DestroyPregancy(struct Pregancy* _Pregancy) {
 	free(_Pregancy);
 }
 
-void PersonUpdate(struct Person* _Person, int _NutVal) {
+int PersonUpdate(struct Person* _Person) {
+	int _NutVal = 1500;
+
 	if(PersonDead(_Person) == 1)
-		return;
+		return 0;
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& RBSearch(&g_PregTree, _Person) == NULL
@@ -98,8 +100,10 @@ void PersonUpdate(struct Person* _Person, int _NutVal) {
 		_Person->Nutrition = _Person->Nutrition - (_Person->Nutrition - _NutVal);
 	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
 		PersonDeath(_Person);
+		return 1;
 	}
 	NextDay(&_Person->Age);
+	return 0;
 }
 
 void PersonDeath(struct Person* _Person) {

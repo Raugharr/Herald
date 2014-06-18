@@ -28,6 +28,13 @@ int ArrayInsert(struct Array* _Array, void* _Data) {
 	return 1;
 }
 
+void ArrayInsert_S(struct Array* _Array, void* _Data) {
+	if(_Array->Size >= _Array->TblSize) {
+		ArrayResize(_Array);
+	}
+	_Array->Table[_Array->Size++] = _Data;
+}
+
 void ArrayResize(struct Array* _Array) {
 	int _Size = _Array->TblSize * 2;
 	void* _Temp = realloc(_Array->Table, _Size * sizeof(void*));

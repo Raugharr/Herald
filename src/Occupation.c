@@ -54,8 +54,8 @@ void DestroyJob(struct Occupation* _Occupation) {
 struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 	int _Return = 0;
 	const char* _Key = NULL;
-	char* _Name = NULL;
-	char* _Temp = NULL;
+	const char* _Name = NULL;
+	const char* _Temp = NULL;
 	struct Good* _Output = NULL;
 	struct Building* _Workplace = NULL;
 	struct Constraint* _AgeConst = NULL;

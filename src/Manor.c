@@ -11,6 +11,7 @@
 #include "Person.h"
 #include "Family.h"
 #include "Crop.h"
+#include "sys/Array.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
@@ -107,29 +108,34 @@ void DestroyManor(struct Manor* _Manor) {
 }
 
 int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
+	int i;
 	const char* _GoodName = NULL;
 	struct Good* _Good = NULL;
 	struct Good* _Output = NULL;
 	struct Building* _NewBuilding = NULL;
 	struct LinkedList* _List = NULL;
+	struct Array* _OutputGoods = NULL;
 
 	if(_Building == NULL)
 		return 0;
-	_GoodName = _Building->OutputGood->Name;
-	if((_Good = HashSearch(&_Manor->Goods, _GoodName)) == 0) {
-		if((_Good = HashSearch(&g_Goods, _GoodName)) == 0)
-			return 0;
-		HashInsert(&_Manor->Goods, _GoodName, CopyGood(_Good));
-	}
-	_NewBuilding = CopyBuilding(_Building, _Good);
-	_Output = _NewBuilding->OutputGood;
-	if((_List = HashSearch(&_Manor->Production, _Output->Name)) == 0) {
-		CreateLinkedList(_List);
+	_OutputGoods = _Building->OutputGoods;
+	for(i = 0; i < _OutputGoods->Size; ++i) {
+		_Output = ((struct Good*)_OutputGoods->Table[i]);
+		_GoodName = _Output->Name;
+		if((_Good = HashSearch(&_Manor->Goods, _GoodName)) == 0) {
+			if((_Good = HashSearch(&g_Goods, _GoodName)) == 0)
+				return 0;
+			HashInsert(&_Manor->Goods, _GoodName, CopyGood(_Good));
+		}
+		if((_List = HashSearch(&_Manor->Production, _Output->Name)) == 0) {
+			CreateLinkedList(_List);
+			LnkLst_PushBack(_List, _NewBuilding);
+			HashInsert(&_Manor->Production, _Output->Name, _List);
+			return 1;
+		}
 		LnkLst_PushBack(_List, _NewBuilding);
-		HashInsert(&_Manor->Production, _Output->Name, _List);
-		return 1;
 	}
-	LnkLst_PushBack(_List, _NewBuilding);
+	_NewBuilding = CopyBuilding(_Building);
 	return 1;
 }
 

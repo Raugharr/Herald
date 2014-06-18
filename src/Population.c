@@ -38,7 +38,7 @@ void DestroyPopulation(struct Population* _Population) {
 
 struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	const char* _Key = NULL;
-	char* _Name = NULL;
+	const char* _Name = NULL;
 	int _AdultAge = 0;
 	int _AdultFood = 0;
 	int _ChildFood = 0;

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
+#include <lua/lauxlib.h>
 
 #define WORKMULT (1000)
 
@@ -26,12 +27,13 @@
 	}									\
 }
 
-struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
+struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
 	struct Good* _Good = NULL;
 
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Crop->Name, _Name);
+	_Crop->Type = _Type;
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
@@ -47,6 +49,7 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 
 	_NewCrop->Name = (char*) calloc(strlen(_Crop->Name) + 1, sizeof(char));
 	strcpy(_NewCrop->Name, _Crop->Name);
+	_NewCrop->Type = _Crop->Type;
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
@@ -59,7 +62,9 @@ void DestroyCrop(struct Crop* _Crop) {
 }
 
 struct Crop* CropLoad(lua_State* _State, int _Index) {
-	char* _Name = NULL;
+	const char* _Name = NULL;
+	const char* _TypeStr = NULL;
+	int _Type = 0;
 	const char* _Key = NULL;
 	int _PerAcre = 0;
 	double _YieldMult = 0;
@@ -76,20 +81,28 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			continue;
 		if(!strcmp("PoundsPerAcre", _Key))
 			_Return = AddInteger(_State, -1, &_PerAcre);
-		else if (!strcmp("YieldPerSeed", _Key))
+		else if(!strcmp("Type", _Key)) {
+			if(lua_isstring(_State, -1)) {
+				AddString(_State, -1, &_TypeStr);
+				if(!strcmp("Grass", _TypeStr))
+					_Type = EGRASS;
+				else
+					luaL_error(_State, "Type contains an invalid string.");
+			}
+		} else if(!strcmp("YieldPerSeed", _Key))
 			_Return = AddNumber(_State, -1, &_YieldMult);
-		else if (!strcmp("NutritionalValue", _Key))
+		else if(!strcmp("NutritionalValue", _Key))
 			_Return = AddInteger(_State, -1, &_NutValue);
-		else if (!strcmp("Name", _Key))
+		else if(!strcmp("Name", _Key))
 			_Return = AddString(_State, -1, &_Name);
-		else if (!strcmp("GrowTime", _Key)) {
+		else if(!strcmp("GrowTime", _Key)) {
 			_Return = AddInteger(_State, -1, &_GrowTime);
 		}
 		lua_pop(_State, 1);
 		if(!(_Return > 0))
 			return NULL;
 	}
-	return CreateCrop(_Name, _PerAcre, _NutValue, _YieldMult, _GrowTime);
+	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime);
 }
 
 struct Field* CreateField() {

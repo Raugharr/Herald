@@ -17,8 +17,13 @@ enum {
 	EHARVESTING
 };
 
+enum {
+	EGRASS
+};
+
 struct Crop {
 	char* Name;
+	int Type;
 	int PerAcre;//How many pounds of seeds it takes to fill an acre.
 	int NutVal; //Nutritional Value per pound.
 	double YieldMult; //How many pounds of seed to expect from one pound.
@@ -31,10 +36,9 @@ struct Field {
 	int Acres;
 	int Status;
 	int StatusTime; //How much more time it will take to reach the next status.
-	
 };
 
-struct Crop* CreateCrop(const char* _Name, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays);
+struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays);
 struct Crop* CopyCrop(const struct Crop* _Crop);
 void DestroyCrop(struct Crop* _Crop);
 struct Crop* CropLoad(lua_State* _State, int _Index);

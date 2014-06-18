@@ -21,6 +21,8 @@
 #include "sys/HashTable.h"
 #include "sys/Array.h"
 
+#include "sys/LuaHelper.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -72,6 +74,7 @@ void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, vo
 				LnkLst_PushBack(_Return, _CallRet);
 		lua_pop(_State, 1);
 	}
+	lua_pop(_State, 1);
 }
 
 void World_Init(int _Area) {
@@ -82,6 +85,8 @@ void World_Init(int _Area) {
 	struct LinkedList* _PopList = CreateLinkedList();
 	struct LinkedList* _OccupationList = CreateLinkedList();
 	struct LnkLst_Node* _Itr = NULL;
+	int _LuaArray[20];
+	memset(_LuaArray, 0, sizeof(int) * 20);
 
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();

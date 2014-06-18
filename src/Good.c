@@ -70,7 +70,7 @@ void DestroyGood(struct Good* _Good) {
 
 struct Good* GoodLoad(lua_State* _State, int _Index) {
 	struct Good* _Good = NULL;
-	char* _Name = NULL;
+	const char* _Name = NULL;
 	const char* _Temp = NULL;
 	int _Category = 0;
 	int _Return = -2;
@@ -114,6 +114,7 @@ struct Good* GoodLoad(lua_State* _State, int _Index) {
 		}
 		lua_pop(_State, 1);
 	}
+	//lua_pop(_State, 1);
 	if(_Name == NULL)
 		goto fail;
 	_Good = CreateGood(_Name, _Category);

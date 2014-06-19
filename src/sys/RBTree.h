@@ -34,12 +34,15 @@ struct RBTree {
 };
 
 struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*));
+struct RBTree* CopyRBTree(struct RBTree* _Tree);
 void DestroyRBTree(struct RBTree* _Tree);
+
 void RBInsert(struct RBTree* _Tree, void* _Data);
 void* RBSearch(struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
 
+struct RBItrStack* RBStackPush(struct RBNode* _Node, struct RBItrStack* _Prev);
 /**
  * _Callback takes a single argument that will contain a pointer to an RBNode's Data field.
  * _Callback will remove the RBNode that contains _Callback's argument from the tree if _Callback returns 1

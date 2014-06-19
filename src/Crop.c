@@ -16,15 +16,14 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-#define WORKMULT (1000)
-
-#define NextStatus(__Crop)				\
-{										\
-	if(__Crop->Status == EHARVESTING) {	\
-		__Crop->Status = EFALLOW;		\
-	} else {							\
-		++__Crop->Status;				\
-	}									\
+#define NextStatus(__Crop)											\
+{																	\
+	if(__Crop->Status == EHARVESTING) {								\
+		__Crop->Status = EFALLOW;									\
+	} else {														\
+		++__Crop->Status;											\
+		__Crop->StatusTime = _Field->Acres * WORKMULT;				\
+	}																\
 }
 
 struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
@@ -108,6 +107,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 struct Field* CreateField() {
 	struct Field* _Field = (struct Field*) malloc(sizeof(struct Field));
 
+	_Field->Id = NextId();
 	_Field->Status = EFALLOW;
 	return _Field;
 }
@@ -159,7 +159,10 @@ void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
 }
 
 int FieldUpdate(struct Field* _Field) {
-	if(_Field->Status == EGROWING)
-		--_Field->StatusTime;
+	if(_Field->Status == EGROWING) {
+		if(--_Field->StatusTime <= 0)
+			return 1;
+		return 0;
+	}
 	return 1;
 }

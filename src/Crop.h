@@ -31,6 +31,7 @@ struct Crop {
 };
 
 struct Field {
+	int Id;
 	const struct Crop* Crop;
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
 	int Acres;

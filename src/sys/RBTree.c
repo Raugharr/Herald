@@ -143,6 +143,27 @@ struct RBNode* CreateRBNode(struct RBNode* _Parent, void* _Data, int _Color) {
 	return _Node;
 }
 
+struct RBNode* CopyRBNode(struct RBNode* _Node) {
+	struct RBNode* _NewNode = (struct RBNode*) malloc(sizeof(struct RBNode));
+
+	_NewNode->Color = _Node->Color;
+	_NewNode->Data = _Node->Data;
+	_NewNode->Parent = NULL;
+	if(_Node->Left) {
+		_NewNode->Left = CopyRBNode(_Node->Left);
+		_NewNode->Left->Parent = _NewNode;
+	} else
+		_NewNode->Left = NULL;
+
+	if(_Node->Right) {
+		_NewNode->Right = CopyRBNode(_Node->Right);
+		_NewNode->Right->Parent = _NewNode;
+	} else
+		_NewNode->Right = NULL;
+
+	return _NewNode;
+}
+
 struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*)) {
 	struct RBTree* _Tree = (struct RBTree*) malloc(sizeof(struct RBTree));
 
@@ -151,6 +172,19 @@ struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SC
 	_Tree->ICallback = _ICallBack;
 	_Tree->SCallback = _SCallBack;
 	return _Tree;
+}
+
+struct RBTree* CopyRBTree(struct RBTree* _Tree) {
+	struct RBTree* _NewTree = (struct RBTree*) malloc(sizeof(struct RBTree));
+
+	if(_Tree->Table != NULL)
+		_NewTree->Table = CopyRBNode(_Tree->Table);
+	else
+		_NewTree->Table = NULL;
+	_NewTree->Size = _Tree->Size;
+	_NewTree->ICallback = _Tree->ICallback;
+	_NewTree->SCallback = _Tree->SCallback;
+	return _NewTree;
 }
 
 void DestroyRBTree(struct RBTree* _Tree) {
@@ -251,7 +285,6 @@ void* RBSearch(struct RBTree* _Tree, const void* _Data) {
 
 void RBDelete(struct RBTree* _Tree, void* _Data) {
 	RBDeleteNode(_Tree, __RBTree_Search(_Tree, _Data));
-
 }
 
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node) {

@@ -38,11 +38,18 @@ struct RBTree* CopyRBTree(struct RBTree* _Tree);
 void DestroyRBTree(struct RBTree* _Tree);
 
 void RBInsert(struct RBTree* _Tree, void* _Data);
+/*!
+ * If _Search is found to be in the tree it will return its RBNode.
+ * If _Search is not in the tree _Insert will be added and NULL will
+ * be returned.
+ */
+struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert);
 void* RBSearch(struct RBTree* _Tree, const void* _Data);
+struct RBNode* RBSearchNode(struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
 
-struct RBItrStack* RBStackPush(struct RBNode* _Node, struct RBItrStack* _Prev);
+struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node);
 /**
  * _Callback takes a single argument that will contain a pointer to an RBNode's Data field.
  * _Callback will remove the RBNode that contains _Callback's argument from the tree if _Callback returns 1

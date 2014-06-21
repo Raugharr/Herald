@@ -32,6 +32,5 @@ struct Manor {
 struct Manor* CreateManor(const char* _Name, int _Population);
 void DestroyManor(struct Manor* _Manor);
 int AddBulding(struct Manor* _Manor, const struct Building* _Building);
-int ManorUpdate(struct Manor* _Manor);
 
 #endif

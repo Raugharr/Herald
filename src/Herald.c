@@ -41,8 +41,7 @@ struct HashTable g_Goods;
 struct HashTable g_Buildings;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
-struct RBTree g_Strings;
-struct RBTree g_PregTree;
+struct ATimer g_ATimer;
 struct RBTree g_Families;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeGroups;
@@ -61,12 +60,8 @@ int FamilySCallback(const int* _One, const struct Family* _Two) {
 	return (*_One) - _Two->Id;
 }
 
-int PregancyICallback(const struct Pregancy* _PregOne, const struct Pregancy* _PregTwo) {
-	return _PregOne->Mother->Id - _PregTwo->Mother->Id;
-}
-
-int PregancySCallback(const struct Person* _Mother, const struct Pregancy* _Preg) {
-	return _Mother->Id - _Preg->Mother->Id;
+int IdISCallback(const int* _One, const int* _Two) {
+	return *(_One) - *(_Two);
 }
 
 void HeraldInit() {
@@ -95,10 +90,10 @@ void HeraldInit() {
 	g_Populations.Size = 0;
 	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
-	g_PregTree.Table = NULL;
-	g_PregTree.Size = 0;
-	g_PregTree.ICallback = (int (*)(const void*, const void*))&PregancyICallback;
-	g_PregTree.SCallback = (int (*)(const void*, const void*))&PregancySCallback;
+	g_ATimer.Tree = CreateRBTree((int(*)(const void*, const void*))ATimerICallback, (int(*)(const void*, const void*))ATimerSCallback);
+	g_ATimer.ATypes = calloc(ATT_SIZE, sizeof(struct ATType*));
+	ATimerAddType(&g_ATimer, CreateATType(ATT_PREGANCY, (int(*)(void*))PregancyUpdate, (void(*)(void*))DestroyPregancy));
+	ATimerAddType(&g_ATimer, CreateATType(ATT_CONSTRUCTION, (int(*)(void*))ConstructUpdate, (void(*)(void*))DestroyConstruct));
 
 	g_Families.Table = NULL;
 	g_Families.Size = 0;
@@ -119,8 +114,8 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_BabyAvg);
 	DestroyConstrntBnds(g_ManorSize);
-	RBRemoveAll(&g_PregTree, (void(*)(void*))&DestroyPregancy);
-	RBRemoveAll(&g_Families, (void(*)(void*))&DestroyFamily);
+	ATTimerRmAll(&g_ATimer);
+	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	Event_Quit();
 }
 
@@ -169,20 +164,6 @@ struct Array* FileLoad(const char* _File, char _Delimiter) {
 			}
 		}
 	return _Array;
-}
-
-int Tick() {
-	struct LnkLst_Node* _Itr = g_ManorList->Front;
-
-	RBIterate(&g_PregTree, (int(*)(void*))PregancyUpdate);
-	while(_Itr != NULL) {
-		if(ManorUpdate(_Itr->Data) == 0)
-			return 0;
-		_Itr = _Itr->Next;
-	}
-	if(World_Tick() == 0)
-		return 0;
-	return 1;
 }
 
 int NextId() {return g_Id++;}

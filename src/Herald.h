@@ -6,6 +6,7 @@
 #ifndef __HERALD_H
 #define __HERALD_H
 
+#include "sys/ATimer.h"
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
@@ -21,6 +22,7 @@
 		HashInsert((__Hash), (__Key), (__Itr)->Data);		\
 		(__Itr) = (__Itr)->Next;							\
 	}
+#define WORKMULT (1000)
 
 typedef struct lua_State lua_State;
 
@@ -37,14 +39,16 @@ struct InputReq {
 	int Quantity;
 };
 
+struct Object {
+	int Id;
+};
 
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_Buildings;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
-extern struct RBTree g_Strings;
-extern struct RBTree g_PregTree;
+extern struct ATimer g_ATimer;
 extern struct RBTree g_Families;
 
 extern struct Constraint** g_AgeConstraints;
@@ -58,6 +62,8 @@ extern struct Constraint** g_ManorSize;
 
 extern struct LinkedList* g_ManorList;
 
+int IdISCallback(const int* _One, const int* _Two);
+
 void HeraldInit();
 void HeraldDestroy();
 struct InputReq* CreateInputReq();
@@ -65,7 +71,5 @@ void DestroyInputReq(struct InputReq* _Mat);
 int NextId();
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
-
-int Tick();
 
 #endif

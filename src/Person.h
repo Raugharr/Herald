@@ -18,6 +18,8 @@
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 
+extern struct Person* g_PersonList;
+
 struct Person {
 	int Id;
 	int Gender;
@@ -26,25 +28,32 @@ struct Person {
 	const char* Name;
 	struct Family* Family;
 	struct Family* Parent;
+	struct Person* Next;
+	struct Person* Prev;
 	struct Occupation* Occupation;
 };
 
 struct Pregancy {
-	int TTP;//Time to pregancy
+	void* Prev;
+	void* Next;
+	int Type;
 	struct Person* Mother;
+	int TTP;//Time to pregancy
 };
 
 void PersonInit();
 void PersonQuit();
+
+struct Pregancy* CreatePregancy(struct Person* _Person);
+void DestroyPregancy(struct Pregancy* _Pregancy);
+int PregancyUpdate(struct Pregancy* _Pregancy);
+
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition);
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
-struct Pregancy* CreatePregancy(struct Person* _Person); 
-void DestroyPregancy(struct Pregancy* _Pregancy);
-int PersonUpdate(struct Person* _Person);
+int PersonUpdate(struct Person* _Person, void* _Data);
 void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
-int PregancyUpdate();
 int PersonWorkMult(struct Person* _Person);
 #endif
 

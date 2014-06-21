@@ -126,8 +126,3 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	_NewBuilding = CopyBuilding(_Building);
 	return 1;
 }
-
-int ManorUpdate(struct Manor* _Manor) {
-	RBIterate(&_Manor->People, (int(*)(void*))PersonUpdate);
-	return 1;
-}

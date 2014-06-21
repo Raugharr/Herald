@@ -15,13 +15,44 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-struct Building* CreateBuilding(const char* _Name, int _Width, int _Length, int _ResType) {
+struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
+	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
+
+	_Construct->Type = 0;
+	_Construct->DaysLeft = _Building->BuildTime;
+	_Construct->Building = _Building;
+	_Construct->Worker = _Person;
+	return _Construct;
+}
+
+struct Construction* CopyConstruct(struct Construction* _Construct) {
+	struct Construction* _NewConstruct = (struct Construction*) malloc(sizeof(struct Construction));
+
+	_NewConstruct->Type = 0;
+	_NewConstruct->DaysLeft = _Construct->DaysLeft;
+	_NewConstruct->Building = _Construct->Building;
+	_NewConstruct->Worker = _Construct->Worker;
+	return _NewConstruct;
+}
+
+void DestroyConstruct(struct Construction* _Construct) {
+	free(_Construct);
+}
+
+int ConstructUpdate(struct Construction* _Construct) {
+	if(_Construct->DaysLeft <= 0)
+		return 1;
+	return 0;
+}
+
+struct Building* CreateBuilding(const char* _Name, int _Width, int _Length, int _ResType, int _BuildTime) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	_Building->Id = NextId();
 	_Building->Width = _Width;
 	_Building->Length = _Length;
 	_Building->ResidentType = _ResType;
+	_Building->BuildTime = _BuildTime;
 	_Building->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	strcpy(_Building->Name, _Name);
 	return _Building;
@@ -39,6 +70,7 @@ struct Building* CopyBuilding(const struct Building* _Building) {
 	_NewBuilding->Width = _Building->Width;
 	_NewBuilding->Length = _Building->Length;
 	_NewBuilding->ResidentType = _Building->ResidentType;
+	_NewBuilding->BuildTime = _Building->BuildTime;
 	_NewBuilding->Name = (char*) malloc(sizeof(char) * strlen(_Building->Name) + 1);
 	for(i = 0; i < _OutputGoods->Size; ++i) {
 		_NewOutGoods->Table[i] = (struct InputReq*) malloc(sizeof(struct InputReq));
@@ -71,14 +103,15 @@ int BuildingProduce(const struct Building* _Building, struct HashTable* _Hash) {
 }
 
 struct Building* BuildingLoad(lua_State* _State, int _Index) {
-	const char* _Key = NULL;
-	const char* _Name = NULL;
-	const char* _Temp = NULL;
 	int _IntTemp = 0;
 	int _Width = 0;
 	int _Length = 0;
 	int _ResType = 0;
 	int _Return = 0;
+	int _BuildTime = 0;
+	const char* _Key = NULL;
+	const char* _Name = NULL;
+	const char* _Temp = NULL;
 	struct InputReq* _Req = NULL;
 	struct Building* _Building = NULL;
 	struct LinkedList* _OutputGoods = CreateLinkedList();
@@ -125,7 +158,8 @@ struct Building* BuildingLoad(lua_State* _State, int _Index) {
 				_ResType = ERES_HUMAN;
 			else if(!strcmp(_Temp, "All"))
 				_ResType = ERES_ANIMAL | ERES_HUMAN;
-		}
+		} else if(!strcmp("BuildTime", _Key))
+			_Return = AddInteger(_State, -1, &_BuildTime);
 		else if(!strcmp("BuildMats", _Key)) {
 			if(lua_istable(_State, -1) == 0) {
 				printf("Input for good is not a table");
@@ -155,7 +189,7 @@ struct Building* BuildingLoad(lua_State* _State, int _Index) {
 		goto end;
 	}
 
-	_Building = CreateBuilding(_Name, _Width, _Length, _ResType);
+	_Building = CreateBuilding(_Name, _Width, _Length, _ResType, _BuildTime);
 	_Building->OutputGoods = CreateArray(_OutputGoods->Size);
 	_Itr = _OutputGoods->Front;
 	while(_Itr != NULL) {

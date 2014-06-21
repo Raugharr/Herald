@@ -27,6 +27,7 @@
 #define BIRTH_TIME (9)
 
 static struct MemoryPool* g_PersonPool = NULL;
+struct Person* g_PersonList = NULL;
 
 void PersonInit() {
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), POOLSIZE);
@@ -34,6 +35,33 @@ void PersonInit() {
 
 void PersonQuit() {
 	DestroyMemoryPool(g_PersonPool);
+}
+
+struct Pregancy* CreatePregancy(struct Person* _Person) {
+	struct Pregancy* _Pregancy = (struct Pregancy*) malloc(sizeof(struct Pregancy));
+
+	_Pregancy->Prev = NULL;
+	_Pregancy->Next = NULL;
+	_Pregancy->Type = ATT_PREGANCY;
+	_Pregancy->TTP = TO_DAYS(BIRTH_TIME) - 15 + Random(0, 29) + 1;
+	_Pregancy->Mother = _Person;
+	return _Pregancy;
+};
+
+void DestroyPregancy(struct Pregancy* _Pregancy) {
+	free(_Pregancy);
+}
+
+int PregancyUpdate(struct Pregancy* _Pregancy) {
+	if(--_Pregancy->TTP <= 0) {
+		if(_Pregancy->Mother->Family->NumChildren >= CHILDREN_SIZE)
+			return 1;
+		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
+		_Pregancy->Mother->Family->People[2 + _Pregancy->Mother->Family->NumChildren++] = _Child;
+		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
+		return 1;
+	}
+	return 0;
 }
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition) {
@@ -47,10 +75,24 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Family = NULL;
 	_Person->Parent = NULL;
 	_Person->Occupation = NULL;
+	if(g_PersonList == NULL)
+		_Person->Next = NULL;
+	else
+		_Person->Next = g_PersonList;
+	_Person->Prev = NULL;
+	g_PersonList = _Person;
 	return _Person;
 }
 
 void DestroyPerson(struct Person* _Person) {
+	if(g_PersonList == _Person) {
+		g_PersonList = _Person->Next;
+	} else {
+		if(_Person->Prev != NULL)
+		_Person->Prev->Next = _Person->Next;
+		if(_Person->Next != NULL)
+			_Person->Next->Prev = _Person->Prev;
+	}
 	MemPool_Free(g_PersonPool, _Person);
 }
 
@@ -71,32 +113,19 @@ struct Person* CreateChild(struct Family* _Family) {
 	return _Child;
 }
 
-struct Pregancy* CreatePregancy(struct Person* _Person) {
-	struct Pregancy* _Pregancy = (struct Pregancy*) malloc(sizeof(struct Pregancy));
-
-	_Pregancy->TTP = TO_DAYS(BIRTH_TIME) - 15 + Random(0, 29) + 1;
-	_Pregancy->Mother = _Person;
-	return _Pregancy;
-};
-
-void DestroyPregancy(struct Pregancy* _Pregancy) {
-	free(_Pregancy);
-}
-
-int PersonUpdate(struct Person* _Person) {
+int PersonUpdate(struct Person* _Person, void* _Data) {
 	int _NutVal = 1500;
 
 	if(PersonDead(_Person) == 1)
 		return 0;
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
-				&& RBSearch(&g_PregTree, _Person) == NULL
+				&& ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_PREGANCY) == NULL
 				&& _Person == _Person->Family->People[WIFE]
 				&& _Person->Family->NumChildren < CHILDREN_SIZE
 				&& Random(1, 100) < 10)
-			RBInsert(&g_PregTree, CreatePregancy(_Person));
+			ATimerInsert(&g_ATimer, CreatePregancy(_Person));
 	}
-	PersonWork(_Person);
 	if(_NutVal > _Person->Nutrition)
 		_Person->Nutrition = _Person->Nutrition + (_NutVal - _Person->Nutrition);
 	else
@@ -106,39 +135,7 @@ int PersonUpdate(struct Person* _Person) {
 		return 1;
 	}
 	NextDay(&_Person->Age);
-	return 0;
-}
-
-void PersonWork(struct Person* _Person) {
-	struct Family* _Family = _Person->Family;
-	struct Field* _Field = _Family->Field;
-	struct Array* _Array = NULL;
-	int i;
-
-	if(_Field == NULL)
-		return;
-	if(_Field->Status == EFALLOW) {
-		_Array = _Family->Goods;
-		for(i = 0; i < _Array->Size; ++i) {
-			if(strcmp(((struct Good*)_Array->Table[i])->Name, _Field->Crop->Name) == 0) {
-				FieldPlant(_Field, _Array->Table[i]);
-				break;
-			}
-		}
-	} else if(_Field->Status == EHARVESTING) {
-		struct Good* _CropSeed = NULL;
-		struct Good* _Good = NULL;
-
-		if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
-			return;
-		_Good = CopyGood(_CropSeed);
-		if(_Good == NULL)
-			ArrayInsert_S(_Family->Goods, _Good);
-		FieldHarvest(_Field, _Good);
-	} else {
-		FieldWork(_Field, PersonWorkMult(_Person));
-	}
-
+	return 1;
 }
 
 void PersonDeath(struct Person* _Person) {
@@ -147,7 +144,7 @@ void PersonDeath(struct Person* _Person) {
 
 	_Person->Nutrition = 0;
 	if(_Person->Gender == EFEMALE)
-		RBDelete(&g_PregTree, _Person);
+		ATimerRmNode(&g_ATimer, _Person);
 	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
@@ -160,19 +157,6 @@ void PersonDeath(struct Person* _Person) {
 		}
 	DestroyPerson(_Person);
 	Event_Push(CreateEventDeath(_Person));
-}
-	
-int PregancyUpdate(struct Pregancy* _Pregancy) {
-	if(--_Pregancy->TTP <= 0) {
-		if(_Pregancy->Mother->Family->NumChildren >= CHILDREN_SIZE)
-			return 1;
-		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
-		_Pregancy->Mother->Family->People[2 + _Pregancy->Mother->Family->NumChildren++] = _Child;
-		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
-		DestroyPregancy(_Pregancy);
-		return 1;
-	}
-	return 0;
 }
 
 int PersonWorkMult(struct Person* _Person) {

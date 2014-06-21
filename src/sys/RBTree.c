@@ -20,25 +20,6 @@
 #define RB_STRDELM (1)
 #define RB_DELM " "
 
-struct RBNode* __RBTree_Search(struct RBTree* _Tree, const void* _Data) {
-	struct RBNode* _Node = NULL;
-	int _Cmp = 0;
-
-	if(_Data == NULL)
-		return NULL;
-	_Node = _Tree->Table;
-	while(_Node != NULL) {
-		_Cmp = _Tree->SCallback(_Data, _Node->Data);
-		if(_Cmp == 0)
-			return _Node;
-		else if(_Cmp < 0)
-			_Node = _Node->Left;
-		else
-			_Node = _Node->Right;
-	}
-		return NULL;
-}
-
 struct RBNode* __RBMax(struct RBNode* _Node) {
 	if(_Node == NULL)
 		return NULL;
@@ -252,9 +233,7 @@ void RBInsert(struct RBTree* _Tree, void* _Data) {
 		++_Tree->Size;
 		return;
 	}
-
 	_Itr = _Tree->Table;
-
 	while(_Itr != NULL) {
 		if(_Tree->ICallback(_Data, _Itr->Data) < 0)
 			if(_Itr->Left == NULL) {
@@ -275,16 +254,72 @@ void RBInsert(struct RBTree* _Tree, void* _Data) {
 	++_Tree->Size;
 }
 
+struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert) {
+	struct RBNode* _Itr = NULL;
+	struct RBNode* _Node = NULL;
+	int _Found;
+
+	if(_Search == NULL || _Insert == NULL)
+		return 0;
+	if(_Tree->Size == 0) {
+		_Tree->Table = CreateRBNode(NULL, _Insert, RB_BLACK);
+		++_Tree->Size;
+		return NULL;
+	}
+	_Itr = _Tree->Table;
+	while(_Itr != NULL) {
+		_Found = _Tree->ICallback(_Search, _Itr->Data);
+		if(_Found < 0)
+			if(_Itr->Left == NULL) {
+				_Node = CreateRBNode(_Itr, _Insert, RB_RED);
+				_Itr->Left = _Node;
+				break;
+			} else
+			_Itr = _Itr->Left;
+		else if(_Found > 0)
+			if(_Itr->Right == NULL) {
+				_Node = CreateRBNode(_Itr, _Insert, RB_RED);
+				_Itr->Right = _Node;
+				break;
+			} else
+				_Itr = _Itr->Right;
+		else
+			return _Itr;
+	}
+	RBTree_Balance(_Tree, _Node);
+	++_Tree->Size;
+	return NULL;
+}
+
 void* RBSearch(struct RBTree* _Tree, const void* _Data) {
-	struct RBNode* _Node = __RBTree_Search(_Tree, _Data);
+	struct RBNode* _Node = RBSearchNode(_Tree, _Data);
 
 	if(_Node != NULL)
 		return _Node->Data;
 	return NULL;
 }
 
+struct RBNode* RBSearchNode(struct RBTree* _Tree, const void* _Data) {
+	struct RBNode* _Node = NULL;
+	int _Cmp = 0;
+
+	if(_Data == NULL)
+		return NULL;
+	_Node = _Tree->Table;
+	while(_Node != NULL) {
+		_Cmp = _Tree->SCallback(_Data, _Node->Data);
+		if(_Cmp == 0)
+			return _Node;
+		else if(_Cmp < 0)
+			_Node = _Node->Left;
+		else
+			_Node = _Node->Right;
+	}
+		return NULL;
+}
+
 void RBDelete(struct RBTree* _Tree, void* _Data) {
-	RBDeleteNode(_Tree, __RBTree_Search(_Tree, _Data));
+	RBDeleteNode(_Tree, RBSearchNode(_Tree, _Data));
 }
 
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node) {
@@ -375,7 +410,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node) {
 	free(_OldNode);
 }
 
-struct RBItrStack* RBStackPush(struct RBNode* _Node, struct RBItrStack* _Prev) {
+struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node) {
 	struct RBItrStack* _Itr = (struct RBItrStack*) malloc(sizeof(struct RBItrStack));
 
 	_Itr->Node = _Node;
@@ -397,11 +432,11 @@ int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 
 	while(_Itr != NULL) {
 		if(_Callback(_Itr->Data) == 1)
-			_Delete = RBStackPush(_Itr, _Delete);
+			_Delete = RBStackPush(_Delete, _Itr);
 		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Itr->Right, _Stack);
+			_Stack = RBStackPush(_Stack, _Itr->Right);
 		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Itr->Left, _Stack);
+			_Stack = RBStackPush(_Stack, _Itr->Left);
 		_Temp = _Stack;
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;
@@ -435,9 +470,9 @@ void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*)) {
 	while(_Itr != NULL) {
 		_Callback(_Itr->Data);
 		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Itr->Right, _Stack);
+			_Stack = RBStackPush(_Stack, _Itr->Right);
 		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Itr->Left, _Stack);
+			_Stack = RBStackPush(_Stack, _Itr->Left);
 		_Temp = _Stack;
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;

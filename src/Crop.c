@@ -61,15 +61,15 @@ void DestroyCrop(struct Crop* _Crop) {
 }
 
 struct Crop* CropLoad(lua_State* _State, int _Index) {
-	const char* _Name = NULL;
-	const char* _TypeStr = NULL;
 	int _Type = 0;
-	const char* _Key = NULL;
 	int _PerAcre = 0;
-	double _YieldMult = 0;
 	int _NutValue = 0;
 	int _GrowTime = 0;
 	int _Return = -2;
+	double _YieldMult = 0;
+	const char* _Name = NULL;
+	const char* _TypeStr = NULL;
+	const char* _Key = NULL;
 
 	lua_getmetatable(_State, _Index);
 	lua_pushnil(_State);
@@ -82,7 +82,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			_Return = AddInteger(_State, -1, &_PerAcre);
 		else if(!strcmp("Type", _Key)) {
 			if(lua_isstring(_State, -1)) {
-				AddString(_State, -1, &_TypeStr);
+				_Return = AddString(_State, -1, &_TypeStr);
 				if(!strcmp("Grass", _TypeStr))
 					_Type = EGRASS;
 				else

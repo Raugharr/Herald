@@ -8,6 +8,12 @@
 
 #include <lua/lua.h>
 
+struct LinkedList;
+
+extern lua_State* g_LuaState;
+
+int LoadLuaFile(lua_State* _State, const char* _File);
+void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return);
 int AddInteger(lua_State* _State, int _Index, int* _Number);
 int AddString(lua_State* _State, int _Index, const char** _String);
 int AddNumber(lua_State* _State, int _Index, double* _Number);

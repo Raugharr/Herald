@@ -28,6 +28,7 @@
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
+#include <lua/lualib.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -38,44 +39,6 @@ char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
 struct RBTree* g_BuildDep = NULL;
-lua_State* g_LuaState = NULL;
-
-int LoadLuaFile(lua_State* _State, const char* _File) {
-	int _Error = luaL_loadfile(_State, _File);
-
-	switch(_Error) {
-		case LUA_ERRSYNTAX:
-			printf("%s", lua_tostring(_State, -1));
-			return _Error;
-		case LUA_ERRFILE:
-			printf("Cannot load file: %s", _File);
-			return _Error ;
-	}
-	lua_pcall(_State, 0, 0, 0);
-	return 1;
-}
-
-void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
-	void* _CallRet = NULL;
-
-	if(LoadLuaFile(_State, _File) != 1)
-		return;
-	lua_getglobal(_State, _Global);
-	if(!lua_istable(_State, -1))
-		return;
-	lua_pushnil(_State);
-	while(lua_next(_State, -2) != 0) {
-		if(!lua_istable(_State, -1)) {
-			printf("Warning: index is not a table.");
-			lua_pop(_State, 1);
-			continue;
-		}
-		if((_CallRet = _Callback(_State, -1)) != NULL)
-				LnkLst_PushBack(_Return, _CallRet);
-		lua_pop(_State, 1);
-	}
-	lua_pop(_State, 1);
-}
 
 void World_Init(int _Area) {
 	struct Array* _Array = NULL;
@@ -90,6 +53,8 @@ void World_Init(int _Area) {
 
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();
+	luaL_openlibs(g_LuaState);
+
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);

@@ -47,7 +47,7 @@ struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert
 void* RBSearch(struct RBTree* _Tree, const void* _Data);
 struct RBNode* RBSearchNode(struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
-void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node);
+void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode);
 
 struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node);
 /**

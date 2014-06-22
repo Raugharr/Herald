@@ -19,6 +19,10 @@
 #define RB_STRPTR (8) //size of pointer in style of, FFFFFFFF.
 #define RB_STRDELM (1)
 #define RB_DELM " "
+#define RBNodeSwap(_Copy, _Node)			\
+	(_Copy)->Parent = (_Node)->Parent;		\
+	(_Copy)->Left = (_Node)->Left;			\
+	(_Copy)->Right = (_Node)->Right
 
 struct RBNode* __RBMax(struct RBNode* _Node) {
 	if(_Node == NULL)
@@ -172,7 +176,7 @@ void DestroyRBTree(struct RBTree* _Tree) {
 	free(_Tree);
 }
 
-void RBTree_Balance(struct RBTree* _Tree, struct RBNode* _Node) {
+void RBBalance(struct RBTree* _Tree, struct RBNode* _Node) {
 	struct RBNode* _Parent = NULL;
 	struct RBNode* _Uncle = NULL;
 
@@ -250,7 +254,7 @@ void RBInsert(struct RBTree* _Tree, void* _Data) {
 			} else
 			_Itr = _Itr->Right;
 	}
-	RBTree_Balance(_Tree, _Node);
+	RBBalance(_Tree, _Node);
 	++_Tree->Size;
 }
 
@@ -286,7 +290,7 @@ struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert
 		else
 			return _Itr;
 	}
-	RBTree_Balance(_Tree, _Node);
+	RBBalance(_Tree, _Node);
 	++_Tree->Size;
 	return NULL;
 }
@@ -322,54 +326,72 @@ void RBDelete(struct RBTree* _Tree, void* _Data) {
 	RBDeleteNode(_Tree, RBSearchNode(_Tree, _Data));
 }
 
-void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _Node) {
-	struct RBNode* _OldNode = NULL;
+void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
+	struct RBNode* _Node = NULL;
 	struct RBNode* _Parent = NULL;
 	struct RBNode* _Sibling = NULL;
 
-	if(_Node == NULL)
+	if(_OldNode == NULL)
 		return;
 
-	if(_Node->Right != NULL)
-		_OldNode = __RBMin(_Node);
-	else if(_Node->Left != NULL)
-		_OldNode = __RBMax(_Node);
-
-	if(_OldNode == NULL)
-		_OldNode = _Node;
-	_Node->Data = _OldNode->Data;
-	_Parent = _OldNode->Parent;
-	if(_Parent) {
-		if(_Parent->Right == _OldNode) {
-			_Parent->Right = _OldNode->Left;
-			if(_OldNode->Left)
-				_OldNode->Left->Parent = _Parent;
-		} else {
-			_Parent->Left = _OldNode->Left;
-			if(_OldNode->Left)
-				_OldNode->Left->Parent = _Parent;
-		}
-	} else {
-#ifdef DEBUG
-		assert(_Tree->Table->Left != NULL || _Tree->Table->Right != NULL);
-#endif
-		free(_Node);
+	if(_OldNode->Parent == NULL) {
+		#ifdef DEBUG
+				assert(_Tree->Table->Left != NULL || _Tree->Table->Right != NULL);
+		#endif
+		free(_OldNode);
 		_Tree->Table = NULL;
 		_Tree->Size = 0;
 		return;
 	}
-	if(_OldNode->Color == RB_BLACK) {
-		if(_Node->Color == RB_RED)
-			_Node->Color = RB_BLACK;
+
+	if(_OldNode->Right != NULL)
+		_Node = __RBMin(_OldNode);
+	else if(_OldNode->Left != NULL)
+		_Node = __RBMax(_OldNode);
+
+	if(_Node == NULL)
+		_Node = _OldNode;
+	//_Node->Data = _OldNode->Data; Messes with RBNodes nodes that are saved for deleting or something later.
+
+	_Parent = _Node->Parent;
+	if(_Parent) {
+		if(_Parent->Right == _Node) {
+			_Parent->Right = _Node->Left;
+			if(_Node->Left)
+				_Node->Left->Parent = _Parent;
+		} else {
+			_Parent->Left = _Node->Left;
+			if(_Node->Left)
+				_Node->Left->Parent = _Parent;
+		}
+	}
+
+	if(_OldNode != _Node) {
+		if(_OldNode->Parent->Left == _OldNode)
+			_OldNode->Parent->Left = _Node;
 		else
-			_Node->Color = RB_DBLACK;
+			_OldNode->Parent->Right = _Node;
+		_Node->Parent = _OldNode->Parent;
+		_Node->Left = _OldNode->Left;
+		_Node->Right = _OldNode->Right;
+		if(_Node->Right)
+			_Node->Right->Parent = _Node;
+		if(_Node->Left)
+			_Node->Left->Parent = _Node;
+	}
+
+	if(_Node->Color == RB_BLACK) {
+		if(_OldNode->Color == RB_RED)
+			_OldNode->Color = RB_BLACK;
+		else
+			_OldNode->Color = RB_DBLACK;
 	}
 	while(_Tree->Table != _Node && _Node->Color == RB_DBLACK) {
 		_Sibling = RBSibling(_Node);
 		if(_Sibling != NULL && _Sibling->Color == RB_BLACK) {
 			if(_Sibling->Left != NULL && _Sibling->Left->Color == RB_RED) {
 				RBRotateRight(_Tree, _Sibling);
-				RBRotateLeft(_Tree, _Sibling->Parent); //_Sibling->Parent was _Sibling->Left before the above rotate.
+				RBRotateLeft(_Tree, _Sibling->Parent);
 				_Node->Color = RB_BLACK;
 			} else if(_Sibling->Right != NULL && _Sibling->Right->Color == RB_RED) {
 				_Sibling->Right->Color = RB_BLACK;
@@ -545,3 +567,4 @@ int RBToString(struct RBNode* _Node, char* _Buffer, int _Size) {
 	_Size -= RB_CONTR + RB_STRDELM;
 	return RBToString(_Node->Left, _Buffer, _Size) + RBToString(_Node->Right, _Buffer, _Size);
 }
+

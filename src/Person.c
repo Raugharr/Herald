@@ -19,23 +19,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define POOLSIZE (10000)
-
 #ifndef NULL
 #define NULL (((void*)0))
 #endif
 #define BIRTH_TIME (9)
 
-static struct MemoryPool* g_PersonPool = NULL;
+struct MemoryPool* g_PersonPool = NULL;
 struct Person* g_PersonList = NULL;
-
-void PersonInit() {
-	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), POOLSIZE);
-}
-
-void PersonQuit() {
-	DestroyMemoryPool(g_PersonPool);
-}
 
 struct Pregancy* CreatePregancy(struct Person* _Person) {
 	struct Pregancy* _Pregancy = (struct Pregancy*) malloc(sizeof(struct Pregancy));
@@ -77,8 +67,10 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Occupation = NULL;
 	if(g_PersonList == NULL)
 		_Person->Next = NULL;
-	else
+	else {
 		_Person->Next = g_PersonList;
+		g_PersonList->Prev = _Person;
+	}
 	_Person->Prev = NULL;
 	g_PersonList = _Person;
 	return _Person;
@@ -149,8 +141,8 @@ void PersonDeath(struct Person* _Person) {
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
 			if(i >= CHILDREN) {
-				if(_Family->NumChildren < CHILDREN_SIZE)
-					_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren + 1];
+				//if(_Family->NumChildren < CHILDREN_SIZE)
+				_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren];
 				--_Family->NumChildren;
 			}
 			break;

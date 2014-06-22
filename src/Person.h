@@ -18,6 +18,7 @@
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 
+extern struct MemoryPool* g_PersonPool;
 extern struct Person* g_PersonList;
 
 struct Person {
@@ -40,9 +41,6 @@ struct Pregancy {
 	struct Person* Mother;
 	int TTP;//Time to pregancy
 };
-
-void PersonInit();
-void PersonQuit();
 
 struct Pregancy* CreatePregancy(struct Person* _Person);
 void DestroyPregancy(struct Pregancy* _Pregancy);

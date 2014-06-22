@@ -20,6 +20,7 @@
 #include "sys/LinkedList.h"
 #include "sys/HashTable.h"
 #include "sys/Array.h"
+#include "sys/MemoryPool.h"
 
 #include "sys/LuaHelper.h"
 
@@ -59,7 +60,7 @@ void World_Init(int _Area) {
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(g_DataFld);
 	_Array = FileLoad("FirstNames.txt", '\n');
-	PersonInit();
+	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
 	LoadLuaToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
 	LoadLuaToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
@@ -104,7 +105,7 @@ void World_Quit() {
 	}
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);
-	PersonQuit();
+	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();
 	DestroyRBTree(g_BuildDep);
 	lua_close(g_LuaState);

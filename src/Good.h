@@ -27,10 +27,10 @@ enum {
 };
 
 struct Good {
+	int Id;
 	char* Name;
 	int Category;
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
-	int Id;
 	struct LinkedList InputGoods; //!Contains struct InputReq*.
 };
 

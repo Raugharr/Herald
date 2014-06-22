@@ -17,9 +17,12 @@
 
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
+	int _Percent = _Building->BuildTime / 10;
 
-	_Construct->Type = 0;
-	_Construct->DaysLeft = _Building->BuildTime;
+	_Construct->Prev = NULL;
+	_Construct->Next = NULL;
+	_Construct->Type = ATT_CONSTRUCTION;
+	_Construct->DaysLeft = _Building->BuildTime - _Percent + Random(0, _Percent * 2);
 	_Construct->Building = _Building;
 	_Construct->Worker = _Person;
 	return _Construct;

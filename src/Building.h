@@ -6,8 +6,6 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
-#include "sys/LinkedList.h"
-
 typedef struct lua_State lua_State;
 struct Good;
 struct HashTable;
@@ -32,9 +30,9 @@ struct Construction {
 	void* Prev;
 	void* Next;
 	int Type;
+	struct Person* Worker;
 	struct Building* Building;
 	int DaysLeft;
-	struct Person* Worker;
 };
 
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person);

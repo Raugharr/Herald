@@ -42,7 +42,7 @@ int BHVSequence(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 }
 
 int BHVDNot(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
-	return !_Bhv->Children[0]->Action(_Person, _Data);
+	return !_Bhv->Action(_Person, _Data);
 }
 
 struct Behavior* CreateBehavior(struct Behavior* _Parent, int(*_Run)(struct Person*, void*), int _Size, int(*_Callback)(struct Behavior*, struct Person*, void*)) {
@@ -75,6 +75,7 @@ void DestroyBehavior(struct Behavior* _Bhv) {
 	for(i = 0; i < _Bhv->Size; ++i)
 		if(_Bhv->Children[i] != NULL)
 			DestroyBehavior(_Bhv->Children[i]);
+	free(_Bhv->Children);
 	free(_Bhv);
 }
 
@@ -99,12 +100,12 @@ struct Behavior* CreateBHVD(struct Behavior* _Parent, int _Type, int(*_Action)(s
 
 	switch(_Type) {
 		case BHV_DNOT:
-			_Bhv = CreateBehavior(_Parent, NULL, 1, BHVDNot);
+			_Bhv = CreateBehavior(_Parent, NULL, 0, BHVDNot);
 			break;
 		default:
 			return NULL;
 	}
-	_Bhv->Children[0] = CreateBehavior(_Parent, _Action, 0, NULL);
+	_Bhv->Action = _Action;
 	return _Bhv;
 }
 

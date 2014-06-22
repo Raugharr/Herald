@@ -94,7 +94,8 @@ void DestroyFamily(struct Family* _Family) {
 		DestroyGood(_Array->Table[i]);
 	}
 	while(_Max > 0) {
-		DestroyPerson(_Family->People[_Max]);
+		if(_Family->People[_Max] != NULL)
+			DestroyPerson(_Family->People[_Max]);
 		--_Max;
 	}
 	DestroyField(_Family->Field);

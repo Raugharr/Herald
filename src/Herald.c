@@ -101,7 +101,7 @@ void HeraldInit() {
 	g_Families.SCallback = (int (*)(const void*, const void*))&FamilySCallback;
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
-	g_AgeGroups = CreateConstrntBnds(5, 0, 71, 155, 191, 719, 1200);
+	g_AgeGroups = CreateConstrntBnds(5, 0, 2190, 4745, 5659, 21900, 36500);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_BabyAvg = CreateConstrntBnds(8, 0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999);
 	g_ManorSize = CreateConstrntLst(NULL, MANORSZ_MIN, MANORSZ_MAX, MANORSZ_INTRVL);

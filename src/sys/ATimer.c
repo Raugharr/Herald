@@ -159,7 +159,7 @@ void ATimerInsert(struct ATimer* _Timer, void* _Data) {
 	if(_Node != NULL) {
 		_Proto = _Node->Data;
 		_Proto->Prev = _Data;
-		((struct ATypeProto*)_Data)->Next = _Data;
+		((struct ATypeProto*)_Data)->Next = _Proto;
 		((struct ATypeProto*)_Data)->Prev = NULL;
 		_Node->Data = _Data;
 	}

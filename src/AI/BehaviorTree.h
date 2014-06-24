@@ -7,6 +7,9 @@
 #define __BEHAVIORTREE_H
 
 struct Person;
+struct HashTable;
+
+typedef int(*BHVAction)(struct Person*, struct HashTable*);
 
 enum {
 	BHV_SELECTOR = 0,
@@ -20,16 +23,16 @@ enum {
 
 struct Behavior {
 	int(*Callback)(struct Behavior*, struct Person*, void*);
-	int(*Action)(struct Person*, void*);
+	BHVAction Action;
 	struct Behavior** Children;
 	int Size;
 	struct Behavior* Parent;
 };
 
 void DestroyBehavior(struct Behavior* _Bhv);
-struct Behavior* CreateBHVComp(struct Behavior* _Parent, int _Type, int _Size);
-struct Behavior* CreateBHVNode(struct Behavior* _Parent, int(*_Action)(struct Person*, void*));
-struct Behavior* CreateBHVD(struct Behavior* _Parent, int _Type, int(*_Action)(struct Person*, void*));
+struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...);
+struct Behavior* CreateBHVNode(BHVAction _Action);
+struct Behavior* CreateBHVD(int _Type, BHVAction _Action);
 
 int BHVRun(struct Behavior* _Bhv, struct Person* _Person, void* _Data);
 

@@ -8,6 +8,8 @@
 
 struct Behavior;
 
+#define MAKEGOOD "MakeGood"
+
 extern struct Behavior* g_AIMan;
 extern struct Behavior* g_AIWoman;
 extern struct Behavior* g_AIChild;

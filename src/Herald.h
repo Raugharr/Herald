@@ -50,6 +50,7 @@ extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct ATimer g_ATimer;
 extern struct RBTree g_Families;
+extern struct RBTree* g_GoodDeps;
 
 extern struct Constraint** g_AgeConstraints;
 extern struct Constraint** g_AgeGroups;

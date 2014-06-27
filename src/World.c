@@ -64,17 +64,23 @@ void World_Init(int _Area) {
 	Family_Init(_Array);
 	LoadLuaToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
 	LoadLuaToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
-	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct Good*)_Itr->Data)->Name);
+	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	LoadLuaFile(g_LuaState, "goods.lua");
 	_Itr = _GoodList->Front;
 	lua_getglobal(g_LuaState, "Goods");
 	lua_pushnil(g_LuaState);
-	while(lua_next(g_LuaState, -2) != 0) {
+	while(lua_next(g_LuaState, -2) != 0 && _Itr != NULL) {
 		if(!lua_istable(g_LuaState, -1)) {
 			lua_pop(g_LuaState, 1);
 			continue;
 		}
-		GoodLoadInput(g_LuaState, -1, _Itr->Data);
+		lua_getfield(g_LuaState, -1, "Name");
+		if(lua_isstring(g_LuaState, -1) && !strcmp(lua_tostring(g_LuaState, -1), ((struct GoodBase*)_Itr->Data)->Name)) {
+			lua_pop(g_LuaState, 1);
+			GoodLoadInput(g_LuaState, -1, _Itr->Data);
+		} else {
+			lua_pop(g_LuaState, 1);
+		}
 		_Itr = _Itr->Next;
 		lua_pop(g_LuaState, 1);
 	}

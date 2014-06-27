@@ -14,7 +14,7 @@
 #include <string.h>
 #include <lua/lua.h>
 
-struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, struct Building* _Workplace, struct Constraint* _AgeConst) {
+struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Building* _Workplace, struct Constraint* _AgeConst) {
 	struct Occupation* _Occupation = (struct Occupation*) malloc(sizeof(struct Occupation));
 
 	_Occupation->Id = NextId();
@@ -56,7 +56,7 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 	const char* _Key = NULL;
 	const char* _Name = NULL;
 	const char* _Temp = NULL;
-	struct Good* _Output = NULL;
+	struct GoodBase* _Output = NULL;
 	struct Building* _Workplace = NULL;
 	struct Constraint* _AgeConst = NULL;
 

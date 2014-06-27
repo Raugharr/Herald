@@ -14,7 +14,7 @@ enum {
 };
 
 struct Workplace {
-	struct Good* Output;
+	struct GoodBase* Output;
 	struct Building* Workplace;
 };
 
@@ -26,7 +26,7 @@ struct Occupation {
 	struct Constraint* AgeConst;
 };
 
-struct Occupation* CreateOccupation(const char* _Name, struct Good* _Output, struct Building* _Workplace, struct Constraint* AgeConst);
+struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Building* _Workplace, struct Constraint* AgeConst);
 struct Occupation* CreateOccupationSpecial(const char* _Name, int _Job);
 struct Occupation* CopyOccupation(const struct Occupation* _Occupation);
 void DestroyOccupation(struct Occupation* _Occupation);

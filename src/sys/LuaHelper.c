@@ -15,7 +15,6 @@ lua_State* g_LuaState = NULL;
 
 int LoadLuaFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
-	char _Buffer[256];
 
 	if(_Error != 0)
 		goto error;
@@ -32,7 +31,7 @@ int LoadLuaFile(lua_State* _State, const char* _File) {
 			printf("Cannot load file: %s", _File);
 			return _Error;
 		case LUA_ERRRUN:
-			sprintf(_Buffer, "Cannot run file: %s", lua_tostring(_State, -1));
+			printf("Cannot run file: %s", lua_tostring(_State, -1));
 			return _Error;
 
 	}
@@ -97,17 +96,22 @@ void LuaStackToTable(lua_State* _State, int* _Table) {
 }
 
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {
+	int _Top = lua_gettop(_State);
+
 	lua_pushnil(_State);
 	if(lua_next(_State, _Index) == 0)
-		return 0;
+		goto fail;
 	if(AddInteger(_State, -1, _One) == -1)
-		return 0;
+		goto fail;
 	lua_pop(_State, 1);
 	if(lua_next(_State, _Index) == 0)
-		return 0;
+		goto fail;
 	if(AddInteger(_State, -1, _Two) == -1)
-		return 0;
+		goto fail;
 	return 1;
+	fail:
+	lua_settop(_State, _Top);
+	return 0;
 }
 
 int LuaKeyValue(lua_State* _State, int _Index, const char** _Value, int* _Pair) {

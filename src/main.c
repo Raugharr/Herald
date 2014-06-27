@@ -7,6 +7,7 @@
 #include "Herald.h"
 #include "World.h"
 #include "Person.h"
+#include "sys/HashTable.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
 
@@ -14,11 +15,14 @@
 #define NULL ((void*)0)
 #endif
 
+struct HashTable* g_AIHash = NULL;
+
 int Tick() {
 	struct Person* _Person = g_PersonList;
 
 	ATImerUpdate(&g_ATimer);
 	while(_Person != NULL) {
+		HashClear(g_AIHash);
 		if(TO_YEARS(_Person->Age) < 13)
 			BHVRun(g_AIChild, _Person, NULL);
 		else if(_Person->Gender == EMALE)
@@ -35,6 +39,7 @@ int Tick() {
 int main(int argv, char** argc) {
 	int i;
 
+	g_AIHash = CreateHash(32);
  	HeraldInit();
  	AIInit();
 	World_Init(300);
@@ -43,5 +48,6 @@ int main(int argv, char** argc) {
 	World_Quit();
 	AIQuit();
 	HeraldDestroy();
+	DestroyHash(g_AIHash);
 	return 0;
 }

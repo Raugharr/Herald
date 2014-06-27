@@ -28,7 +28,7 @@
 
 struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
-	struct Good* _Good = NULL;
+	struct GoodBase* _Good = NULL;
 
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Crop->Name, _Name);
@@ -37,9 +37,9 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
 	if((_Good = HashSearch(&g_Goods, _Name)))
-		DestroyGood(_Good);
+		DestroyGoodBase(_Good);
 
-	HashInsert(&g_Goods, _Name, _Good = CreateGood(_Name, ESEED));
+	HashInsert(&g_Goods, _Name, _Good = CreateGoodBase(_Name, ESEED));
 	return _Crop;
 }
 
@@ -126,7 +126,7 @@ int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
 	if(_Field->Status != EFALLOW)
 		return 0;
 
-	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Name, _Field->Crop->Name) != 0)
+	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Base->Name, _Field->Crop->Name) != 0)
 		return 0;
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
 	_Field->Status = EPLOWING;

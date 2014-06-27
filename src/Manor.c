@@ -81,7 +81,6 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 void DestroyManor(struct Manor* _Manor) {
 	struct LnkLst_Node* _Itr = _Manor->Crops.Front;
 
-	RBRemoveAll(&_Manor->People, (void(*)(void*))DestroyPerson);
 	while(_Itr != NULL) {
 		DestroyField((struct Field*)_Itr->Data);
 		_Itr = _Itr->Next;
@@ -98,8 +97,8 @@ void DestroyManor(struct Manor* _Manor) {
 int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 	int i;
 	const char* _GoodName = NULL;
-	struct Good* _Good = NULL;
-	struct Good* _Output = NULL;
+	struct GoodBase* _Good = NULL;
+	struct GoodBase* _Output = NULL;
 	struct Building* _NewBuilding = NULL;
 	struct LinkedList* _List = NULL;
 	struct Array* _OutputGoods = NULL;
@@ -108,12 +107,12 @@ int AddBuilding(struct Manor* _Manor, const struct Building* _Building) {
 		return 0;
 	_OutputGoods = _Building->OutputGoods;
 	for(i = 0; i < _OutputGoods->Size; ++i) {
-		_Output = ((struct Good*)_OutputGoods->Table[i]);
+		_Output = ((struct GoodBase*)_OutputGoods->Table[i]);
 		_GoodName = _Output->Name;
 		if((_Good = HashSearch(&_Manor->Goods, _GoodName)) == 0) {
 			if((_Good = HashSearch(&g_Goods, _GoodName)) == 0)
 				return 0;
-			HashInsert(&_Manor->Goods, _GoodName, CopyGood(_Good));
+			HashInsert(&_Manor->Goods, _GoodName, CopyGoodBase(_Good));
 		}
 		if((_List = HashSearch(&_Manor->Production, _Output->Name)) == 0) {
 			CreateLinkedList(_List);

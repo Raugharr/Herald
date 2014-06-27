@@ -89,23 +89,13 @@ void DestroyPerson(struct Person* _Person) {
 }
 
 struct Person* CreateChild(struct Family* _Family) {
-	struct Person* _Child = (struct Person*) MemPool_Alloc(g_PersonPool);
+	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Family->People[WIFE]->Nutrition);
 	
-	_Child->Gender = Random(1, 2);
-	if(_Child->Gender == EMALE)
-		_Child->Name = "Foo";
-	else
-		_Child->Name = "Foo";
-	_Child->Id = NextId();
-	_Child->Age = 0;
-	_Child->Nutrition = _Family->People[WIFE]->Nutrition;
-	_Child->Family = NULL;
-	_Child->Parent = _Family;
-	_Child->Occupation = NULL;
+	_Child->Family = _Family;
 	return _Child;
 }
 
-int PersonUpdate(struct Person* _Person, void* _Data) {
+int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
 	int _NutVal = 1500;
 
 	if(PersonDead(_Person) == 1)

@@ -20,59 +20,53 @@ int GoodDepICallback(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
 }
 
-int GoodDepSCallback(const struct Good* _Good, const struct GoodDep* _Pair) {
+int GoodDepSCallback(const struct GoodBase* _Good, const struct GoodDep* _Pair) {
 	return _Good->Id - _Pair->Good->Id;
 }
 
-struct Good* CreateGood(const char* _Name, int _Category) {
-	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
+struct GoodBase* CreateGoodBase(const char* _Name, int _Category) {
+	struct GoodBase* _Good = (struct GoodBase*) malloc(sizeof(struct GoodBase));
 
 	_Good->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
-	_Good->Category = _Category;
-	_Good->Quantity = 0;
-	_Good->Id = NextId();
-	_Good->InputGoods.Size = 0;
-	_Good->InputGoods.Front = NULL;
-	_Good->InputGoods.Back = NULL;
 	strcpy(_Good->Name, _Name);
+	_Good->Category = _Category;
+	_Good->Id = NextId();
+	_Good->InputGoods = NULL;
+	_Good->IGSize = 0;
 	return _Good;
 }
 
-struct Good* CopyGood(const struct Good* _Good) {
-	struct Good* _NewGood = (struct Good*) malloc(sizeof(struct Good));
-	struct LnkLst_Node* _Itr = _Good->InputGoods.Front;
+struct GoodBase* CopyGoodBase(const struct GoodBase* _Good) {
+	int i;
+	struct GoodBase* _NewGood = (struct GoodBase*) malloc(sizeof(struct GoodBase));
 
 	_NewGood->Name = (char*) malloc(sizeof(char) * strlen(_Good->Name) + 1);
 	_NewGood->Category = _Good->Category;
-	_NewGood->Quantity = _Good->Quantity;
 	_NewGood->Id = _Good->Id;
 	strcpy(_NewGood->Name, _Good->Name);
-	_NewGood->InputGoods.Size = 0;
-	_NewGood->InputGoods.Front = NULL;
-	_NewGood->InputGoods.Back = NULL;
-	while(_Itr != NULL) {
+	_NewGood->InputGoods = calloc(_Good->IGSize, sizeof(struct InputReq*));
+	_NewGood->IGSize = _Good->IGSize;
+	for(i = 0; i < _Good->IGSize; ++i) {
 		struct InputReq* _Req = CreateInputReq();
-		_Req->Req = ((struct InputReq*)_Itr->Data)->Req;
-		_Req->Quantity = ((struct InputReq*)_Itr->Data)->Quantity;
-		LnkLst_PushBack(&_NewGood->InputGoods, _Req);
-		_Itr = _Itr->Next;
+		_Req->Req = ((struct InputReq*)_Good->InputGoods[i])->Req;
+		_Req->Quantity = ((struct InputReq*)_Good->InputGoods[i])->Quantity;
+		_NewGood->InputGoods[i] = _Req;
 	}
 	return _NewGood;
 }
 
-void DestroyGood(struct Good* _Good) {
-	struct LnkLst_Node* _Itr = _Good->InputGoods.Front;
+void DestroyGoodBase(struct GoodBase* _Good) {
+	int i;
 
-	while(_Itr != NULL) {
-		DestroyInputReq(_Itr->Data);
-		_Itr = _Itr->Next;
-	}
+	for(i = 0; i < _Good->IGSize; ++i)
+		DestroyInputReq(_Good->InputGoods[i]);
 	free(_Good->Name);
+	free(_Good->InputGoods);
 	free(_Good);
 }
 
-struct Good* GoodLoad(lua_State* _State, int _Index) {
-	struct Good* _Good = NULL;
+struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
+	struct GoodBase* _Good = NULL;
 	const char* _Name = NULL;
 	const char* _Temp = NULL;
 	int _Category = 0;
@@ -93,18 +87,14 @@ struct Good* GoodLoad(lua_State* _State, int _Index) {
 						_Category = EINGREDIENT;
 					else if(!strcmp("Animal", _Temp))
 						_Category = EANIMAL;
-					else if(!strcmp("Weapon", _Temp))
-						_Category = EWEAPON;
-					else if(!strcmp("Armor", _Temp))
-						_Category = EARMOR;
-					else if(!strcmp("Shield", _Temp))
-						_Category = ESHIELD;
 					else if(!strcmp("Seed", _Temp))
 						_Category = ESEED;
 					else if(!strcmp("Tool", _Temp))
 						_Category = ETOOL;
 					else if(!strcmp("Material", _Temp))
 						_Category = EMATERIAL;
+					else if(!strcmp("Clothing", _Temp))
+						_Category = ECLOTHING;
 					else if(!strcmp("Other", _Temp))
 						_Category = EOTHER;
 					else _Return = -1;
@@ -117,24 +107,26 @@ struct Good* GoodLoad(lua_State* _State, int _Index) {
 		}
 		lua_pop(_State, 1);
 	}
-	//lua_pop(_State, 1);
 	if(_Name == NULL)
 		goto fail;
-	_Good = CreateGood(_Name, _Category);
+	_Good = CreateGoodBase(_Name, _Category);
 	_Top = lua_gettop(_State);
 	if(_Return > 0)
 		return _Good;
 	fail:
 	if(_Good != NULL)
-		DestroyGood(_Good);
+		DestroyGoodBase(_Good);
 	lua_settop(_State, _Top);
 	return NULL;
 }
 
-int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good) {
+int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 	const char* _Name = NULL;
 	int _Top = lua_gettop(_State);
+	int i;
 	struct InputReq* _Req = NULL;
+	struct LinkedList* _List = CreateLinkedList();
+	struct LnkLst_Node* _Itr = NULL;
 
 	if(_Good == NULL)
 		return 0;
@@ -154,11 +146,8 @@ int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good) {
 					goto fail;
 				if(AddInteger(_State, -1, &_Req->Quantity) == -1) {
 					goto fail;
-					DestroyInputReq(_Req);
-					DestroyGood(_Good);
-					return 0;
 				}
-				LnkLst_PushBack(&_Good->InputGoods, _Req);
+				LnkLst_PushBack(_List, _Req);
 			} else {
 				goto fail;
 			}
@@ -167,24 +156,58 @@ int GoodLoadInput(lua_State* _State, int _Index, struct Good* _Good) {
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
+	_Good->IGSize = _List->Size;
+	_Good->InputGoods = calloc(_Good->IGSize, sizeof(struct InputReq*));
+	_Itr = _List->Front;
+	for(i = 0; i < _List->Size; ++i) {
+		_Good->InputGoods[i] = (struct InputReq*)_Itr->Data;
+		_Itr = _Itr->Next;
+	}
+	DestroyLinkedList(_List);
 	return 1;
 	fail:
 	DestroyInputReq(_Req);
-	DestroyGood(_Good);
+	DestroyGoodBase(_Good);
 	lua_settop(_State, _Top);
+	DestroyLinkedList(_List);
 	return 0;
 }
 
-struct GoodDep* CreateGoodDep(const struct Good* _Good) {
+struct GoodDep* CreateGoodDep(const struct GoodBase* _Good) {
 	struct GoodDep* _GoodDep = (struct GoodDep*) malloc(sizeof(struct GoodDep));
 
 	_GoodDep->DepTbl = CreateArray(5);
 	_GoodDep->Good = _Good;
 	return _GoodDep;
 }
+
 void DestroyGoodDep(struct GoodDep* _GoodDep) {
 	DestroyArray(_GoodDep->DepTbl);
 	free(_GoodDep);
+}
+
+struct Good* CreateGood(struct GoodBase* _Base) {
+	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
+
+	_Good->Base = _Base;
+	_Good->Quantity = 0;
+	return _Good;
+}
+
+void DestroyGood(struct Good* _Good) {
+	free(_Good);
+}
+
+struct Tool* CreateTool(struct GoodBase* _Base, int _Function) {
+	struct Tool* _Tool = (struct Tool*) malloc(sizeof(struct Tool));
+
+	_Tool = (struct Tool*) CreateGood(_Base);
+	_Tool->Function = _Function;
+	return _Tool;
+}
+
+void DestroyTool(struct Tool* _Tool) {
+	free(_Tool);
 }
 
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
@@ -193,29 +216,26 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
 
 	_Itr = HashCreateItrCons(_GoodList);
 	while(_Itr != NULL) {
-		RBInsert(_Prereq, GoodDependencies(_Prereq, ((const struct Good*)_Itr->Node->Pair)));
+		RBInsert(_Prereq, GoodDependencies(_Prereq, ((const struct GoodBase*)_Itr->Node->Pair)));
 		_Itr = HashNextCons(_GoodList, _Itr);
 	}
 	return _Prereq;
 }
 
-struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct Good* _Good) {
+struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good) {
 	struct GoodDep* _Pair = NULL;
 	struct GoodDep* _PairItr = NULL;
-	struct LnkLst_Node* _Itr = NULL;
+	int i;
 
 	if((_Pair = RBSearch(_Tree, _Good)) == NULL) {
 		_Pair = CreateGoodDep(_Good);
-		_Itr = _Good->InputGoods.Front;
-
-		while(_Itr != NULL) {
-			if((_PairItr = RBSearch(_Tree, (struct Good*)((struct InputReq*)_Itr->Data)->Req)) == NULL)
-				_PairItr = GoodDependencies(_Tree, (struct Good*)((struct InputReq*)_Itr->Data)->Req);
+		for(i = 0; i < _Good->IGSize; ++i) {
+			if((_PairItr = RBSearch(_Tree, ((struct GoodBase*)_Good->InputGoods[i]))) == NULL)
+				_PairItr = GoodDependencies(_Tree, ((struct GoodBase*)_Good->InputGoods[i]->Req));
 			if(ArrayInsert(_PairItr->DepTbl, _Pair) == 0) {
 				ArrayResize(_PairItr->DepTbl);
 				ArrayInsert(_PairItr->DepTbl, _PairItr);
 			}
-			_Itr = _Itr->Next;
 		}
 	}
 	return _Pair;

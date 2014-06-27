@@ -18,6 +18,8 @@
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 
+struct HashTable;
+
 extern struct MemoryPool* g_PersonPool;
 extern struct Person* g_PersonList;
 
@@ -49,7 +51,7 @@ int PregancyUpdate(struct Pregancy* _Pregancy);
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition);
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
-int PersonUpdate(struct Person* _Person, void* _Data);
+int PersonUpdate(struct Person* _Person, struct HashTable* _Table);
 void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 int PersonWorkMult(struct Person* _Person);

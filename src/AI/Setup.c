@@ -34,6 +34,7 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Array->Size; ++i)
 		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_HUMAN) == ERES_HUMAN)
 			return 1;
+	HashInsert(_Table, AI_MAKEGOOD, AI_HOUSE);
 	return 0;
 }
 
@@ -108,11 +109,12 @@ int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct Tool*)_Good)->Function == ETOOL_PLOW)
 				return 1;
 	}
+	HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
 	return 0;
 }
 
 int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
-	struct GoodBase* _Good = HashSearch(&g_Goods, HashSearch(_Table, MAKEGOOD));
+	struct GoodBase* _Good = HashSearch(&g_Goods, HashSearch(_Table, AI_MAKEGOOD));
 	struct Good* _OwnedGood = NULL;
 	struct GoodDep* _GoodDep = NULL;
 	struct Family* _Family = _Person->Family;
@@ -158,7 +160,39 @@ int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct Tool*)_Good)->Function == ETOOL_REAP)
 				return 1;
 	}
+	HashInsert(_Table, AI_MAKEGOOD, AI_REAP);
 	return 0;
+}
+
+int PAIHasAnimals(struct Person* _Person, struct HashTable* _Table) {
+	if(_Person->Family->Animals->Size > 0)
+		return 1;
+	return 0;
+}
+
+int PAIConstructBuild(struct Person* _Person, struct HashTable* _Table) {
+	return 1;
+}
+
+int PAIHasShelter(struct Person* _Person, struct HashTable* _Table) {
+	int i;
+	struct Array* _Array = _Person->Family->Buildings;
+	void** _PerTbl = _Array->Table;
+
+	for(i = 0; i < _Array->Size; ++i)
+		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_ANIMAL) == ERES_ANIMAL)
+			return 1;
+	HashInsert(_Table, AI_MAKEGOOD, AI_SHELTER);
+	return 0;
+}
+
+int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
+	int i;
+	int _Size = _Person->Family->Goods->Size;
+	void** _Tbl = _Person->Family->Goods->Table;
+	struct Animal* _Animal = NULL;
+
+	return 1;
 }
 
 int BHVNothing(struct Person* _Person, struct HashTable* _Table) {
@@ -179,9 +213,17 @@ void AIInit() {
 								NULL),
 						CreateBHVNode(PAIWorkField),
 						NULL),
-				CreateBHVComp(BHV_SEQUENCE,
-						CreateBHVD(BHV_DNOT, PAIHasHouse),
-						CreateBHVNode(PAIBuildHouse),
+				CreateBHVComp(BHV_SELECTOR,
+						CreateBHVNode(PAIHasHouse),
+						CreateBHVNode(PAIConstructBuild),
+						NULL),
+				CreateBHVComp(BHV_SELECTOR,
+						CreateBHVNode(PAIHasAnimals),
+						CreateBHVComp(BHV_SELECTOR,
+									CreateBHVNode(PAIHasShelter),
+									CreateBHVNode(PAIConstructBuild),
+									NULL),
+						CreateBHVNode(PAIFeedAnimals),
 						NULL),
 				CreateBHVNode(PersonUpdate),
 				NULL);

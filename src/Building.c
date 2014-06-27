@@ -6,6 +6,7 @@
 #include "Building.h"
 
 #include "Herald.h"
+#include "sys/Random.h"
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
 #include "sys/LinkedList.h"

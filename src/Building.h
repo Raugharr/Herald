@@ -7,7 +7,7 @@
 #define __BUILDING_H
 
 typedef struct lua_State lua_State;
-struct Good;
+struct GoodBase;
 struct HashTable;
 
 enum {
@@ -22,6 +22,9 @@ struct Building {
 	int ResidentType;
 	int BuildTime;
 	char* Name;
+	struct GoodBase* Walls;
+	struct GoodBase* Floor;
+	struct GoodBase* Roof;
 	struct Array* OutputGoods; //Contains InputReq*.
 	struct Array* BuildMats; //Contains InputReq*.
 };

@@ -69,7 +69,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size) {
 		_Field->Crop = HashSearch(&g_Crops, "Wheat");
 		_Field->Acres = 30;
 		_Family->Field = _Field;
-		_Good = CopyGood(HashSearch(&g_Goods, "Wheat"));
+		_Good = CreateGood(HashSearch(&g_Goods, "Wheat"));
 		_Good->Quantity = 30 * _Field->Crop->PerAcre;
 		ArrayInsert_S(_Family->Goods, _Good);
 		_Size -= 2;

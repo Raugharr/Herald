@@ -24,6 +24,7 @@ struct Family {
 	struct Field* Field;
 	struct Array* Buildings;
 	struct Array* Goods;
+	struct Array* Animals;
 };
 
 void Family_Init(struct Array* _Array);

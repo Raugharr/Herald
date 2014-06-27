@@ -23,6 +23,20 @@ unsigned int Hash(const char* _Key) {
 	return (_Hash & 0x7FFFFFFF);
 }
 
+struct HashTable* CreateHash(int _Size) {
+	struct HashTable* _Hash = (struct HashTable*) malloc(sizeof(struct HashTable));
+
+	_Hash->Table = calloc(_Size, sizeof(void*));
+	_Hash->TblSize = _Size;
+	_Hash->Size = 0;
+	return _Hash;
+}
+
+void DestroyHash(struct HashTable* _Hash) {
+	free(_Hash->Table);
+	free(_Hash);
+}
+
 void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
 	int _Index = 0;
 	struct HashNode* _Node = NULL;
@@ -73,6 +87,11 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 	_Node->Pair = _Pair;
 	_Hash->Table[i] = _Node;
 	++_Hash->Size;
+}
+
+void HashClear(struct HashTable* _Hash) {
+	memset(_Hash->Table, 0, _Hash->TblSize);
+	_Hash->Size = 0;
 }
 
 int HashDelete(struct HashTable* _Hash, const char* _Key) {

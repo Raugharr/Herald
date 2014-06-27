@@ -326,15 +326,21 @@ void RBDelete(struct RBTree* _Tree, void* _Data) {
 	RBDeleteNode(_Tree, RBSearchNode(_Tree, _Data));
 }
 
+/**
+ * It is possible to just move the data field from _Node to _OldNode
+ * but we want to be able to ensure that pointers to RBNode*s will not
+ * be invalidated.
+ */
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	struct RBNode* _Node = NULL;
+	struct RBNode* _NewNode = NULL;
 	struct RBNode* _Parent = NULL;
 	struct RBNode* _Sibling = NULL;
 
 	if(_OldNode == NULL)
 		return;
 
-	if(_OldNode->Parent == NULL) {
+	if(_Tree->Size == 1) {
 		#ifdef DEBUG
 				assert(_Tree->Table->Left != NULL || _Tree->Table->Right != NULL);
 		#endif
@@ -345,49 +351,24 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	}
 
 	if(_OldNode->Right != NULL)
-		_Node = __RBMin(_OldNode);
+		_NewNode = __RBMin(_OldNode);
 	else if(_OldNode->Left != NULL)
-		_Node = __RBMax(_OldNode);
+		_NewNode = __RBMax(_OldNode);
+	else
+		_NewNode = _OldNode;
 
-	if(_Node == NULL)
+	if(_NewNode == NULL)
 		_Node = _OldNode;
-	//_Node->Data = _OldNode->Data; Messes with RBNodes nodes that are saved for deleting or something later.
+	else
+		_Node = _NewNode;
 
-	_Parent = _Node->Parent;
-	if(_Parent) {
-		if(_Parent->Right == _Node) {
-			_Parent->Right = _Node->Left;
-			if(_Node->Left)
-				_Node->Left->Parent = _Parent;
-		} else {
-			_Parent->Left = _Node->Left;
-			if(_Node->Left)
-				_Node->Left->Parent = _Parent;
-		}
-	}
-
-	if(_OldNode != _Node) {
-		if(_OldNode->Parent->Left == _OldNode)
-			_OldNode->Parent->Left = _Node;
-		else
-			_OldNode->Parent->Right = _Node;
-		_Node->Parent = _OldNode->Parent;
-		_Node->Left = _OldNode->Left;
-		_Node->Right = _OldNode->Right;
-		if(_Node->Right)
-			_Node->Right->Parent = _Node;
-		if(_Node->Left)
-			_Node->Left->Parent = _Node;
-	}
-
-	if(_Node->Color == RB_BLACK) {
-		if(_OldNode->Color == RB_RED)
-			_OldNode->Color = RB_BLACK;
-		else
-			_OldNode->Color = RB_DBLACK;
-	}
+	if(_Node->Color == RB_RED)
+		_Node->Color = RB_BLACK;
+	else
+		_Node->Color = RB_DBLACK;
 	while(_Tree->Table != _Node && _Node->Color == RB_DBLACK) {
 		_Sibling = RBSibling(_Node);
+		_Parent = _Node->Parent;
 		if(_Sibling != NULL && _Sibling->Color == RB_BLACK) {
 			if(_Sibling->Left != NULL && _Sibling->Left->Color == RB_RED) {
 				RBRotateRight(_Tree, _Sibling);
@@ -407,7 +388,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 				RBRotateLeft(_Tree, _Sibling);
 			continue;
 		}
-		if((_Parent = _Node->Parent) != NULL) {
+		if(_Node->Parent != NULL) {
 			if(_Parent->Color == RB_RED) {
 				_Node->Color = RB_BLACK;
 				_Parent->Color = RB_BLACK;
@@ -426,6 +407,34 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 				continue;
 			}
 		}
+	}
+	_Parent = _NewNode->Parent;
+	if(_Parent) {
+		struct RBNode* _Temp = (_NewNode->Left == NULL) ? (_NewNode->Right) : (_NewNode->Left);
+		if(_Parent->Right == _NewNode)
+			_Parent->Right = _Temp;
+		else
+			_Parent->Left = _Temp;
+		if(_Temp)
+			_Temp->Parent = _Parent;
+	}
+
+	if(_OldNode != _NewNode) {
+		if(_OldNode->Parent != NULL) {
+			if(_OldNode->Parent->Left == _OldNode)
+				_OldNode->Parent->Left = _NewNode;
+			else
+				_OldNode->Parent->Right = _NewNode;
+		}
+		_NewNode->Parent = _OldNode->Parent;
+		_NewNode->Left = _OldNode->Left;
+		_NewNode->Right = _OldNode->Right;
+		if(_NewNode->Right)
+			_NewNode->Right->Parent = _NewNode;
+		if(_NewNode->Left)
+			_NewNode->Left->Parent = _NewNode;
+		if(_OldNode == _Tree->Table)
+			_Tree->Table = _NewNode;
 	}
 	_Tree->Table->Color = RB_BLACK;
 	--_Tree->Size;
@@ -534,7 +543,7 @@ int RBHeight(struct RBNode* _Node) {
 int RBColorCheck_Aux(struct RBNode* _Node) {
 	if(_Node == NULL)
 		return 1;
-	return RBColorCheck_Aux(_Node->Left) == RBColorCheck_Aux(_Node->Right);
+	return RBColorCheck_Aux(_Node->Left) == RBColorCheck_Aux(_Node->Right) + _Node->Color;
 }
 
 int RBColorCheck(struct RBNode* _Node) {
@@ -554,8 +563,8 @@ int RBToString(struct RBNode* _Node, char* _Buffer, int _Size) {
 		if(_Size < RB_STRNULL + RB_STRDELM + 1)
 			return 0;
 		strncat(_Buffer, "NULL ", _Size);
-		_Buffer += RB_STRNULL;
-		return RB_STRNULL;
+		_Buffer += RB_STRNULL + RB_STRDELM;
+		return RB_STRNULL + RB_STRDELM;
 	}
 	if(_Size < RB_CONTR + 1)
 		return 0;
@@ -567,4 +576,3 @@ int RBToString(struct RBNode* _Node, char* _Buffer, int _Size) {
 	_Size -= RB_CONTR + RB_STRDELM;
 	return RBToString(_Node->Left, _Buffer, _Size) + RBToString(_Node->Right, _Buffer, _Size);
 }
-

@@ -52,6 +52,8 @@ void DestroyJob(struct Occupation* _Occupation) {
 
 struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 	int _Return = 0;
+	int _Min = 0;
+	int _Max = 0;
 	const char* _Key = NULL;
 	const char* _Name = NULL;
 	const char* _Temp = NULL;
@@ -77,7 +79,8 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 			if((_Workplace = HashSearch(&g_Buildings, _Temp)) == 0)
 				return NULL;
 		} else if(!strcmp("AgeConst", _Key)) {
-			if((_AgeConst = LuaConstraint(_State, -1)) == NULL)
+			LuaIntPair(_State, -1, &_Min, &_Max);
+			if((_AgeConst = CreateConstraint(_Min, _Max)) == NULL)
 				return NULL;
 		}
 		lua_pop(_State, 1);

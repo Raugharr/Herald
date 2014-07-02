@@ -7,12 +7,14 @@
 #define __LOG_H
 
 enum {
-	EAPPLICATION = (1<<0),
-	EPERSON = (1<<1),
-	EFAMILY = (1<<2)
+	ELOG_INFO = 0,
+	ELOG_WARNING,
+	ELOG_ERROR
 };
 
-void SetFilter(int _Flags);
+void SetFilter(int _Level);
+int LogSetFile(const char* _File);
+void LogCloseFile();
 void Log(int _Category, const char* _Text, ...);
 
 #endif

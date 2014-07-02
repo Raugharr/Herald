@@ -12,7 +12,6 @@
 #include "Building.h"
 #include "World.h"
 #include "Good.h"
-#include "LuaWrappers.h"
 #include "Occupation.h"
 #include "Population.h"
 #include "sys/RBTree.h"

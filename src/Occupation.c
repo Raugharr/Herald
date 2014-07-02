@@ -6,7 +6,6 @@
 #include "Occupation.h"
 
 #include "Herald.h"
-#include "LuaWrappers.h"
 #include "sys/LuaHelper.h"
 #include "sys/HashTable.h"
 
@@ -78,7 +77,7 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 			if((_Workplace = HashSearch(&g_Buildings, _Temp)) == 0)
 				return NULL;
 		} else if(!strcmp("AgeConst", _Key)) {
-			if((_AgeConst = ConstraintFromLua(_State, -1)) == NULL)
+			if((_AgeConst = LuaConstraint(_State, -1)) == NULL)
 				return NULL;
 		}
 		lua_pop(_State, 1);

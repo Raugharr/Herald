@@ -6,12 +6,48 @@
 #include "LuaHelper.h"
 
 #include "LinkedList.h"
+#include "Constraint.h"
+#include "../Log.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lauxlib.h>
 
 lua_State* g_LuaState = NULL;
+
+struct Constraint* LuaConstraint(lua_State* _State, int _Index) {
+	int _Min = 0;
+	int _Max = 0;
+
+	if(!lua_istable(_State, _Index))
+		return NULL;
+	lua_getmetatable(_State, _Index);
+	lua_pushnil(_State);
+	if(lua_next(_State, _Index - 1) == 0)
+		return NULL;
+	AddInteger(_State, _Index, &_Min);
+	lua_pop(_State, 1);
+	if(lua_next(_State, _Index - 1) == 0)
+		return NULL;
+	AddInteger(_State, _Index, &_Max);
+	return CreateConstraint(_Min, _Max);
+}
+
+int LuaConstraintBnds(lua_State* _State, int _Index) {
+	int _Min = 0;
+	int _Max = 0;
+	int _Interval = 0;
+	int _Size = 0;
+
+	AddInteger(_State, _Index - 2, &_Min);
+	AddInteger(_State, _Index - 1, &_Max);
+	AddInteger(_State, _Index, &_Interval);
+
+	lua_pushlightuserdata(_State, CreateConstrntLst(&_Size, _Min, _Max, _Interval));
+	lua_pushinteger(_State, _Size);
+
+	return 2;
+}
 
 int LoadLuaFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
@@ -25,13 +61,13 @@ int LoadLuaFile(lua_State* _State, const char* _File) {
 	error:
 	switch(_Error) {
 		case LUA_ERRSYNTAX:
-			printf("%s", lua_tostring(_State, -1));
+			Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
 			return _Error;
 		case LUA_ERRFILE:
-			printf("Cannot load file: %s", _File);
+			Log(ELOG_ERROR, "Cannot load file: %s", _File);
 			return _Error;
 		case LUA_ERRRUN:
-			printf("Cannot run file: %s", lua_tostring(_State, -1));
+			Log(ELOG_ERROR, "Cannot run file: %s", lua_tostring(_State, -1));
 			return _Error;
 
 	}
@@ -49,7 +85,7 @@ void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, vo
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(!lua_istable(_State, -1)) {
-			printf("Warning: index is not a table.");
+			Log(ELOG_WARNING, "Warning: index is not a table.");
 			lua_pop(_State, 1);
 			continue;
 		}

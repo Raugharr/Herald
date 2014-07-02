@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall
+CFLAGS+=-Wall
 OBJFLD=../obj/
 DEPS = Event.h EventPerson.h
 OBJ = $(OBJFLD)Event.o	$(OBJFLD)EventPerson.o

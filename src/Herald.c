@@ -107,7 +107,7 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);
-	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
+	//RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	Event_Quit();
 }
 

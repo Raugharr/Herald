@@ -8,6 +8,7 @@
 #include "World.h"
 #include "Person.h"
 #include "sys/Log.h"
+#include "sys/Video.h"
 #include "sys/HashTable.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
@@ -37,19 +38,26 @@ int Tick() {
 	return 1;
 }
 
-int main(int argv, char** argc) {
+int main(int argc, char* args[]) {
 	int i;
 
 	g_AIHash = CreateHash(32);
 	LogSetFile("Log.txt");
 
+	if(VideoInit() == 0) {
+		VideoQuit();
+		return 0;
+	}
  	HeraldInit();
  	AIInit();
 	World_Init(300);
+
+	g_AIHash = CreateHash(32);
 	for(i = 0; i < 366; ++i)
 		Tick();
 
 	LogCloseFile();
+	VideoQuit();
 	World_Quit();
 	AIQuit();
 	HeraldDestroy();

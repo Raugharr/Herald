@@ -21,6 +21,7 @@
 #include "sys/HashTable.h"
 #include "sys/Array.h"
 #include "sys/MemoryPool.h"
+#include "sys/Log.h"
 
 #include "sys/LuaHelper.h"
 
@@ -40,13 +41,13 @@ char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
 struct RBTree* g_BuildDep = NULL;
-struct Constraint** g_ManorSize = NULL;
 struct LinkedList* g_ManorList = NULL;
 
 void World_Init(int _Area) {
 	int _ManorMin = 0;
 	int _ManorMax = 0;
 	int _ManorInterval = 0;
+	struct Constraint** _ManorSize = NULL;
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -101,23 +102,31 @@ void World_Init(int _Area) {
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
 	LuaLoadFile(g_LuaState, "std.lua");
-	lua_getglobal(g_LuaState, "ManorMin");
-	AddInteger(g_LuaState, -1, &_ManorMin);
-	lua_getglobal(g_LuaState, "ManorMax");
-	AddInteger(g_LuaState, -1, &_ManorMax);
-	lua_getglobal(g_LuaState, "ManorInterval");
-	AddInteger(g_LuaState, -1, &_ManorInterval);
 	lua_getglobal(g_LuaState, "ManorConstraints");
-	g_ManorSize = lua_touserdata(g_LuaState, -1);
-	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
-	lua_pop(g_LuaState, 5);
+	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
+		Log(ELOG_ERROR, "ManorConstraints is not defined.");
+		goto end;
+	}
+	lua_getfield(g_LuaState, -1, "ManorMin");
+	AddInteger(g_LuaState, -1, &_ManorMin);
+	lua_pop(g_LuaState, 2);
+	lua_getfield(g_LuaState, -1, "ManorMax");
+	AddInteger(g_LuaState, -1, &_ManorMax);
+	lua_pop(g_LuaState, 2);
+	lua_getfield(g_LuaState, -1, "ManorInterval");
+	AddInteger(g_LuaState, -1, &_ManorInterval);
+	lua_pop(g_LuaState, 3);
+	_ManorSize = CreateConstrntLst(NULL, _ManorMin, _ManorMax, _ManorInterval);
+	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
 
 	g_BuildDep = GoodBuildDep(&g_Goods);
+	end:
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);
 	DestroyLinkedList(_BuildList);
 	DestroyLinkedList(_PopList);
 	DestroyLinkedList(_OccupationList);
+	DestroyConstrntBnds(_ManorSize);
 }
 
 void World_Quit() {

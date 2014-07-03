@@ -1,8 +1,8 @@
 CC=gcc
 CFLAGS+= -Wall
 OBJFLD=obj/
-DEPS=Building.h Crop.h Family.h Good.h Herald.h Manor.h Person.h Population.h Occupation.h World.h Log.h
-OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o $(OBJFLD)Log.o \
+DEPS=Building.h Crop.h Family.h Good.h Herald.h Manor.h Person.h Population.h Occupation.h World.h
+OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Manor.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)Occupation.o $(OBJFLD)World.o
 ODIR=.
 LIB=-llua -lsdl2main -lsdl2

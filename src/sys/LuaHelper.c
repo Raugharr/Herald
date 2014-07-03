@@ -7,7 +7,7 @@
 
 #include "LinkedList.h"
 #include "Constraint.h"
-#include "../Log.h"
+#include "Log.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -15,41 +15,52 @@
 
 lua_State* g_LuaState = NULL;
 
-struct Constraint* LuaConstraint(lua_State* _State, int _Index) {
-	int _Min = 0;
-	int _Max = 0;
 
-	if(!lua_istable(_State, _Index))
-		return NULL;
-	lua_getmetatable(_State, _Index);
-	lua_pushnil(_State);
-	if(lua_next(_State, _Index - 1) == 0)
-		return NULL;
-	AddInteger(_State, _Index, &_Min);
-	lua_pop(_State, 1);
-	if(lua_next(_State, _Index - 1) == 0)
-		return NULL;
-	AddInteger(_State, _Index, &_Max);
-	return CreateConstraint(_Min, _Max);
-}
-
-int LuaConstraintBnds(lua_State* _State, int _Index) {
+int LuaConstraint(lua_State* _State) {
 	int _Min = 0;
 	int _Max = 0;
 	int _Interval = 0;
 	int _Size = 0;
 
-	AddInteger(_State, _Index - 2, &_Min);
-	AddInteger(_State, _Index - 1, &_Max);
-	AddInteger(_State, _Index, &_Interval);
+	AddInteger(_State, -3, &_Min);
+	AddInteger(_State, -2, &_Max);
+	AddInteger(_State, -1, &_Interval);
 
+	//lua_pushinteger(_State, _Size);
 	lua_pushlightuserdata(_State, CreateConstrntLst(&_Size, _Min, _Max, _Interval));
-	lua_pushinteger(_State, _Size);
-
-	return 2;
+	return 1;
 }
 
-int LoadLuaFile(lua_State* _State, const char* _File) {
+int LuaConstraintBnds(lua_State* _State) {
+	int _Size = lua_rawlen(_State, -1);
+	int _CurrMin = -1;
+	int _CurrMax = -1;
+	int i = 0;
+	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size + 1));
+
+	lua_pushnil(_State);
+	if(lua_next(_State, -2) != 0) {
+		AddInteger(_State, -1, &_CurrMin);
+		AddInteger(_State, -1, &_CurrMax);
+		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
+		lua_pop(_State, 1);
+	} else
+		goto error;
+	while(lua_next(_State, -2) != 0) {
+		_CurrMin = _CurrMax + 1;
+		AddInteger(_State, -1, &_CurrMax);
+		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
+		lua_pop(_State, 1);
+	}
+	_Constrnt[_Size] = NULL;
+	lua_pushlightuserdata(_State, _Constrnt);
+	return 1;
+	error:
+	free(_Constrnt);
+	return 0;
+}
+
+int LuaLoadFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
 
 	if(_Error != 0)
@@ -74,10 +85,10 @@ int LoadLuaFile(lua_State* _State, const char* _File) {
 	return 0;
 }
 
-void LoadLuaToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
+void LuaLoadToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
 	void* _CallRet = NULL;
 
-	if(LoadLuaFile(_State, _File) != 1)
+	if(LuaLoadFile(_State, _File) != 1)
 		return;
 	lua_getglobal(_State, _Global);
 	if(!lua_istable(_State, -1))
@@ -101,8 +112,8 @@ int AddInteger(lua_State* _State, int _Index, int* _Number) {
 		*_Number = lua_tointeger(_State, _Index);
 		return 1;
 	}
-	luaL_error(_State, "metafield is not a integer");
-	return -1;
+	Log(ELOG_ERROR, "metafield is not a integer");
+	return 0;
 }
 
 int AddString(lua_State* _State, int _Index, const char** _String) {
@@ -110,8 +121,8 @@ int AddString(lua_State* _State, int _Index, const char** _String) {
 		*_String = lua_tostring(_State, _Index);
 		return 1;
 	}
-	luaL_error(_State, "metafield is not a string");
-	return -1;
+	Log(ELOG_ERROR, "metafield is not a string");
+	return 0;
 }
 
 int AddNumber(lua_State* _State, int _Index, double* _Number) {
@@ -119,8 +130,17 @@ int AddNumber(lua_State* _State, int _Index, double* _Number) {
 		*_Number = lua_tonumber(_State, _Index);
 		return 1;
 	}
-	luaL_error(_State, "metafield is not a number");
-	return -1;
+	Log(ELOG_ERROR, "metafield is not a number");
+	return 0;
+}
+
+int LuaLudata(lua_State* _State, int _Index, void** _Data) {
+	if(lua_islightuserdata(_State, _Index)) {
+		*_Data = lua_touserdata(_State, _Index);
+		return 1;
+	}
+	Log(ELOG_ERROR, "metafield is not user data");
+	return 0;
 }
 
 void LuaStackToTable(lua_State* _State, int* _Table) {

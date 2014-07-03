@@ -15,7 +15,9 @@
 #include "sys/Constraint.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
+#include "sys/LuaHelper.h"
 #include "sys/HashTable.h"
+#include "sys/Log.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -30,13 +32,28 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 	int _FamilySize = -1;
 	struct Family* _Family = NULL;
 	struct Family* _Parent = NULL;
+	struct Constraint** _AgeGroups = NULL;
+	struct Constraint** _BabyAvg = NULL;
 
+	lua_getglobal(g_LuaState, "AgeGroups");
+	LuaConstraintBnds(g_LuaState);
+	if((_AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
+		Log(ELOG_ERROR, "AgeGroups is not defined.");
+	}
+
+	lua_getglobal(g_LuaState, "BabyAvg");
+	LuaConstraintBnds(g_LuaState);
+	if((_BabyAvg = lua_touserdata(g_LuaState, -1)) == NULL) {
+		DestroyConstrntBnds(_AgeGroups);
+		Log(ELOG_ERROR, "BabyAvg is not defined.");
+		return;
+	}
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
-		_Parent = CreateRandFamily("Bar", Fuzify(g_BabyAvg, Random(0, 9999)) + 2);
+		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
 		RBInsert(&g_Families, _Parent);
 		while(_FamilySize-- > 0) {
-			_Family = CreateRandFamily("Bar", Fuzify(g_BabyAvg, Random(0, 9999)) + 2);
+			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
 			RBInsert(&g_Families, _Family);
 			for(i = 0; i < CHILDREN + CHILDREN_SIZE; ++i) {
 				if(_Family->People[i] != NULL)
@@ -46,6 +63,8 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 		}
 		_Population -= FamilySize(_Parent);
 	}
+	DestroyConstrntBnds(_AgeGroups);
+	DestroyConstrntBnds(_BabyAvg);
 }
 
 struct Manor* CreateManor(const char* _Name, int _Population) {

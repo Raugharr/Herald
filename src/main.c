@@ -7,6 +7,7 @@
 #include "Herald.h"
 #include "World.h"
 #include "Person.h"
+#include "sys/Log.h"
 #include "sys/HashTable.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
@@ -40,11 +41,15 @@ int main(int argv, char** argc) {
 	int i;
 
 	g_AIHash = CreateHash(32);
+	LogSetFile("Log.txt");
+
  	HeraldInit();
  	AIInit();
 	World_Init(300);
 	for(i = 0; i < 366; ++i)
 		Tick();
+
+	LogCloseFile();
 	World_Quit();
 	AIQuit();
 	HeraldDestroy();

@@ -6,6 +6,7 @@
 #include "Occupation.h"
 
 #include "Herald.h"
+#include "sys/Constraint.h"
 #include "sys/LuaHelper.h"
 #include "sys/HashTable.h"
 

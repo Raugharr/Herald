@@ -56,14 +56,14 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	return _Family;
 }
 
-struct Family* CreateRandFamily(const char* _Name, int _Size) {
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg) {
 	struct Family* _Family = NULL;
 	struct Field* _Field = NULL;
 	struct Good* _Good = NULL;
 
 	if(_Size >= 2) {
-		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EMALE, 1500);
-		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(g_AgeGroups[TEENAGER]->Min, g_AgeGroups[ADULT]->Max), EFEMALE, 1500);
+		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500);
+		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Field = CreateField();
 		_Field->Crop = HashSearch(&g_Crops, "Wheat");

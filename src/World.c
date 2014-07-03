@@ -40,8 +40,13 @@ char g_DataFld[] = "data/";
 char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 struct Array* g_World = NULL;
 struct RBTree* g_BuildDep = NULL;
+struct Constraint** g_ManorSize = NULL;
+struct LinkedList* g_ManorList = NULL;
 
 void World_Init(int _Area) {
+	int _ManorMin = 0;
+	int _ManorMax = 0;
+	int _ManorInterval = 0;
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -55,6 +60,8 @@ void World_Init(int _Area) {
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();
 	luaL_openlibs(g_LuaState);
+	lua_register(g_LuaState, "CreateConstraint", LuaConstraint);
+	lua_register(g_LuaState, "CreateConstraintBounds", LuaConstraintBnds);
 
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
@@ -62,10 +69,10 @@ void World_Init(int _Area) {
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
-	LoadLuaToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
-	LoadLuaToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
+	LuaLoadToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
+	LuaLoadToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
-	LoadLuaFile(g_LuaState, "goods.lua");
+	LuaLoadFile(g_LuaState, "goods.lua");
 	_Itr = _GoodList->Front;
 	lua_getglobal(g_LuaState, "Goods");
 	lua_pushnil(g_LuaState);
@@ -84,16 +91,27 @@ void World_Init(int _Area) {
 		_Itr = _Itr->Next;
 		lua_pop(g_LuaState, 1);
 	}
-	LoadLuaToList(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&BuildingLoad, _BuildList);
-	LoadLuaToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
-	LoadLuaToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
+	LuaLoadToList(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&BuildingLoad, _BuildList);
+	LuaLoadToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
+	LuaLoadToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
 
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_BuildList, _Itr, &g_Buildings, ((struct Building*)_Itr->Data)->Name);
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
-	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(MANORSZ_MIN, MANORSZ_MAX)) * MANORSZ_INTRVL) + MANORSZ_INTRVL));
+	LuaLoadFile(g_LuaState, "std.lua");
+	lua_getglobal(g_LuaState, "ManorMin");
+	AddInteger(g_LuaState, -1, &_ManorMin);
+	lua_getglobal(g_LuaState, "ManorMax");
+	AddInteger(g_LuaState, -1, &_ManorMax);
+	lua_getglobal(g_LuaState, "ManorInterval");
+	AddInteger(g_LuaState, -1, &_ManorInterval);
+	lua_getglobal(g_LuaState, "ManorConstraints");
+	g_ManorSize = lua_touserdata(g_LuaState, -1);
+	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(g_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
+	lua_pop(g_LuaState, 5);
+
 	g_BuildDep = GoodBuildDep(&g_Goods);
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);

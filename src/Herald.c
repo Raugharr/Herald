@@ -44,11 +44,7 @@ struct ATimer g_ATimer;
 struct RBTree g_Families;
 struct RBTree* g_GoodDeps;
 struct Constraint** g_FamilySize;
-struct Constraint** g_AgeGroups;
 struct Constraint** g_AgeConstraints;
-struct Constraint** g_BabyAvg;
-struct Constraint** g_ManorSize;
-struct LinkedList* g_ManorList;
 
 int g_Id = 0;
 
@@ -103,19 +99,13 @@ void HeraldInit() {
 	g_GoodDeps = GoodBuildDep(&g_Goods);
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
-	g_AgeGroups = CreateConstrntBnds(5, 0, 2190, 4745, 5659, 21900, 36500);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
-	g_BabyAvg = CreateConstrntBnds(8, 0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999);
-	g_ManorSize = CreateConstrntLst(NULL, MANORSZ_MIN, MANORSZ_MAX, MANORSZ_INTRVL);
 	Event_Init();
 }
 
 void HeraldDestroy() {
 	DestroyConstrntBnds(g_FamilySize);
-	DestroyConstrntBnds(g_AgeGroups);
 	DestroyConstrntBnds(g_AgeConstraints);
-	DestroyConstrntBnds(g_BabyAvg);
-	DestroyConstrntBnds(g_ManorSize);
 	ATTimerRmAll(&g_ATimer);
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	Event_Quit();

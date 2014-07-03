@@ -1,3 +1,5 @@
+require 'std'
+
 Cottage = {
 		Name = "Cottage",
 		Width = 25,
@@ -9,12 +11,12 @@ Cottage = {
 		Residents = "All"
 }
 
-BakerCottage = Cottage
+BakerCottage = CopyTable(Cottage)
 BakerCottage.Name = "Baker Cottage"
 BakerCottage.Output = {{"Bread Loaf", 4}}
 BakerCottage.Residents = "Human"
 
-MillerCottage = Cottage
+MillerCottage = CopyTable(Cottage)
 MillerCottage.Name = "Miller Cottage"
 MillerCottage.Output = {{"Flour", 128}}
 MillerCottage.Residents = "Human"

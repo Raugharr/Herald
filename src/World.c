@@ -107,15 +107,15 @@ void World_Init(int _Area) {
 		Log(ELOG_ERROR, "ManorConstraints is not defined.");
 		goto end;
 	}
-	lua_getfield(g_LuaState, -1, "ManorMin");
+	lua_getfield(g_LuaState, -1, "Min");
 	AddInteger(g_LuaState, -1, &_ManorMin);
-	lua_pop(g_LuaState, 2);
-	lua_getfield(g_LuaState, -1, "ManorMax");
+	lua_pop(g_LuaState, 1);
+	lua_getfield(g_LuaState, -1, "Max");
 	AddInteger(g_LuaState, -1, &_ManorMax);
-	lua_pop(g_LuaState, 2);
-	lua_getfield(g_LuaState, -1, "ManorInterval");
+	lua_pop(g_LuaState, 1);
+	lua_getfield(g_LuaState, -1, "Interval");
 	AddInteger(g_LuaState, -1, &_ManorInterval);
-	lua_pop(g_LuaState, 3);
+	lua_pop(g_LuaState, 2);
 	_ManorSize = CreateConstrntLst(NULL, _ManorMin, _ManorMax, _ManorInterval);
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
 

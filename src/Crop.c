@@ -36,10 +36,11 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
+	_Crop->GrowDays = _GrowDays;
 	if((_Good = HashSearch(&g_Goods, _Name)))
 		DestroyGoodBase(_Good);
 
-	HashInsert(&g_Goods, _Name, _Good = CreateGoodBase(_Name, ESEED));
+	HashInsert(&g_Goods, _Name, _Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, ESEED));
 	return _Crop;
 }
 
@@ -52,6 +53,7 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
+	_NewCrop->GrowDays = _Crop->GrowDays;
 	return _NewCrop;
 }
 

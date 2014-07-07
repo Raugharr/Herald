@@ -72,7 +72,9 @@ void World_Init(int _Area) {
 	Family_Init(_Array);
 	LuaLoadToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
 	LuaLoadToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
+	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
+
 	LuaLoadFile(g_LuaState, "goods.lua");
 	_Itr = _GoodList->Front;
 	lua_getglobal(g_LuaState, "Goods");
@@ -96,7 +98,6 @@ void World_Init(int _Area) {
 	LuaLoadToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
 	LuaLoadToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
 
-	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_BuildList, _Itr, &g_Buildings, ((struct Building*)_Itr->Data)->Name);
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);

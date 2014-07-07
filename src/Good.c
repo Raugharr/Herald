@@ -24,9 +24,11 @@ int GoodDepSCallback(const struct GoodBase* _Good, const struct GoodDep* _Pair) 
 	return _Good->Id - _Pair->Good->Id;
 }
 
-struct GoodBase* CreateGoodBase(const char* _Name, int _Category) {
-	struct GoodBase* _Good = (struct GoodBase*) malloc(sizeof(struct GoodBase));
+int InputGoodCmp(const void* _One, const void* _Two) {
+	return ((struct GoodDep*)((struct InputReq*)_One)->Req)->Good->Id - ((struct GoodDep*)((struct InputReq*)_Two)->Req)->Good->Id;
+}
 
+struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category) {
 	_Good->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
 	strcpy(_Good->Name, _Name);
 	_Good->Category = _Category;
@@ -109,8 +111,30 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	}
 	if(_Name == NULL)
 		goto fail;
-	_Good = CreateGoodBase(_Name, _Category);
-	_Top = lua_gettop(_State);
+	if(_Category == ETOOL) {
+		int _Function = 0;
+
+		lua_getfield(_State, -1, "Function");
+		if(AddString(_State, -1, &_Temp) == 0) {
+			Log(ELOG_WARNING, "Tool requires Function field.");
+			goto fail;
+		}
+		if(!strcmp(_Temp, "Plow"))
+			_Function = ETOOL_PLOW;
+		else if(!strcmp(_Temp, "Reap"))
+			_Function = ETOOL_REAP;
+		else if(!strcmp(_Temp, "Cut"))
+			_Function = ETOOL_CUT;
+		else {
+			Log(ELOG_WARNING, "Tool contains an invalid Function field: %s", _Temp);
+			goto fail;
+		}
+		lua_pop(_State, 1);
+		_Good = (struct GoodBase*) CreateToolBase(_Name, _Category, _Function);
+	} else if(_Category == EFOOD) {
+		_Good = (struct GoodBase*) CreateFoodBase(_Name, _Category, 0);
+	} else
+		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);
 	if(_Return > 0)
 		return _Good;
 	fail:
@@ -163,6 +187,13 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 		_Good->InputGoods[i] = (struct InputReq*)_Itr->Data;
 		_Itr = _Itr->Next;
 	}
+	if(_Good->Category == EFOOD) {
+		int _Nutrition = 0;
+
+		for(i = 0; i < _List->Size; ++i)
+			_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
+		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
+	}
 	DestroyLinkedList(_List);
 	return 1;
 	fail:
@@ -198,16 +229,38 @@ void DestroyGood(struct Good* _Good) {
 	free(_Good);
 }
 
-struct Tool* CreateTool(struct GoodBase* _Base, int _Function) {
-	struct Tool* _Tool = (struct Tool*) malloc(sizeof(struct Tool));
+struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function) {
+	struct ToolBase* _Tool = (struct ToolBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ToolBase)), _Name, _Category);
 
-	_Tool = (struct Tool*) CreateGood(_Base);
 	_Tool->Function = _Function;
 	return _Tool;
 }
 
-void DestroyTool(struct Tool* _Tool) {
+void DestroyToolBase(struct ToolBase* _Tool) {
 	free(_Tool);
+}
+
+struct FoodBase* CreateFoodBase(const char* _Name, int _Category, int _Nutrition) {
+	struct FoodBase* _Food = (struct FoodBase*) InitGoodBase((struct GoodBase*) malloc(sizeof(struct FoodBase)), _Name, _Category);
+
+	_Food->Nutrition = _Nutrition;
+	return _Food;
+}
+
+void DestroyFoodBase(struct FoodBase* _Food) {
+	free(_Food);
+}
+
+struct Food* CreateFood(struct FoodBase* _Base) {
+	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
+	
+	_Food->Base = _Base;
+	_Food->Parts = FOOD_MAXPARTS;
+	return _Food;
+}
+
+void DestroyFood(struct Food* _Food) {
+	free(_Food);
 }
 
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
@@ -240,3 +293,22 @@ struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _G
 	}
 	return _Pair;
 }
+
+int GoodNutVal(struct GoodBase* _Base) {
+	struct Crop* _Crop = NULL;
+	int _Nut = 0;
+	int i;
+
+	for(i = 0; i < _Base->IGSize; ++i) {
+		if(((struct GoodBase*)_Base->InputGoods[i]->Req)->Category == ESEED) {
+			if((_Crop = HashSearch(&g_Crops, ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name)) == NULL) {
+				Log(ELOG_WARNING, "Crop %s not found.", ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name);
+				continue;
+			}
+			_Nut += _Crop->NutVal * _Base->InputGoods[i]->Quantity;
+		} else
+			_Nut += GoodNutVal((struct GoodBase*)_Base->InputGoods[i]->Req);
+	}
+	return _Nut;
+}
+

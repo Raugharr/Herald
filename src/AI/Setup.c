@@ -93,7 +93,7 @@ int PAICanFarm(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Array->Size; ++i) {
 		_Good = _Array->Table[i];
 		if(_Good->Category == ETOOL)
-			_Tools |= ((struct Tool*)_Good)->Function;
+			_Tools |= ((struct ToolBase*)_Good)->Function;
 	}
 	return ((_Tools & (ETOOL_PLOW | ETOOL_REAP)) == (ETOOL_PLOW | ETOOL_REAP)) ? (1) : (0);
 }
@@ -106,7 +106,7 @@ int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Goods->Size; ++i) {
 		_Good = ((struct Good*)_Goods->Table[i])->Base;
 		if(_Good->Category == ETOOL)
-			if(((struct Tool*)_Good)->Function == ETOOL_PLOW)
+			if(((struct ToolBase*)_Good)->Function == ETOOL_PLOW)
 				return 1;
 	}
 	HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
@@ -157,7 +157,7 @@ int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Goods->Size; ++i) {
 		_Good = (struct GoodBase*)_Goods->Table[i];
 		if(_Good->Category == ETOOL)
-			if(((struct Tool*)_Good)->Function == ETOOL_REAP)
+			if(((struct ToolBase*)_Good)->Function == ETOOL_REAP)
 				return 1;
 	}
 	HashInsert(_Table, AI_MAKEGOOD, AI_REAP);

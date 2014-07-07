@@ -9,6 +9,7 @@
 #include "sys/LinkedList.h"
 
 #define TOPOUND(__Quantity) (__Quantity * 16);
+#define FOOD_MAXPARTS (10)
 
 typedef struct lua_State lua_State;
 struct HashTable;
@@ -26,7 +27,8 @@ enum {
 
 enum {
 	ETOOL_PLOW = (1 << 0),
-	ETOOL_REAP = (1 << 1)
+	ETOOL_REAP = (1 << 1),
+	ETOOL_CUT = (1 << 2)
 };
 
 struct GoodBase {
@@ -42,10 +44,28 @@ struct Good {
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
 
-struct Tool {
-	struct GoodBase* Base;
-	int Quantity;
+struct ToolBase {
+	int Id;
+	char* Name;
+	int Category;
+	struct InputReq** InputGoods;
+	int IGSize;
 	int Function;
+};
+
+struct FoodBase {
+	int Id;
+	char* Name;
+	int Category;
+	struct InputReq** InputGoods;
+	int IGSize;
+	int Nutrition;
+};
+
+struct Food {
+	const struct FoodBase* Base;
+	int Quantity;
+	int Parts;
 };
 
 /*!
@@ -57,15 +77,22 @@ struct GoodDep {
 	const struct GoodBase* Good;
 };
 
-struct GoodBase* CreateGoodBase(const char* _Name, int _Category);
+struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category);
 struct GoodBase* CopyGoodBase(const struct GoodBase* _Good);
 void DestroyGoodBase(struct GoodBase* _Good);
 
 struct Good* CreateGood(struct GoodBase* _Base);
 void DestroyGood(struct Good* _Good);
 
-struct Tool* CreateTool(struct GoodBase* _Base, int _Function);
-void DestroyTool(struct Tool* _Tool);
+struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function);
+void DestroyToolBase(struct ToolBase* _Tool);
+
+struct FoodBase* CreateFoodBase(const char* _Name, int _Category, int _Nutrition);
+void DestroyFoodBase(struct FoodBase* _Food);
+
+struct Food* CreateFood(struct FoodBase* _Base);
+void DestroyFood(struct Food* _Food);
+
 /*!
  * @Brief Reads a table from _Index from _State that contains data about a Good.
  * @Return NULL if the table is invalid.
@@ -85,5 +112,5 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
  * Will have this empty GoodDep* added to their DepTbl.
  */
 struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
-
+int GoodNutVal(struct GoodBase* _Base);
 #endif

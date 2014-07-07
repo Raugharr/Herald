@@ -17,4 +17,6 @@ void DestroyArray(struct Array* _Array);
 int ArrayInsert(struct Array* _Array, void* _Data);
 void ArrayInsert_S(struct Array* _Array, void* _Data);
 void ArrayResize(struct Array* _Array);
+
+void InsertSort(void** _Table, int _Count, int(*_Callback)(const void*, const void*));
 #endif

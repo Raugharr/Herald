@@ -19,9 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef NULL
-#define NULL (((void*)0))
-#endif
+#define NUTRITION_LOSS (16)
 #define BIRTH_TIME (9)
 
 struct MemoryPool* g_PersonPool = NULL;
@@ -96,8 +94,6 @@ struct Person* CreateChild(struct Family* _Family) {
 }
 
 int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
-	int _NutVal = 1500;
-
 	if(PersonDead(_Person) == 1)
 		return 0;
 	if(_Person->Gender == EFEMALE) {
@@ -105,13 +101,10 @@ int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
 				&& ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_PREGANCY) == NULL
 				&& _Person == _Person->Family->People[WIFE]
 				&& _Person->Family->NumChildren < CHILDREN_SIZE
-				&& Random(1, 100) < 10)
+				&& Random(0, 999) < 20)
 			ATimerInsert(&g_ATimer, CreatePregancy(_Person));
 	}
-	if(_NutVal > _Person->Nutrition)
-		_Person->Nutrition = _Person->Nutrition + (_NutVal - _Person->Nutrition);
-	else
-		_Person->Nutrition = _Person->Nutrition - (_Person->Nutrition - _NutVal);
+	_Person->Nutrition = NUTRITION_LOSS;
 	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
 		PersonDeath(_Person);
 		return 1;
@@ -131,7 +124,6 @@ void PersonDeath(struct Person* _Person) {
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
 			if(i >= CHILDREN) {
-				//if(_Family->NumChildren < CHILDREN_SIZE)
 				_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren];
 				--_Family->NumChildren;
 			}

@@ -13,7 +13,7 @@
 #define EMALE (1)
 #define EFEMALE (2)
 #define AVKID (3)
-#define MAX_NUTRITION (2000)
+#define MAX_NUTRITION (4000)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)

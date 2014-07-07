@@ -4,7 +4,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 120,
 		YieldPerSeed = 4.0,
-		NutritionalValue = 240,
+		NutritionalValue = 480,
 		GrowTime = 120
 	},
 	
@@ -13,7 +13,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 168,
 		YieldPerSeed = 4.6,
-		NutritionalValue = 180,
+		NutritionalValue = 360,
 		GrowTime = 120
 	},
 	
@@ -22,7 +22,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 144,
 		YieldPerSeed = 4.6,
-		NutritionalValue = 180,
+		NutritionalValue = 360,
 		GrowTime = 120
 	}
 }

@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NUTRITION_LOSS (16)
 #define BIRTH_TIME (9)
 
 struct MemoryPool* g_PersonPool = NULL;

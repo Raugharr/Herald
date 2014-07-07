@@ -17,6 +17,7 @@
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
+#define NUTRITION_LOSS (16)
 
 struct HashTable;
 

@@ -8,14 +8,12 @@
 #include "World.h"
 #include "Person.h"
 #include "sys/Log.h"
-#include "sys/Video.h"
+#include "video/Video.h"
 #include "sys/HashTable.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
 
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
+#include <stdlib.h>
 
 struct HashTable* g_AIHash = NULL;
 
@@ -44,10 +42,7 @@ int main(int argc, char* args[]) {
 	g_AIHash = CreateHash(32);
 	LogSetFile("Log.txt");
 
-	if(VideoInit() == 0) {
-		VideoQuit();
-		return 0;
-	}
+	atexit(LogCloseFile);
  	HeraldInit();
  	AIInit();
 	World_Init(300);
@@ -56,8 +51,6 @@ int main(int argc, char* args[]) {
 	for(i = 0; i < 366; ++i)
 		Tick();
 
-	LogCloseFile();
-	VideoQuit();
 	World_Quit();
 	AIQuit();
 	HeraldDestroy();

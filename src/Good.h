@@ -79,7 +79,10 @@ struct GoodDep {
 
 struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category);
 struct GoodBase* CopyGoodBase(const struct GoodBase* _Good);
+int GoodCmp(const void* _One, const void* _Two);
 void DestroyGoodBase(struct GoodBase* _Good);
+
+int GoodInpGdCmp(const void* _One, const void* _Two);
 
 struct Good* CreateGood(struct GoodBase* _Base);
 void DestroyGood(struct Good* _Good);
@@ -113,4 +116,6 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
  */
 struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
 int GoodNutVal(struct GoodBase* _Base);
+struct InputReq** BuildList(const struct Array* _Goods, int* _Size, int _Categories);
+int GoodCanMake(struct Good* _Good, const struct Array* _Goods);
 #endif

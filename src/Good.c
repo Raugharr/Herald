@@ -57,6 +57,10 @@ struct GoodBase* CopyGoodBase(const struct GoodBase* _Good) {
 	return _NewGood;
 }
 
+int GoodCmp(const void* _One, const void* _Two) {
+	return ((struct Good*)_One)->Base->Id - ((struct Good*)_Two)->Base->Id;
+}
+
 void DestroyGoodBase(struct GoodBase* _Good) {
 	int i;
 
@@ -65,6 +69,10 @@ void DestroyGoodBase(struct GoodBase* _Good) {
 	free(_Good->Name);
 	free(_Good->InputGoods);
 	free(_Good);
+}
+
+int GoodInpGdCmp(const void* _One, const void* _Two) {
+	return ((struct GoodBase*)((struct InputReq*)_One)->Req)->Id - ((struct GoodBase*)((struct InputReq*)_Two)->Req)->Id;
 }
 
 struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
@@ -194,6 +202,7 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 			_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
 		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
 	}
+	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp);
 	DestroyLinkedList(_List);
 	return 1;
 	fail:
@@ -312,3 +321,63 @@ int GoodNutVal(struct GoodBase* _Base) {
 	return _Nut;
 }
 
+struct InputReq** BuildList(const struct Array* _Goods, int* _Size, int _Categories) {
+	int i;
+	int j;
+	int _TblSize = _Goods->Size;
+	void** _Tbl = _Goods->Table;
+	int _OutputSize = 0;
+	struct GoodDep* _Dep = NULL;
+	struct InputReq** _Outputs = (struct InputReq**)calloc(_TblSize, sizeof(struct InputReq*));
+	struct InputReq* _Req = NULL;
+
+	memset(_Outputs, 0, sizeof(struct InputReq*) * _TblSize);
+	for(i = 0; i < _TblSize; ++i) {
+		if((_Categories & ((struct Good*)_Tbl[i])->Base->Category) != ((struct Good*)_Tbl[i])->Base->Category)
+			continue;
+		_Dep = GoodDependencies(g_GoodDeps, ((struct Good*)_Tbl[i])->Base);
+		if((_Req = bsearch(_Dep, _Outputs[0], _OutputSize, sizeof(struct InputReq*), InputGoodCmp)) == NULL) {
+			_Req = CreateInputReq();
+			_Req->Req = _Dep;
+			_Req->Quantity = 1;
+			_Outputs[_OutputSize++] = _Req;
+			InsertionSort(_Outputs, _TblSize, InputGoodCmp);
+		} else
+			++_Req->Quantity;
+	}
+
+	for(i = 0, j = 0; i < _TblSize; ++i) {
+		if(((struct Good*)_Outputs[i]->Req)->Base->IGSize != _Outputs[i]->Quantity) {
+			DestroyInputReq(_Outputs[i]);
+			_Outputs[i] = NULL;
+			while(_Outputs[j] != NULL)
+				++j;
+		}
+		_Outputs[j] = _Outputs[i];
+	}
+	if(_Outputs[j] == NULL)
+		*_Size = j - 1;
+	else
+		*_Size = j;
+	return _Outputs;
+}
+
+int GoodCanMake(struct Good* _Good, const struct Array* _Goods) {
+	int i;
+	int _Ct = 0;
+	int _Max = INT_MAX;
+	int _Quantity = 0;
+	struct Good** _Tbl = (struct Good**) _Goods->Table;
+	struct Good* _Temp = NULL;
+	
+	for(i = 0; i < _Goods->Size; ++i) {
+		_Temp = bsearch(_Tbl[i], _Good->Base->InputGoods, _Good->Base->IGSize, sizeof(struct InputReq*), GoodInpGdCmp);
+		if(_Good->Base->InputGoods[_Ct]->Quantity < _Temp->Quantity)
+			return 0;
+		_Quantity = _Temp->Quantity / _Good->Base->InputGoods[_Ct]->Quantity;
+		if(_Quantity < _Max)
+			_Max = _Quantity;
+		++_Ct;
+	}
+	return _Max;
+}

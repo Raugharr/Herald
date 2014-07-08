@@ -6,6 +6,9 @@
 #ifndef __ARRAY_H
 #define __ARRAY_H
 
+#define ArrayInsertSort(_Array, _Data, _Callback) ArrayInsert(_Array, _Data); InsertionSort(_Array->Table, _Array->Size, _Callback);
+#define ArrayInsertSort_S(_Array, _Data, _Callback) ArrayInsert_S(_Array, _Data); InsertionSort(_Array->Table, _Array->Size, _Callback);
+
 struct Array {
 	void** Table;
 	int TblSize;

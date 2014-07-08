@@ -73,7 +73,7 @@ struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...) {
 	int i;
 	va_list _List;
 	struct Behavior* _Comp = NULL;
-	struct Behavior* _Itr = NULL;
+	struct Behavior* _Itr = _Bhv;
 
 	if(_Bhv == NULL)
 		return NULL;
@@ -94,7 +94,9 @@ struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...) {
 			return NULL;
 	}
 	va_start(_List, _Bhv);
-	for(i = 0; i < _Size; ++i) {
+	_Comp->Children[0] = _Bhv;
+	_Comp->Children[0]->Parent = _Bhv;
+	for(i = 1; i < _Size; ++i) {
 		_Comp->Children[i] = va_arg(_List, struct Behavior*);
 		_Comp->Children[i]->Parent = _Comp;
 	}

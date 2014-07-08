@@ -24,11 +24,11 @@ int Tick() {
 	while(_Person != NULL) {
 		HashClear(g_AIHash);
 		if(TO_YEARS(_Person->Age) < 13)
-			BHVRun(g_AIChild, _Person, NULL);
+			BHVRun(g_AIChild, _Person, g_AIHash);
 		else if(_Person->Gender == EMALE)
-			BHVRun(g_AIMan, _Person, NULL);
+			BHVRun(g_AIMan, _Person, g_AIHash);
 		else
-			BHVRun(g_AIWoman, _Person, NULL);
+			BHVRun(g_AIWoman, _Person, g_AIHash);
 		_Person = _Person->Next;
 	}
 	if(World_Tick() == 0)

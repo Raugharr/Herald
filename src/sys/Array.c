@@ -44,20 +44,23 @@ void ArrayResize(struct Array* _Array) {
 	_Array->TblSize = _Size;
 }
 
-void InsertSort(void** _Table, int _Count, int(*_Callback)(const void*, const void*)) {
+void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*)) {
 	int i;
 	int j;
-	void* _Temp;
-	
+	int _Temp;
+	int** _Off;
+
 	if(_Count <= 1)
 		return;
 	for(i = 1; i < _Count; ++i) {
-		_Temp = _Table[i];
+		_Temp = **(int**)(_Table + sizeof(int*) * i);
 		j = i;
-		while(j >= 0 && _Callback(_Table[j - 1], _Temp) < 0) {
-			_Table[j] = _Table[j - 1];
+		while(j > 0 && _Callback(&_Temp, *(void**)(_Table + sizeof(int*) * (j - 1))) < 0) {
+			_Off = _Table + sizeof(int*) * j;
+			**_Off = **(int**)(_Table + sizeof(int*) * (j - 1));
 			--j;
 		}
-		_Table[j] = _Temp;
+		_Off = _Table + sizeof(int*) * j;
+		**_Off = _Temp;
 	}
 }

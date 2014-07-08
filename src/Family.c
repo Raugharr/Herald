@@ -71,7 +71,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 		_Family->Field = _Field;
 		_Good = CreateGood(HashSearch(&g_Goods, "Wheat"));
 		_Good->Quantity = 30 * _Field->Crop->PerAcre;
-		ArrayInsert_S(_Family->Goods, _Good);
+		ArrayInsertSort_S(_Family->Goods, _Good, GoodCmp);
 		_Size -= 2;
 
 		while(_Size-- > 0) {

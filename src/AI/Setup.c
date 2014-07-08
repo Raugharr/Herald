@@ -14,6 +14,7 @@
 #include "../sys/Array.h"
 #include "../Herald.h"
 #include "../sys/HashTable.h"
+#include "../sys/Log.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -195,6 +196,69 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
 
+int PAIEat(struct Person* _Person, struct HashTable* _Table) {
+	int _Size = _Person->Family->Goods->Size;
+	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
+	struct Food* _Food;
+	int _Nut = 0;
+	int _NutReq = NUTRITION_LOSS;
+	int i;
+	
+	for(i = 0; i < _Size; ++i) {
+		_Food = (struct Food*)_Tbl[i];
+		if(_Food->Base->Category != EFOOD)
+			continue;
+		while(_Nut < _NutReq && _Food->Quantity > 0) {
+			if(_Food->Base->Nutrition > _NutReq) {
+				int _Div = _NutReq - _Nut;
+				
+				if(_Div > _Food->Parts) {
+					_Div = _Food->Parts;
+					--_Food->Quantity;
+					_Food->Parts = FOOD_MAXPARTS;
+				} else
+					_Food->Parts -= _Div;
+				_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Div + 1);
+			} else {
+				if(_Food->Parts != FOOD_MAXPARTS) {
+					--_Food->Quantity;
+					_Food->Parts = FOOD_MAXPARTS;
+					_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Food->Parts);
+				}
+			}
+		}
+	}
+	if(_Nut == 0)
+		Log(ELOG_WARNING, "%i has no food to eat.", _Person->Id);
+	return 1;
+}
+
+int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
+	int _Size = 0;
+	int i;
+	int j;
+	int _Ct;
+	struct Family* _Family = _Person->Family;
+	struct InputReq** _Foods = BuildList(_Family->Goods, &_Size, EFOOD);
+	struct Food* _Food = NULL;
+	struct Good** _Input = NULL;
+	int _FamGoodSize = _Family->Goods->Size;
+	struct Good** _Tbl = (struct Good**)_Family->Goods->Table;
+	
+	for(i = 0; i < _Size; ++i) {
+		_Food = ((struct Good*)_Foods[i]);
+		_Input = (struct Good**)calloc(_Food->Base->IGSize, sizeof(struct Good*));
+		for(j = 0, _Ct = 0; j < _FamGoodSize; ++j) {
+			if(_Tbl[j]->Base->Id == _Food->Base->Id)
+				_Input[_Ct++] = _Tbl[j];
+		}
+		free(_Input);
+		DestroyInputReq(_Foods[i]);
+	}
+	free(_Foods);
+	return 1;
+}
+
 int BHVNothing(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
@@ -225,10 +289,17 @@ void AIInit() {
 									NULL),
 						CreateBHVNode(PAIFeedAnimals),
 						NULL),
+				CreateBHVNode(PAIEat),
 				CreateBHVNode(PersonUpdate),
 				NULL);
-	g_AIWoman = CreateBHVNode(PersonUpdate);
-	g_AIChild = CreateBHVNode(PersonUpdate);
+	g_AIWoman = CreateBHVComp(BHV_SEQUENCE,
+					CreateBHVNode(PAIEat),
+					CreateBHVNode(PersonUpdate),
+					NULL);
+	g_AIChild = CreateBHVComp(BHV_SEQUENCE,
+					CreateBHVNode(PAIEat),
+					CreateBHVNode(PersonUpdate),
+					NULL);
 }
 
 void AIQuit() {

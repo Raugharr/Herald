@@ -62,8 +62,9 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 		if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
 			return 0;
 		_Good->Base = CopyGoodBase(_CropSeed);
-		if(_Good == NULL)
-			ArrayInsert_S(_Family->Goods, _Good);
+		if(_Good == NULL) {
+			ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
+		}
 		FieldHarvest(_Field, _Good);
 	} else {
 		FieldWork(_Field, PersonWorkMult(_Person));
@@ -234,25 +235,27 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 }
 
 int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
-	int _Size = 0;
+	int _Size;
 	int i;
 	int j;
 	int _Ct;
 	struct Family* _Family = _Person->Family;
-	struct InputReq** _Foods = BuildList(_Family->Goods, &_Size, EFOOD);
-	struct Food* _Food = NULL;
-	struct Good** _Input = NULL;
+	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
+	struct FoodBase* _Food = NULL;
 	int _FamGoodSize = _Family->Goods->Size;
 	struct Good** _Tbl = (struct Good**)_Family->Goods->Table;
+	struct Good* _Good = NULL;
 	
+	if(_Foods == NULL)
+		return 1;
+
+	//TODO: Food should have to use a building to be created.
 	for(i = 0; i < _Size; ++i) {
-		_Food = ((struct Good*)_Foods[i]);
-		_Input = (struct Good**)calloc(_Food->Base->IGSize, sizeof(struct Good*));
-		for(j = 0, _Ct = 0; j < _FamGoodSize; ++j) {
-			if(_Tbl[j]->Base->Id == _Food->Base->Id)
-				_Input[_Ct++] = _Tbl[j];
+		_Food = ((struct FoodBase*)_Foods[i]->Req);
+		for(j = 0; j < _Food->IGSize; ++j) {
+			_Good = bsearch(_Food->InputGoods[j], _Family->Goods->Table[0], _Family->Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))InputReqGoodCmp);
+			_Good->Quantity -= _Foods[i]->Quantity;
 		}
-		free(_Input);
 		DestroyInputReq(_Foods[i]);
 	}
 	free(_Foods);
@@ -293,6 +296,7 @@ void AIInit() {
 				CreateBHVNode(PersonUpdate),
 				NULL);
 	g_AIWoman = CreateBHVComp(BHV_SEQUENCE,
+					CreateBHVNode(PAIMakeFood),
 					CreateBHVNode(PAIEat),
 					CreateBHVNode(PersonUpdate),
 					NULL);

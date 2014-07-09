@@ -19,7 +19,7 @@ struct RBTree;
 
 extern DATE g_Date;
 extern struct Array* g_World;
-extern struct RBTree* g_BuildDep;
+extern struct RBTree* g_GoodDeps;
 //Each tile represents a mile of the world.
 struct WorldTile {
 	int Temperature;

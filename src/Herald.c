@@ -42,7 +42,6 @@ struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
 struct RBTree g_Families;
-struct RBTree* g_GoodDeps;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
@@ -95,8 +94,6 @@ void HeraldInit() {
 	g_Families.Size = 0;
 	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
 	g_Families.SCallback = (int (*)(const void*, const void*))&FamilySCallback;
-
-	g_GoodDeps = GoodBuildDep(&g_Goods);
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);

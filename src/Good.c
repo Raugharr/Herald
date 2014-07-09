@@ -230,6 +230,7 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 struct Good* CreateGood(struct GoodBase* _Base) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
+	_Good->Id = NextId();
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
 	return _Good;
@@ -272,6 +273,7 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 struct Food* CreateFood(struct FoodBase* _Base) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
+	_Food->Id = NextId();
 	_Food->Base = _Base;
 	_Food->Parts = FOOD_MAXPARTS;
 	return _Food;

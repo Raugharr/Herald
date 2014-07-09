@@ -22,6 +22,7 @@ enum {
 };
 
 struct Crop {
+	int Id;
 	char* Name;
 	int Type;
 	int PerAcre;//How many pounds of seeds it takes to fill an acre.

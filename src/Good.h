@@ -40,6 +40,7 @@ struct GoodBase {
 };
 
 struct Good {
+	int Id;
 	const struct GoodBase* Base;
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
@@ -63,6 +64,7 @@ struct FoodBase {
 };
 
 struct Food {
+	int Id;
 	const struct FoodBase* Base;
 	int Quantity;
 	int Parts;

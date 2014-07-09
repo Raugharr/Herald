@@ -30,6 +30,7 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
 	struct GoodBase* _Good = NULL;
 
+	_Crop->Id = NextId();
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Crop->Name, _Name);
 	_Crop->Type = _Type;
@@ -47,6 +48,7 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 struct Crop* CopyCrop(const struct Crop* _Crop) {
 	struct Crop* _NewCrop = (struct Crop*) malloc(sizeof(struct Crop));
 
+	_NewCrop->Id = NextId();
 	_NewCrop->Name = (char*) calloc(strlen(_Crop->Name) + 1, sizeof(char));
 	strcpy(_NewCrop->Name, _Crop->Name);
 	_NewCrop->Type = _Crop->Type;

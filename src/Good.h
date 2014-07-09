@@ -73,18 +73,19 @@ struct Food {
  * as if the Good is obtainable.
  */
 struct GoodDep {
-	struct Array* DepTbl; //Contains struct InputReq*.
+	struct Array* DepTbl; //Contains struct InputReq*. with Req as a GoodDep*.
 	const struct GoodBase* Good;
 };
 
 struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category);
 struct GoodBase* CopyGoodBase(const struct GoodBase* _Good);
-int GoodCmp(const void* _One, const void* _Two);
+int GoodBaseCmp(const void* _One, const void* _Two);
 void DestroyGoodBase(struct GoodBase* _Good);
 
 int GoodInpGdCmp(const void* _One, const void* _Two);
 
 struct Good* CreateGood(struct GoodBase* _Base);
+int GoodCmp(const void* _One, const void* _Two);
 void DestroyGood(struct Good* _Good);
 
 struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function);
@@ -116,6 +117,9 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
  */
 struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
 int GoodNutVal(struct GoodBase* _Base);
-struct InputReq** BuildList(const struct Array* _Goods, int* _Size, int _Categories);
-int GoodCanMake(struct Good* _Good, const struct Array* _Goods);
+/*!
+ * Creates an array of InputReq* that contain Good and the amount possible to make with the Good*'s in _Goods.
+ */
+struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Categories);
+int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods);
 #endif

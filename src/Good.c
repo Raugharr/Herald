@@ -6,6 +6,7 @@
 #include "Good.h"
 
 #include "Herald.h"
+#include "World.h"
 #include "Crop.h"
 #include "sys/Log.h"
 #include "sys/LuaHelper.h"
@@ -16,16 +17,16 @@
 #include <string.h>
 #include <lua/lua.h>
 
-int GoodDepICallback(const struct GoodDep* _One, const struct GoodDep* _Two) {
+int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
 }
 
-int GoodDepSCallback(const struct GoodBase* _Good, const struct GoodDep* _Pair) {
+int GoodBaseDepCmp(const struct GoodBase* _Good, const struct GoodDep* _Pair) {
 	return _Good->Id - _Pair->Good->Id;
 }
 
-int InputGoodCmp(const void* _One, const void* _Two) {
-	return ((struct GoodDep*)((struct InputReq*)_One)->Req)->Good->Id - ((struct GoodDep*)((struct InputReq*)_Two)->Req)->Good->Id;
+int InputReqGoodCmp(const struct InputReq* _One, const struct Good* _Two) {
+	return ((struct GoodBase*)_One->Req)->Id - _Two->Base->Id;
 }
 
 struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category) {
@@ -57,8 +58,8 @@ struct GoodBase* CopyGoodBase(const struct GoodBase* _Good) {
 	return _NewGood;
 }
 
-int GoodCmp(const void* _One, const void* _Two) {
-	return ((struct Good*)_One)->Base->Id - ((struct Good*)_Two)->Base->Id;
+int GoodBaseCmp(const void* _One, const void* _Two) {
+	return ((struct GoodBase*)_One)->Id - ((struct GoodBase*)_Two)->Id;
 }
 
 void DestroyGoodBase(struct GoodBase* _Good) {
@@ -234,6 +235,10 @@ struct Good* CreateGood(struct GoodBase* _Base) {
 	return _Good;
 }
 
+int GoodCmp(const void* _One, const void* _Two) {
+	return ((struct Good*)_One)->Base->Id - ((struct Good*)_Two)->Base->Id;
+}
+
 void DestroyGood(struct Good* _Good) {
 	free(_Good);
 }
@@ -274,11 +279,14 @@ void DestroyFood(struct Food* _Food) {
 
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
 	struct HashItrCons* _Itr = NULL;
-	struct RBTree* _Prereq = CreateRBTree((int(*)(const void*, const void*))&GoodDepICallback, (int(*)(const void*, const void*))&GoodDepSCallback);
+	struct RBTree* _Prereq = CreateRBTree((int(*)(const void*, const void*))&GoodDepCmp, (int(*)(const void*, const void*))&GoodBaseDepCmp);
+	struct GoodDep* _Dep = NULL;
 
 	_Itr = HashCreateItrCons(_GoodList);
 	while(_Itr != NULL) {
-		RBInsert(_Prereq, GoodDependencies(_Prereq, ((const struct GoodBase*)_Itr->Node->Pair)));
+		_Dep = GoodDependencies(_Prereq, ((const struct GoodBase*)_Itr->Node->Pair));
+		if(RBSearch(_Prereq, _Dep) == NULL)
+			RBInsert(_Prereq, _Dep);
 		_Itr = HashNextCons(_GoodList, _Itr);
 	}
 	return _Prereq;
@@ -298,6 +306,7 @@ struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _G
 				ArrayResize(_PairItr->DepTbl);
 				ArrayInsert(_PairItr->DepTbl, _PairItr);
 			}
+			RBInsert(_Tree, _PairItr);
 		}
 	}
 	return _Pair;
@@ -321,63 +330,55 @@ int GoodNutVal(struct GoodBase* _Base) {
 	return _Nut;
 }
 
-struct InputReq** BuildList(const struct Array* _Goods, int* _Size, int _Categories) {
+struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Categories) {
 	int i;
 	int j;
 	int _TblSize = _Goods->Size;
+	int _Amount = 0;
 	void** _Tbl = _Goods->Table;
 	int _OutputSize = 0;
 	struct GoodDep* _Dep = NULL;
 	struct InputReq** _Outputs = (struct InputReq**)calloc(_TblSize, sizeof(struct InputReq*));
-	struct InputReq* _Req = NULL;
+	const struct GoodBase* _Output = NULL;
 
 	memset(_Outputs, 0, sizeof(struct InputReq*) * _TblSize);
 	for(i = 0; i < _TblSize; ++i) {
 		if((_Categories & ((struct Good*)_Tbl[i])->Base->Category) != ((struct Good*)_Tbl[i])->Base->Category)
 			continue;
-		_Dep = GoodDependencies(g_GoodDeps, ((struct Good*)_Tbl[i])->Base);
-		if((_Req = bsearch(_Dep, _Outputs[0], _OutputSize, sizeof(struct InputReq*), InputGoodCmp)) == NULL) {
-			_Req = CreateInputReq();
-			_Req->Req = _Dep;
-			_Req->Quantity = 1;
-			_Outputs[_OutputSize++] = _Req;
-			InsertionSort(_Outputs, _TblSize, InputGoodCmp);
-		} else
-			++_Req->Quantity;
+		_Dep = RBSearch(g_GoodDeps, ((struct Good*)_Tbl[i])->Base);
+		for(j = 0; j < _Dep->DepTbl->Size; ++j) {
+			_Output = ((struct GoodDep*)_Dep->DepTbl->Table[j])->Good;
+			if((_Amount = GoodCanMake(_Output, _Goods)) != 0) {
+				struct InputReq* _Temp = CreateInputReq();
+
+				_Temp->Req = (void*)_Output;
+				_Temp->Quantity = _Amount;
+				_Outputs[_OutputSize++] = _Temp;
+			}
+
+		}
 	}
 
-	for(i = 0, j = 0; i < _TblSize; ++i) {
-		if(((struct Good*)_Outputs[i]->Req)->Base->IGSize != _Outputs[i]->Quantity) {
-			DestroyInputReq(_Outputs[i]);
-			_Outputs[i] = NULL;
-			while(_Outputs[j] != NULL)
-				++j;
-		}
-		_Outputs[j] = _Outputs[i];
-	}
-	if(_Outputs[j] == NULL)
-		*_Size = j - 1;
-	else
-		*_Size = j;
+	if(_Size)
+		*_Size = _OutputSize;
+	_Outputs = realloc(_Outputs, sizeof(struct InputReq*) * _OutputSize);
 	return _Outputs;
 }
 
-int GoodCanMake(struct Good* _Good, const struct Array* _Goods) {
+int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
 	int i;
-	int _Ct = 0;
 	int _Max = INT_MAX;
 	int _Quantity = 0;
 	struct Good** _Tbl = (struct Good**) _Goods->Table;
 	struct Good* _Temp = NULL;
 	
-	for(i = 0; i < _Goods->Size; ++i) {
-		_Temp = bsearch(_Tbl[i], _Good->Base->InputGoods, _Good->Base->IGSize, sizeof(struct InputReq*), GoodInpGdCmp);
-		if(_Good->Base->InputGoods[_Ct]->Quantity < _Temp->Quantity)
+	for(i = 0; i < _Good->IGSize; ++i) {
+		_Temp = bsearch(_Good->InputGoods[i], _Tbl[0], _Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))InputReqGoodCmp);
+		if(_Temp->Quantity < _Good->InputGoods[i]->Quantity)
 			return 0;
-		_Quantity = _Temp->Quantity / _Good->Base->InputGoods[_Ct]->Quantity;
+		_Quantity = _Temp->Quantity / _Good->InputGoods[i]->Quantity;
 		if(_Quantity < _Max)
 			_Max = _Quantity;
-		++_Ct;
 	}
 	return _Max;
 }

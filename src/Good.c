@@ -196,7 +196,7 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 		_Good->InputGoods[i] = (struct InputReq*)_Itr->Data;
 		_Itr = _Itr->Next;
 	}
-	if(_Good->Category == EFOOD) {
+	if(_Good->Category == EFOOD || _Good->Category == EINGREDIENT || _Good->Category == ESEED) {
 		int _Nutrition = 0;
 
 		for(i = 0; i < _List->Size; ++i)
@@ -241,6 +241,10 @@ int GoodCmp(const void* _One, const void* _Two) {
 
 void DestroyGood(struct Good* _Good) {
 	free(_Good);
+}
+
+int GoodGBaseCmp(const struct Good* _One, const struct GoodBase* _Two) {
+	return _One->Base->Id - _Two->Id;
 }
 
 struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function) {

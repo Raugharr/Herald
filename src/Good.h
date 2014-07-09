@@ -77,6 +77,10 @@ struct GoodDep {
 	const struct GoodBase* Good;
 };
 
+int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two);
+int GoodBaseDepCmp(const struct GoodBase* _Good, const struct GoodDep* _Pair);
+int InputReqGoodCmp(const struct InputReq* _One, const struct Good* _Two);
+
 struct GoodBase* InitGoodBase(struct GoodBase* _Good, const char* _Name, int _Category);
 struct GoodBase* CopyGoodBase(const struct GoodBase* _Good);
 int GoodBaseCmp(const void* _One, const void* _Two);
@@ -87,6 +91,8 @@ int GoodInpGdCmp(const void* _One, const void* _Two);
 struct Good* CreateGood(struct GoodBase* _Base);
 int GoodCmp(const void* _One, const void* _Two);
 void DestroyGood(struct Good* _Good);
+
+int GoodGBaseCmp(const struct Good* _One, const struct GoodBase* _Two);
 
 struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function);
 void DestroyToolBase(struct ToolBase* _Tool);

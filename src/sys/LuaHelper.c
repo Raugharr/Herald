@@ -155,15 +155,16 @@ int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {
 	int _Top = lua_gettop(_State);
 
 	lua_pushnil(_State);
-	if(lua_next(_State, _Index) == 0)
+	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
 	if(AddInteger(_State, -1, _One) == -1)
 		goto fail;
 	lua_pop(_State, 1);
-	if(lua_next(_State, _Index) == 0)
+	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
 	if(AddInteger(_State, -1, _Two) == -1)
 		goto fail;
+	lua_pop(_State, 2);
 	return 1;
 	fail:
 	lua_settop(_State, _Top);

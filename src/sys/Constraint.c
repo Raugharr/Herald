@@ -16,6 +16,21 @@ struct Constraint* CreateConstraint(int _Min, int _Max) {
 	return _Constraint;
 }
 
+struct Constraint* CopyConstraint(struct Constraint* _Constrnt) {
+	return CreateConstraint(_Constrnt->Min, _Constrnt->Max);
+}
+
+struct Constraint** CopyConstraintBnds(struct Constraint** _Constrnt) {
+	int _Size = ConstrntLen(_Constrnt);
+	struct Constraint** _New = calloc(_Size + 1, sizeof(struct Constraint*));
+	int i;
+
+	for(i = 0; i < _Size; ++i)
+		_New[i] = CopyConstraint(_Constrnt[i]);
+	_New[i] = NULL;
+	return _New;
+}
+
 void DestroyConstraint(struct Constraint* _Constraint) {
 	free(_Constraint);
 }
@@ -95,4 +110,13 @@ int Fuzify(struct Constraint** _List, int _Value) {
 		if((*_List)->Min <= _Value && (*_List)->Max >= _Value)
 			return i;
 	return -1;
+}
+
+int ConstrntLen(struct Constraint** _List) {
+	int i;
+	int _Size = 0;
+
+	for(i = 0; _List[i] != NULL; ++i)
+		++_Size;
+	return _Size;
 }

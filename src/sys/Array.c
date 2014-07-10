@@ -17,6 +17,16 @@ struct Array* CreateArray(int _Size) {
 	return _Array;
 }
 
+struct Array* CopyArray(struct Array* _Array) {
+	struct Array* _New = CreateArray(_Array->Size);
+	int i;
+
+	for(i = 0; i < _Array->Size; ++i)
+		_New->Table[i] = _Array->Table[i];
+	_New->Size = _Array->Size;
+	return _New;
+}
+
 void DestroyArray(struct Array* _Array) {
 	free(_Array);
 }

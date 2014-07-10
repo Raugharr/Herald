@@ -60,6 +60,8 @@ void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
 			return NULL;
 
 	}
+	if(_Node == NULL)
+		return NULL;
 	return _Node->Pair;
 }
 

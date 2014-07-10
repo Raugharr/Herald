@@ -10,6 +10,7 @@
 #include "World.h"
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
+#include "sys/Log.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -102,8 +103,10 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			_Return = AddInteger(_State, -1, &_GrowTime);
 		}
 		lua_pop(_State, 1);
-		if(!(_Return > 0))
+		if(!(_Return > 0)) {
+			Log(ELOG_WARNING, "%s is not a crop parameter.", _Key);
 			return NULL;
+		}
 	}
 	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime);
 }

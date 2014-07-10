@@ -74,3 +74,13 @@ void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const 
 		**_Off = _Temp;
 	}
 }
+
+int ArrayLen(void* _Table) {
+	int _Size = 0;
+
+	while(*((void**)_Table) != NULL) {
+		_Table += sizeof(void*);
+		++_Size;
+	}
+	return _Size;
+}

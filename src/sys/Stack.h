@@ -23,5 +23,6 @@ void DestroyStack(struct Stack* _Stack);
 void StackPush(struct Stack* _Stack, void* _Data);
 void* StackPop(struct Stack* _Stack);
 void* StackGet(struct Stack* _Stack, int _Index);
+int StackNodeLen(struct StackNode* _Node);
 
 #endif

@@ -23,4 +23,5 @@ void ArrayInsert_S(struct Array* _Array, void* _Data);
 void ArrayResize(struct Array* _Array);
 
 void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*));
+int ArrayLen(void* _Table);
 #endif

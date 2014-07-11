@@ -23,5 +23,6 @@ void ArrayInsert_S(struct Array* _Array, void* _Data);
 void ArrayResize(struct Array* _Array);
 
 void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*));
-int ArrayLen(void* _Table);
+int ArrayLen(const void* _Table);
+void* BinarySearch(void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*));
 #endif

@@ -101,7 +101,7 @@ void* StackGet(struct Stack* _Stack, int _Index) {
 	return NULL;
 }
 
-int StackNodeLen(struct StackNode* _Node) {
+int StackNodeLen(const struct StackNode* _Node) {
 	int _Size = 0;
 
 	while(_Node != NULL) {

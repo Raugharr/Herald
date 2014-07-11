@@ -199,8 +199,18 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 	if(_Good->Category == EFOOD || _Good->Category == EINGREDIENT || _Good->Category == ESEED) {
 		int _Nutrition = 0;
 
-		for(i = 0; i < _List->Size; ++i)
-			_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
+		if(_Good->IGSize == 0) {
+			lua_getfield(_State, -1, "Nutrition");
+			if(lua_tointeger(_State, -1) == 0) {
+				Log(ELOG_WARNING, "Warning: Good %s cannot be a food because it contains no InputGoods or a field named Nutrition containing an integer.");
+				goto fail;
+			}
+			_Nutrition = lua_tointeger(_State, -1);
+			lua_pop(_State, 1);
+		} else {
+			for(i = 0; i < _List->Size; ++i)
+				_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
+		}
 		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
 	}
 	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp);

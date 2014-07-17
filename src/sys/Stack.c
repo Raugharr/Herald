@@ -104,6 +104,8 @@ void* StackGet(struct Stack* _Stack, int _Index) {
 int StackNodeLen(const struct StackNode* _Node) {
 	int _Size = 0;
 
+	if(_Node == NULL)
+		return 0;
 	while(_Node != NULL) {
 		++_Size;
 		_Node = _Node->Prev;

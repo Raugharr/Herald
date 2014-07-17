@@ -78,6 +78,9 @@ void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const 
 int ArrayLen(const void* _Table) {
 	int _Size = 0;
 
+	if(_Table == NULL)
+		return 0;
+
 	while(*((void**)_Table) != NULL) {
 		_Table += sizeof(void*);
 		++_Size;

@@ -42,7 +42,7 @@ char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 struct Array* g_World = NULL;
 struct LinkedList* g_ManorList = NULL;
 struct RBTree* g_GoodDeps = NULL;
-
+struct Array* g_AnFoodDep = NULL;
 
 void World_Init(int _Area) {
 	int _ManorMin = 0;
@@ -122,6 +122,7 @@ void World_Init(int _Area) {
 	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
 
 	g_GoodDeps = GoodBuildDep(&g_Goods);
+	g_AnFoodDep = AnimalFoodDep(&g_Populations);
 	end:
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);
@@ -143,6 +144,7 @@ void World_Quit() {
 	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();
 	DestroyRBTree(g_GoodDeps);
+	DestroyArray(g_AnFoodDep);
 	lua_close(g_LuaState);
 }
 

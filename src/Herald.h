@@ -20,8 +20,10 @@
 		(__Itr) = (__Itr)->Next;							\
 	}
 #define WORKMULT (1000)
+#define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
 
 typedef struct lua_State lua_State;
+struct StackNode;
 
 enum {
 	BABY = 0,
@@ -63,5 +65,7 @@ void DestroyInputReq(struct InputReq* _Mat);
 int NextId();
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
+struct Array* ListToArray(const struct LinkedList* _List);
+void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 
 #endif

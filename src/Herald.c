@@ -14,6 +14,7 @@
 #include "Good.h"
 #include "Occupation.h"
 #include "Population.h"
+#include "sys/Stack.h"
 #include "sys/RBTree.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
@@ -153,6 +154,67 @@ struct Array* FileLoad(const char* _File, char _Delimiter) {
 			}
 		}
 	return _Array;
+}
+
+struct Array* ListToArray(const struct LinkedList* _List) {
+	struct Array* _Array = NULL;
+	struct LnkLst_Node* _Itr = _List->Front;
+
+	if(_List->Size < 1)
+		return NULL;
+	_Array = CreateArray(_List->Size);
+	while(_Itr != NULL) {
+		ArrayInsert(_Array, _Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	return _Array;
+}
+
+void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack) {
+	struct StackNode _Node;
+	void** _Return = NULL;
+	int i;
+
+	if(_Size == 0) {
+		if(_Stack == NULL) {
+			_Return = malloc(sizeof(void*));
+			*((int**)_Return) = 0;
+			goto end;
+		}
+		_Return = calloc(_ArraySize + 1, sizeof(void*));
+		for(i = _ArraySize - 1; i >= 0; --i) {
+			_Return[i] = _Stack->Data;
+			_Stack = _Stack->Prev;
+		}
+		_Return[_ArraySize] = NULL;
+	} else {
+		int _Len = 0;
+		void** _Left = NULL;
+		void** _Right = NULL;
+
+		_Node.Prev = _Stack;
+		_Node.Data = (void*)*(int*)_Tbl;
+		_Left = PowerSet_Aux(_Tbl + sizeof(void*), _Size - 1, _ArraySize, _Stack);
+		_Right = PowerSet_Aux(_Tbl + sizeof(void*), _Size - 1, _ArraySize + 1, &_Node);
+
+		if(_Size == 1) {
+			_Return = calloc(3, sizeof(void*));
+			_Return[0] = _Left;
+			_Return[1] = _Right;
+			_Return[2] = NULL;
+			goto end;
+		}
+		_Len = ArrayLen(_Left);
+		_Return = calloc(_Len * 2 + 1, sizeof(void*));
+		for(i = 0; i < _Len; ++i) {
+			_Return[i] = _Left[i];
+		}
+		for(i = 0; i < _Len * 2; ++i)
+			_Return[i + _Len] = _Right[i];
+		_Return[_Len * 2] = NULL;
+	}
+	end:
+	return _Return;
 }
 
 int NextId() {return g_Id++;}

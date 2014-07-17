@@ -10,17 +10,19 @@
 #include "sys/LinkedList.h"
 
 typedef struct lua_State lua_State;
+struct HashTable;
 
 struct Population {
 	int Id;
 	char* Name;
 	int AdultFood;
-	int ChildFood;
 	int Meat; //In pounds.
 	int Milk; //Fluid ounces.
-	double MalePercent;
+	double MaleRatio;
 	struct Constraint** Ages;
 	struct Array* Output; //Contains struct Good*.
+	struct FoodBase** Eats;
+	int EatsSize;
 };
 
 struct Animal {
@@ -31,14 +33,27 @@ struct Animal {
 	struct Population* PopType;
 };
 
-struct Population* CreatePopulation(const char* _Name, int _AdultFood, int _ChildFood, struct Constraint** _Ages, int _Meat, int _Milk);
+struct AnimalDep {
+	struct FoodBase** Tbl;
+	struct Array* Animals;
+	int Nutrition;
+};
+
+struct Population* CreatePopulation(const char* _Name, int _AdultFood, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio);
 struct Population* CopyPopulation(const struct Population* _Population);
+int PopulationCmp(const void* _One, const void* _Two);
+int PopulationFoodCmp(const void* _One, const void* _Two);
 void DestroyPopulation(struct Population* _Population);
+
 struct Population* PopulationLoad(lua_State* _State, int _Index);
 
 struct Animal* CreateAnimal(struct Population* _Pop, int _Age);
 void DestroyAnimal(struct Animal* _Animal);
 void AnimalUpdate(struct Animal* _Animal);
-void AnimalDeath();
+void AnimalDeath(struct Animal* _Animal);
+/*!
+ * Returns a power set that contains all FoodBase*'s that are eaten by Population*'s in _Table.
+ */
+struct Array* AnimalFoodDep(const struct HashTable* _Table);
 
 #endif

@@ -24,5 +24,14 @@ Crops = {
 		YieldPerSeed = 4.6,
 		NutritionalValue = 360,
 		GrowTime = 120
+	},
+	
+	{
+		Name = "Oats",
+		Type = "Grass",
+		PoundsPerAcre = 112,
+		YieldPerSeed = 3.14,
+		NutritionalValue = 540,
+		GrowTime = 120
 	}
 }

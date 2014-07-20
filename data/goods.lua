@@ -36,6 +36,27 @@ Goods = {
 	},
 	
 	{
+		Name = "Straw",
+		Category = "Food",
+		InputGoods = {},
+		Nutrition = 3 --Per pound
+	},
+	
+	{
+		Name = "Hay",
+		Category = "Food",
+		InputGoods = {},
+		Nutrition = 5 --Per pound
+	},
+	
+	{
+		Name = "Meat",
+		Category = "Food",
+		InputGoods = {},
+		Nutrition = 3 --Per pound, exception is hard coded.
+	},
+	
+	{
 		Name = "Stone Sickle",
 		Category = "Tool",
 		Function = "Reap",

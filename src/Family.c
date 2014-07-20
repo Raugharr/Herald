@@ -53,6 +53,7 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	_Family->Field = NULL;
 	_Family->Buildings = CreateArray(2);
 	_Family->Goods = CreateArray(4);
+	_Family->Animals = CreateArray(4);
 	return _Family;
 }
 
@@ -60,6 +61,9 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 	struct Family* _Family = NULL;
 	struct Field* _Field = NULL;
 	struct Good* _Good = NULL;
+
+	if(_Size > CHILDREN_SIZE + 2)
+		return NULL;
 
 	if(_Size >= 2) {
 		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500);
@@ -80,13 +84,12 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}
-	} else
-		return NULL;
+	}
 	return _Family;
 }
 
 void DestroyFamily(struct Family* _Family) {
-	int _Max = _Family->NumChildren + 1;
+	int _Max = _Family->NumChildren + 2;
 	int i;
 	struct Array* _Array = _Family->Goods;
 
@@ -94,13 +97,16 @@ void DestroyFamily(struct Family* _Family) {
 		DestroyGood(_Array->Table[i]);
 	}
 	while(_Max > 0) {
-		if(_Family->People[_Max] != NULL)
+		if(_Family->People[_Max] != NULL) {
 			DestroyPerson(_Family->People[_Max]);
+			_Family->People[_Max] = NULL;
+		}
 		--_Max;
 	}
 	DestroyField(_Family->Field);
 	DestroyArray(_Family->Buildings);
 	DestroyArray(_Family->Goods);
+	//DestroyArray(_Family->Animals);
 	free(_Family);
 }
 

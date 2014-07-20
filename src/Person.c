@@ -93,8 +93,6 @@ struct Person* CreateChild(struct Family* _Family) {
 }
 
 int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
-	if(PersonDead(_Person) == 1)
-		return 0;
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_PREGANCY) == NULL
@@ -123,13 +121,14 @@ void PersonDeath(struct Person* _Person) {
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
 			if(i >= CHILDREN) {
-				_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren];
 				--_Family->NumChildren;
+				_Family->People[i] = _Family->People[CHILDREN + _Family->NumChildren];
+				_Family->People[CHILDREN + _Family->NumChildren] = NULL;
 			}
 			break;
 		}
 	DestroyPerson(_Person);
-	Event_Push(CreateEventDeath(_Person));
+	//Event_Push(CreateEventDeath(_Person));
 }
 
 int PersonWorkMult(struct Person* _Person) {

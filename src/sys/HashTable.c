@@ -33,6 +33,13 @@ struct HashTable* CreateHash(int _Size) {
 }
 
 void DestroyHash(struct HashTable* _Hash) {
+	int i;
+	
+	for(i = 0; i < _Hash->TblSize; ++i) 
+		if(_Hash->Table[i] != NULL) {
+			free(_Hash->Table[i]->Key);
+			free(_Hash->Table[i]);
+		}
 	free(_Hash->Table);
 	free(_Hash);
 }
@@ -73,7 +80,7 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 
 	if(_Key == NULL)
 		return;
-	_Str = (char*)malloc(sizeof(char) * strlen(_Key));
+	_Str = (char*) calloc(strlen(_Key) + 1, sizeof(char));
 	_HashVal = Hash(_Key) % _Hash->TblSize;
 	strcpy(_Str, _Key);
 	i = _HashVal;

@@ -42,19 +42,16 @@ int FoodArrayAnDepArray(const void* _One, const void* _Two) {
 int AnDepArrayArrayCmp(const void* _One, const void* _Two) {
 	int _LenOne = ArrayLen(((const struct AnimalDep*)_One)->Tbl);
 	int _LenTwo = ArrayLen(((const struct AnimalDep*)_Two)->Tbl);
-	int _Len = 0;
 	int _Result = 0;
 	int i;
 
-	if(_LenOne < _LenTwo)
-		_Len = _LenOne;
-	else
-		_Len = _LenTwo;
-	for(i = 0; i < _Len; ++i) {
+	if(_LenOne != _LenTwo)
+		return _LenOne - _LenTwo;
+	for(i = 0; i < _LenOne; ++i) {
 		if((_Result = GoodBaseCmp(((const struct AnimalDep*)_One)->Tbl[i], ((const struct AnimalDep*)_Two)->Tbl[i])) != 0)
 			return _Result;
 	}
-	return _LenOne - _LenTwo;
+	return 0;
 }
 
 int AnDepArrayCmp(const void* _One, const void* _Two) {
@@ -62,7 +59,7 @@ int AnDepArrayCmp(const void* _One, const void* _Two) {
 	int _Len = ArrayLen(((const struct AnimalDep*)_Two)->Tbl);
 	if(_Len == 1 && _Result == 0)
 		return 0;
-	else if(_Result == 0)
+	else if(_Len != 1)
 		return -1;
 	return _Result;
 }
@@ -268,8 +265,6 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 	struct AnimalDep* _Search = NULL;
 	struct FoodBase*** _Set = NULL;
 
-	memset(_Array->Table, 0, sizeof(void*) * _Array->TblSize);
-	*((struct FoodBase**)_Array->Table) = NULL;
 	while(_Itr != NULL) {
 		_Pop = _Itr->Node->Pair;
 		for(i = 0; i < _Pop->EatsSize; ++i) {
@@ -318,7 +313,9 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 		_Itr = HashNextCons(_Table, _Itr);
 	}
 	HashDeleteItrCons(_Itr);
-	_Array->Table = realloc(_Array->Table, _Array->Size * sizeof(struct FoodBase*));
-	_Array->TblSize = _Array->Size;
+	if(_Array->Size > 0) {
+		_Array->Table = realloc(_Array->Table, _Array->Size * sizeof(struct FoodBase*));
+		_Array->TblSize = _Array->Size;
+	}
 	return _Array;
 }

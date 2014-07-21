@@ -342,7 +342,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 
 	if(_Tree->Size == 1) {
 		#ifdef DEBUG
-				assert(_Tree->Table->Left != NULL || _Tree->Table->Right != NULL);
+				assert(_Tree->Table->Left == NULL && _Tree->Table->Right == NULL);
 		#endif
 		free(_OldNode);
 		_Tree->Table = NULL;

@@ -44,7 +44,7 @@ void DestroyHash(struct HashTable* _Hash) {
 	free(_Hash);
 }
 
-void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
+struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key) {
 	int _Index = 0;
 	struct HashNode* _Node = NULL;
 	int i;
@@ -67,6 +67,14 @@ void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
 			return NULL;
 
 	}
+	if(_Node == NULL)
+		return NULL;
+	return _Node;
+}
+
+void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
+	struct HashNode* _Node = HashSearchNode(_Hash, _Key);
+
 	if(_Node == NULL)
 		return NULL;
 	return _Node->Pair;

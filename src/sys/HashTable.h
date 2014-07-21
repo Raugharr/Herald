@@ -30,6 +30,7 @@ struct HashTable {
 struct HashTable* CreateHash(int _Size);
 void DestroyHash(struct HashTable* _Hash);
 
+struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key);
 void* HashSearch(const struct HashTable* _Hash, const char* _Key);
 void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair);
 void HashClear(struct HashTable* _Hash);

@@ -45,16 +45,13 @@ void DestroyConstrntBnds(struct Constraint** _Constraint) {
 }
 
 struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Interval) {
-	int* _SizePtr = NULL;
 	int _CurrMin = _Min;
 	int _CurrMax = _Max;
 	struct Constraint** _List = NULL;
 	int i;
 
-	if(_Size == NULL) {
-		_Size = (int*) malloc(sizeof(int));
-		_SizePtr = _Size;
-	}
+	if(_Size == NULL)
+		return NULL;
 	*_Size = _Max / _Interval;
 	if(_Interval * *_Size < _Max)
 		++(*_Size);
@@ -72,7 +69,6 @@ struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Inter
 		break;
 	}
 	_List[i + 1] = NULL;
-	free(_SizePtr);
 	return _List;
 }
 

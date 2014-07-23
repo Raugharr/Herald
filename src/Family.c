@@ -89,14 +89,14 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 }
 
 void DestroyFamily(struct Family* _Family) {
-	int _Max = _Family->NumChildren + 2;
+	int _Max = _Family->NumChildren + 1;
 	int i;
 	struct Array* _Array = _Family->Goods;
 
 	for(i = 0; i < _Array->Size; ++i) {
 		DestroyGood(_Array->Table[i]);
 	}
-	while(_Max > 0) {
+	while(_Max >= 0) {
 		if(_Family->People[_Max] != NULL) {
 			DestroyPerson(_Family->People[_Max]);
 			_Family->People[_Max] = NULL;
@@ -115,7 +115,7 @@ int FamilySize(struct Family* _Family) {
 	int i;
 
 	for(i = 0; i < CHILDREN_SIZE + 2; ++i) {
-		if(_Family->People[i] == NULL || _Family->People[i]->Nutrition == -1)
+		if(_Family->People[i] == NULL)
 			continue;
 		++_Size;
 	}

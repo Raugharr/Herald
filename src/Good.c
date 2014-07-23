@@ -247,7 +247,7 @@ struct Good* CreateGood(struct GoodBase* _Base) {
 }
 
 int GoodCmp(const void* _One, const void* _Two) {
-	return ((struct Good*)_One)->Base->Id - ((struct Good*)_Two)->Base->Id;
+	return ((struct Good*)_One)->Id - ((struct Good*)_Two)->Id;
 }
 
 void DestroyGood(struct Good* _Good) {

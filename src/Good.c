@@ -237,7 +237,7 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 	free(_GoodDep);
 }
 
-struct Good* CreateGood(struct GoodBase* _Base) {
+struct Good* CreateGood(const struct GoodBase* _Base) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
 	_Good->Id = NextId();
@@ -280,7 +280,7 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 	free(_Food);
 }
 
-struct Food* CreateFood(struct FoodBase* _Base) {
+struct Food* CreateFood(const struct FoodBase* _Base) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
 	_Food->Id = NextId();

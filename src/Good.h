@@ -90,7 +90,7 @@ void DestroyGoodBase(struct GoodBase* _Good);
 
 int GoodInpGdCmp(const void* _One, const void* _Two);
 
-struct Good* CreateGood(struct GoodBase* _Base);
+struct Good* CreateGood(const struct GoodBase* _Base);
 int GoodCmp(const void* _One, const void* _Two);
 void DestroyGood(struct Good* _Good);
 
@@ -102,7 +102,7 @@ void DestroyToolBase(struct ToolBase* _Tool);
 struct FoodBase* CreateFoodBase(const char* _Name, int _Category, int _Nutrition);
 void DestroyFoodBase(struct FoodBase* _Food);
 
-struct Food* CreateFood(struct FoodBase* _Base);
+struct Food* CreateFood(const struct FoodBase* _Base);
 void DestroyFood(struct Food* _Food);
 
 /*!

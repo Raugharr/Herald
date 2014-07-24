@@ -9,13 +9,18 @@
 #include "Herald.h"
 #include "Crop.h"
 #include "Good.h"
-#include "sys/Constraint.h"
+#include "Population.h"
 #include "sys/Array.h"
+#include "sys/Constraint.h"
 #include "sys/Random.h"
+#include "sys/LuaHelper.h"
+#include "sys/Log.h"
+#include "sys/RBTree.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <lua/lauxlib.h>
 
 struct Constraint** g_AgeDistr = NULL;
 static struct Array* g_FirstNames = NULL;
@@ -69,13 +74,6 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500);
 		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
-		_Field = CreateField();
-		_Field->Crop = HashSearch(&g_Crops, "Wheat");
-		_Field->Acres = 30;
-		_Family->Field = _Field;
-		_Good = CreateGood(HashSearch(&g_Goods, "Wheat"));
-		_Good->Quantity = 30 * _Field->Crop->PerAcre;
-		ArrayInsertSort_S(_Family->Goods, _Good, GoodCmp);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
@@ -127,3 +125,79 @@ void Marry(struct Person* _Male, struct Person* _Female) {
 	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0);
 }
 
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes) {
+	int i;
+	int j;
+	int _FamType = Random(0, 9999);
+	int _Quantity = 0;
+	int _Percent = 0;
+	const char* _Name = NULL;
+	const struct GoodBase* _GoodBase = NULL;
+	const struct Population* _Population = NULL;
+	char* _Error = NULL;
+	struct Good* _Good = NULL;
+
+	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
+		if(_FamilyTypes[i]->Percent * 1000 < _FamType + _Percent) {
+			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
+			lua_pushinteger(_State, FamilySize(_Family));
+			if(LuaCallFunc(_State, 1, 1, 0) == 0)
+				return;
+			lua_getfield(_State, -1, "Goods");
+			lua_pushnil(_State);
+			while(lua_next(_State, -2) != 0) {
+				lua_pushnil(_State);
+				if(lua_next(_State, -2) == 0) {
+					_Error = "Goods";
+					goto LuaError;
+				}
+				AddString(_State, -1, &_Name);
+				lua_pop(_State, 1);
+				if(lua_next(_State, -2) == 0) {
+					_Error = "Goods";
+					goto LuaError;
+				}
+				AddInteger(_State, -1, &_Quantity);
+				if((_GoodBase = HashSearch(&g_Goods, _Name)) == NULL) {
+					Log(ELOG_WARNING, "Cannot find GoodBase %s", _Name);
+					continue;
+				}
+				_Good = CreateGood(_GoodBase);
+				_Good->Quantity = _Quantity;
+				ArrayInsertSort_S(_Family->Goods, _Good, GoodCmp);
+				lua_pop(_State, 3);
+			}
+			lua_pop(_State, 1);
+			//TODO: Building field isn't used to define buildings yet.
+			lua_getfield(_State, -1, "Animals");
+			lua_pushnil(_State);
+			while(lua_next(_State, -2) != 0) {
+				lua_pushnil(_State);
+				if(lua_next(_State, -2) == 0) {
+					_Error = "Animals";
+					goto LuaError;
+				}
+				AddString(_State, -1, &_Name);
+				lua_pop(_State, 1);
+				if(lua_next(_State, -2) == 0) {
+					_Error = "Animals";
+					goto LuaError;
+				}
+				AddInteger(_State, -1, &_Quantity);
+				if((_Population = HashSearch(&g_Populations, _Name)) == NULL) {
+					Log(ELOG_WARNING, "Cannot find Population %s", _Name);
+					continue;
+				}
+				for(j = 0; j < _Quantity; ++j)
+					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max)), AnimalCmp);
+				lua_pop(_State, 3);
+			}
+			lua_pop(_State, 1);
+			break;
+		}
+		_Percent += _FamilyTypes[i]->Percent * 1000;
+	}
+	return;
+	LuaError:
+	luaL_error(_State, "In function %s the %s table does not contain a valid element.", _FamilyTypes[i]->LuaFunc, _Error);
+}

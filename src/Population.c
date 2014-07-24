@@ -20,6 +20,10 @@
 #include <math.h>
 #include <lua/lua.h>
 
+int AnimalTypeCmp(const void* _One, const void* _Two) {
+	return ((struct Animal*)_One)->PopType->Id - ((struct Animal*)((struct InputReq*)_Two)->Req)->PopType->Id;
+}
+
 int FoodArrayAnDepArray(const void* _One, const void* _Two) {
 	int _LenOne = ArrayLen(_One);
 	int _LenTwo = ArrayLen(((const struct AnimalDep*)_Two)->Tbl);
@@ -64,17 +68,17 @@ int AnDepArrayCmp(const void* _One, const void* _Two) {
 	return _Result;
 }
 
-struct Population* CreatePopulation(const char* _Name, int _AdultFood, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio) {
+struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio) {
 	struct Population* _Population = (struct Population*) malloc(sizeof(struct Population));
 
 	_Population->Id = NextId();
 	_Population->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Population->Name, _Name);
-	_Population->AdultFood = _AdultFood;
+	_Population->Nutrition = _Nutrition;
 	_Population->Meat = _Meat;
 	_Population->Milk = _Milk;
 	_Population->Ages = _Ages;
-	_Population->Output = NULL;
+	_Population->Outputs = NULL;
 	_Population->MaleRatio = _MaleRatio;
 	return _Population;
 }
@@ -86,12 +90,14 @@ struct Population* CopyPopulation(const struct Population* _Population) {
 	_New->Id = NextId();
 	_New->Name = (char*) calloc(strlen(_Population->Name) + 1, sizeof(char));
 	strcpy(_New->Name, _Population->Name);
-	_New->AdultFood = _Population->AdultFood;
+	_New->Nutrition = _Population->Nutrition;
 	_New->Meat = _Population->Meat;
 	_New->Milk = _Population->Milk;
 	_New->MaleRatio = _Population->MaleRatio;
 	_New->Ages = CopyConstraintBnds(_Population->Ages);
-	_New->Output = CopyArray(_Population->Output);
+	for(i = 0; _Population->Outputs[i] != NULL; ++i)
+		_New->Outputs[i] = _Population->Outputs[i];
+	_New->Outputs[i] = _Population->Outputs[i];
 	_New->EatsSize = _Population->EatsSize;
 
 	_New->Eats = calloc(_New->EatsSize, sizeof(struct FoodBase*));
@@ -118,9 +124,14 @@ int PopulationFoodCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyPopulation(struct Population* _Population) {
+	int i;
+
 	free(_Population->Name);
 	DestroyConstrntBnds(_Population->Ages);
-	DestroyArray(_Population->Output);
+	for(i = 0; _Population->Outputs[i] != NULL; ++i)
+		free(_Population->Outputs[i]);
+	free(_Population->Outputs[i]);
+	free(_Population->Outputs);
 	free(_Population);
 }
 
@@ -136,7 +147,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	int _Young = 0;
 	int _Old = 0;
 	int _Death = 0;
-	int _AdultFood = 0;
+	int _Nutrition = 0;
 	int _Meat = 0;
 	int _Milk = 0;
 	double _MaleRatio = 0;
@@ -151,7 +162,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		else
 			continue;
 		if (!strcmp("Nutrition", _Key))
-			_Return = AddInteger(_State, -1, &_AdultFood);
+			_Return = AddInteger(_State, -1, &_Nutrition);
 		else if(!strcmp("Name", _Key))
 			_Return = AddString(_State, -1, &_Name);
 		else if(!strcmp("MaleRatio", _Key))
@@ -190,7 +201,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		lua_pop(_State, 1);
 	}
 	_Ages = CreateConstrntBnds(4, 0, _Young, _Old, _Death);
-	_Pop = CreatePopulation(_Name, _AdultFood, _Meat, _Milk, _Ages, _MaleRatio);
+	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio);
 	_Eats = calloc(_List->Size, sizeof(struct FoodBase*));
 	_Itr = _List->Front;
 	i = 0;
@@ -200,6 +211,8 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		_Itr = _Itr->Next;
 		++i;
 	}
+	_Pop->Outputs = malloc(sizeof(struct Good*));
+	_Pop->Outputs[0] = NULL;
 	_Pop->Eats = _Eats;
 	_Pop->EatsSize = _List->Size;
 	DestroyLinkedList(_List);
@@ -210,7 +223,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	return NULL;
 }
 
-struct Animal* CreateAnimal(struct Population* _Pop, int _Age) {
+struct Animal* CreateAnimal(const struct Population* _Pop, int _Age) {
 	struct Animal* _Animal = (struct Animal*) malloc(sizeof(struct Animal*));
 
 	_Animal->Id = NextId();
@@ -223,8 +236,16 @@ struct Animal* CreateAnimal(struct Population* _Pop, int _Age) {
 	return _Animal;
 }
 
+int AnimalCmp(const void* _One, const void* _Two) {
+	return ((struct Animal*)_One)->Id - ((struct Animal*)_Two)->Id;
+}
+
 void DestroyAnimal(struct Animal* _Animal) {
 	free(_Animal);
+}
+
+void AnimalFeed(struct Animal* _Animal) {
+
 }
 
 void AnimalUpdate(struct Animal* _Animal) {
@@ -279,7 +300,6 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 				ArrayInsertSort_S(_Array, _Dep, AnDepArrayArrayCmp);
 			}
 			ArrayInsertSort_S(_Dep->Animals, _Pop, PopulationCmp);
-			//_Dep->Nutrition += _Pop->AdultFood;
 		}
 		_Temp = calloc(_Pop->EatsSize + 1, sizeof(struct FoodBase*));
 		_Dep = (struct AnimalDep*) malloc(sizeof(struct AnimalDep));
@@ -287,14 +307,14 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 			_Temp[i] = _Pop->Eats[i];
 		}
 		_Temp[i] = NULL;
-		_Dep->Nutrition = _Pop->AdultFood;
+		_Dep->Nutrition = _Pop->Nutrition;
 		_Dep->Tbl = _Temp;
 
 		_Set = PowerSet(_Temp,_Pop->EatsSize);
 		_SetSize = pow(2, _Pop->EatsSize);
 		for(i = 1; i < _SetSize; ++i) {
 			if((_Search = BinarySearch(_Set[i], _Array->Table, _Array->Size, FoodArrayAnDepArray)) != NULL)
-				_Search->Nutrition += _Pop->AdultFood;
+				_Search->Nutrition += _Pop->Nutrition;
 			free(_Set[i]);
 		}
 		free(_Set[0]);
@@ -318,4 +338,28 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 		_Array->TblSize = _Array->Size;
 	}
 	return _Array;
+}
+
+struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
+	int i;
+	struct InputReq** _AnimalCt = calloc(_Animals->Size, sizeof(struct InputReq*));
+	struct InputReq* _Req = NULL;
+	struct Animal* _Animal = NULL;
+
+	*_Size = 0;
+	memset(_AnimalCt, 0, sizeof(struct InputReq*));
+	for(i = 0; i < _Animals->Size; ++i) {
+		_Animal = _Animals->Table[i];
+		if((_Req = BinarySearch(_Animal, _AnimalCt, _Animals->Size, AnimalTypeCmp)) == NULL) {
+			_Req = CreateInputReq();
+			_Req->Req = _Animal->PopType;
+			_Req->Quantity = 1;
+			_AnimalCt[*_Size] = _Req;
+			InsertionSort(_AnimalCt, *_Size, AnimalTypeCmp);
+			++(*_Size);
+		} else
+			++_Req->Quantity;
+	}
+	_AnimalCt = realloc(_AnimalCt, (*_Size) * sizeof(struct InputReq*));
+	return _AnimalCt;
 }

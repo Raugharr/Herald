@@ -5,9 +5,15 @@
 
 #include "LuaHelper.h"
 
+#include "HashTable.h"
 #include "LinkedList.h"
 #include "Constraint.h"
 #include "Log.h"
+#include "Array.h"
+#include "../Herald.h"
+#include "../Good.h"
+#include "../Crop.h"
+#include "../Population.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +21,14 @@
 
 lua_State* g_LuaState = NULL;
 
+void LuaLoadCFuncs(lua_State* _State) {
+	lua_register(g_LuaState, "CreateConstraint", LuaConstraint);
+	lua_register(g_LuaState, "CreateConstraintBounds", LuaConstraintBnds);
+	lua_register(g_LuaState, "Crop", LuaCrop);
+	lua_register(g_LuaState, "Good", LuaGoodBase);
+	lua_register(g_LuaState, "Food", LuaFoodBase);
+	lua_register(g_LuaState, "Animal", LuaPopulation);
+}
 
 int LuaConstraint(lua_State* _State) {
 	int _Min = 0;
@@ -26,7 +40,6 @@ int LuaConstraint(lua_State* _State) {
 	AddInteger(_State, -2, &_Max);
 	AddInteger(_State, -1, &_Interval);
 
-	//lua_pushinteger(_State, _Size);
 	lua_pushlightuserdata(_State, CreateConstrntLst(&_Size, _Min, _Max, _Interval));
 	return 1;
 }
@@ -60,6 +73,160 @@ int LuaConstraintBnds(lua_State* _State) {
 	return 0;
 }
 
+void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints) {
+	int i = 0;
+
+	lua_newtable(_State);
+	while(*_Constraints != NULL) {
+		ConstraintToLua(_State, *_Constraints);
+		lua_rawseti(_State, -2, i++);
+		_Constraints += sizeof(struct Constraint*);
+	}
+}
+
+int LuaGoodBase(lua_State* _State) {
+	const struct GoodBase* _Good = NULL;
+	const char* _Name = NULL;
+	int i;
+
+	_Name = luaL_checklstring(_State, -1, NULL);
+	if((_Good = HashSearch(&g_Goods, _Name)) == NULL)
+		return luaL_error(_State, "Name is not a valid GoodBase.");
+	lua_createtable(_State, 0, 4);
+
+	lua_pushstring(_State, "Id");
+	lua_pushinteger(_State, _Good->Id);
+	lua_rawget(_State, -3);
+
+	lua_pushstring(_State, "Name");
+	lua_pushstring(_State, _Good->Name);
+	lua_rawget(_State, -3);
+
+	lua_pushstring(_State, "Category");
+	lua_pushinteger(_State, _Good->Category);
+	lua_rawget(_State, -3);
+
+	lua_pushstring(_State, "InputGoods");
+	lua_createtable(_State, _Good->IGSize, 0);
+	for(i = 0; i < _Good->IGSize; ++i) {
+		lua_pushinteger(_State, i);
+		lua_createtable(_State, 0, 2);
+
+		lua_pushstring(_State, "Req");
+		lua_pushstring(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req)->Name);
+		lua_rawset(_State, -3);
+	}
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaFoodBase(lua_State* _State) {
+	const struct FoodBase* _Good = NULL;
+	const char* _Name = NULL;
+
+	if(LuaGoodBase(_State) == 0)
+		return 0;
+	_Good = HashSearch(&g_Goods, _Name);
+	lua_pushstring(_State, "Nutrition");
+	lua_pushinteger(_State, _Good->Nutrition);
+	lua_rawget(_State, -3);
+	return 1;
+}
+
+int LuaCrop(lua_State* _State) {
+	const char* _Name = NULL;
+	const struct Crop* _Crop = NULL;
+
+	_Name = luaL_checklstring(_State, -1, NULL);
+	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL)
+		return luaL_error(_State, "Name is not a valid crop.");
+	lua_createtable(_State, 0, 7);
+
+	lua_pushstring(_State, "Id");
+	lua_pushinteger(_State, _Crop->Id);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Name");
+	lua_pushstring(_State, _Crop->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Type");
+	lua_pushinteger(_State, _Crop->Type);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "PerAcre");
+	lua_pushinteger(_State, _Crop->PerAcre);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "NutVal");
+	lua_pushinteger(_State, _Crop->NutVal);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "GrowDays");
+	lua_pushinteger(_State, _Crop->GrowDays);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "YieldMult");
+	lua_pushnumber(_State, _Crop->YieldMult);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaPopulation(lua_State* _State) {
+	int i;
+	const char* _Name = NULL;
+	const struct Population* _Pop = NULL;
+
+	_Name = luaL_checklstring(_State, -1, NULL);
+	if((_Pop = HashSearch(&g_Populations, _Name)) == NULL)
+		return luaL_error(_State, "Name is not a valid population.");
+	lua_createtable(_State, 0, 10);
+
+	lua_pushstring(_State, "Id");
+	lua_pushinteger(_State, _Pop->Id);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Name");
+	lua_pushstring(_State, _Pop->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Nutrition");
+	lua_pushinteger(_State, _Pop->Nutrition);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Meat");
+	lua_pushinteger(_State, _Pop->Meat);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Milk");
+	lua_pushinteger(_State, _Pop->Milk);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "MaleRatio");
+	lua_pushnumber(_State, _Pop->MaleRatio);
+	lua_rawset(_State, -3);
+	lua_pushstring(_State, "Ages");
+	ConstraintBndToLua(_State, _Pop->Ages);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Outputs");
+	lua_createtable(_State, ArrayLen(_Pop->Outputs), 0);
+	for(i = 0; _Pop->Outputs[i] != NULL; ++i) {
+		lua_pushstring(_State, ((struct Good*)_Pop->Outputs[i])->Base->Name);
+		lua_rawseti(_State, -2, i);
+	}
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Eats");
+	lua_createtable(_State, _Pop->EatsSize, 0);
+	for(i = 0; i < _Pop->EatsSize; ++i) {
+		lua_pushstring(_State, ((struct FoodBase*)_Pop->Eats[i])->Name);
+		lua_rawseti(_State, -2, i);
+	}
+	lua_rawset(_State, -3);
+	return 1;
+}
+
 int LuaLoadFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
 
@@ -80,8 +247,19 @@ int LuaLoadFile(lua_State* _State, const char* _File) {
 		case LUA_ERRRUN:
 			Log(ELOG_ERROR, "Cannot run file: %s", lua_tostring(_State, -1));
 			return _Error;
-
 	}
+	return 0;
+}
+
+int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
+	int _Error = lua_pcall(_State, _Args, _Results, _ErrFunc);
+
+	if(_Error != 0)
+		goto error;
+	return 1;
+
+	error:
+	Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
 	return 0;
 }
 
@@ -140,6 +318,15 @@ int LuaLudata(lua_State* _State, int _Index, void** _Data) {
 		return 1;
 	}
 	Log(ELOG_ERROR, "metafield is not user data");
+	return 0;
+}
+
+int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
+	if(lua_iscfunction(_State, _Index)) {
+		*_Function = lua_tocfunction(_State, _Index);
+		return 1;
+	}
+	Log(ELOG_ERROR, "metafield is not a c function.");
 	return 0;
 }
 

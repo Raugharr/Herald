@@ -13,19 +13,18 @@
 #include "Crop.h"
 #include "Building.h"
 #include "Good.h"
-#include "sys/LinkedList.h"
-#include "sys/RBTree.h"
-#include "sys/Constraint.h"
-#include "sys/Random.h"
-#include "sys/LinkedList.h"
-#include "sys/HashTable.h"
 #include "sys/Array.h"
-#include "sys/MemoryPool.h"
+#include "sys/Constraint.h"
+#include "sys/HashTable.h"
+#include "sys/LinkedList.h"
 #include "sys/Log.h"
-
+#include "sys/MemoryPool.h"
+#include "sys/Random.h"
+#include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <lua/lua.h>
@@ -43,12 +42,79 @@ struct Array* g_World = NULL;
 struct LinkedList* g_ManorList = NULL;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
+struct RBTree g_Families;
 
-void World_Init(int _Area) {
+int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
+	return _One->Id - _Two->Id;
+}
+
+int FamilySCallback(const int* _One, const struct Family* _Two) {
+	return (*_One) - _Two->Id;
+}
+
+int FamilyTypeCmp(const void* _One, const void* _Two) {
+	return (((struct FamilyType*)_One)->Percent * 1000) - (((struct FamilyType*)_Two)->Percent * 1000);
+}
+
+int PopulateWorld() {
+	struct FamilyType** _FamilyTypes = NULL;
+	struct Constraint** _ManorSize = NULL;
+	const char* _Temp = NULL;
 	int _ManorMin = 0;
 	int _ManorMax = 0;
 	int _ManorInterval = 0;
-	struct Constraint** _ManorSize = NULL;
+	int i = 0;
+
+	LuaLoadFile(g_LuaState, "std.lua");
+	lua_getglobal(g_LuaState, "ManorConstraints");
+	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
+		Log(ELOG_ERROR, "ManorConstraints is not defined.");
+		goto end;
+	}
+	lua_getfield(g_LuaState, -1, "Min");
+	AddInteger(g_LuaState, -1, &_ManorMin);
+	lua_pop(g_LuaState, 1);
+	lua_getfield(g_LuaState, -1, "Max");
+	AddInteger(g_LuaState, -1, &_ManorMax);
+	lua_pop(g_LuaState, 1);
+	lua_getfield(g_LuaState, -1, "Interval");
+	AddInteger(g_LuaState, -1, &_ManorInterval);
+	lua_pop(g_LuaState, 2);
+	_ManorSize = CreateConstrntLst(NULL, _ManorMin, _ManorMax, _ManorInterval);
+
+	lua_getglobal(g_LuaState, "FamilyTypes");
+	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
+		Log(ELOG_ERROR, "FamilyTypes is not defined.");
+		goto end;
+	}
+	_FamilyTypes = calloc(lua_rawlen(g_LuaState, -1)+ 1, sizeof(struct FamilyType*));
+	lua_pushnil(g_LuaState);
+	while(lua_next(g_LuaState, -2) != 0) {
+		_FamilyTypes[i] = malloc(sizeof(struct FamilyType));
+		lua_pushnil(g_LuaState);
+		lua_next(g_LuaState, -2);
+		AddNumber(g_LuaState, -1, &_FamilyTypes[i]->Percent);
+		lua_pop(g_LuaState, 1);
+		lua_next(g_LuaState, -2);
+		AddString(g_LuaState, -1, &_Temp);
+		_FamilyTypes[i]->LuaFunc = calloc(strlen(_Temp) + 1, sizeof(char));
+		strcpy(_FamilyTypes[i]->LuaFunc, _Temp);
+		++i;
+		lua_pop(g_LuaState, 3);
+	}
+	lua_pop(g_LuaState, 1);
+	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
+	_FamilyTypes[i] = NULL;
+	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes));
+	DestroyConstrntBnds(_ManorSize);
+	return 1;
+	end:
+	DestroyConstrntBnds(_ManorSize);
+	return 0;
+
+}
+
+void World_Init(int _Area) {
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -56,14 +122,11 @@ void World_Init(int _Area) {
 	struct LinkedList* _PopList = CreateLinkedList();
 	struct LinkedList* _OccupationList = CreateLinkedList();
 	struct LnkLst_Node* _Itr = NULL;
-	int _LuaArray[20];
-	memset(_LuaArray, 0, sizeof(int) * 20);
 
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();
 	luaL_openlibs(g_LuaState);
-	lua_register(g_LuaState, "CreateConstraint", LuaConstraint);
-	lua_register(g_LuaState, "CreateConstraintBounds", LuaConstraintBnds);
+	LuaLoadCFuncs(g_LuaState);
 
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
@@ -95,6 +158,7 @@ void World_Init(int _Area) {
 		_Itr = _Itr->Next;
 		lua_pop(g_LuaState, 1);
 	}
+	lua_pop(g_LuaState, 1);
 	LuaLoadToList(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&BuildingLoad, _BuildList);
 	LuaLoadToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
 	LuaLoadToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
@@ -103,24 +167,13 @@ void World_Init(int _Area) {
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 
-	LuaLoadFile(g_LuaState, "std.lua");
-	lua_getglobal(g_LuaState, "ManorConstraints");
-	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
-		Log(ELOG_ERROR, "ManorConstraints is not defined.");
-		goto end;
-	}
-	lua_getfield(g_LuaState, -1, "Min");
-	AddInteger(g_LuaState, -1, &_ManorMin);
-	lua_pop(g_LuaState, 1);
-	lua_getfield(g_LuaState, -1, "Max");
-	AddInteger(g_LuaState, -1, &_ManorMax);
-	lua_pop(g_LuaState, 1);
-	lua_getfield(g_LuaState, -1, "Interval");
-	AddInteger(g_LuaState, -1, &_ManorInterval);
-	lua_pop(g_LuaState, 2);
-	_ManorSize = CreateConstrntLst(NULL, _ManorMin, _ManorMax, _ManorInterval);
-	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval));
+	g_Families.Table = NULL;
+	g_Families.Size = 0;
+	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
+	g_Families.SCallback = (int (*)(const void*, const void*))&FamilySCallback;
 
+	if(PopulateWorld() == 0)
+		goto end;
 	g_GoodDeps = GoodBuildDep(&g_Goods);
 	g_AnFoodDep = AnimalFoodDep(&g_Populations);
 	end:
@@ -129,7 +182,6 @@ void World_Init(int _Area) {
 	DestroyLinkedList(_BuildList);
 	DestroyLinkedList(_PopList);
 	DestroyLinkedList(_OccupationList);
-	DestroyConstrntBnds(_ManorSize);
 }
 
 void World_Quit() {
@@ -139,6 +191,7 @@ void World_Quit() {
 		DestroyManor(_Itr->Data);
 		_Itr = _Itr->Next;
 	}
+	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);
 	DestroyMemoryPool(g_PersonPool);

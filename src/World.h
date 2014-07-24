@@ -14,6 +14,7 @@
 
 struct Array;
 struct RBTree;
+typedef struct lua_State lua_State;
 
 #define DATE int
 
@@ -21,6 +22,13 @@ extern DATE g_Date;
 extern struct Array* g_World;
 extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
+extern struct RBTree g_Families;
+
+struct FamilyType {
+	double Percent;
+	char* LuaFunc;
+};
+
 //Each tile represents a mile of the world.
 struct WorldTile {
 	int Temperature;

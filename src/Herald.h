@@ -48,7 +48,6 @@ extern struct HashTable g_Buildings;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct ATimer g_ATimer;
-extern struct RBTree g_Families;
 
 extern struct Constraint** g_AgeConstraints;
 //TODO: g_FamilySize and g_AgeAvg are only used for generation of manor's and should only be exposed to the function that does this.

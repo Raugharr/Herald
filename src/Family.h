@@ -16,6 +16,8 @@ struct Person;
 struct Array;
 struct Field;
 struct Constraint;
+struct FamilyType;
+typedef struct lua_State lua_State;
 
 struct Family {
 	int Id;
@@ -35,6 +37,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 void DestroyFamily(struct Family* _Family);
 int FamilySize(struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes);
 
 #endif
 

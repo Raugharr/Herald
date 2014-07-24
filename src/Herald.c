@@ -42,19 +42,10 @@ struct HashTable g_Buildings;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
-struct RBTree g_Families;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
 int g_Id = 0;
-
-int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
-	return _One->Id - _Two->Id;
-}
-
-int FamilySCallback(const int* _One, const struct Family* _Two) {
-	return (*_One) - _Two->Id;
-}
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
@@ -91,11 +82,6 @@ void HeraldInit() {
 	ATimerAddType(&g_ATimer, CreateATType(ATT_PREGANCY, (int(*)(void*))PregancyUpdate, (void(*)(void*))DestroyPregancy));
 	ATimerAddType(&g_ATimer, CreateATType(ATT_CONSTRUCTION, (int(*)(void*))ConstructUpdate, (void(*)(void*))DestroyConstruct));
 
-	g_Families.Table = NULL;
-	g_Families.Size = 0;
-	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
-	g_Families.SCallback = (int (*)(const void*, const void*))&FamilySCallback;
-
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	Event_Init();
@@ -105,7 +91,6 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);
-	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	Event_Quit();
 }
 

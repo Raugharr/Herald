@@ -29,7 +29,7 @@ struct Manor {
 	struct HashTable Production; //Key is output good of Building*, pair is struct LinkedList* of struct Building*
 };
 
-struct Manor* CreateManor(const char* _Name, int _Population);
+struct Manor* CreateManor(const char* _Name, int _Population, struct FamilyType** _FamilyTypes);
 void DestroyManor(struct Manor* _Manor);
 int AddBulding(struct Manor* _Manor, const struct Building* _Building);
 

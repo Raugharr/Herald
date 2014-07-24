@@ -27,9 +27,10 @@ int PersonISCallback(const int* _One, const int* _Two) {
 	return (*_One) - (*_Two);
 }
 
-void PopulateManor(struct Manor* _Manor, int _Population) {
+void PopulateManor(struct Manor* _Manor, int _Population, struct FamilyType** _FamilyTypes) {
 	int i;
 	int _FamilySize = -1;
+	int _Size = 0;
 	struct Family* _Family = NULL;
 	struct Family* _Parent = NULL;
 	struct Constraint** _AgeGroups = NULL;
@@ -51,9 +52,11 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
+		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes);
 		RBInsert(&g_Families, _Parent);
-		while(_FamilySize-- > 0) {
+		while(_FamilySize > 0) {
 			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
+			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes);
 			RBInsert(&g_Families, _Family);
 			for(i = 0; i < CHILDREN + CHILDREN_SIZE; ++i) {
 				if(_Family->People[i] != NULL)
@@ -61,13 +64,14 @@ void PopulateManor(struct Manor* _Manor, int _Population) {
 			}
 			_FamilySize -= FamilySize(_Family);
 		}
+		lua_pop(g_LuaState, 4);
 		_Population -= FamilySize(_Parent);
 	}
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
 }
 
-struct Manor* CreateManor(const char* _Name, int _Population) {
+struct Manor* CreateManor(const char* _Name, int _Population, struct FamilyType** _FamilyTypes) {
 	struct Manor* _Manor = (struct Manor*) malloc(sizeof(struct Manor));
 
 	_Manor->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
@@ -78,7 +82,7 @@ struct Manor* CreateManor(const char* _Name, int _Population) {
 	_Manor->People.Size = 0;
 	_Manor->People.ICallback = (int(*)(const void*, const void*))&PersonISCallback;
 	_Manor->People.SCallback = (int(*)(const void*, const void*))&PersonISCallback;
-	PopulateManor(_Manor, _Population);
+	PopulateManor(_Manor, _Population, _FamilyTypes);
 	strcpy(_Manor->Name, _Name);
 
 	_Manor->Goods.TblSize = 1024;

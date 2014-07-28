@@ -64,21 +64,19 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 
 struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg) {
 	struct Family* _Family = NULL;
-	struct Field* _Field = NULL;
-	struct Good* _Good = NULL;
 
 	if(_Size > CHILDREN_SIZE + 2)
 		return NULL;
 
 	if(_Size >= 2) {
-		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500);
-		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500);
+		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500, 0, 0);
+		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500, 0, 0);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
 			int _Child = CHILDREN + _Family->NumChildren;
-			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500);
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500, 0, 0);
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}

@@ -30,7 +30,6 @@ int PersonISCallback(const int* _One, const int* _Two) {
 void PopulateManor(struct Manor* _Manor, int _Population, struct FamilyType** _FamilyTypes) {
 	int i;
 	int _FamilySize = -1;
-	int _Size = 0;
 	struct Family* _Family = NULL;
 	struct Family* _Parent = NULL;
 	struct Constraint** _AgeGroups = NULL;

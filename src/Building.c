@@ -62,35 +62,6 @@ struct Building* CreateBuilding(const char* _Name, int _Width, int _Length, int 
 	return _Building;
 }
 
-struct Building* CopyBuilding(const struct Building* _Building) {
-	struct Building* _NewBuilding = (struct Building*) malloc(sizeof(struct Building));
-	struct Array* _OutputGoods = _Building->OutputGoods;
-	struct Array* _BuildMats = _Building->BuildMats;
-	struct Array* _NewOutGoods = CreateArray(_OutputGoods->Size);
-	struct Array* _NewBuildMats = CreateArray(_BuildMats->Size);
-	int i;
-
-	_NewBuilding->Id = NextId();
-	_NewBuilding->Width = _Building->Width;
-	_NewBuilding->Length = _Building->Length;
-	_NewBuilding->ResidentType = _Building->ResidentType;
-	_NewBuilding->BuildTime = _Building->BuildTime;
-	_NewBuilding->Name = (char*) malloc(sizeof(char) * strlen(_Building->Name) + 1);
-	for(i = 0; i < _OutputGoods->Size; ++i) {
-		_NewOutGoods->Table[i] = (struct InputReq*) malloc(sizeof(struct InputReq));
-		((struct InputReq*)_NewOutGoods->Table[i])->Req = ((struct InputReq*)_OutputGoods->Table[i])->Req;
-		((struct InputReq*)_NewOutGoods->Table[i])->Quantity = ((struct InputReq*)_OutputGoods->Table[i])->Quantity;
-	}
-	for(i = 0; i < _BuildMats->Size; ++i) {
-		_NewBuildMats->Table[i] = malloc(sizeof(struct InputReq));
-		((struct InputReq*)_NewBuildMats->Table[i])->Req = ((struct InputReq*)_BuildMats->Table[i])->Req;
-		((struct InputReq*)_NewBuildMats->Table[i])->Quantity = ((struct InputReq*)_BuildMats->Table[i])->Quantity;
-	}
-
-	strcpy(_NewBuilding->Name, _Building->Name);
-	return _NewBuilding;
-}
-
 void DestroyBuilding(struct Building* _Building) {
 	int i;
 

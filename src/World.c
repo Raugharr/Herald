@@ -7,12 +7,12 @@
 
 #include "Herald.h"
 #include "Occupation.h"
-#include "Manor.h"
 #include "Person.h"
 #include "Family.h"
 #include "Crop.h"
 #include "Building.h"
 #include "Good.h"
+#include "Population.h"
 #include "sys/Array.h"
 #include "sys/Constraint.h"
 #include "sys/HashTable.h"

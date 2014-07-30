@@ -8,7 +8,6 @@
 #include "Person.h"
 #include "Family.h"
 #include "Crop.h"
-#include "Manor.h"
 #include "Building.h"
 #include "World.h"
 #include "Good.h"

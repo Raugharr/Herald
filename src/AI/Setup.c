@@ -253,7 +253,7 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Size; ++i) {
 		_Food = ((struct FoodBase*)_Foods[i]->Req);
 		for(j = 0; j < _Food->IGSize; ++j) {
-			_Good = bsearch(_Food->InputGoods[j], _Family->Goods->Table[0], _Family->Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))InputReqGoodCmp);
+			_Good = BinarySearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
 			_Good->Quantity -= _Foods[i]->Quantity;
 		}
 		DestroyInputReq(_Foods[i]);

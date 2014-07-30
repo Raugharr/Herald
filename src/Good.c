@@ -389,7 +389,7 @@ int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
 	struct Good* _Temp = NULL;
 	
 	for(i = 0; i < _Good->IGSize; ++i) {
-		_Temp = bsearch(_Good->InputGoods[i], _Tbl[0], _Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))InputReqGoodCmp);
+		_Temp = BinarySearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
 		if(_Temp->Quantity < _Good->InputGoods[i]->Quantity)
 			return 0;
 		_Quantity = _Temp->Quantity / _Good->InputGoods[i]->Quantity;

@@ -24,6 +24,7 @@
 
 typedef struct lua_State lua_State;
 struct StackNode;
+struct LinkedList;
 
 enum {
 	BABY = 0,
@@ -52,8 +53,6 @@ extern struct ATimer g_ATimer;
 extern struct Constraint** g_AgeConstraints;
 //TODO: g_FamilySize and g_AgeAvg are only used for generation of manor's and should only be exposed to the function that does this.
 extern struct Constraint** g_FamilySize;//Average number of families sharing the same last name.
-
-extern struct LinkedList* g_ManorList;
 
 int IdISCallback(const int* _One, const int* _Two);
 

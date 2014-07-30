@@ -16,6 +16,7 @@
 #include "sys/Array.h"
 #include "sys/Constraint.h"
 #include "sys/HashTable.h"
+#include "sys/KDTree.h"
 #include "sys/LinkedList.h"
 #include "sys/Log.h"
 #include "sys/MemoryPool.h"
@@ -43,6 +44,7 @@ struct LinkedList* g_ManorList = NULL;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
+struct KDTree g_Pos;
 
 int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
 	return _One->Id - _Two->Id;
@@ -54,6 +56,44 @@ int FamilySCallback(const int* _One, const struct Family* _Two) {
 
 int FamilyTypeCmp(const void* _One, const void* _Two) {
 	return (((struct FamilyType*)_One)->Percent * 1000) - (((struct FamilyType*)_Two)->Percent * 1000);
+}
+
+void PopulateManor(int _Population, struct FamilyType** _FamilyTypes) {
+	int _FamilySize = -1;
+	struct Family* _Family = NULL;
+	struct Family* _Parent = NULL;
+	struct Constraint** _AgeGroups = NULL;
+	struct Constraint** _BabyAvg = NULL;
+
+	lua_getglobal(g_LuaState, "AgeGroups");
+	LuaConstraintBnds(g_LuaState);
+	if((_AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
+		Log(ELOG_ERROR, "AgeGroups is not defined.");
+	}
+
+	lua_getglobal(g_LuaState, "BabyAvg");
+	LuaConstraintBnds(g_LuaState);
+	if((_BabyAvg = lua_touserdata(g_LuaState, -1)) == NULL) {
+		DestroyConstrntBnds(_AgeGroups);
+		Log(ELOG_ERROR, "BabyAvg is not defined.");
+		return;
+	}
+	while(_Population > 0) {
+		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
+		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
+		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes);
+		RBInsert(&g_Families, _Parent);
+		while(_FamilySize > 0) {
+			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg);
+			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes);
+			RBInsert(&g_Families, _Family);
+			_FamilySize -= FamilySize(_Family);
+		}
+		lua_pop(g_LuaState, 4);
+		_Population -= FamilySize(_Parent);
+	}
+	DestroyConstrntBnds(_AgeGroups);
+	DestroyConstrntBnds(_BabyAvg);
 }
 
 int PopulateWorld() {
@@ -105,7 +145,7 @@ int PopulateWorld() {
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
-	LnkLst_PushBack(g_ManorList, CreateManor("Test", (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes));
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes);
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:
@@ -185,12 +225,6 @@ void World_Init(int _Area) {
 }
 
 void World_Quit() {
-	struct LnkLst_Node* _Itr = g_ManorList->Front;
-
-	while(_Itr != NULL) {
-		DestroyManor(_Itr->Data);
-		_Itr = _Itr->Next;
-	}
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);

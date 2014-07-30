@@ -3,7 +3,6 @@
  * File: Main.c
  */
  
-#include "Manor.h"
 #include "Herald.h"
 #include "World.h"
 #include "Person.h"

@@ -136,7 +136,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	struct Good* _Good = NULL;
 
 	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
-		if(_FamilyTypes[i]->Percent * 1000 < _FamType + _Percent) {
+		if(_FamilyTypes[i]->Percent * 10000 > _FamType + _Percent) {
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
 			lua_pushinteger(_State, FamilySize(_Family));
 			if(LuaCallFunc(_State, 1, 1, 0) == 0)
@@ -193,7 +193,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_pop(_State, 1);
 			break;
 		}
-		_Percent += _FamilyTypes[i]->Percent * 1000;
+		_Percent += _FamilyTypes[i]->Percent * 10000;
 	}
 	return;
 	LuaError:

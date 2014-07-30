@@ -143,7 +143,7 @@ int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
 		_GoodIndxs[i]->Quantity -= ((struct InputReq*)_GoodTbl[i])->Quantity;
 	}
 	if((_OwnedGood = bsearch(_Good, _Family->Goods->Table, _Family->Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))IdISCallback)) == NULL) {
-		_OwnedGood = CreateGood(_Good);
+		_OwnedGood = CreateGood(_Good, _Person->X, _Person->Y);
 		_OwnedGood->Quantity = 1;
 	} else {
 		++_OwnedGood->Quantity;

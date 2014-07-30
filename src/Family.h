@@ -33,11 +33,11 @@ struct Family {
 void Family_Init(struct Array* _Array);
 void Family_Quit();
 struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct Person* _Wife, struct Person** _Children, int _ChildrenSize);
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg);
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y);
 void DestroyFamily(struct Family* _Family);
 int FamilySize(struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
-void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes);
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y);
 
 #endif
 

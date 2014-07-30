@@ -23,6 +23,7 @@ extern struct Array* g_World;
 extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
+extern struct KDTree g_ObjPos;
 
 struct FamilyType {
 	double Percent;

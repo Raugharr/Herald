@@ -41,6 +41,8 @@ struct GoodBase {
 
 struct Good {
 	int Id;
+	int X;
+	int Y;
 	const struct GoodBase* Base;
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
@@ -65,6 +67,8 @@ struct FoodBase {
 
 struct Food {
 	int Id;
+	int X;
+	int Y;
 	const struct FoodBase* Base;
 	int Quantity;
 	int Parts;
@@ -90,7 +94,7 @@ void DestroyGoodBase(struct GoodBase* _Good);
 
 int GoodInpGdCmp(const void* _One, const void* _Two);
 
-struct Good* CreateGood(const struct GoodBase* _Base);
+struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y);
 int GoodCmp(const void* _One, const void* _Two);
 void DestroyGood(struct Good* _Good);
 
@@ -102,7 +106,7 @@ void DestroyToolBase(struct ToolBase* _Tool);
 struct FoodBase* CreateFoodBase(const char* _Name, int _Category, int _Nutrition);
 void DestroyFoodBase(struct FoodBase* _Food);
 
-struct Food* CreateFood(const struct FoodBase* _Base);
+struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y);
 void DestroyFood(struct Food* _Food);
 
 /*!

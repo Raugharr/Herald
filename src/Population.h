@@ -42,8 +42,6 @@ struct AnimalDep {
 	int Nutrition;
 };
 
-
-
 struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio);
 struct Population* CopyPopulation(const struct Population* _Population);
 int PopulationCmp(const void* _One, const void* _Two);
@@ -52,7 +50,7 @@ void DestroyPopulation(struct Population* _Population);
 
 struct Population* PopulationLoad(lua_State* _State, int _Index);
 
-struct Animal* CreateAnimal(const struct Population* _Pop, int _Age);
+struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _X, int _Y);
 int AnimalCmp(const void* _One, const void* _Two);
 void DestroyAnimal(struct Animal* _Animal);
 void AnimalFeed(struct Animal* _Animal);

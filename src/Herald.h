@@ -41,6 +41,8 @@ struct InputReq {
 
 struct Object {
 	int Id;
+	int X;
+	int Y;
 };
 
 extern struct HashTable g_Crops;
@@ -65,5 +67,6 @@ int NextId();
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
+void CreateObject(struct Object* _Obj, int _X, int _Y);
 
 #endif

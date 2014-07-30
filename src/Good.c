@@ -237,10 +237,10 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 	free(_GoodDep);
 }
 
-struct Good* CreateGood(const struct GoodBase* _Base) {
+struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
-	_Good->Id = NextId();
+	CreateObject((struct Object*)_Good, _X, _Y);
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
 	return _Good;
@@ -280,10 +280,10 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 	free(_Food);
 }
 
-struct Food* CreateFood(const struct FoodBase* _Base) {
+struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
-	_Food->Id = NextId();
+	CreateObject((struct Object*)_Food, _X, _Y);
 	_Food->Base = _Base;
 	_Food->Parts = FOOD_MAXPARTS;
 	return _Food;

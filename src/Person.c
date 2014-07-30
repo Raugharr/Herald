@@ -14,6 +14,7 @@
 #include "sys/Random.h"
 #include "sys/Array.h"
 #include "sys/MemoryPool.h"
+#include "sys/KDTree.h"
 #include "events/Event.h"
 
 #include <stdlib.h>
@@ -51,17 +52,18 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 	return 0;
 }
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition) {
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y) {
 	struct Person* _Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 
 	_Person->Name = _Name;
-	_Person->Id = NextId();
+	CreateObject((struct Object*)_Person, _X, _Y);
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
 	_Person->Nutrition = _Nutrition;
 	_Person->Family = NULL;
 	_Person->Parent = NULL;
 	_Person->Occupation = NULL;
+
 	if(g_PersonList == NULL)
 		_Person->Next = NULL;
 	else {
@@ -86,7 +88,8 @@ void DestroyPerson(struct Person* _Person) {
 }
 
 struct Person* CreateChild(struct Family* _Family) {
-	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Family->People[WIFE]->Nutrition);
+	struct Person* _Mother = _Family->People[WIFE];
+	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Mother->Nutrition, _Mother->X, _Mother->Y);
 	
 	_Child->Family = _Family;
 	return _Child;

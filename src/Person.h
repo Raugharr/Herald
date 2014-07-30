@@ -26,6 +26,8 @@ extern struct Person* g_PersonList;
 
 struct Person {
 	int Id;
+	int X;
+	int Y;
 	int Gender;
 	int Nutrition;
 	DATE Age;
@@ -49,7 +51,7 @@ struct Pregancy* CreatePregancy(struct Person* _Person);
 void DestroyPregancy(struct Pregancy* _Pregancy);
 int PregancyUpdate(struct Pregancy* _Pregancy);
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition);
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y);
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 int PersonUpdate(struct Person* _Person, struct HashTable* _Table);

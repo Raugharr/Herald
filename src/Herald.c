@@ -21,6 +21,7 @@
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
 #include "sys/Constraint.h"
+#include "sys/KDTree.h"
 #include "events/Event.h"
 
 #include <stdio.h>
@@ -199,6 +200,24 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	}
 	end:
 	return _Return;
+}
+
+void CreateObject(struct Object* _Obj, int _X, int _Y) {
+	struct Array* _Table = NULL;
+	int _Pos[2];
+
+	_Obj->Id = NextId();
+	_Obj->X = _X;
+	_Obj->Y = _Y;
+
+	_Pos[0] = _X;
+	_Pos[1] = _Y;
+	if((_Table = KDSearch(&g_ObjPos, _Pos)) == NULL) {
+		_Table = CreateArray(128);
+		ArrayInsert(_Table, _Obj);
+		KDInsert(&g_ObjPos, _Table, _X, _Y);
+	} else
+		ArrayInsertSort_S(_Table, _Obj, (int(*)(const void*, const void*)) IdISCallback);
 }
 
 int NextId() {return g_Id++;}

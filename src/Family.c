@@ -62,21 +62,21 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	return _Family;
 }
 
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg) {
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y) {
 	struct Family* _Family = NULL;
 
 	if(_Size > CHILDREN_SIZE + 2)
 		return NULL;
 
 	if(_Size >= 2) {
-		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500);
-		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500);
+		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500, 0, 0);
+		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500, 0, 0);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
 			int _Child = CHILDREN + _Family->NumChildren;
-			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500);
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500, 0, 0);
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}
@@ -123,7 +123,7 @@ void Marry(struct Person* _Male, struct Person* _Female) {
 	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0);
 }
 
-void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes) {
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y) {
 	int i;
 	int j;
 	int _FamType = Random(0, 9999);
@@ -160,7 +160,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 					Log(ELOG_WARNING, "Cannot find GoodBase %s", _Name);
 					continue;
 				}
-				_Good = CreateGood(_GoodBase);
+				_Good = CreateGood(_GoodBase, _X, _Y);
 				_Good->Quantity = _Quantity;
 				ArrayInsertSort_S(_Family->Goods, _Good, GoodCmp);
 				lua_pop(_State, 3);
@@ -187,7 +187,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 					continue;
 				}
 				for(j = 0; j < _Quantity; ++j)
-					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max)), AnimalCmp);
+					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), _X, _Y), AnimalCmp);
 				lua_pop(_State, 3);
 			}
 			lua_pop(_State, 1);

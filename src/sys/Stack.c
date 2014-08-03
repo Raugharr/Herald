@@ -112,3 +112,17 @@ int StackNodeLen(const struct StackNode* _Node) {
 	}
 	return _Size;
 }
+
+struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat) {
+	struct StackNode* _Node = NULL;
+	struct StackNode* _Prev = _Stack;
+
+	while(_Cat != NULL) {
+		_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
+		_Node->Data = _Cat->Data;
+		_Node->Prev = _Prev;
+		_Prev = _Node;
+		_Cat = _Cat->Prev;
+	}
+	return _Node;
+}

@@ -24,5 +24,6 @@ void StackPush(struct Stack* _Stack, void* _Data);
 void* StackPop(struct Stack* _Stack);
 void* StackGet(struct Stack* _Stack, int _Index);
 int StackNodeLen(const struct StackNode* _Node);
+struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat);
 
 #endif

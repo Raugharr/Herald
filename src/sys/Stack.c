@@ -117,12 +117,14 @@ struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNo
 	struct StackNode* _Node = NULL;
 	struct StackNode* _Prev = _Stack;
 
-	while(_Cat != NULL) {
+	if(_Cat == NULL)
+		return _Stack;
+	do {
 		_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
 		_Node->Data = _Cat->Data;
 		_Node->Prev = _Prev;
 		_Prev = _Node;
 		_Cat = _Cat->Prev;
-	}
+	} while(_Cat != NULL);
 	return _Node;
 }

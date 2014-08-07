@@ -5,6 +5,9 @@
 #ifndef __KDTREE_H
 #define __KDTREE_H
 
+struct Stack;
+struct StackNode;
+
 struct KDNode {
 	struct KDNode* Parent;
 	struct KDNode* Left;
@@ -28,4 +31,9 @@ void KDInsert(struct KDTree* _Tree, void* _Data, int _X, int _Y);
 struct KDNode* KDSearchNode(const struct KDTree* _Tree, int _Data[2]);
 void* KDSearch(const struct KDTree* _Tree, int _Data[2]);
 
+void KDBalance(struct KDTree* _Tree);
+struct StackNode* KDToStack(const struct KDNode* _Node, int _Axis, int* _Median);
+struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int* _Median, int _Size);
+int KDArrayMedian(const struct KDNode** const _Array, int _Size, int _Axis);
+int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median);
 #endif

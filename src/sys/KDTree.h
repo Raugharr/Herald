@@ -10,6 +10,7 @@ struct StackNode;
 struct LinkedList;
 
 #define KDRange(_Tree, _Pos, _Area) KDRange_Aux((_Tree)->Root, (_Pos), (_Area), NULL)
+#define KDHeight(_Tree) KDHeightNode((_Tree)->Root)
 
 struct KDNode {
 	struct KDNode* Parent;
@@ -41,4 +42,5 @@ int KDArrayMedian(const struct KDNode** const _Array, int _Size, int _Axis);
 int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median);
 
 struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Pos[2], int _Area[2], struct LinkedList* _List);
+int KDHeightNode(struct KDNode* _Node);
 #endif

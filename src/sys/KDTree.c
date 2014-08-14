@@ -167,15 +167,18 @@ struct KDNode* KDBalance_Aux(int _Axis, struct KDNode** _Array, int _Size, int _
 		_Array[0]->Right = NULL;
 		return _Array[0];
 	}
-	InsertionSort(_Array, _Size, (((_Axis & 1) == KDX) ? (KDXCmp) : (KDYCmp)));
+	_Axis = (_Axis & 1);
+	QuickSort(_Array, _Size, (((_Axis & KDY) == KDY) ? (KDYCmp) : (KDXCmp)));
 	_Pos = KDFindMedian(_Array, _Size, _Axis, _Median);
 
 	_RightSize = _Size - (_Pos + 1);
 	_Node = _Array[_Pos];
 	_Node->Left = NULL;
 	_Node->Right = NULL;
-	_Node->Left = KDBalance_Aux(_Axis + 1, _Array, _Pos, KDArrayMedian((const struct KDNode** const)&_Array[_Pos - 1], _Pos - 1, ((_Axis + 1) & 1)));
-	_Node->Left->Parent = _Node;
+	if(_Pos != 0) {
+		_Node->Left = KDBalance_Aux(_Axis + 1, _Array, _Pos, KDArrayMedian((const struct KDNode** const)_Array, _Pos, ((_Axis + 1) & 1)));
+		_Node->Left->Parent = _Node;
+	}
 	if(_Pos + 1 < _Size) {
 		_Node->Right = KDBalance_Aux(_Axis + 1, _Array + _Pos + 1, _RightSize, KDArrayMedian((const struct KDNode** const)&_Array[_Pos + 1], _RightSize, ((_Axis + 1) & 1)));
 		_Node->Right->Parent = _Node;
@@ -243,6 +246,8 @@ int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median) {
 	while(_High >= _Low) {
 		_Mid = _Low + ((_High - _Low) / 2);
 
+		if(_Mid == 0)
+			return 0;
 		_MidRes = _Array[_Mid]->Pos[_Axis] - _Median;
 		_NextRes = _Array[_Mid - 1]->Pos[_Axis] - _Median;
 		if(_MidRes >= 0 && _NextRes < 0)
@@ -261,7 +266,6 @@ int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median) {
 
 struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Pos[2], int _Area[2], struct LinkedList* _List) {
 	int _End[2];
-	int _Axis = KDX;
 
 	if(_Pos[KDX] < 0 || _Pos[KDY] < 0 || _Area[KDX] < 0 || _Area[KDY] < 0 || _Node == NULL)
 		return NULL;
@@ -275,4 +279,15 @@ struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Pos[2], int _Area[2], 
 	KDRange_Aux(_Node->Left, _Pos, _Area, _List);
 	KDRange_Aux(_Node->Right, _Pos, _Area, _List);
 	return _List;
+}
+
+int KDHeightNode(struct KDNode* _Node) {
+	int _Left = 0;
+	int _Right = 0;
+
+	if(_Node == NULL)
+		return 0;
+	_Left = KDHeightNode(_Node->Left);
+	_Right = KDHeightNode(_Node->Right);
+	return ((_Left > _Right) ? (_Left) : (_Right)) + 1;
 }

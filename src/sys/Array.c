@@ -75,6 +75,38 @@ void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const 
 	}
 }
 
+void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int _Left, int _Right) {
+	int i = _Left;
+	int j = _Right;
+	const void* _Node = *(const void**)(_Table + sizeof(int*) * (_Left));
+	const void* _Temp = NULL;
+	const void** _Swap = NULL;
+
+	if(_Left >= _Right)
+		return;
+
+	do {
+		while(_Callback(*((const void**)(_Table + sizeof(int*) * j)), _Node) >= 0 && i < j)
+			--j;
+		if(i != j) {
+			_Swap = (const void**)(_Table + sizeof(int*) * i);
+			*_Swap = *(const void**)(_Table + sizeof(int*) * j);
+			++i;
+		}
+		while(_Callback(*((const void**)(_Table + sizeof(int*) * i)), _Node) <= 0 && i < j)
+			++i;
+		if(i != j) {
+			_Swap = (const void**)(_Table + sizeof(int*) * j);
+			*_Swap = *(const void**)(_Table + sizeof(int*) * i);
+			--j;
+		}
+	} while(i < j);
+	_Swap = (const void**)(_Table + sizeof(int*) * i);
+	*_Swap = _Node;
+ 	QuickSort_Aux(_Table, _Callback, _Left, i - 1);
+	QuickSort_Aux(_Table, _Callback, i + 1, _Right);
+}
+
 int ArrayLen(const void* _Table) {
 	int _Size = 0;
 

@@ -9,7 +9,7 @@ struct Stack;
 struct StackNode;
 struct LinkedList;
 
-#define KDRange(_Tree, _Pos, _Area) KDRange_Aux((_Tree)->Root, (_Pos), (_Area), NULL)
+#define KDRange(_Tree, _Pos, _Area) KDRange_Aux((_Tree)->Root, 0, (_Pos), (_Area), NULL)
 #define KDHeight(_Tree) KDHeightNode((_Tree)->Root)
 
 struct KDNode {
@@ -36,11 +36,8 @@ struct KDNode* KDSearchNode(const struct KDTree* _Tree, int _Data[2]);
 void* KDSearch(const struct KDTree* _Tree, int _Data[2]);
 
 void KDBalance(struct KDTree* _Tree);
-struct StackNode* KDToStack(const struct KDNode* _Node, int _Axis, int* _Median);
-struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int* _Median, int _Size);
-int KDArrayMedian(const struct KDNode** const _Array, int _Size, int _Axis);
-int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median);
+struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int _Size);
 
-struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Pos[2], int _Area[2], struct LinkedList* _List);
+struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Axis, int _Pos[2], int _Area[2], struct LinkedList* _List);
 int KDHeightNode(struct KDNode* _Node);
 #endif

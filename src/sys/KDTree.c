@@ -155,7 +155,7 @@ void* KDSearch(const struct KDTree* _Tree, int _Data[2]) {
 	return NULL;
 }
 
-struct KDNode* KDBalance_Aux(int _Axis, struct KDNode** _Array, int _Size, int _Median) {
+struct KDNode* KDBalance_Aux(struct KDNode** _Array, int _Axis, int _Size) {
 	struct KDNode* _Node = NULL;
 	int _Pos = 0;
 	int _RightSize = 0;
@@ -169,115 +169,71 @@ struct KDNode* KDBalance_Aux(int _Axis, struct KDNode** _Array, int _Size, int _
 	}
 	_Axis = (_Axis & 1);
 	QuickSort(_Array, _Size, (((_Axis & KDY) == KDY) ? (KDYCmp) : (KDXCmp)));
-	_Pos = KDFindMedian(_Array, _Size, _Axis, _Median);
+	_Pos = _Size / 2;
 
 	_RightSize = _Size - (_Pos + 1);
 	_Node = _Array[_Pos];
 	_Node->Left = NULL;
 	_Node->Right = NULL;
 	if(_Pos != 0) {
-		_Node->Left = KDBalance_Aux(_Axis + 1, _Array, _Pos, KDArrayMedian((const struct KDNode** const)_Array, _Pos, ((_Axis + 1) & 1)));
+		_Node->Left = KDBalance_Aux(_Array, _Axis + 1, _Pos);
 		_Node->Left->Parent = _Node;
 	}
 	if(_Pos + 1 < _Size) {
-		_Node->Right = KDBalance_Aux(_Axis + 1, _Array + _Pos + 1, _RightSize, KDArrayMedian((const struct KDNode** const)&_Array[_Pos + 1], _RightSize, ((_Axis + 1) & 1)));
+		_Node->Right = KDBalance_Aux(_Array + (_Pos + 1), _Axis + 1, _RightSize);
 		_Node->Right->Parent = _Node;
 	}
 	return _Node;
 }
 
 void KDBalance(struct KDTree* _Tree) {
-	int _Median = 0;
-	struct KDNode** _Array = KDToArray(_Tree->Root, KDX, &_Median, _Tree->Size);
+	struct KDNode** _Array = KDToArray(_Tree->Root, KDX, _Tree->Size);
 
-	_Tree->Root = KDBalance_Aux(KDX, _Array, _Tree->Size, _Median);
+	_Tree->Root = KDBalance_Aux(_Array, KDX, _Tree->Size);
 	_Tree->Root->Parent = NULL;
 	free(_Array);
 }
 
-const struct KDNode** KDToArray_Aux(const struct KDNode* _Node, int _Axis, int* _Median, int* _Count, int _Size, const struct KDNode** _Array) {
+const struct KDNode** KDToArray_Aux(const struct KDNode* _Node, int _Axis, int* _Count, int _Size, const struct KDNode** _Array) {
 	const struct KDNode** _Left = NULL;
 
 	if(_Node == NULL)
 		return NULL;
 	_Array[(*_Count)++] = _Node;
-	(*_Median) = (*_Median) + _Node->Pos[_Axis];
-	if((_Left = KDToArray_Aux(_Node->Left, _Axis, _Median, _Count, _Size, _Array)) == NULL) {
-		KDToArray_Aux(_Node->Right, _Axis, _Median, _Count, _Size, _Array);
+	if((_Left = KDToArray_Aux(_Node->Left, _Axis, _Count, _Size, _Array)) == NULL) {
+		KDToArray_Aux(_Node->Right, _Axis, _Count, _Size, _Array);
 	} else
-		KDToArray_Aux(_Node->Right, _Axis, _Median, _Count, _Size, _Array);
+		KDToArray_Aux(_Node->Right, _Axis, _Count, _Size, _Array);
 	return _Array;
 }
 
-struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int* _Median, int _Size) {
+struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int _Size) {
 	int _Count = 0;
 	struct KDNode** _List = (struct KDNode**) calloc(_Size, sizeof(struct KDNode*));
-	KDToArray_Aux(_Node, _Axis, _Median, &_Count, _Size, (const struct KDNode**)_List);
 
-	(*_Median) = (*_Median) / _Count;
+	KDToArray_Aux(_Node, _Axis, &_Count, _Size, (const struct KDNode**)_List);
 	return _List;
 }
 
-int KDArrayMedian(const struct KDNode** const _Array, int _Size, int _Axis) {
-	int i = 0;
-	int _Count = 0;
-	int _Median = 0;
-
-	if(_Size <= 0)
-		return 0;
-
-	for(i = 0; i < _Size; ++i) {
-		_Median += _Array[i]->Pos[_Axis];
-		++_Count;
-	}
-	return _Median / _Count;
-}
-
-int KDFindMedian(struct KDNode** _Array, int _Size, int _Axis, int _Median) {
-	int _Low = 0;
-	int _High = _Size;
-	int _Mid = 0;
-	int _MidRes = 0;
-	int _NextRes = 0;
-
-	if(_Size == 1)
-		return _Array[0]->Pos[_Axis];
-
-	while(_High >= _Low) {
-		_Mid = _Low + ((_High - _Low) / 2);
-
-		if(_Mid == 0)
-			return 0;
-		_MidRes = _Array[_Mid]->Pos[_Axis] - _Median;
-		_NextRes = _Array[_Mid - 1]->Pos[_Axis] - _Median;
-		if(_MidRes >= 0 && _NextRes < 0)
-			return _Mid;
-		else if(_MidRes < 0)
-			_Low = _Mid + 1;
-		else {
-			if(_NextRes < 0)
-				_Low = _Mid - 1;
-			else
-				_High = _Mid - 1;
-		}
-	}
-	return _Mid;
-}
-
-struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Pos[2], int _Area[2], struct LinkedList* _List) {
+struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Axis, int _Pos[2], int _Area[2], struct LinkedList* _List) {
 	int _End[2];
 
 	if(_Pos[KDX] < 0 || _Pos[KDY] < 0 || _Area[KDX] < 0 || _Area[KDY] < 0 || _Node == NULL)
 		return NULL;
 	if(_List == NULL)
 		_List = CreateLinkedList();
+	_Axis = ((_Axis & KDY) == KDY) ? (KDY) : (KDX);
 	_End[KDX] = _Pos[KDX] + _Area[KDX];
 	_End[KDY] = _Pos[KDY] + _Area[KDY];
 	if(_Node->Pos[KDX] >= _Pos[KDX] && _Node->Pos[KDX] <= _End[KDX]
 		&& _Node->Pos[KDY] >= _Pos[KDY] && _Node->Pos[KDY] <= _End[KDY])
 		LnkLst_PushBack(_List, _Node->Data);
-	KDRange_Aux(_Node->Left, _Pos, _Area, _List);
-	KDRange_Aux(_Node->Right, _Pos, _Area, _List);
+	if(_Node->Right)
+		if(_Node->Right->Pos[_Axis] < _Pos[_Axis])
+			goto right;
+	KDRange_Aux(_Node->Left, _Axis + 1, _Pos, _Area, _List);
+	right:
+	KDRange_Aux(_Node->Right, _Axis + 1, _Pos, _Area, _List);
 	return _List;
 }
 

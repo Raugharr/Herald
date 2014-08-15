@@ -145,7 +145,7 @@ int PopulateWorld() {
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
-	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, 0, 0);
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_World->TblSize - 1),  Random(0, g_World->TblSize - 1));
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:

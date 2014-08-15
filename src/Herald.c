@@ -42,6 +42,7 @@ struct HashTable g_Buildings;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
+int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
@@ -218,6 +219,10 @@ void CreateObject(struct Object* _Obj, int _X, int _Y) {
 		KDInsert(&g_ObjPos, _Table, _X, _Y);
 	} else
 		ArrayInsertSort_S(_Table, _Obj, (int(*)(const void*, const void*)) IdISCallback);
+	if(g_ObjPos.Size >= g_ObjPosBal) {
+		g_ObjPosBal *= 2;
+		KDBalance(&g_ObjPos);
+	}
 }
 
 int NextId() {return g_Id++;}

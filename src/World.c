@@ -151,7 +151,6 @@ int PopulateWorld() {
 	end:
 	DestroyConstrntBnds(_ManorSize);
 	return 0;
-
 }
 
 void World_Init(int _Area) {
@@ -174,8 +173,8 @@ void World_Init(int _Area) {
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
-	LuaLoadToList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, _CropList);
-	LuaLoadToList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, _GoodList);
+	LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList);
+	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 
@@ -199,11 +198,9 @@ void World_Init(int _Area) {
 		lua_pop(g_LuaState, 1);
 	}
 	lua_pop(g_LuaState, 1);
-	LuaLoadToList(g_LuaState, "buildings.lua", "Buildings", (void*(*)(lua_State*, int))&BuildingLoad, _BuildList);
-	LuaLoadToList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, _PopList);
-	LuaLoadToList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, _OccupationList);
+	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
+	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
 
-	LISTTOHASH(_BuildList, _Itr, &g_Buildings, ((struct Building*)_Itr->Data)->Name);
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 

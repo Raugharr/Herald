@@ -263,7 +263,7 @@ int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 	return 0;
 }
 
-void LuaLoadToList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), struct LinkedList* _Return) {
+void LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return) {
 	void* _CallRet = NULL;
 
 	if(LuaLoadFile(_State, _File) != 1)
@@ -279,7 +279,7 @@ void LuaLoadToList(lua_State* _State, const char* _File, const char* _Global, vo
 			continue;
 		}
 		if((_CallRet = _Callback(_State, -1)) != NULL)
-				LnkLst_PushBack(_Return, _CallRet);
+			_Insert(_Return, _CallRet);
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);

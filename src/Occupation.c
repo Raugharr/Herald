@@ -14,13 +14,11 @@
 #include <string.h>
 #include <lua/lua.h>
 
-struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Building* _Workplace, struct Constraint* _AgeConst) {
+struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Constraint* _AgeConst) {
 	struct Occupation* _Occupation = (struct Occupation*) malloc(sizeof(struct Occupation));
 
 	_Occupation->Id = NextId();
 	_Occupation->Name = _Name;
-	_Occupation->Job.Output = _Output;
-	_Occupation->Job.Workplace = _Workplace;
 	_Occupation->SpecialJob = ENONE;
 	_Occupation->AgeConst = _AgeConst;
 	return 	_Occupation;
@@ -41,8 +39,6 @@ struct Occupation* CopyOccupation(const struct Occupation* _Job) {
 	_Occupation->Id = _Job->Id;
 	_Occupation->Name = _Job->Name;
 	_Occupation->SpecialJob = _Job->SpecialJob;
-	if(_Job->SpecialJob == ENONE)
-		_Occupation->Job.Workplace = _Job->Job.Workplace;
 	_Occupation->AgeConst = _Job->AgeConst;
 	return 	_Occupation;
 }
@@ -59,7 +55,6 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 	const char* _Name = NULL;
 	const char* _Temp = NULL;
 	struct GoodBase* _Output = NULL;
-	struct Building* _Workplace = NULL;
 	struct Constraint* _AgeConst = NULL;
 
 	lua_getmetatable(_State, _Index);
@@ -84,6 +79,6 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 		if(!(_Return > 0))
 			return NULL;
 	}
-	return CreateOccupation(_Name, _Output, _Workplace, _AgeConst);
+	return CreateOccupation(_Name, _Output, _AgeConst);
 }
 

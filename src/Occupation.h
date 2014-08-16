@@ -7,6 +7,8 @@
 #define __OCCUPATION_H
 
 typedef struct lua_State lua_State;
+struct GoodBase;
+struct Constraint;
 
 enum {
 	ENONE = 0,
@@ -20,7 +22,7 @@ struct Occupation {
 	struct Constraint* AgeConst;
 };
 
-struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Building* _Workplace, struct Constraint* AgeConst);
+struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output, struct Constraint* AgeConst);
 struct Occupation* CreateOccupationSpecial(const char* _Name, int _Job);
 struct Occupation* CopyOccupation(const struct Occupation* _Occupation);
 void DestroyOccupation(struct Occupation* _Occupation);

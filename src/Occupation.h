@@ -13,15 +13,9 @@ enum {
 	EFARMER
 };
 
-struct Workplace {
-	struct GoodBase* Output;
-	struct Building* Workplace;
-};
-
 struct Occupation {
 	int Id;
 	const char* Name;
-	struct Workplace Job;
 	int SpecialJob;
 	struct Constraint* AgeConst;
 };

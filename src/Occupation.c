@@ -75,10 +75,6 @@ struct Occupation* OccupationLoad(lua_State* _State, int _Index) {
 			_Return = AddString(_State, -1, &_Temp);
 			if((_Output = HashSearch(&g_Goods, _Temp)) == 0)
 				return NULL;
-		} else if(!strcmp("Workplace", _Key)) {
-			_Return = AddString(_State, -1, &_Temp);
-			if((_Workplace = HashSearch(&g_Buildings, _Temp)) == 0)
-				return NULL;
 		} else if(!strcmp("AgeConst", _Key)) {
 			LuaIntPair(_State, -1, &_Min, &_Max);
 			if((_AgeConst = CreateConstraint(_Min, _Max)) == NULL)

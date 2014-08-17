@@ -6,7 +6,13 @@ Goods = {
 	},
 	
 	{
-		Name = "Wood",
+		Name = "Log",
+		Category = "Material",
+		InputGoods = {}
+	},
+	
+	{
+		Name = "Board",
 		Category = "Material",
 		InputGoods = {}
 	},

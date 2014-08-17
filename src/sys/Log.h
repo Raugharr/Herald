@@ -8,6 +8,7 @@
 
 enum {
 	ELOG_INFO = 0,
+	ELOG_DEBUG,
 	ELOG_WARNING,
 	ELOG_ERROR
 };

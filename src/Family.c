@@ -157,7 +157,8 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				}
 				AddInteger(_State, -1, &_Quantity);
 				if((_GoodBase = HashSearch(&g_Goods, _Name)) == NULL) {
-					Log(ELOG_WARNING, "Cannot find GoodBase %s", _Name);
+					Log(ELOG_WARNING, "Cannot find GoodBase %s.", _Name);
+					lua_pop(_State, 3);
 					continue;
 				}
 				_Good = CreateGood(_GoodBase, _X, _Y);
@@ -183,7 +184,8 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				}
 				AddInteger(_State, -1, &_Quantity);
 				if((_Population = HashSearch(&g_Populations, _Name)) == NULL) {
-					Log(ELOG_WARNING, "Cannot find Population %s", _Name);
+					Log(ELOG_WARNING, "Cannot find Population %s.", _Name);
+					lua_pop(_State, 3);
 					continue;
 				}
 				for(j = 0; j < _Quantity; ++j)

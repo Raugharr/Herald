@@ -10,7 +10,6 @@
 #include <stdio.h>
 
 #define LOG_MAXSIZE (512)
-#define LOG_MSGLEN (64)
 
 int g_Level = 0;
 int g_LogFile = -1;
@@ -30,21 +29,18 @@ int LogSetFile(const char* _File) {
 }
 
 void LogCloseFile() {
-	if(g_LogSize > 0) {
-		write(g_LogFile, g_LogBuffer, g_LogSize);
-		g_LogSize = 0;
-	}
 	close(g_LogFile);
 }
 
 void Log(int _Category, const char* _Text, ...) {
 	va_list _List;
-	char _Buffer[LOG_MSGLEN];
+	char _Buffer[LOG_MAXSIZE];
 	int _Size;
 	int i = 0;
 	
 	va_start(_List, _Text);
-	_Size = vsnprintf(_Buffer, LOG_MSGLEN, _Text, _List) + 1;
+	_Size = vsnprintf(_Buffer, LOG_MAXSIZE - 2, _Text, _List) + 2;
+	strcat(_Buffer, "\n");
 	
 	while(_Size > 0) {
 		if(g_LogSize >= LOG_MAXSIZE) {
@@ -57,4 +53,7 @@ void Log(int _Category, const char* _Text, ...) {
 		++i;
 		--_Size;
 	}
+	if(write(g_LogFile, g_LogBuffer, g_LogSize) != g_LogSize)
+		return;
+	g_LogSize = 0;
 }

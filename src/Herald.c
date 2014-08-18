@@ -38,7 +38,7 @@
 
 struct HashTable g_Crops;
 struct HashTable g_Goods;
-struct HashTable g_Buildings;
+struct HashTable g_BuiltMats;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
@@ -63,10 +63,10 @@ void HeraldInit() {
 	g_Goods.Size = 0;
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
-	g_Buildings.TblSize = BUILDINGS_TBLSZ;
-	g_Buildings.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Buildings.TblSize);
-	g_Buildings.Size = 0;
-	memset(g_Buildings.Table, 0, g_Buildings.TblSize * sizeof(struct HashNode*));
+	g_BuiltMats.TblSize = BUILDINGS_TBLSZ;
+	g_BuiltMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuiltMats.TblSize);
+	g_BuiltMats.Size = 0;
+	memset(g_BuiltMats.Table, 0, g_BuiltMats.TblSize * sizeof(struct HashNode*));
 
 	g_Occupations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
@@ -226,3 +226,4 @@ void CreateObject(struct Object* _Obj, int _X, int _Y) {
 }
 
 int NextId() {return g_Id++;}
+

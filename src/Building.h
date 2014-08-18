@@ -15,18 +15,22 @@ enum {
 	ERES_ANIMAL = (1 << 1)
 };
 
+enum {
+	BMAT_WALL = 1,
+	BMAT_FLOOR = 2,
+	BMAT_ROOF = 3
+};
+
 struct Building {
 	int Id;
+	int ResidentType;
 	int Width;
 	int Length;
-	int ResidentType;
-	int BuildTime;
-	char* Name;
 	struct GoodBase* Walls;
 	struct GoodBase* Floor;
 	struct GoodBase* Roof;
-	struct Array* OutputGoods; //Contains InputReq*.
-	struct Array* BuildMats; //Contains InputReq*.
+	struct InputReq** OutputGoods;
+	struct InputReq** BuildMats;
 };
 
 struct Construction {
@@ -38,17 +42,25 @@ struct Construction {
 	int DaysLeft;
 };
 
-struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person);
+struct BuildMat {
+	int Id;
+	int Type;
+	int BuildCost;
+	double MatCost;
+	const struct GoodBase* Good;
+};
+
+struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person, int _Width, int _Height);
 struct Construction* CopyConstruct(struct Construction* _Construct);
 void DestroyConstruct(struct Construction* _Construct);
 
 int ConstructUpdate(struct Construction* _Construct);
+int ConstructionTime(const struct Building* _Building);
 
-struct Building* CreateBuilding(const char* _Name, int _Width, int _Length, int _ResType, int _BuildTime);
+struct Building* CreateBuilding(int _ResType);
+struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
 
-//! Returns the number of OutputGood that are made.
-int BuildingProduce(const struct Building* _Building, struct HashTable* _Hash);
-struct Building* BuildingLoad(lua_State* _State, int _Index);
+struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 
 #endif

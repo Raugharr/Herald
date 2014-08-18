@@ -10,20 +10,22 @@
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
 #include "sys/LinkedList.h"
+#include "sys/Log.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
+struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person, int _Width, int _Height) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
-	int _Percent = _Building->BuildTime / 10;
+	int _BuildTime = ConstructionTime(_Building);
+	int _Percent = _BuildTime / 10;
 
 	_Construct->Prev = NULL;
 	_Construct->Next = NULL;
 	_Construct->Type = ATT_CONSTRUCTION;
-	_Construct->DaysLeft = _Building->BuildTime - _Percent + Random(0, _Percent * 2);
+	_Construct->DaysLeft = _BuildTime - _Percent + Random(0, _Percent * 2);
 	_Construct->Building = _Building;
 	_Construct->Worker = _Person;
 	return _Construct;
@@ -49,135 +51,150 @@ int ConstructUpdate(struct Construction* _Construct) {
 	return 0;
 }
 
-struct Building* CreateBuilding(const char* _Name, int _Width, int _Length, int _ResType, int _BuildTime) {
+int ConstructionTime(const struct Building* _Building) {
+	return 0;
+}
+
+struct Building* CreateBuilding(int _ResType) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	_Building->Id = NextId();
-	_Building->Width = _Width;
-	_Building->Length = _Length;
 	_Building->ResidentType = _ResType;
-	_Building->BuildTime = _BuildTime;
-	_Building->Name = (char*) malloc(sizeof(char) * strlen(_Name) + 1);
-	strcpy(_Building->Name, _Name);
 	return _Building;
+}
+
+struct Building* CopyBuilding(const struct Building* _Building) {
+	struct Building* _NewBuilding = (struct Building*) malloc(sizeof(struct Building));
+	struct InputReq** _OutputGoods = _Building->OutputGoods;
+	struct InputReq** _BuildMats = _Building->BuildMats;
+	struct InputReq** _NewOutGoods = calloc(ArrayLen(_OutputGoods), sizeof(struct InputReq*));
+	struct InputReq** _NewBuildMats = calloc(ArrayLen(_BuildMats), sizeof(struct InputReq*));
+	int i;
+
+	_NewBuilding->Id = NextId();
+	_NewBuilding->ResidentType = _Building->ResidentType;
+	for(i = 0; _OutputGoods[i] != NULL; ++i) {
+		_NewOutGoods[i] = (struct InputReq*) malloc(sizeof(struct InputReq));
+		((struct InputReq*)_NewOutGoods[i])->Req = ((struct InputReq*)_OutputGoods[i])->Req;
+		((struct InputReq*)_NewOutGoods[i])->Quantity = ((struct InputReq*)_OutputGoods[i])->Quantity;
+	}
+	for(i = 0; _BuildMats[i] != NULL; ++i) {
+		_NewBuildMats[i] = malloc(sizeof(struct InputReq));
+		((struct InputReq*)_NewBuildMats[i])->Req = ((struct InputReq*)_BuildMats[i])->Req;
+		((struct InputReq*)_NewBuildMats[i])->Quantity = ((struct InputReq*)_BuildMats[i])->Quantity;
+	}
+
+	return _NewBuilding;
 }
 
 void DestroyBuilding(struct Building* _Building) {
 	int i;
 
-	for(i = 0; i < _Building->OutputGoods->Size; ++i)
-		free(_Building->OutputGoods->Table[i]);
-	for(i = 0; i < _Building->BuildMats->Size; ++i)
-		free(_Building->BuildMats->Table[i]);
-	free(_Building->Name);
+	for(i = 0; _Building->OutputGoods[i] != NULL; ++i)
+		free(_Building->OutputGoods[i]);
+	free(_Building->OutputGoods[i]);
+	for(i = 0; _Building->BuildMats[i] != NULL; ++i)
+		free(_Building->BuildMats[i]);
+	free(_Building->BuildMats[i]);
 	free(_Building);
 }
 
-int BuildingProduce(const struct Building* _Building, struct HashTable* _Hash) {
-	return 0;
-}
-
-struct Building* BuildingLoad(lua_State* _State, int _Index) {
-	int _IntTemp = 0;
-	int _Width = 0;
-	int _Length = 0;
-	int _ResType = 0;
+struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {
 	int _Return = 0;
-	int _BuildTime = 0;
+	int _Cost = 0;
+	int _TypeId = 0;
+	double _GPF = 0;
 	const char* _Key = NULL;
-	const char* _Name = NULL;
-	const char* _Temp = NULL;
-	struct InputReq* _Req = NULL;
-	struct Building* _Building = NULL;
-	struct LinkedList* _OutputGoods = CreateLinkedList();
-	struct LinkedList* _BuildMats = CreateLinkedList();
-	struct LnkLst_Node* _Itr = NULL;
+	const char* _Type = NULL;
+	struct BuildMat* _Mat = NULL;
 
-	lua_getmetatable(_State, _Index);
 	lua_pushnil(_State);
-
-	while(lua_next(_State, -2) != 0) {
-		if(lua_isstring(_State, -2))
-			_Key = lua_tostring(_State, -2);
-		else {
+	while(lua_next(_State, _Index - 1) != 0) {
+		if(!lua_isstring(_State, -2)) {
 			lua_pop(_State, 1);
 			continue;
 		}
-		if(!strcmp("Output", _Key)) {
-			lua_pushnil(_State);
-			while(lua_next(_State, -2) != 0) {
-				if(LuaKeyValue(_State, -1, &_Temp, &_IntTemp) == 0) {
-					lua_pop(_State, 1);
-					continue;
-				}
-				_Req = (struct InputReq*) malloc(sizeof(struct InputReq));
-				if((_Req->Req = HashSearch(&g_Goods, _Temp)) == NULL)
-					luaL_error(_State, "Cannot find good %s", _Temp);
-				_Req->Quantity = _IntTemp;
-				LnkLst_PushBack(_OutputGoods, _Req);
+		_Key = lua_tostring(_State, -2);
+		if(strcmp(_Key, "Type") == 0)
+			_Return = AddString(_State, -1, &_Type);
+		else if(strcmp(_Key, "GoodsPerFoot") == 0)
+			_Return = AddNumber(_State, -1, &_GPF);
+		else if(strcmp(_Key, "Cost") == 0)
+			_Return = AddInteger(_State, -1, &_Cost);
+		if(_Return <= 0)
+			return NULL;
+		_Return = 0;
+		lua_pop(_State, 1);
+	}
+	if(strcmp(_Type, "Wall") == 0)
+		_TypeId = BMAT_WALL;
+	else if(strcmp(_Type, "Floor") == 0)
+		_TypeId = BMAT_FLOOR;
+	else if(strcmp(_Type, "Roof") == 0)
+		_TypeId = BMAT_ROOF;
+	else {
+		Log(ELOG_WARNING, "BuiltMat table contains invalid type: %s", _Type);
+		return NULL;
+	}
+	_Mat = (struct BuildMat*) malloc(sizeof(struct BuildMat));
+	_Mat->Id = NextId();
+	_Mat->Type = _TypeId;
+	_Mat->BuildCost = _Cost;
+	_Mat->MatCost = _GPF;
+	return _Mat;
+}
+
+struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
+	struct GoodBase* _Good = NULL;
+	struct LnkLst_Node* _Node = NULL;
+	struct LnkLst_Node* _Prev = NULL;
+	struct LnkLst_Node* _First = NULL;
+	const char* _Temp = NULL;
+
+	lua_pushnil(_State);
+	if(lua_next(_State, -2) != 0) {
+		if(AddString(_State, -1, &_Temp) != 0) {
+			if((_Good = HashSearch(&g_Goods, _Temp)) == NULL) {
+				Log(ELOG_WARNING, "BuildMat table contains an invalid Object name: %s", _Temp);
+				return NULL;
+			}
+		} else {
+			Log(ELOG_WARNING, "BuildMat table field Object is not a string.");
+			return NULL;
+		}
+	}
+	lua_pop(_State, 1);
+	if(lua_next(_State, -2) != 0) {
+		lua_pushnil(_State);
+		if(lua_next(_State, -2) != 0) {
+			_First = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node*));
+			if((_First->Data = BuildingLoad_Aux(_State, -1)) == NULL) {
+				free(_First);
+				lua_pop(_State, 2);
+				return NULL;
+			}
+			lua_pop(_State, 1);
+			_Prev = _First;
+		}
+		while(lua_next(_State, -2) != 0) {
+			_Node = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node*));
+			_Prev->Next = _Node;
+			if((_Node->Data = BuildingLoad_Aux(_State, -1)) == NULL) {
+				free(_Node);
+				_Prev->Next = NULL;
 				lua_pop(_State, 1);
+				continue;
 			}
-		} else if (!strcmp("Name", _Key))
-			_Return = AddString(_State, -1, &_Name);
-		else if(!strcmp("Width", _Key))
-			_Return = AddInteger(_State, -1, &_Width);
-		else if(!strcmp("Length", _Key))
-			_Return = AddInteger(_State, -1, &_Length);
-		else if(!strcmp("Residents", _Key)) {
-			_Return = AddString(_State, -1, &_Temp);
-			if(!strcmp(_Temp, "None"))
-				_ResType = 0;
-			else if(!strcmp(_Temp, "Animal"))
-				_ResType = ERES_ANIMAL;
-			else if(!strcmp(_Temp, "Human"))
-				_ResType = ERES_HUMAN;
-			else if(!strcmp(_Temp, "All"))
-				_ResType = ERES_ANIMAL | ERES_HUMAN;
-		} else if(!strcmp("BuildTime", _Key))
-			_Return = AddInteger(_State, -1, &_BuildTime);
-		else if(!strcmp("BuildMats", _Key)) {
-			if(lua_istable(_State, -1) == 0) {
-				printf("Input for good is not a table");
-				goto end;
-			}
-			lua_pushnil(_State);
-			while(lua_next(_State, -2) != 0) {
-				if(lua_isstring(_State, -2)) {
-					struct InputReq* _Good = CreateInputReq();
-					int _Return = AddInteger(_State, -1, &_Good->Quantity);
-					if(_Return == -1) {
-						_Building = NULL;
-						goto end;
-					}
-					if((_Good->Req = HashSearch(&g_Goods, lua_tostring(_State, -2))) == 0) {
-						_Building = NULL;
-						goto end;
-					}
-					LnkLst_PushBack(_BuildMats, _Good);
-				}
-			}
+			_Node->Next = NULL;
+			_Prev = _Node;
+			lua_pop(_State, 1);
 		}
 		lua_pop(_State, 1);
 	}
-	if(_Return < 0) {
-		_Building = NULL;
-		goto end;
-	}
-
-	_Building = CreateBuilding(_Name, _Width, _Length, _ResType, _BuildTime);
-	_Building->OutputGoods = CreateArray(_OutputGoods->Size);
-	_Itr = _OutputGoods->Front;
-	while(_Itr != NULL) {
-		ArrayInsert(_Building->OutputGoods, _Itr->Data);
-		_Itr = _Itr->Next;
-	}
-	_Building->BuildMats = CreateArray(_BuildMats->Size);
-	_Itr = _BuildMats->Front;
-	while(_Itr != NULL) {
-		ArrayInsert(_Building->BuildMats, _Itr->Data);
-		_Itr = _Itr->Next;
-	}
-	end:
-	DestroyLinkedList(_BuildMats);
-	return _Building;
+	lua_pop(_State, 1);
+	if(_Node == NULL)
+		_First->Next = NULL;
+	else
+		_Node->Next = NULL;
+	return _First;
 }

@@ -47,7 +47,7 @@ struct Object {
 
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
-extern struct HashTable g_Buildings;
+extern struct HashTable g_BuiltMats;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct ATimer g_ATimer;

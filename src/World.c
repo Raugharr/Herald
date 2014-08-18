@@ -162,6 +162,7 @@ void World_Init(int _Area) {
 	struct LinkedList* _OccupationList = CreateLinkedList();
 	struct LnkLst_Node* _Itr = NULL;
 
+	Log(ELOG_INFO, "Creating World.");
 	g_World = CreateArray(_Area * _Area);
 	g_LuaState = luaL_newstate();
 	luaL_openlibs(g_LuaState);
@@ -178,6 +179,10 @@ void World_Init(int _Area) {
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 
+	if(_GoodList->Size == 0) {
+		Log(ELOG_WARNING, "Failed to load goods.");
+		goto GoodLoadEnd;
+	}
 	LuaLoadFile(g_LuaState, "goods.lua");
 	_Itr = _GoodList->Front;
 	lua_getglobal(g_LuaState, "Goods");
@@ -198,8 +203,10 @@ void World_Init(int _Area) {
 		lua_pop(g_LuaState, 1);
 	}
 	lua_pop(g_LuaState, 1);
+	GoodLoadEnd:
 	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
 	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
+	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, &LnkLst_CatNode, _BuildList);
 
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);

@@ -1,28 +1,20 @@
-require 'std'
-
-Cottage = {
-		Name = "Cottage",
-		Width = 25,
-		Length = 20,
-		Roof = "Hay",
-		Floor = "None",
-		Walls = "Stick",
-		Output = {},
-		Residents = "All"
-}
-
-BakerCottage = CopyTable(Cottage)
-BakerCottage.Name = "Baker Cottage"
-BakerCottage.Output = {{"Bread Loaf", 4}}
-BakerCottage.Residents = "Human"
-
-MillerCottage = CopyTable(Cottage)
-MillerCottage.Name = "Miller Cottage"
-MillerCottage.Output = {{"Flour", 128}}
-MillerCottage.Residents = "Human"
-
-Buildings = {
-	MillerCottage,
-	BakerCottage,
-	Cottage
+BuildMats = {
+	{
+		"Board",
+		{
+		{Type = "Floor", GoodsPerFoot = 1.1, Cost = 250},
+		{Type = "Wall", GoodsPerFoot = 1, Cost = 175},
+		{Type = "Roof", GoodsPerFoot = 1.25, Cost = 500}
+		}
+	},
+	
+	{
+		"Hay",
+		{{Type = "Roof", GoodsPerFoot = 10, Cost = 100}}
+	},
+	
+	{
+		"Dirt",
+		{{Type = "Floor", GoodsPerFoot = 0, Cost = 0}}
+	}
 }

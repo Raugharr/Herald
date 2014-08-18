@@ -183,7 +183,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 				if(lua_isstring(_State, -1) == 0)
 					goto EatsEnd;
 				if((_Data = HashSearch(&g_Goods, lua_tostring(_State, -1))) == NULL) {
-					Log(ELOG_WARNING, "Crop %s could not be found.", lua_tostring(_State, -1));
+					Log(ELOG_WARNING, "Food %s could not be found.", lua_tostring(_State, -1));
 					goto EatsEnd;
 				}
 				LnkLst_PushBack(_List, _Data);
@@ -215,6 +215,8 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	_Pop->Outputs[0] = NULL;
 	_Pop->Eats = _Eats;
 	_Pop->EatsSize = _List->Size;
+	if(_Pop->EatsSize == 0)
+		Log(ELOG_WARNING, "Population %s has zero food types to consume.", _Name);
 	DestroyLinkedList(_List);
 	return _Pop;
 	fail:
@@ -301,6 +303,8 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 			}
 			ArrayInsertSort_S(_Dep->Animals, _Pop, PopulationCmp);
 		}
+		if(_Pop->EatsSize == 0)
+			goto loopend;
 		_Temp = calloc(_Pop->EatsSize + 1, sizeof(struct FoodBase*));
 		_Dep = (struct AnimalDep*) malloc(sizeof(struct AnimalDep));
 		for(i = 0; i < _Pop->EatsSize; ++i) {

@@ -72,3 +72,13 @@ void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct L
 	free(_Node);
 	--_List->Size;
 }
+
+void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {
+	struct LnkLst_Node* _Temp = NULL;
+
+	while(_Node != NULL) {
+		LnkLst_PushBack(_List, _Node);
+		_Temp = _Node->Next;
+		_Node = _Temp;
+	}
+}

@@ -22,4 +22,8 @@ void DestroyLinkedList(struct LinkedList* _List);
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value);
 void LnkLst_PopFront(struct LinkedList* _List);
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct LnkLst_Node* _Node);
+/*!
+ * @brief adds all nodes that _Node can point to including _Node to _List and then deletes them.
+ */
+void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node);
 #endif

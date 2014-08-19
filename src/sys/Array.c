@@ -79,7 +79,6 @@ void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int 
 	int i = _Left;
 	int j = _Right;
 	const void* _Node = *(const void**)(_Table + sizeof(int*) * (_Left));
-	const void* _Temp = NULL;
 	const void** _Swap = NULL;
 
 	if(_Left >= _Right)
@@ -125,9 +124,6 @@ void* BinarySearch(void* _Data, void* _Table, int _Size, int(*_Callback)(const v
 	int _Max = _Size - 1;
 	int _Mid = 0;
 	int _Result = 0;
-
-	if(_Size < 0)
-		return NULL;
 
 	while(_Max >= _Min) {
 		_Mid = _Min + ((_Max - _Min) / 2);

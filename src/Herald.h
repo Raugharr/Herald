@@ -10,14 +10,14 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
-#define TO_YEARS(__Months) (__Months * 12)
-#define TO_MONTHS(__Days) ((int)(_Days / 30))
-#define TO_DAYS(__Months) (__Months * 30)
-#define LISTTOHASH(__List, __Itr, __Hash, __Key)			\
-	(__Itr) = (__List)->Front;								\
-	while((__Itr) != NULL) {								\
-		HashInsert((__Hash), (__Key), (__Itr)->Data);		\
-		(__Itr) = (__Itr)->Next;							\
+#define TO_YEARS(_Months) ((_Months) * 12)
+#define TO_MONTHS(_Days) ((int)((_Days) / 30))
+#define TO_DAYS(_Months) ((_Months) * 30)
+#define LISTTOHASH(_List, _Itr, _Hash, _Key)				\
+	(_Itr) = (_List)->Front;								\
+	while((_Itr) != NULL) {									\
+		HashInsert((_Hash), (_Key), (_Itr)->Data);			\
+		(_Itr) = (_Itr)->Next;								\
 	}
 #define WORKMULT (1000)
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)

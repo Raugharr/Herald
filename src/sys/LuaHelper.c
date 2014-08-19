@@ -21,15 +21,6 @@
 
 lua_State* g_LuaState = NULL;
 
-void LuaLoadCFuncs(lua_State* _State) {
-	lua_register(g_LuaState, "CreateConstraint", LuaConstraint);
-	lua_register(g_LuaState, "CreateConstraintBounds", LuaConstraintBnds);
-	lua_register(g_LuaState, "Crop", LuaCrop);
-	lua_register(g_LuaState, "Good", LuaGoodBase);
-	lua_register(g_LuaState, "Food", LuaFoodBase);
-	lua_register(g_LuaState, "Animal", LuaPopulation);
-}
-
 int LuaConstraint(lua_State* _State) {
 	int _Min = 0;
 	int _Max = 0;
@@ -90,8 +81,10 @@ int LuaGoodBase(lua_State* _State) {
 	int i;
 
 	_Name = luaL_checklstring(_State, -1, NULL);
-	if((_Good = HashSearch(&g_Goods, _Name)) == NULL)
-		return luaL_error(_State, "Name is not a valid GoodBase.");
+	if((_Good = HashSearch(&g_Goods, _Name)) == NULL) {
+		Log(ELOG_WARNING, "%s is not a valid GoodBase.", _Name);
+		return 0;
+	}
 	lua_createtable(_State, 0, 4);
 
 	lua_pushstring(_State, "Id");
@@ -138,8 +131,10 @@ int LuaCrop(lua_State* _State) {
 	const struct Crop* _Crop = NULL;
 
 	_Name = luaL_checklstring(_State, -1, NULL);
-	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL)
-		return luaL_error(_State, "Name is not a valid crop.");
+	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL) {
+		Log(ELOG_WARNING, "%s is not a valid crop.", _Name);
+		return 0;
+	}
 	lua_createtable(_State, 0, 7);
 
 	lua_pushstring(_State, "Id");
@@ -178,8 +173,10 @@ int LuaPopulation(lua_State* _State) {
 	const struct Population* _Pop = NULL;
 
 	_Name = luaL_checklstring(_State, -1, NULL);
-	if((_Pop = HashSearch(&g_Populations, _Name)) == NULL)
-		return luaL_error(_State, "Name is not a valid population.");
+	if((_Pop = HashSearch(&g_Populations, _Name)) == NULL) {
+		Log(ELOG_WARNING, "%s is not a valid population.", _Name);
+		return 0;
+	}
 	lua_createtable(_State, 0, 10);
 
 	lua_pushstring(_State, "Id");
@@ -224,6 +221,29 @@ int LuaPopulation(lua_State* _State) {
 		lua_rawseti(_State, -2, i);
 	}
 	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaMonth(lua_State* _State) {
+	const char* _Type = NULL;
+
+	if(!lua_isnumber(_State, -2)) {
+		LUA_BADARG(1, "Must be an integer.");
+		return 0;
+	}
+	if(!lua_isstring(_State, -1)) {
+		LUA_BADARG(2, "Must be a string.");
+		return 0;
+	}
+	_Type = lua_tostring(_State, -1);
+	if(!strcmp(_Type, "Years"))
+		lua_pushinteger(_State, TO_MONTHS(lua_tointeger(_State, -1)));
+	else if(!strcmp(_Type, "Days"))
+		lua_pushinteger(_State, TO_DAYS(lua_tointeger(_State, -1)));
+	else {
+		LUA_BADARG(2, "Must be either \"Years\" or \"Days\".");
+		return 0;
+	}
 	return 1;
 }
 

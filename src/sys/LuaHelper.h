@@ -17,14 +17,21 @@
 	lua_pushinteger((_State), (_Constraint)->Max);		\
 	lua_rawset((_State), -3)
 
+#define LUA_BADARG(_Arg, _Extra) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra))
+#define LuaLoadCFuncs(_State)														\
+	lua_register((_State), "CreateConstraint", LuaConstraint);						\
+	lua_register((_State), "CreateConstraintBounds", LuaConstraintBnds);			\
+	lua_register((_State), "Crop", LuaCrop);										\
+	lua_register((_State), "Good", LuaGoodBase);									\
+	lua_register((_State), "Food", LuaFoodBase);									\
+	lua_register((_State), "Animal", LuaPopulation);								\
+	lua_register((_State), "ToMonth", LuaMonth)
+
 struct LinkedList;
-
-extern lua_State* g_LuaState;
-
 struct Constraint;
 typedef struct lua_State lua_State;
 
-void LuaLoadCFuncs(lua_State* _State);
+extern lua_State* g_LuaState;
 
 int LuaConstraint(lua_State* _State);
 int LuaConstraintBnds(lua_State* _State);
@@ -41,6 +48,8 @@ int LuaFoodBase(lua_State* _State);
  * Requires one parameter that is a string equaling the name of a crop in g_Populations.
  */
 int LuaPopulation(lua_State* _State);
+
+int LuaMonth(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);

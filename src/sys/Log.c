@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #define LOG_MAXSIZE (512)
 
@@ -39,7 +40,7 @@ void Log(int _Category, const char* _Text, ...) {
 	int i = 0;
 	
 	va_start(_List, _Text);
-	_Size = vsnprintf(_Buffer, LOG_MAXSIZE - 2, _Text, _List) + 2;
+	_Size = vsnprintf(_Buffer, LOG_MAXSIZE - 2, _Text, _List) + 1;
 	strcat(_Buffer, "\n");
 	
 	while(_Size > 0) {

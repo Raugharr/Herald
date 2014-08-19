@@ -18,6 +18,7 @@
 	lua_rawset((_State), -3)
 
 #define LUA_BADARG(_Arg, _Extra) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra))
+#define LUA_BADARG_V(_Arg, _Extra, ...) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra), __VA_ARGS__)
 #define LuaLoadCFuncs(_State)														\
 	lua_register((_State), "CreateConstraint", LuaConstraint);						\
 	lua_register((_State), "CreateConstraintBounds", LuaConstraintBnds);			\

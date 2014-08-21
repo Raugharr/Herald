@@ -17,7 +17,7 @@ struct Array {
 };
 
 struct Array* CreateArray(int _Size);
-struct Array* CopyArray(struct Array* _Array);
+struct Array* CopyArray(const struct Array* _Array);
 void DestroyArray(struct Array* _Array);
 int ArrayInsert(struct Array* _Array, void* _Data);
 void ArrayInsert_S(struct Array* _Array, void* _Data);
@@ -26,5 +26,5 @@ void ArrayResize(struct Array* _Array);
 void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*));
 void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int _Left, int _Right);
 int ArrayLen(const void* _Table);
-void* BinarySearch(void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*));
+void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*));
 #endif

@@ -17,7 +17,7 @@ struct Array* CreateArray(int _Size) {
 	return _Array;
 }
 
-struct Array* CopyArray(struct Array* _Array) {
+struct Array* CopyArray(const struct Array* _Array) {
 	struct Array* _New = CreateArray(_Array->Size);
 	int i;
 
@@ -119,7 +119,7 @@ int ArrayLen(const void* _Table) {
 	return _Size;
 }
 
-void* BinarySearch(void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*)) {
+void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*)) {
 	int _Min = 0;
 	int _Max = _Size - 1;
 	int _Mid = 0;

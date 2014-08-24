@@ -6,6 +6,8 @@
 #ifndef __WORLD_H
 #define __WORLD_H
 
+#include "Herald.h"
+
 #define YEAR(__Date) (__Date >> 9)
 #define MONTH(__Date) ((__Date >> 5) & 15)
 #define MONTHS (12)
@@ -15,8 +17,6 @@
 struct Array;
 struct RBTree;
 typedef struct lua_State lua_State;
-
-#define DATE int
 
 extern DATE g_Date;
 extern struct Array* g_World;
@@ -39,10 +39,6 @@ void World_Init(int _Area);
 void World_Quit();
 void NextDay(int* _Date);
 int World_Tick();
-int MonthToInt(const char* _Month);
-int DaysBetween(int _DateOne, int _DateTwo);
-int DateToDays(int _Date);
-int DateAdd(int _Left, int _Right);
-int DateSub(int _Left, int _Right);
+
 
 #endif

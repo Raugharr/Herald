@@ -21,6 +21,7 @@
 	}
 #define WORKMULT (1000)
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
+#define DATE int
 
 typedef struct lua_State lua_State;
 struct StackNode;
@@ -69,5 +70,9 @@ struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 void CreateObject(struct Object* _Obj, int _X, int _Y);
+
+DATE MonthToInt(const char* _Month);
+DATE DaysBetween(int _DateOne, int _DateTwo);
+DATE DateToDays(int _Date);
 
 #endif

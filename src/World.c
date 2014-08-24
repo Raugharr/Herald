@@ -275,39 +275,3 @@ int World_Tick() {
 	NextDay(&g_Date);
 	return 1;
 }
-
-int MonthToInt(const char* _Month) {
-	int i;
-
-	for(i = 0; i < MONTHS; ++i)
-		if(strcmp(_Month, g_Months[i]) == 0)
-			return i;
-	return -1;
-}
-
-int DaysBetween(int _DateOne, int _DateTwo) {
-	if(_DateTwo < _DateOne)
-		return 0;
-	return DateToDays(_DateTwo) - DateToDays(_DateOne);
-}
-
-int DateToDays(int _Date) {
-	int _Total = 0;
-	int _Years = YEAR(_Date);
-	int _Months = MONTH(_Date);
-	int _Result = 0;
-
-	_Total = _Years + (_Years / 4);
-	_Result = _Months / 2;
-	_Total += (_Result + 1) * 31;
-	_Total += _Result * 30;
-	if(_Months >= 1) {
-		if(_Years % 4 == 0)
-			_Total += 28;
-		else
-			_Total += 29;
-	}
-	if(_Months >= 8)
-		++_Total;
-	return _Total;
-}

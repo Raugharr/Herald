@@ -47,6 +47,7 @@ struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
 int g_Id = 0;
+char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);

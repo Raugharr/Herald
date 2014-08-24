@@ -15,7 +15,7 @@
 #include "sys/Array.h"
 #include "sys/MemoryPool.h"
 #include "sys/KDTree.h"
-#include "events/Event.h"
+#include "sys/Event.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -46,7 +46,7 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 			return 1;
 		struct Person* _Child = CreateChild(_Pregancy->Mother->Family);
 		_Pregancy->Mother->Family->People[2 + _Pregancy->Mother->Family->NumChildren++] = _Child;
-		Event_Push(CreateEventBirth(_Pregancy->Mother, _Child));
+		EventPush(CreateEventBirth(_Pregancy->Mother, _Child));
 		return 1;
 	}
 	return 0;

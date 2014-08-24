@@ -22,7 +22,7 @@
 #include "sys/LuaHelper.h"
 #include "sys/Constraint.h"
 #include "sys/KDTree.h"
-#include "events/Event.h"
+#include "sys/Event.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,14 +86,14 @@ void HeraldInit() {
 
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
-	Event_Init();
+	EventInit();
 }
 
 void HeraldDestroy() {
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);
-	Event_Quit();
+	EventQuit();
 }
 
 struct InputReq* CreateInputReq() {

@@ -7,14 +7,13 @@ $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJF
 ODIR=.
 LIB=-llua
 SYS=sys
-EVENTS=events
 AI=ai
 NAME=herald
 
 $(OBJFLD)%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-herald: sys events ai main.c $(OBJ)
+herald: sys ai main.c $(OBJ)
 	$(CC) -o ../$(NAME) main.c $(CFLAGS) $(OBJFLD)* $(LIB)
 	
 all: herald
@@ -22,12 +21,9 @@ all: herald
 sys:
 	$(MAKE) -C $(SYS)
 
-events:
-	$(MAKE) -C $(EVENTS)
-
 ai:
 	$(MAKE) -C $(AI)
-.PHONY: clean all sys events ai
+.PHONY: clean all sys ai
 
 clean:
 	rm $(OBJFLD)*.o

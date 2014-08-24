@@ -11,17 +11,13 @@
 
 #include <stdlib.h>
 
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
 #define EVENTPOOL (1024)
 
 static struct Queue* g_EventQueue = NULL;
 static struct LinkedList** g_EventHooks = NULL;
 static struct MemoryPool* g_MemoryPool = NULL;
 
-void Event_Init() {
+void EventInit() {
 	int i;
 
 	g_EventQueue = CreateQueue(EVENTPOOL);
@@ -31,7 +27,7 @@ void Event_Init() {
 		g_EventHooks[i] = CreateLinkedList();
 }
 
-void Event_Quit() {
+void EventQuit() {
 	int i;
 
 	DestroyQueue(g_EventQueue);
@@ -41,17 +37,17 @@ void Event_Quit() {
 	free(g_EventHooks);
 }
 
-void Event_Push(struct Event* _Event) {
+void EventPush(struct Event* _Event) {
 	Queue_Push(g_EventQueue, _Event);
 }
 
-void Event_Hook(int _EventId, void (*_Callback)(struct Event*)) {
+void EventHook(int _EventId, void (*_Callback)(struct Event*)) {
 	if(_EventId < 0 && _EventId >= EVENTLAST)
 		return;
 	LnkLst_PushBack(g_EventHooks[_EventId], &_Callback);
 }
 
-void Event_RemoveHook(int _EventId, void(*_Callback)(struct Event*)) {
+void EventRmHook(int _EventId, void(*_Callback)(struct Event*)) {
 	struct LnkLst_Node* _Last = NULL;
 	struct LnkLst_Node* _Node = NULL;
 	struct LinkedList* _List = NULL;
@@ -75,4 +71,30 @@ void Event_RemoveHook(int _EventId, void(*_Callback)(struct Event*)) {
 		_Last = _Node;
 		_Node = _Node->Next;
 	}
+}
+
+struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child) {
+	struct EventBirth* _EventBirth = (struct EventBirth*) malloc(sizeof(struct EventBirth));
+
+	_EventBirth->Type = EVENTBIRTH;
+	_EventBirth->Mother = _Mother;
+	_EventBirth->Child = _Child;
+	return ((struct Event*)_EventBirth);
+}
+
+struct Event* CreateEventDeath(struct Person* _Person) {
+	struct EventDeath* _EventDeath = (struct EventDeath*) malloc(sizeof(struct EventDeath));
+
+	_EventDeath->Type = EVENTDEATH;
+	_EventDeath->Person = _Person;
+	return ((struct Event*)_EventDeath);
+}
+
+struct Event* CreateEventTime(struct Person* _Person, DATE _Age) {
+	struct EventAge* _EventAge = (struct EventAge*) malloc(sizeof(struct EventAge));
+
+	_EventAge->Type = EVENTAGE;
+	_EventAge->Person = _Person;
+	_EventAge->Age = _Age;
+	return ((struct Event*)_EventAge);
 }

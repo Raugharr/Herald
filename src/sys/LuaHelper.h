@@ -26,7 +26,8 @@
 	lua_register((_State), "Good", LuaGoodBase);									\
 	lua_register((_State), "Food", LuaFoodBase);									\
 	lua_register((_State), "Animal", LuaPopulation);								\
-	lua_register((_State), "ToMonth", LuaMonth)
+	lua_register((_State), "ToMonth", LuaMonth);									\
+	lua_register((_State), "Hook", LuaHook)
 
 struct LinkedList;
 struct Constraint;
@@ -51,6 +52,7 @@ int LuaFoodBase(lua_State* _State);
 int LuaPopulation(lua_State* _State);
 
 int LuaMonth(lua_State* _State);
+int LuaHook(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);

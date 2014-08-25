@@ -10,6 +10,7 @@
 #include "Constraint.h"
 #include "Log.h"
 #include "Array.h"
+#include "Event.h"
 #include "../Herald.h"
 #include "../Good.h"
 #include "../Crop.h"
@@ -60,6 +61,7 @@ int LuaConstraintBnds(lua_State* _State) {
 	lua_pushlightuserdata(_State, _Constrnt);
 	return 1;
 	error:
+	LogLua(_State, ELOG_WARNING, "");
 	free(_Constrnt);
 	return 0;
 }
@@ -247,6 +249,27 @@ int LuaMonth(lua_State* _State) {
 	return 1;
 }
 
+int LuaHook(lua_State* _State) {
+	const char* _Name = NULL;
+
+	if(!lua_isstring(_State, 1)) {
+		LUA_BADARG(1, "Must be a string.");
+		return 0;
+	}
+	_Name = lua_tostring(_State, 1);
+	if(!strcmp(_Name, "Age")) {
+		if(lua_tonumber(_State, 2) == 0) {
+			LUA_BADARG(1, "Must be an integer.");
+			return 0;
+		}
+		lua_pushlightuserdata(_State, CreateEventTime(NULL, lua_tointeger(_State, 2)));
+	} else {
+		LUA_BADARG(1, "Must be a valid hook type.");
+		return 0;
+	}
+	return 1;
+}
+
 int LuaLoadFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
 
@@ -272,6 +295,7 @@ int LuaLoadFile(lua_State* _State, const char* _File) {
 }
 
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
+	//TODO: If in debug mode the stack should be checked to ensure its balanced.
 	int _Error = lua_pcall(_State, _Args, _Results, _ErrFunc);
 
 	if(_Error != 0)

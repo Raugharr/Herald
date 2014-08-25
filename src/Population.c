@@ -226,7 +226,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 }
 
 struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _X, int _Y) {
-	struct Animal* _Animal = (struct Animal*) malloc(sizeof(struct Animal*));
+	struct Animal* _Animal = (struct Animal*) malloc(sizeof(struct Animal));
 
 	CreateObject((struct Object*)_Animal, _X, _Y);
 	if(Random(0, 999) < (int)(_Pop->MaleRatio * 1000 - 1)) {

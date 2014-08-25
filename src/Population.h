@@ -30,6 +30,8 @@ struct Population {
 
 struct Animal {
 	int Id;
+	int X;
+	int Y;
 	int Gender;
 	int Nutrition;
 	DATE Age;

@@ -196,7 +196,7 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 		for(i = 0; i < _Len; ++i) {
 			_Return[i] = _Left[i];
 		}
-		for(i = 0; i < _Len * 2; ++i)
+		for(i = 0; i < _Len; ++i)
 			_Return[i + _Len] = _Right[i];
 		_Return[_Len * 2] = NULL;
 	}

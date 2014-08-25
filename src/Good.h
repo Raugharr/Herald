@@ -28,7 +28,8 @@ enum {
 enum {
 	ETOOL_PLOW = (1 << 0),
 	ETOOL_REAP = (1 << 1),
-	ETOOL_CUT = (1 << 2)
+	ETOOL_CUT = (1 << 2),
+	ETOOL_LOGGING = (1 << 3)
 };
 
 struct GoodBase {

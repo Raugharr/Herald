@@ -134,13 +134,15 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 			_Function = ETOOL_REAP;
 		else if(!strcmp(_Temp, "Cut"))
 			_Function = ETOOL_CUT;
+		else if(!strcmp(_Temp, "Logging"))
+			_Function = ETOOL_LOGGING;
 		else {
 			Log(ELOG_WARNING, "Tool contains an invalid Function field: %s", _Temp);
 			goto fail;
 		}
 		lua_pop(_State, 1);
 		_Good = (struct GoodBase*) CreateToolBase(_Name, _Category, _Function);
-	} else if(_Category == EFOOD) {
+	} else if(_Category == EFOOD || _Category == EINGREDIENT || _Category == ESEED) {
 		_Good = (struct GoodBase*) CreateFoodBase(_Name, _Category, 0);
 	} else
 		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);

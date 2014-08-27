@@ -49,7 +49,9 @@ void ArrayResize(struct Array* _Array) {
 	int _Size = _Array->TblSize * 2;
 	void* _Temp = realloc(_Array->Table, _Size * sizeof(void*));
 
-	free(_Array->Table);
+	if(_Temp == NULL)
+		return;
+	//free(_Array->Table);
 	_Array->Table = _Temp;
 	_Array->TblSize = _Size;
 }

@@ -36,12 +36,13 @@ void DestroyConstraint(struct Constraint* _Constraint) {
 }
 
 void DestroyConstrntBnds(struct Constraint** _Constraint) {
+	struct Constraint** _Array = _Constraint;
+
 	while((*_Constraint) != NULL) {
 		free(*_Constraint);
 		++_Constraint;
 	}
-	free(_Constraint);
-
+	free(_Array);
 }
 
 struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Interval) {

@@ -26,7 +26,7 @@ void SetFilter(int _Level) {
 int LogSetFile(const char* _File) {
 	if(g_LogFile >= 0)
 		close(g_LogFile);
-	if((g_LogFile = open(_File,  _O_WRONLY | _O_CREAT | _O_TRUNC)) < 0)
+	if((g_LogFile = open(_File, _O_WRONLY, _O_CREAT, _O_TRUNC)) < 0)
 		return 0;
 	return 1;
 }

@@ -120,14 +120,16 @@ int HashDelete(struct HashTable* _Hash, const char* _Key) {
 	_HashVal = Hash(_Key) % _Hash->TblSize;
 	i = _HashVal;
 
-	while(strcmp(_Key, _Hash->Table[i]->Key) == 0) {
+	while(strcmp(_Key, _Hash->Table[i]->Key) != 0) {
 		if(i >= _Hash->TblSize)
 			i = 0;
 		++i;
 		if(i == _HashVal)
 			return 0;
 	}
+	free(_Hash->Table[i]->Key);
 	free(_Hash->Table[i]);
+	_Hash->Table[i] = NULL;
 	--_Hash->Size;
 	return 1;
 }

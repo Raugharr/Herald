@@ -229,9 +229,6 @@ void RBInsert(struct RBTree* _Tree, void* _Data) {
 
 	if(_Data == NULL)
 		return;
-#ifdef DEBUG
-	assert(RBSearch(_Tree, _Data) == NULL);
-#endif
 	if(_Tree->Size == 0) {
 		_Tree->Table = CreateRBNode(NULL, _Data, RB_BLACK);
 		++_Tree->Size;

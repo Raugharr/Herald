@@ -184,6 +184,7 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 				}
 				LnkLst_PushBack(_List, _Req);
 			} else {
+				Log(ELOG_WARNING, "Good %s cannot add %s as an input good: %s does not exist.", _Name, _Good->Name, _Name);
 				goto fail;
 			}
 			lua_pop(_State, 2);
@@ -220,10 +221,11 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 	return 1;
 	fail:
 	DestroyInputReq(_Req);
-	DestroyGoodBase(_Good);
 	lua_settop(_State, _Top);
 	DestroyLinkedList(_List);
-	return 0;
+	HashDelete(&g_Goods, _Good->Name);
+	DestroyGoodBase(_Good);
+	return NULL;
 }
 
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good) {
@@ -302,8 +304,8 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
 
 	_Itr = HashCreateItrCons(_GoodList);
 	while(_Itr != NULL) {
-		_Dep = GoodDependencies(_Prereq, ((const struct GoodBase*)_Itr->Node->Pair));
-		if(RBSearch(_Prereq, _Dep) == NULL)
+		_Dep = GoodDependencies(_Prereq, ((const struct GoodBase*)_Itr->Node->Pair)); //Fails when _Itr->Key == "Shear". _Itr->Pair is invalid.
+		if(RBSearch(_Prereq, _Dep->Good) == NULL)
 			RBInsert(_Prereq, _Dep);
 		_Itr = HashNextCons(_GoodList, _Itr);
 	}

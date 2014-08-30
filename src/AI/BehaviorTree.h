@@ -8,31 +8,27 @@
 
 struct Person;
 struct HashTable;
+struct Behavior;
 
-typedef int(*BHVAction)(struct Person*, struct HashTable*);
-
-enum {
-	BHV_SELECTOR = 0,
-	BHV_SEQUENCE
-};
-
-//Behavior decorators.
-enum {
-	BHV_DNOT = 0
-};
+typedef int(*BhvCallback)(struct Behavior*, struct Person*, void*);
+typedef int(*BhvAction)(struct Person*, struct HashTable*);
 
 struct Behavior {
-	int(*Callback)(struct Behavior*, struct Person*, void*);
-	BHVAction Action;
+	BhvCallback Callback;
+	BhvAction Action;
 	struct Behavior** Children;
 	int Size;
-	struct Behavior* Parent;
 };
 
+int BhvSelector(struct Behavior* _Bhv, struct Person* _Person, void* _Data);
+int BhvSequence(struct Behavior* _Bhv, struct Person* _Person, void* _Data);
+
+int BhvNot(struct Behavior* _Bhv, struct Person* _Person, void* _Data);
+
+struct Behavior* CreateBehavior(struct Behavior* _Parent, BhvAction _Run, int _Size, BhvCallback _Callback);
 void DestroyBehavior(struct Behavior* _Bhv);
-struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...);
-struct Behavior* CreateBHVNode(BHVAction _Action);
-struct Behavior* CreateBHVD(int _Type, BHVAction _Action);
+struct Behavior* CreateBhvComp(BhvCallback _Callback, struct Behavior* _Bhv, ...);
+struct Behavior* CreateBhvNode(BhvAction _Action);
 
 int BHVRun(struct Behavior* _Bhv, struct Person* _Person, void* _Data);
 

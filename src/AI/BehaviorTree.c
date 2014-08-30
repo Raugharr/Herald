@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-int BHVSelector(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
+int BhvSelector(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 	int i;
 	int _Ret = 0;
 	struct Behavior* _Child = NULL;
@@ -19,13 +19,13 @@ int BHVSelector(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 			_Ret = _Child->Action(_Person, _Data);
 		else
 			_Ret = _Child->Callback(_Bhv, _Person, _Data);
-		if(_Ret == 1)
-			return 1;
+		if(_Ret != 0)
+			return _Ret;
 	}
 	return 0;
 }
 
-int BHVSequence(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
+int BhvSequence(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 	int i;
 	int _Ret = 0;
 	struct Behavior* _Child = NULL;
@@ -42,11 +42,11 @@ int BHVSequence(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 	return 1;
 }
 
-int BHVDNot(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
-	return !_Bhv->Action(_Person, _Data);
+int BhvNot(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
+	return !(_Bhv->Action(_Person, _Data));
 }
 
-struct Behavior* CreateBehavior(struct Behavior* _Parent, BHVAction _Run, int _Size, int(*_Callback)(struct Behavior*, struct Person*, void*)) {
+struct Behavior* CreateBehavior(struct Behavior* _Parent, BhvAction _Run, int _Size, BhvCallback _Callback) {
 	struct Behavior* _Bhv = NULL;
 
 	_Bhv = (struct Behavior*) malloc(sizeof(struct Behavior));
@@ -54,7 +54,6 @@ struct Behavior* CreateBehavior(struct Behavior* _Parent, BHVAction _Run, int _S
 	_Bhv->Action = _Run;
 	_Bhv->Children = calloc(_Size, sizeof(struct Behavior*));
 	_Bhv->Size = _Size;
-	_Bhv->Parent = _Parent;
 	return _Bhv;
 }
 
@@ -68,7 +67,7 @@ void DestroyBehavior(struct Behavior* _Bhv) {
 	free(_Bhv);
 }
 
-struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...) {
+struct Behavior* CreateBhvComp(BhvCallback _Callback, struct Behavior* _Bhv, ...) {
 	int _Size = 0;
 	int i;
 	va_list _List;
@@ -83,42 +82,17 @@ struct Behavior* CreateBHVComp(int _Type, struct Behavior* _Bhv, ...) {
 		while((_Itr = va_arg(_List, struct Behavior*)) != NULL)
 			++_Size;
 	}
-	switch(_Type) {
-		case BHV_SELECTOR:
-			_Comp = CreateBehavior(NULL, NULL, _Size, BHVSelector);
-			break;
-		case BHV_SEQUENCE:
-			_Comp = CreateBehavior(NULL, NULL, _Size, BHVSequence);
-			break;
-		default:
-			return NULL;
-	}
+	_Comp = CreateBehavior(NULL, NULL, _Size, _Callback);
 	va_start(_List, _Bhv);
 	_Comp->Children[0] = _Bhv;
-	_Comp->Children[0]->Parent = _Bhv;
 	for(i = 1; i < _Size; ++i) {
 		_Comp->Children[i] = va_arg(_List, struct Behavior*);
-		_Comp->Children[i]->Parent = _Comp;
 	}
 	return _Comp;
 }
 
-struct Behavior* CreateBHVNode(BHVAction _Action) {
+struct Behavior* CreateBhvNode(BhvAction _Action) {
 	return CreateBehavior(NULL, _Action, 0, NULL);
-}
-
-struct Behavior* CreateBHVD(int _Type, BHVAction _Action) {
-	struct Behavior* _Bhv = NULL;
-
-	switch(_Type) {
-		case BHV_DNOT:
-			_Bhv = CreateBehavior(NULL, NULL, 0, BHVDNot);
-			break;
-		default:
-			return NULL;
-	}
-	_Bhv->Action = _Action;
-	return _Bhv;
 }
 
 int BHVRun(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {

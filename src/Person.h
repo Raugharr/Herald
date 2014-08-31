@@ -37,6 +37,7 @@ struct Person {
 	struct Person* Next;
 	struct Person* Prev;
 	struct Occupation* Occupation;
+	struct Behavior* Behavior;
 };
 
 struct Pregancy {

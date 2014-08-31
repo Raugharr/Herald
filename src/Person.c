@@ -9,6 +9,7 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Good.h"
+#include "sys/LuaHelper.h"
 #include "sys/RBTree.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
@@ -16,9 +17,14 @@
 #include "sys/MemoryPool.h"
 #include "sys/KDTree.h"
 #include "sys/Event.h"
+#include "sys/Log.h"
+#include "AI/LuaLib.h"
+#include "AI/Setup.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
 
 #define BIRTH_TIME (9)
 
@@ -53,8 +59,22 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 }
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y) {
-	struct Person* _Person = (struct Person*) MemPool_Alloc(g_PersonPool);
+	struct Person* _Person = NULL;
+	struct LuaBehavior* _Bhv = NULL;
 
+	lua_getglobal(g_LuaState, "AI");
+	lua_getfield(g_LuaState, -1, "SetAI");
+	LuaCallFunc(g_LuaState, 0, 1, 0);
+	if(lua_isstring(g_LuaState, -1) == 0) {
+		Log(ELOG_WARNING, "AI.SetAI did not return a string.");
+		return NULL;
+	}
+	if((_Bhv = BinarySearch(lua_tostring(g_LuaState, -1), g_BhvList.Table, g_BhvList.TblSize, luaStrLuaBhvCmp)) == NULL) {
+		Log(ELOG_WARNING, "AI.SetAI did not return a valid Behavior.");
+		return NULL;
+	}
+
+	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 	_Person->Name = _Name;
 	CreateObject((struct Object*)_Person, _X, _Y);
 	_Person->Age = _Age;
@@ -71,7 +91,9 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 		g_PersonList->Prev = _Person;
 	}
 	_Person->Prev = NULL;
+	_Person->Behavior = _Bhv->Behavior;
 	g_PersonList = _Person;
+	lua_pop(g_LuaState, 2);
 	return _Person;
 }
 

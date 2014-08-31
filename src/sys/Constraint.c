@@ -38,6 +38,8 @@ void DestroyConstraint(struct Constraint* _Constraint) {
 void DestroyConstrntBnds(struct Constraint** _Constraint) {
 	struct Constraint** _Array = _Constraint;
 
+	if(_Constraint == NULL)
+		return;
 	while((*_Constraint) != NULL) {
 		free(*_Constraint);
 		++_Constraint;

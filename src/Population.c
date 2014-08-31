@@ -322,8 +322,8 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 			free(_Set[i]);
 		}
 		free(_Set[0]);
+		free(_Set[_SetSize]);
 		free(_Set);
-
 		if((_Search = BinarySearch(_Dep, _Array->Table, _Array->Size, AnDepArrayArrayCmp)) != NULL) {
 			ArrayInsertSort_S(_Search->Animals, _Pop, PopulationCmp);
 			free(_Dep);

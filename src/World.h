@@ -35,8 +35,8 @@ struct WorldTile {
 	int Temperature;
 };
 
-void World_Init(int _Area);
-void World_Quit();
+void WorldInit(int _Area);
+void WorldQuit();
 void NextDay(int* _Date);
 int World_Tick();
 

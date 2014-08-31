@@ -37,7 +37,6 @@
 #endif
 
 int g_Date = 0;
-char g_DataFld[] = "data/";
 struct Array* g_World = NULL;
 struct LinkedList* g_ManorList = NULL;
 struct RBTree* g_GoodDeps = NULL;
@@ -88,11 +87,11 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 			RBInsert(&g_Families, _Family);
 			_FamilySize -= FamilySize(_Family);
 		}
-		lua_pop(g_LuaState, 4);
 		_Population -= FamilySize(_Parent);
 	}
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
+	lua_pop(g_LuaState, 4);
 }
 
 int PopulateWorld() {
@@ -104,7 +103,9 @@ int PopulateWorld() {
 	int _ManorInterval = 0;
 	int i = 0;
 
-	LuaLoadFile(g_LuaState, "std.lua");
+	if(LuaLoadFile(g_LuaState, "std.lua") == 0) {
+		goto end;
+	}
 	lua_getglobal(g_LuaState, "ManorConstraints");
 	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
 		Log(ELOG_ERROR, "ManorConstraints is not defined.");
@@ -120,13 +121,12 @@ int PopulateWorld() {
 	AddInteger(g_LuaState, -1, &_ManorInterval);
 	lua_pop(g_LuaState, 2);
 	_ManorSize = CreateConstrntLst(NULL, _ManorMin, _ManorMax, _ManorInterval);
-
 	lua_getglobal(g_LuaState, "FamilyTypes");
 	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
 		Log(ELOG_ERROR, "FamilyTypes is not defined.");
 		goto end;
 	}
-	_FamilyTypes = calloc(lua_rawlen(g_LuaState, -1)+ 1, sizeof(struct FamilyType*));
+	_FamilyTypes = calloc(lua_rawlen(g_LuaState, -1) + 1, sizeof(struct FamilyType*));
 	lua_pushnil(g_LuaState);
 	while(lua_next(g_LuaState, -2) != 0) {
 		_FamilyTypes[i] = malloc(sizeof(struct FamilyType));
@@ -152,7 +152,7 @@ int PopulateWorld() {
 	return 0;
 }
 
-void World_Init(int _Area) {
+void WorldInit(int _Area) {
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -169,7 +169,8 @@ void World_Init(int _Area) {
 
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
-	chdir(g_DataFld);
+	chdir(DATAFLD);
+	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
@@ -205,11 +206,9 @@ void World_Init(int _Area) {
 	GoodLoadEnd:
 	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
 	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
-	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, &LnkLst_CatNode, _BuildList);
-
+	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNodeRm, _BuildList);
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
-
 	g_Families.Table = NULL;
 	g_Families.Size = 0;
 	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
@@ -217,7 +216,6 @@ void World_Init(int _Area) {
 
 	g_ObjPos.Root = NULL;
 	g_ObjPos.Size = 0;
-
 	if(PopulateWorld() == 0)
 		goto end;
 	g_GoodDeps = GoodBuildDep(&g_Goods);
@@ -230,7 +228,8 @@ void World_Init(int _Area) {
 	DestroyLinkedList(_OccupationList);
 }
 
-void World_Quit() {
+void WorldQuit() {
+	AIQuit();
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);

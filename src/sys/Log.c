@@ -70,7 +70,7 @@ void LogLua(lua_State* _State, int _Category, const char* _Text, ...) {
 
 	if(lua_getstack(_State, 0, &_Debug) == 0)
 		return;
-	lua_getinfo(_State, "nl", &_Debug);
+	lua_getinfo(_State, "nlS", &_Debug);
 	//Adding 6 for _Debug.currentline and one for the null terminator
 	_Size = strlen(LOG_LUAMSG) + strlen(_Debug.name) + 7;
 	char _Str[_Size];

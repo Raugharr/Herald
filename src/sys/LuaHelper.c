@@ -229,19 +229,19 @@ int LuaPopulation(lua_State* _State) {
 int LuaMonth(lua_State* _State) {
 	const char* _Type = NULL;
 
-	if(!lua_isnumber(_State, -2)) {
-		LUA_BADARG(1, "Must be an integer.");
-		return 0;
-	}
-	if(!lua_isstring(_State, -1)) {
+	if(!lua_isstring(_State, 1)) {
 		LUA_BADARG(2, "Must be a string.");
 		return 0;
 	}
-	_Type = lua_tostring(_State, -1);
+	if(!lua_isnumber(_State, 2)) {
+		LUA_BADARG(1, "Must be an integer.");
+		return 0;
+	}
+	_Type = lua_tostring(_State, 1);
 	if(!strcmp(_Type, "Years"))
-		lua_pushinteger(_State, TO_MONTHS(lua_tointeger(_State, -1)));
+		lua_pushinteger(_State, TO_YEARS(lua_tointeger(_State, 2)));
 	else if(!strcmp(_Type, "Days"))
-		lua_pushinteger(_State, TO_DAYS(lua_tointeger(_State, -1)));
+		lua_pushinteger(_State, TO_DAYS(lua_tointeger(_State, 2)));
 	else {
 		LUA_BADARG(2, "Must be either \"Years\" or \"Days\".");
 		return 0;
@@ -258,8 +258,8 @@ int LuaHook(lua_State* _State) {
 	}
 	_Name = lua_tostring(_State, 1);
 	if(!strcmp(_Name, "Age")) {
-		if(lua_tonumber(_State, 2) == 0) {
-			LUA_BADARG(1, "Must be an integer.");
+		if(lua_isnumber(_State, 2) == 0) {
+			LUA_BADARG(2, "Must be an integer.");
 			return 0;
 		}
 		lua_pushlightuserdata(_State, CreateEventTime(NULL, lua_tointeger(_State, 2)));

@@ -57,11 +57,14 @@ int ConstructionTime(const struct Building* _Building, int _Width, int _Height) 
 	return (_Building->Walls->BuildCost * _Area ) + (_Building->Floor->BuildCost * _Area) + (_Building->Roof->BuildCost * _Area);
 }
 
-struct Building* CreateBuilding(int _ResType) {
+struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	_Building->Id = NextId();
 	_Building->ResidentType = _ResType;
+	_Building->Walls = _Walls;
+	_Building->Floor = _Floor;
+	_Building->Roof = _Roof;
 	return _Building;
 }
 
@@ -177,6 +180,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 				lua_pop(_State, 2);
 				return NULL;
 			}
+			((struct BuildMat*)_First->Data)->Good = _Good;
 			lua_pop(_State, 1);
 			_Prev = _First;
 		}
@@ -189,6 +193,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 				lua_pop(_State, 1);
 				continue;
 			}
+			((struct BuildMat*)_Node->Data)->Good = _Good;
 			_Node->Next = NULL;
 			_Prev = _Node;
 			lua_pop(_State, 1);

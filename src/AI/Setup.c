@@ -6,6 +6,8 @@
 #include "Setup.h"
 
 #include "BehaviorTree.h"
+#include "LuaLib.h"
+#include "../Population.h"
 #include "../Building.h"
 #include "../Good.h"
 #include "../Crop.h"
@@ -15,13 +17,25 @@
 #include "../Herald.h"
 #include "../sys/HashTable.h"
 #include "../sys/Log.h"
+#include "../sys/Stack.h"
+#include "../sys/LuaHelper.h"
 
 #include <string.h>
 #include <stdlib.h>
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
 
-struct Behavior* g_AIMan = NULL;
-struct Behavior* g_AIWoman = NULL;
-struct Behavior* g_AIChild = NULL;
+struct Array g_BhvList;
+
+int g_BhvActionsSz = 0;
+
+int LuaBaCmp(const void* _One, const void* _Two) {
+	return strcmp(((struct LuaBhvAction*)_One)->Name, ((struct LuaBhvAction*)_Two)->Name);
+}
+
+int PopulationInputReqCmp(const void* _One, const void* _Two) {
+	return ((struct Population*)_One)->Id - ((struct Population*)((struct InputReq*)_Two)->Req)->Id;
+}
 
 int PAIHasField(struct Person* _Person, struct HashTable* _Table) {
 	return _Person->Family->Field != NULL;
@@ -31,11 +45,16 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 	int i;
 	struct Array* _Array = _Person->Family->Buildings;
 	void** _PerTbl = _Array->Table;
+	struct HashNode* _Search = NULL;
 
 	for(i = 0; i < _Array->Size; ++i)
 		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_HUMAN) == ERES_HUMAN)
 			return 1;
-	HashInsert(_Table, AI_MAKEGOOD, AI_HOUSE);
+	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
+		free(_Search->Pair);
+		_Search->Pair = AI_HOUSE;
+	} else
+		HashInsert(_Table, AI_MAKEGOOD, AI_HOUSE);
 	return 0;
 }
 
@@ -76,7 +95,7 @@ int PAIBuildHouse(struct Person* _Person, struct HashTable* _Table) {
 	struct Construction* _House = NULL;
 
 	if((_House = ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_CONSTRUCTION)) == NULL) {
-		ATimerInsert(&g_ATimer, CreateConstruct(HashSearch(&g_Buildings, "Cottage"), _Person));
+		ATimerInsert(&g_ATimer, CreateConstruct(NULL, _Person));
 	} else {
 		--_House->DaysLeft;
 	}
@@ -103,6 +122,7 @@ int PAICanFarm(struct Person* _Person, struct HashTable* _Table) {
 int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
 	struct Array* _Goods = _Person->Family->Goods;
 	const struct GoodBase* _Good = NULL;
+	struct HashNode* _Search = NULL;
 	int i;
 
 	for(i = 0; i < _Goods->Size; ++i) {
@@ -111,7 +131,11 @@ int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct ToolBase*)_Good)->Function == ETOOL_PLOW)
 				return 1;
 	}
-	HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
+	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
+		free(_Search->Pair);
+		_Search->Pair = AI_PLOW;
+	} else
+		HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
 	return 0;
 }
 
@@ -154,6 +178,7 @@ int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
 int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
 	struct Array* _Goods = _Person->Family->Goods;
 	struct GoodBase* _Good = NULL;
+	struct HashNode* _Search = NULL;
 	int i;
 
 	for(i = 0; i < _Goods->Size; ++i) {
@@ -162,7 +187,11 @@ int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct ToolBase*)_Good)->Function == ETOOL_REAP)
 				return 1;
 	}
-	HashInsert(_Table, AI_MAKEGOOD, AI_REAP);
+	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
+		free(_Search->Pair);
+		_Search->Pair = AI_REAP;
+	} else
+		HashInsert(_Table, AI_MAKEGOOD, AI_REAP);
 	return 0;
 }
 
@@ -190,10 +219,52 @@ int PAIHasShelter(struct Person* _Person, struct HashTable* _Table) {
 
 int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 	int i;
-	int _Size = _Person->Family->Goods->Size;
-	void** _Tbl = _Person->Family->Goods->Table;
-	struct Animal* _Animal = NULL;
+	int j;
+	int k;
+	int _AnSize = 0;
+	int _TotalNut = 0;
+	struct Family* _Family = _Person->Family;
+	struct StackNode _Stack;
+	struct InputReq** _AnimalCt = AnimalTypeCount(_Family->Animals, &_AnSize);
+	struct InputReq* _Req = NULL;
+	struct Food* _Food = NULL;
+	struct AnimalDep* _Dep = NULL;
 
+	if(_AnSize == 0)
+		return 1;
+
+	_Stack.Prev = NULL;
+	_Stack.Data = NULL;
+	for(i = 0; i < g_AnFoodDep->Size; ++i) {
+		for(j = 0; ((struct AnimalDep*)g_AnFoodDep->Table[i])->Animals->Size; ++j) {
+			_Dep = ((struct AnimalDep*)g_AnFoodDep->Table[i]);
+			if((_Req = BinarySearch(_Dep->Animals->Table[j], _AnimalCt, _AnSize, PopulationInputReqCmp)) == NULL)
+				continue;
+			_TotalNut += _Req->Quantity * ((struct Population*)_Req->Req)->Nutrition;
+			if(_Food->Quantity >= _TotalNut) {
+				//TODO: We can do better than this.
+				for(k = 0; k < _Family->Animals->Size; ++k) {
+					if(PopulationCmp(_Family->Animals->Table[k], _Req->Req) == 0)
+						AnimalFeed(_Family->Animals->Table[k]);
+				}
+				_Food->Quantity -= _TotalNut;
+			} else {
+				struct StackNode _Top;
+
+				_Top.Prev = &_Stack;
+				_Top.Data = _Dep;
+			}
+		}
+	}
+	//TODO: Finish below loop.
+	while(_Stack.Prev != NULL) {
+		if((_Req = BinarySearch(_Dep->Animals->Table[j], _AnimalCt, _AnSize, PopulationInputReqCmp)) == NULL)
+			continue;
+		_Stack = *_Stack.Prev;
+	}
+	for(i = 0; i < _AnSize; ++i)
+		free(_AnimalCt[i]);
+	free(_AnimalCt);
 	return 1;
 }
 
@@ -238,12 +309,9 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	int _Size;
 	int i;
 	int j;
-	int _Ct;
 	struct Family* _Family = _Person->Family;
 	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
 	struct FoodBase* _Food = NULL;
-	int _FamGoodSize = _Family->Goods->Size;
-	struct Good** _Tbl = (struct Good**)_Family->Goods->Table;
 	struct Good* _Good = NULL;
 	
 	if(_Foods == NULL)
@@ -262,52 +330,97 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
 
+int PAIIsMale(struct Person* _Person, struct HashTable* _Table) {
+	if(_Person->Gender == EMALE)
+		return 1;
+	return 0;
+}
+
 int BHVNothing(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
 
-void AIInit() {
-	g_AIMan = CreateBHVComp(BHV_SEQUENCE,
-				CreateBHVComp(BHV_SEQUENCE,
-						CreateBHVNode(PAIHasField),
-						CreateBHVComp(BHV_SELECTOR,
-								CreateBHVNode(PAIHasPlow),
-								CreateBHVNode(PAIMakeGood),
-								NULL),
-						CreateBHVComp(BHV_SELECTOR,
-								CreateBHVNode(PAIHasReap),
-								CreateBHVNode(PAIMakeGood),
-								NULL),
-						CreateBHVNode(PAIWorkField),
-						NULL),
-				CreateBHVComp(BHV_SELECTOR,
-						CreateBHVNode(PAIHasHouse),
-						CreateBHVNode(PAIConstructBuild),
-						NULL),
-				CreateBHVComp(BHV_SELECTOR,
-						CreateBHVNode(PAIHasAnimals),
-						CreateBHVComp(BHV_SELECTOR,
-									CreateBHVNode(PAIHasShelter),
-									CreateBHVNode(PAIConstructBuild),
-									NULL),
-						CreateBHVNode(PAIFeedAnimals),
-						NULL),
-				CreateBHVNode(PAIEat),
-				CreateBHVNode(PersonUpdate),
-				NULL);
-	g_AIWoman = CreateBHVComp(BHV_SEQUENCE,
-					CreateBHVNode(PAIMakeFood),
-					CreateBHVNode(PAIEat),
-					CreateBHVNode(PersonUpdate),
-					NULL);
-	g_AIChild = CreateBHVComp(BHV_SEQUENCE,
-					CreateBHVNode(PAIEat),
-					CreateBHVNode(PersonUpdate),
-					NULL);
+int LuaActionLen(const struct LuaBhvAction* _Action) {
+	int i = 0;
+
+	while(_Action[i].Name != NULL)
+		++i;
+	return i;
+}
+
+void AIInit(lua_State* _State) {
+	int i = 0;
+	int _Size = 0;
+	const char* _Str = NULL;
+	struct LuaBehavior* _Bhv = NULL;
+
+	g_BhvActionsSz = LuaActionLen(g_BhvActions);
+	//qsort(g_BhvActions, g_BhvActionsSz, sizeof(struct LuaBhvAction), LuaBaCmp);
+	luaL_newlibtable(_State, g_LuaAIFuncs);
+	luaL_setfuncs(_State, g_LuaAIFuncs, 0);
+	lua_setglobal(_State, "AI");
+	if(LuaLoadFile(_State, "ai.lua") == 0) {
+		exit(1);
+	}
+	lua_getglobal(_State, "AI");
+	lua_pushstring(_State, "Init");
+	lua_rawget(_State, -2);
+	if(LuaCallFunc(_State, 0, 1, 0) == 0) {
+		exit(1);
+	}
+
+	_Size = lua_rawlen(_State, -1);
+	g_BhvList.Size = 0;
+	g_BhvList.Table = calloc(_Size, sizeof(struct Behavior*));
+	g_BhvList.TblSize = _Size;
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(!lua_istable(_State, -1)) {
+			LogLua(_State, ELOG_WARNING, "Element #%i of AI.Init should be a table.", i);
+			goto BhvListEnd;
+		}
+		lua_pushnil(_State);
+		if(lua_next(_State, -2) != 0) {
+			if(!lua_isstring(_State, -1)) {
+				LogLua(_State, ELOG_WARNING, "First element of table #%i in AI.Init should be a string.", i);
+				goto BhvListEnd;
+			}
+			_Str = lua_tostring(_State, -1);
+			if(BinarySearch(_Str, g_BhvList.Table, g_BhvList.Size, luaStrLuaBhvCmp) != 0) {
+				LogLua(_State, ELOG_WARNING, "Element #%i in AI.Init name is already used.", i);
+				goto BhvListEnd;
+			}
+		}
+		lua_pop(_State, 1);
+		if(lua_next(_State, -2) != 0) {
+			if(!lua_islightuserdata(_State, -1)) {
+				LogLua(_State, ELOG_WARNING, "Second element of table #%i in AI.Init should be a behavior.", i);
+				goto BhvListEnd;
+			}
+			_Bhv = (struct LuaBehavior*) malloc(sizeof(struct LuaBehavior));
+			_Bhv->Name = strcpy(calloc(strlen(_Str) + 1, sizeof(char)), _Str);
+			_Bhv->Behavior = lua_touserdata(_State, -1);
+		}
+		if(_Bhv == NULL) {
+			LogLua(_State, ELOG_WARNING, "Cannot add NULL behavior to AI.Init.");
+			goto BhvListEnd;
+		}
+		ArrayInsertSort(&g_BhvList, _Bhv, LuaBhvCmp);
+		BhvListEnd:
+		++i;
+		lua_pop(_State, 3);
+		_Bhv = NULL;
+	}
+	lua_pop(_State, 2);
 }
 
 void AIQuit() {
-	DestroyBehavior(g_AIMan);
-	DestroyBehavior(g_AIWoman);
-	DestroyBehavior(g_AIChild);
+	int i;
+
+	for(i = 0; i < g_BhvList.Size; ++i) {
+		DestroyBehavior(((struct LuaBehavior*)g_BhvList.Table[i])->Behavior);
+		free(((struct LuaBehavior*)g_BhvList.Table[i])->Name);
+		free(g_BhvList.Table[i]);
+	}
+	g_BhvList.Size = 0;
 }

@@ -79,14 +79,3 @@ void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 		_Node = _Node->Next;
 	}
 }
-
-void LnkLst_CatNodeRm(struct LinkedList* _List, struct LnkLst_Node* _Node) {
-	struct LnkLst_Node* _Temp = NULL;
-
-	while(_Node != NULL) {
-		LnkLst_PushBack(_List, _Node);
-		_Temp = _Node->Next;
-		free(_Node);
-		_Node = _Temp;
-	}
-}

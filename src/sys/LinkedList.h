@@ -26,5 +26,4 @@ void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct L
  * @brief adds all nodes that _Node can point to including _Node to _List and then deletes them.
  */
 void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node);
-void LnkLst_CatNodeRm(struct LinkedList* _List, struct LnkLst_Node* _Node);
 #endif

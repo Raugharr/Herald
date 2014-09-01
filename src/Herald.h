@@ -21,6 +21,7 @@
 	}
 #define WORKMULT (1000)
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
+#define DATAFLD "data/"
 #define DATE int
 
 typedef struct lua_State lua_State;

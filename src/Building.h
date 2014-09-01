@@ -26,9 +26,9 @@ struct Building {
 	int ResidentType;
 	int Width;
 	int Length;
-	struct GoodBase* Walls;
-	struct GoodBase* Floor;
-	struct GoodBase* Roof;
+	struct BuildMat* Walls;
+	struct BuildMat* Floor;
+	struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
 };
@@ -50,17 +50,18 @@ struct BuildMat {
 	const struct GoodBase* Good;
 };
 
-struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person, int _Width, int _Height);
+struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person);
 struct Construction* CopyConstruct(struct Construction* _Construct);
 void DestroyConstruct(struct Construction* _Construct);
 
 int ConstructUpdate(struct Construction* _Construct);
-int ConstructionTime(const struct Building* _Building);
+int ConstructionTime(const struct Building* _Building, int _Width, int _Height);
 
 struct Building* CreateBuilding(int _ResType);
 struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
 
+struct Building* BuildingPlan(const struct Array* _Goods);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 
 #endif

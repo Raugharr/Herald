@@ -17,9 +17,9 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person, int _Width, int _Height) {
+struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
-	int _BuildTime = ConstructionTime(_Building);
+	int _BuildTime = ConstructionTime(_Building, _Building->Width, _Building->Length);
 	int _Percent = _BuildTime / 10;
 
 	_Construct->Prev = NULL;
@@ -51,8 +51,10 @@ int ConstructUpdate(struct Construction* _Construct) {
 	return 0;
 }
 
-int ConstructionTime(const struct Building* _Building) {
-	return 0;
+int ConstructionTime(const struct Building* _Building, int _Width, int _Height) {
+	int _Area = _Width * _Height;
+
+	return (_Building->Walls->BuildCost * _Area ) + (_Building->Floor->BuildCost * _Area) + (_Building->Roof->BuildCost * _Area);
 }
 
 struct Building* CreateBuilding(int _ResType) {
@@ -156,10 +158,12 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 		if(AddString(_State, -1, &_Temp) != 0) {
 			if((_Good = HashSearch(&g_Goods, _Temp)) == NULL) {
 				Log(ELOG_WARNING, "BuildMat table contains an invalid Object name: %s", _Temp);
+				lua_pop(_State, 2);
 				return NULL;
 			}
 		} else {
 			Log(ELOG_WARNING, "BuildMat table field Object is not a string.");
+			lua_pop(_State, 2);
 			return NULL;
 		}
 	}
@@ -167,7 +171,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 	if(lua_next(_State, -2) != 0) {
 		lua_pushnil(_State);
 		if(lua_next(_State, -2) != 0) {
-			_First = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node*));
+			_First = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node));
 			if((_First->Data = BuildingLoad_Aux(_State, -1)) == NULL) {
 				free(_First);
 				lua_pop(_State, 2);
@@ -177,7 +181,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 			_Prev = _First;
 		}
 		while(lua_next(_State, -2) != 0) {
-			_Node = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node*));
+			_Node = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node));
 			_Prev->Next = _Node;
 			if((_Node->Data = BuildingLoad_Aux(_State, -1)) == NULL) {
 				free(_Node);

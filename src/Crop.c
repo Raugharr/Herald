@@ -76,7 +76,6 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 	const char* _TypeStr = NULL;
 	const char* _Key = NULL;
 
-	lua_getmetatable(_State, _Index);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_isstring(_State, -2))

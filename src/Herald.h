@@ -49,7 +49,7 @@ struct Object {
 
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
-extern struct HashTable g_BuiltMats;
+extern struct HashTable g_BuildMats;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct ATimer g_ATimer;
@@ -66,6 +66,7 @@ void HeraldDestroy();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 int NextId();
+int ObjCmp(const void* _One, const void* _Two);
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);

@@ -31,14 +31,14 @@
 #include <lua/lauxlib.h>
 
 #define AGEDIST_SIZE (17)
-#define CROPS_TBLSZ (512)
+#define CROPS_TBLSZ (64)
 #define GOODS_TBLSZ (512)
-#define BUILDINGS_TBLSZ (512)
-#define OCCUPATIONS_TBLSZ (512)
+#define BUILDINGS_TBLSZ (64)
+#define OCCUPATIONS_TBLSZ (128)
 
 struct HashTable g_Crops;
 struct HashTable g_Goods;
-struct HashTable g_BuiltMats;
+struct HashTable g_BuildMats;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
@@ -64,10 +64,10 @@ void HeraldInit() {
 	g_Goods.Size = 0;
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
-	g_BuiltMats.TblSize = BUILDINGS_TBLSZ;
-	g_BuiltMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuiltMats.TblSize);
-	g_BuiltMats.Size = 0;
-	memset(g_BuiltMats.Table, 0, g_BuiltMats.TblSize * sizeof(struct HashNode*));
+	g_BuildMats.TblSize = BUILDINGS_TBLSZ;
+	g_BuildMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuildMats.TblSize);
+	g_BuildMats.Size = 0;
+	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
 
 	g_Occupations.TblSize = OCCUPATIONS_TBLSZ;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
@@ -227,6 +227,10 @@ void CreateObject(struct Object* _Obj, int _X, int _Y) {
 }
 
 int NextId() {return g_Id++;}
+
+int ObjCmp(const void* _One, const void* _Two) {
+	return *((int*)_One) - *((int*)_Two);
+}
 
 DATE MonthToInt(const char* _Month) {
 	int i;

@@ -23,6 +23,7 @@
 #include "sys/Random.h"
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
+#include "AI/Setup.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,9 +207,10 @@ void WorldInit(int _Area) {
 	GoodLoadEnd:
 	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
 	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
-	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNodeRm, _BuildList);
+	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList);
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
+	LISTTOHASH(_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
 	g_Families.Table = NULL;
 	g_Families.Size = 0;
 	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;

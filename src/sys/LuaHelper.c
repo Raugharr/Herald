@@ -11,10 +11,14 @@
 #include "Log.h"
 #include "Array.h"
 #include "Event.h"
+#include "Random.h"
 #include "../Herald.h"
 #include "../Good.h"
 #include "../Crop.h"
+#include "../Building.h"
 #include "../Population.h"
+#include "../Person.h"
+#include "../Family.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -229,15 +233,8 @@ int LuaPopulation(lua_State* _State) {
 int LuaMonth(lua_State* _State) {
 	const char* _Type = NULL;
 
-	if(!lua_isstring(_State, 1)) {
-		LUA_BADARG(2, "Must be a string.");
-		return 0;
-	}
-	if(!lua_isnumber(_State, 2)) {
-		LUA_BADARG(1, "Must be an integer.");
-		return 0;
-	}
-	_Type = lua_tostring(_State, 1);
+	_Type = luaL_checkstring(_State, 1);
+	luaL_checkinteger(_State, 2);
 	if(!strcmp(_Type, "Years"))
 		lua_pushinteger(_State, TO_YEARS(lua_tointeger(_State, 2)));
 	else if(!strcmp(_Type, "Days"))
@@ -252,19 +249,11 @@ int LuaMonth(lua_State* _State) {
 int LuaHook(lua_State* _State) {
 	const char* _Name = NULL;
 
-	if(!lua_isstring(_State, 1)) {
-		LUA_BADARG(1, "Must be a string.");
-		return 0;
-	}
-	_Name = lua_tostring(_State, 1);
+	_Name = luaL_checkstring(_State, 1);
 	if(!strcmp(_Name, "Age")) {
-		if(lua_isnumber(_State, 2) == 0) {
-			LUA_BADARG(2, "Must be an integer.");
-			return 0;
-		}
-		lua_pushlightuserdata(_State, CreateEventTime(NULL, lua_tointeger(_State, 2)));
+		lua_pushlightuserdata(_State, CreateEventTime(NULL, luaL_checkinteger(_State, 2)));
 	} else {
-		LUA_BADARG(1, "Must be a valid hook type.");
+		luaL_error(_State, "Must be a valid hook type.");
 		return 0;
 	}
 	return 1;
@@ -372,6 +361,111 @@ int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
 	}
 	Log(ELOG_ERROR, "metafield is not a c function.");
 	return 0;
+}
+
+int LuaCreateGood(lua_State* _State) {
+	const struct GoodBase* _GoodBase = NULL;
+	struct Good* _Good = NULL;
+	const char* _Name = NULL;
+	int _Quantity;
+
+	_Name = luaL_checkstring(_State, 1);
+	_Quantity = luaL_checkinteger(_State, 2);
+	if((_GoodBase = HashSearch(&g_Goods, _Name)) == NULL)
+		luaL_error(_State, "Cannot find GoodBase %s.", _Name);
+	_Good = CreateGood(_GoodBase, -1, -1);
+	_Good->Quantity = _Quantity;
+	lua_pushlightuserdata(_State, _Good);
+	return 1;
+}
+
+int LuaPerson(lua_State* _State) {
+	struct Person* _Person = NULL;
+
+	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
+	_Person = lua_touserdata(_State, 1);
+	lua_createtable(_State, 0, 10);
+
+	lua_pushstring(_State, "X");
+	lua_pushinteger(_State, _Person->X);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Y");
+	lua_pushinteger(_State, _Person->Y);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Male");
+	lua_pushboolean(_State, (_Person->Gender == EMALE) ? (1) : (0));
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Nutrition");
+	lua_pushinteger(_State, _Person->Nutrition);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Age");
+	lua_pushinteger(_State, _Person->Age);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Name");
+	lua_pushstring(_State, _Person->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Family");
+	lua_pushstring(_State, _Person->Family->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Parent");
+	lua_pushstring(_State, (_Person->Parent != NULL) ? (_Person->Parent->Name) : ("NULL"));
+	lua_rawset(_State, -3);
+
+	return 1;
+}
+
+int LuaCreateBuilding(lua_State* _State) {
+	int _Width = 0;
+	int _Length = 0;
+	int _ResType = 0;
+	const char* _Floor = NULL;
+	const char* _Walls = NULL;
+	const char* _Roof = NULL;
+	const char* _Type = NULL;
+	struct BuildMat* _FloorMat = NULL;
+	struct BuildMat* _WallMat = NULL;
+	struct BuildMat* _RoofMat = NULL;
+
+	_Width = luaL_optint(_State, 1, 10);
+	_Length = luaL_optint(_State, 2, 10);
+	_Floor = luaL_checkstring(_State, 3);
+	if((_FloorMat = HashSearch(&g_BuildMats, _Floor)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Floor);
+	_Walls = luaL_checkstring(_State, 4);
+	if((_WallMat = HashSearch(&g_BuildMats, _Walls)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Walls);
+	_Roof = luaL_checkstring(_State, 5);
+	if((_RoofMat = HashSearch(&g_BuildMats, _Roof)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Roof);
+	_Type = luaL_optstring(_State, 6, "Human");
+	if(strcmp(_Type, "Human") == 0)
+		_ResType = ERES_HUMAN;
+	else if(strcmp(_Type, "Animal") == 0)
+		_ResType = ERES_ANIMAL;
+	else if(strcmp(_Type, "All") == 0)
+		_ResType = ERES_HUMAN | ERES_ANIMAL;
+	else
+		return luaL_error(_State, "%s is not a valid house type.", _Type);
+	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _Width, _Length, _WallMat, _FloorMat, _RoofMat));
+	return 1;
+}
+
+int luaCreateAnimal(lua_State* _State) {
+	const char* _Name = NULL;
+	struct Population* _Population = NULL;
+
+	_Name = luaL_checkstring(_State, 1);
+	if((_Population = HashSearch(&g_Populations, _Name)) == NULL)
+		return luaL_error(_State, "Cannot find Population %s.", _Name);
+	lua_pushlightuserdata(_State, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), -1, -1));
+	return 1;
 }
 
 void LuaStackToTable(lua_State* _State, int* _Table) {

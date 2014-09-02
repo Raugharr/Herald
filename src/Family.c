@@ -16,6 +16,8 @@
 #include "sys/LuaHelper.h"
 #include "sys/Log.h"
 #include "sys/RBTree.h"
+#include "AI/LuaLib.h"
+#include "AI/Setup.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -130,10 +132,11 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	int _Quantity = 0;
 	int _Percent = 0;
 	const char* _Name = NULL;
-	const struct GoodBase* _GoodBase = NULL;
 	const struct Population* _Population = NULL;
+	const struct LuaBehavior* _Behavior = NULL;
+	struct LuaBehavior _Cmp;
 	char* _Error = NULL;
-	struct Good* _Good = NULL;
+	void* _Obj = NULL;
 
 	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
 		if(_FamilyTypes[i]->Percent * 10000 > _FamType + _Percent) {
@@ -144,30 +147,25 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "Goods");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				lua_pushnil(_State);
-				if(lua_next(_State, -2) == 0) {
-					_Error = "Goods";
-					goto LuaError;
-				}
-				AddString(_State, -1, &_Name);
+				luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
+				_Obj = lua_touserdata(_State, -1);
+				((struct Good*)_Obj)->X = _X;
+				((struct Good*)_Obj)->Y = _Y;
+				ArrayInsertSort_S(_Family->Goods, _Obj, GoodCmp);
 				lua_pop(_State, 1);
-				if(lua_next(_State, -2) == 0) {
-					_Error = "Goods";
-					goto LuaError;
-				}
-				AddInteger(_State, -1, &_Quantity);
-				if((_GoodBase = HashSearch(&g_Goods, _Name)) == NULL) {
-					Log(ELOG_WARNING, "Cannot find GoodBase %s.", _Name);
-					lua_pop(_State, 3);
-					continue;
-				}
-				_Good = CreateGood(_GoodBase, _X, _Y);
-				_Good->Quantity = _Quantity;
-				ArrayInsertSort_S(_Family->Goods, _Good, GoodCmp);
-				lua_pop(_State, 3);
 			}
 			lua_pop(_State, 1);
-			//TODO: Building field isn't used to define buildings yet.
+
+			lua_getfield(_State, -1, "Buildings");
+			lua_pushnil(_State);
+			while(lua_next(_State, -2) != 0) {
+				luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
+				_Obj = lua_touserdata(_State, -1);
+				ArrayInsertSort_S(_Family->Buildings, _Obj, ObjCmp);
+				lua_pop(_State, 1);
+			}
+			lua_pop(_State, 1);
+
 			lua_getfield(_State, -1, "Animals");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
@@ -191,6 +189,27 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				for(j = 0; j < _Quantity; ++j)
 					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), _X, _Y), AnimalCmp);
 				lua_pop(_State, 3);
+			}
+			lua_pop(_State, 1);
+			lua_getfield(_State, -1, "AI");
+			luaL_checktype(_State, -1, LUA_TFUNCTION);
+			lua_pop(_State, 1);
+			for(j = 0; j < _Family->NumChildren + 2; ++i) {
+				if(_Family->People[j] == NULL)
+					continue;
+				lua_getfield(_State, -1, "AI");
+				lua_getglobal(_State, "Person");
+				lua_pushlightuserdata(_State, _Family->People[j]);
+				if(LuaCallFunc(_State, 1, 1, 0) == 0)
+					return;
+				if(LuaCallFunc(_State, 1, 1, 0) == 0)
+					return;
+				_Cmp.Name = luaL_checkstring(_State, -1);
+				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
+					Log(ELOG_WARNING, "%s is not a behavior", lua_tostring(_State, -1));
+					return;
+				}
+				_Family->People[j]->Behavior = _Behavior->Behavior;
 			}
 			lua_pop(_State, 2);
 			break;

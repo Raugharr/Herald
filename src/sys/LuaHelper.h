@@ -8,6 +8,8 @@
 
 #include <lua/lua.h>
 
+struct Building;
+
 #define ConstraintToLua(_State, _Constraint)			\
 	lua_createtable((_State), 0, 2);					\
 	lua_pushstring((_State), "Min");					\
@@ -27,7 +29,11 @@
 	lua_register((_State), "Food", LuaFoodBase);									\
 	lua_register((_State), "Animal", LuaPopulation);								\
 	lua_register((_State), "ToMonth", LuaMonth);									\
-	lua_register((_State), "Hook", LuaHook)
+	lua_register((_State), "Hook", LuaHook);										\
+	lua_register((_State), "CreateGood", LuaCreateGood);							\
+	lua_register((_State), "Person", LuaPerson);									\
+	lua_register((_State), "CreateBuilding", LuaCreateBuilding);					\
+	lua_register((_State), "CreateAnimal", luaCreateAnimal)
 
 struct LinkedList;
 struct Constraint;
@@ -63,6 +69,11 @@ int AddString(lua_State* _State, int _Index, const char** _String);
 int AddNumber(lua_State* _State, int _Index, double* _Number);
 int LuaLudata(lua_State* _State, int _Index, void** _Data);
 int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
+
+int LuaCreateGood(lua_State* _State);
+int LuaPerson(lua_State* _State);
+int LuaCreateBuilding(lua_State* _State);
+int luaCreateAnimal(lua_State* _State);
 
 void LuaStackToTable(lua_State* _State, int* _Table);
 /*

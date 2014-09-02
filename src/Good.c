@@ -225,7 +225,7 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 	DestroyLinkedList(_List);
 	HashDelete(&g_Goods, _Good->Name);
 	DestroyGoodBase(_Good);
-	return NULL;
+	return 0;
 }
 
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good) {

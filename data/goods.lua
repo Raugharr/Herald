@@ -14,5 +14,6 @@ Goods = {
 	{Name = "Straw", Category = "Food", InputGoods = {}, Nutrition = 3},
 	{Name = "Wool", Category = "Other", InputGoods = {}},
 	{Name = "Wool Tunic", Category = "Clothing", InputGoods = {{"Wool", 12}}},
-	{Name = "Wool Trousers", Category = "Clothing", InputGoods = {{"Wool", 12}}}
+	{Name = "Wool Trousers", Category = "Clothing", InputGoods = {{"Wool", 12}}},
+	{Name = "Dirt", Category = "Material", InputGoods = {}}
 }

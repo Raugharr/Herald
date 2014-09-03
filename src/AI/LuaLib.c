@@ -30,36 +30,20 @@ int LuaBhvComp(lua_State* _State) {
 	struct Behavior* _Bhv = NULL;
 	struct Behavior* _Child = NULL;
 
-	if(!lua_isstring(_State, -2)) {
-		LUA_BADARG(1, "Must be a string.");
-		return 0;
-	}
-	if(!lua_istable(_State, -1)) {
-		LUA_BADARG(2, "Must be a table.");
-		return 0;
-	}
-	if((_Key = lua_tostring(_State, -2)) == NULL) {
-		LogLua(_State, ELOG_WARNING, "Name not found.");
-		return 0;
-	}
-	_Len = lua_rawlen(_State, -2);
+	luaL_checktype(_State, 2, LUA_TTABLE);
+	_Key = luaL_checkstring(_State, 1);
+	_Len = lua_rawlen(_State, 2);
 	if(!strcmp(_Key, "Sequence")) {
 		_Bhv = CreateBehavior(NULL, NULL, _Len, BhvSelector);
 	} else if(!strcmp(_Key, "Selector")) {
 		_Bhv = CreateBehavior(NULL, NULL, _Len, BhvSequence);
-	} else {
-		LUA_BADARG(1, "Must be either \"Sequence\" or \"Selector\".");
-		return 0;
-	}
+	} else
+		return luaL_argerror(_State, 1, "Must be either \"Sequence\" or \"Selector\".");
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
-		if(!lua_islightuserdata(_State, -1)) {
-			LUA_BADARG(2, "The %sth element is not a user data.");
-			goto loopend;
-		}
+		luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
 		_Child = lua_touserdata(_State, -1);
 		_Bhv->Children[i++] = _Child;
-		loopend:
 		lua_pop(_State, 1);
 	}
 	lua_pushlightuserdata(_State, _Bhv);
@@ -70,14 +54,10 @@ int LuaBhvPrim(lua_State* _State) {
 	struct LuaBhvAction _Temp;
 	struct LuaBhvAction* _Action = NULL;
 
-	if(!lua_isstring(_State, -1)) {
-		LUA_BADARG(1, "Must be a string.");
-		return 0;
-	}
-	_Temp.Name = lua_tostring(_State, -1);
+	_Temp.Name = luaL_checkstring(_State, 1);
 	if((_Action = bsearch(&_Temp, g_BhvActions, g_BhvActionsSz, sizeof(struct LuaBhvAction), LuaBaCmp)) == NULL) {
-		LUA_BADARG_V(1, "%s is not a valid behavior action.", _Temp.Name);
-		return 0;
+		lua_pushfstring(_State, ERRMSG_BHV, _Temp.Name);
+		return luaL_argerror(_State, 1, lua_tostring(_State, -1));
 	}
 	lua_pushlightuserdata(_State, CreateBehavior(NULL, _Action->Action, 0, NULL));
 	return 1;
@@ -88,21 +68,17 @@ int LuaBhvDec(lua_State* _State) {
 	struct LuaBhvAction* _Action = NULL;
 	const char* _Name = NULL;
 
-	if(!lua_isstring(_State, -2)) {
-		LUA_BADARG(1, "Must be a string.");
-		return 0;
-	}
-	_Name = lua_tostring(_State, -2);
+	_Name = luaL_checkstring(_State, 1);
 	if(!strcmp(_Name, "Not")) {
-		_Temp.Name = lua_tostring(_State, -1);
+		_Temp.Name = luaL_checkstring(_State, 2);
 		if((_Action = bsearch(&_Temp, g_BhvActions, g_BhvActionsSz, sizeof(struct LuaBhvAction), LuaBaCmp)) == NULL) {
-			LUA_BADARG_V(2, "%s is not a valid behavior action.", _Temp.Name);
-			return 0;
+			lua_pushfstring(_State,  ERRMSG_BHV, _Temp.Name);
+			return luaL_argerror(_State, 2, lua_tostring(_State, -1));
 		}
-		lua_pushlightuserdata(_State, CreateBehavior(NULL, _Action, 0, BhvNot));
+		lua_pushlightuserdata(_State, CreateBehavior(NULL, _Action->Action, 0, BhvNot));
 	} else {
-		LUA_BADARG_V(2, "%s is not a valid decorator.", _Action->Name);
-		return 0;
+		lua_pushfstring(_State, "%s is already a behavior tree.", _Action->Name);
+		return luaL_argerror(_State, 2, lua_tostring(_State, -1));
 	}
 	return 1;
 }
@@ -110,15 +86,8 @@ int LuaBhvDec(lua_State* _State) {
 int LuaBhvTree(lua_State* _State) {
 	const char* _Arg = NULL;
 
-	if(!lua_islightuserdata(_State, -2)) {
-		LUA_BADARG(1, "Must be a behavior tree.");
-		return 0;
-	}
-	if(!lua_isstring(_State, -1)) {
-		LUA_BADARG(2, "Must be a string.");
-		return 0;
-	}
-	_Arg = lua_tostring(_State, -1);
+	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
+	_Arg = luaL_checkstring(_State, 2);
 	if(BinarySearch(_Arg, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp) == NULL) {
 		struct LuaBehavior* _Bhv = (struct LuaBehavior*) malloc(sizeof(struct LuaBehavior));
 
@@ -126,8 +95,10 @@ int LuaBhvTree(lua_State* _State) {
 		_Bhv->Behavior = lua_touserdata(_State, -2);
 		ArrayInsert_S(&g_BhvList, _Bhv);
 		return 0;
+	} else {
+		lua_pushfstring(_State, "%s is already a behavior tree.", _Arg);
+		return luaL_argerror(_State, 2, lua_tostring(_State, -1));
 	}
-	LUA_BADARG_V(2, "%s is already a behavior tree.", _Arg);
 	return 0;
 }
 
@@ -136,31 +107,31 @@ int LuaAISetHook(lua_State* _State) {
 	int i = 0;
 	int _Size = 0;
 
-	if(!lua_islightuserdata(_State, -4)) {
+	if(!lua_islightuserdata(_State, 1)) {
 		LUA_BADARG(1, "Must be a behavior tree.");
 		return 0;
 	}
-	if(!lua_islightuserdata(_State, -3)) {
+	if(!lua_islightuserdata(_State, 2)) {
 		LUA_BADARG(2, "Must be a hook.");
 		return 0;
 	}
-	if(!lua_istable(_State, -2)) {
+	if(!lua_istable(_State, 3)) {
 		LUA_BADARG(3, "Must be a table.");
 		return 0;
 	}
-	if(!lua_istable(_State, -1)) {
+	if(!lua_istable(_State, 4)) {
 		LUA_BADARG(4, "Must be a table.");
 		return 0;
 	}
-	if(lua_rawlen(_State, -2) != lua_rawlen(_State, -1))
+	if(lua_rawlen(_State, 3) != lua_rawlen(_State, 4))
 		LogLua(_State, ELOG_WARNING, "Argument 3 and 4 do not have the same length.");
-	_Size = lua_rawlen(_State, -2);
+	_Size = lua_rawlen(_State, 3);
 	_Hook = (struct AIHook*) malloc(sizeof(struct AIHook));
-	_Hook->Bhv = (struct Behavior*) lua_touserdata(_State, -4);
-	_Hook->Event = (struct Event*) lua_touserdata(_State, -3);
+	_Hook->Bhv = (struct Behavior*) lua_touserdata(_State, 1);
+	_Hook->Event = (struct Event*) lua_touserdata(_State, 2);
 	_Hook->Condition = CreateBehavior(NULL, NULL, _Size, BhvSelector);
 	_Hook->BhvPaths = calloc(_Size + 1, sizeof(struct Behavior*));
-	lua_pushvalue(_State, -2);
+	lua_pushvalue(_State, 3);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_islightuserdata(_State, -1) == 0) {

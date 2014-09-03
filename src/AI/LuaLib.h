@@ -11,6 +11,9 @@ typedef struct lua_State lua_State;
 struct Behavior;
 struct Event;
 
+#define ERRMSG_BHV "%s is not a valid behavior action."
+#define ERRMSG_BHVDEC "%s is not a valid decorator."
+
 struct LuaBehavior {
 	char* Name;
 	struct Behavior* Behavior;

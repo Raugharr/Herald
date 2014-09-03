@@ -18,7 +18,7 @@ int BhvSelector(struct Behavior* _Bhv, struct Person* _Person, void* _Data) {
 		if(_Child->Size == 0)
 			_Ret = _Child->Action(_Person, _Data);
 		else
-			_Ret = _Child->Callback(_Bhv, _Person, _Data);
+			_Ret = _Child->Callback(_Child, _Person, _Data);
 		if(_Ret != 0)
 			return _Ret;
 	}

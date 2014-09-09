@@ -27,16 +27,7 @@
 lua_State* g_LuaState = NULL;
 
 int LuaConstraint(lua_State* _State) {
-	int _Min = 0;
-	int _Max = 0;
-	int _Interval = 0;
-	int _Size = 0;
-
-	AddInteger(_State, -3, &_Min);
-	AddInteger(_State, -2, &_Max);
-	AddInteger(_State, -1, &_Interval);
-
-	lua_pushlightuserdata(_State, CreateConstrntLst(&_Size, _Min, _Max, _Interval));
+	lua_pushlightuserdata(_State, CreateConstrntLst(NULL, luaL_checkint(_State, 1),  luaL_checkint(_State, 2),  luaL_checkint(_State, 3)));
 	return 1;
 }
 
@@ -49,15 +40,19 @@ int LuaConstraintBnds(lua_State* _State) {
 
 	lua_pushnil(_State);
 	if(lua_next(_State, -2) != 0) {
-		AddInteger(_State, -1, &_CurrMin);
-		AddInteger(_State, -1, &_CurrMax);
+		_CurrMin = luaL_checkint(_State, -1);
+		if(lua_next(_State, 1) != 0) {
+			_CurrMin = luaL_checkint(_State, -1);
+		}
+		lua_pop(_State, 2);
+		_CurrMax = luaL_checkint(_State, -1);
 		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
 		lua_pop(_State, 1);
 	} else
 		goto error;
 	while(lua_next(_State, -2) != 0) {
 		_CurrMin = _CurrMax + 1;
-		AddInteger(_State, -1, &_CurrMax);
+		_CurrMax = luaL_checkint(_State, -1);
 		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
 		lua_pop(_State, 1);
 	}
@@ -65,7 +60,7 @@ int LuaConstraintBnds(lua_State* _State) {
 	lua_pushlightuserdata(_State, _Constrnt);
 	return 1;
 	error:
-	LogLua(_State, ELOG_WARNING, "");
+	luaL_error(_State, "Cannot create constraint.");
 	free(_Constrnt);
 	return 0;
 }
@@ -230,6 +225,48 @@ int LuaPopulation(lua_State* _State) {
 	return 1;
 }
 
+int LuaPerson(lua_State* _State) {
+	struct Person* _Person = NULL;
+
+	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
+	_Person = lua_touserdata(_State, 1);
+	lua_createtable(_State, 0, 10);
+
+	lua_pushstring(_State, "X");
+	lua_pushinteger(_State, _Person->X);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Y");
+	lua_pushinteger(_State, _Person->Y);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Male");
+	lua_pushboolean(_State, (_Person->Gender == EMALE) ? (1) : (0));
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Nutrition");
+	lua_pushinteger(_State, _Person->Nutrition);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Age");
+	lua_pushinteger(_State, _Person->Age);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Name");
+	lua_pushstring(_State, _Person->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Family");
+	lua_pushstring(_State, _Person->Family->Name);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Parent");
+	lua_pushstring(_State, (_Person->Parent != NULL) ? (_Person->Parent->Name) : ("NULL"));
+	lua_rawset(_State, -3);
+
+	return 1;
+}
+
 int LuaMonth(lua_State* _State) {
 	const char* _Type = NULL;
 
@@ -376,48 +413,6 @@ int LuaCreateGood(lua_State* _State) {
 	_Good = CreateGood(_GoodBase, -1, -1);
 	_Good->Quantity = _Quantity;
 	lua_pushlightuserdata(_State, _Good);
-	return 1;
-}
-
-int LuaPerson(lua_State* _State) {
-	struct Person* _Person = NULL;
-
-	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
-	_Person = lua_touserdata(_State, 1);
-	lua_createtable(_State, 0, 10);
-
-	lua_pushstring(_State, "X");
-	lua_pushinteger(_State, _Person->X);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Y");
-	lua_pushinteger(_State, _Person->Y);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Male");
-	lua_pushboolean(_State, (_Person->Gender == EMALE) ? (1) : (0));
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Nutrition");
-	lua_pushinteger(_State, _Person->Nutrition);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Age");
-	lua_pushinteger(_State, _Person->Age);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Name");
-	lua_pushstring(_State, _Person->Name);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Family");
-	lua_pushstring(_State, _Person->Family->Name);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Parent");
-	lua_pushstring(_State, (_Person->Parent != NULL) ? (_Person->Parent->Name) : ("NULL"));
-	lua_rawset(_State, -3);
-
 	return 1;
 }
 

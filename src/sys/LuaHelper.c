@@ -32,21 +32,23 @@ int LuaConstraint(lua_State* _State) {
 }
 
 int LuaConstraintBnds(lua_State* _State) {
+	luaL_checktype(_State, -1, LUA_TTABLE);
+
 	int _Size = lua_rawlen(_State, -1);
 	int _CurrMin = -1;
 	int _CurrMax = -1;
 	int i = 0;
-	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size + 1));
+	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size));
 
 	lua_pushnil(_State);
 	if(lua_next(_State, -2) != 0) {
 		_CurrMin = luaL_checkint(_State, -1);
-		if(lua_next(_State, 1) != 0) {
-			_CurrMin = luaL_checkint(_State, -1);
-		}
-		lua_pop(_State, 2);
-		_CurrMax = luaL_checkint(_State, -1);
-		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
+		lua_pop(_State, 1);
+		if(lua_next(_State, -2) != 0) {
+			_CurrMax = luaL_checkint(_State, -1);
+			_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
+		} else
+			goto error;
 		lua_pop(_State, 1);
 	} else
 		goto error;
@@ -56,7 +58,7 @@ int LuaConstraintBnds(lua_State* _State) {
 		_Constrnt[i++] = CreateConstraint(_CurrMin, _CurrMax);
 		lua_pop(_State, 1);
 	}
-	_Constrnt[_Size] = NULL;
+	_Constrnt[_Size - 1] = NULL;
 	lua_pushlightuserdata(_State, _Constrnt);
 	return 1;
 	error:

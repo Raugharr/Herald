@@ -75,7 +75,7 @@ struct Food {
 	int Parts;
 };
 
-/*!
+/**
  * @Brief struct that contains a list of each Good that is required as well
  * as if the Good is obtainable.
  */
@@ -110,7 +110,7 @@ void DestroyFoodBase(struct FoodBase* _Food);
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y);
 void DestroyFood(struct Food* _Food);
 
-/*!
+/**
  * @Brief Reads a table from _Index from _State that contains data about a Good.
  * @Return NULL if the table is invalid.
  * @Return Good* if the table is valid.
@@ -119,20 +119,24 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index);
 int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good);
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good);
 void DestroyGoodDep(struct GoodDep* _GoodDep);
-/*
+/**
  * @Brief Simple wrapper that adds the correct ICallback and SCallback to RBTRee.
  * The returned RBTree* can be deleted with DestroyRBTree as normal.
  */
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
-/*!
+/**
  * @Brief Returns an empty GoodDep*. Every GoodDep* in _Tree that is a prerequisite of _Good
  * Will have this empty GoodDep* added to their DepTbl.
  */
 struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
 int GoodNutVal(struct GoodBase* _Base);
-/*!
+/**
  * Creates an array of InputReq* that contain Good and the amount possible to make with the Good*'s in _Goods.
  */
 struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Categories);
+/**
+ *  Returns how many objects of _Good that can be made from the items in _Goods.
+ *  Returns 0 if none can be created.
+ */
 int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods);
 #endif

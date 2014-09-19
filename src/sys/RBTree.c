@@ -292,7 +292,7 @@ struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert
 	return NULL;
 }
 
-void* RBSearch(struct RBTree* _Tree, const void* _Data) {
+void* RBSearch(const struct RBTree* _Tree, const void* _Data) {
 	struct RBNode* _Node = RBSearchNode(_Tree, _Data);
 
 	if(_Node != NULL)
@@ -300,7 +300,7 @@ void* RBSearch(struct RBTree* _Tree, const void* _Data) {
 	return NULL;
 }
 
-struct RBNode* RBSearchNode(struct RBTree* _Tree, const void* _Data) {
+struct RBNode* RBSearchNode(const struct RBTree* _Tree, const void* _Data) {
 	struct RBNode* _Node = NULL;
 	int _Cmp = 0;
 

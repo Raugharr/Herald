@@ -99,6 +99,8 @@ int LuaCreateBuilding(lua_State* _State);
 int luaCreateAnimal(lua_State* _State);
 
 void LuaStackToTable(lua_State* _State, int* _Table);
+void LuaCopyTable(lua_State* _State, int _Index);
+void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*
  * These functions are for retrieving data from simple tables.
  */

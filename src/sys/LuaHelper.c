@@ -305,7 +305,7 @@ int LuaLoadFile(lua_State* _State, const char* _File) {
 		goto error;
 	if((_Error = lua_pcall(_State, 0, LUA_MULTRET, 0)) != 0)
 		goto error;
-	return 1;
+	return LUA_OK;
 
 	error:
 	switch(_Error) {
@@ -319,7 +319,7 @@ int LuaLoadFile(lua_State* _State, const char* _File) {
 			Log(ELOG_ERROR, "Cannot run file: %s", lua_tostring(_State, -1));
 			return _Error;
 	}
-	return 0;
+	return LUA_ERRERR;
 }
 
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
@@ -471,6 +471,47 @@ void LuaStackToTable(lua_State* _State, int* _Table) {
 
 	for(i = 0; i < _Top; ++i)
 		_Table[i] = lua_type(_State, i);
+}
+
+void LuaCopyTable(lua_State* _State, int _Index) {
+	if(lua_type(_State, _Index) != LUA_TTABLE)
+		return;
+	if(lua_type(_State, -1) != LUA_TTABLE)
+		return;
+	lua_pushvalue(_State, _Index);
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		lua_rawset(_State, -3);
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 2);
+}
+
+void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
+	lua_pushvalue(_State, _Index);
+	top:
+	lua_getmetatable(_State, -1);
+	lua_pushliteral(_State, "__baseclass");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) == LUA_TTABLE && lua_type(_State, -2) == LUA_TTABLE) {
+	if(!lua_rawequal(_State, -1, -2)) {
+			lua_copy(_State, -1, -3);
+			lua_pop(_State, 2);
+			goto top;
+		}
+		lua_pop(_State, 3);
+		return lua_touserdata(_State, _Index);
+	} else {
+		lua_getglobal(_State, _Class);
+		lua_getmetatable(_State, -1);
+		if(lua_rawequal(_State, -3, -1)) {
+			lua_pop(_State, 3);
+			return lua_touserdata(_State, _Index);
+		}
+		lua_pop(_State, 2);
+	}
+	lua_pop(_State, 1);
+	return (struct Widget*) luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaCheckClass"));
 }
 
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {

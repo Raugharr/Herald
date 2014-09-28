@@ -454,7 +454,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	return 1;
 }
 
-int luaCreateAnimal(lua_State* _State) {
+int LuaCreateAnimal(lua_State* _State) {
 	const char* _Name = NULL;
 	struct Population* _Population = NULL;
 
@@ -481,10 +481,13 @@ void LuaCopyTable(lua_State* _State, int _Index) {
 	lua_pushvalue(_State, _Index);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
-		lua_rawset(_State, -3);
+		lua_pushvalue(_State, -2);
+		lua_pushvalue(_State, -2);
+		lua_rawset(_State, -6);
 		lua_pop(_State, 1);
 	}
-	lua_pop(_State, 2);
+	lua_pop(_State, 1);
+	lua_remove(_State, _Index);
 }
 
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
@@ -499,7 +502,7 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 			lua_pop(_State, 2);
 			goto top;
 		}
-		lua_pop(_State, 3);
+		lua_pop(_State, 2);
 		return lua_touserdata(_State, _Index);
 	} else {
 		lua_getglobal(_State, _Class);

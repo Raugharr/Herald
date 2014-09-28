@@ -31,7 +31,6 @@
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
-#include <lua/lualib.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -163,10 +162,7 @@ void WorldInit(int _Area) {
 	struct LnkLst_Node* _Itr = NULL;
 
 	Log(ELOG_INFO, "Creating World.");
-	g_World = CreateArray(_Area * _Area);
-	g_LuaState = luaL_newstate();
-	luaL_openlibs(g_LuaState);
-	LuaLoadCFuncs(g_LuaState);
+	g_World = CreateArray(_Area * _Area);;
 
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
@@ -228,6 +224,7 @@ void WorldInit(int _Area) {
 	DestroyLinkedList(_BuildList);
 	DestroyLinkedList(_PopList);
 	DestroyLinkedList(_OccupationList);
+	chdir("..");
 }
 
 void WorldQuit() {
@@ -239,7 +236,6 @@ void WorldQuit() {
 	Family_Quit();
 	DestroyRBTree(g_GoodDeps);
 	DestroyArray(g_AnFoodDep);
-	lua_close(g_LuaState);
 }
 
 void NextDay(int* _Date) {

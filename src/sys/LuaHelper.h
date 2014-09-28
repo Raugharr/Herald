@@ -37,7 +37,7 @@ typedef struct lua_State lua_State;
 	lua_register((_State), "Hook", LuaHook);										\
 	lua_register((_State), "CreateGood", LuaCreateGood);							\
 	lua_register((_State), "CreateBuilding", LuaCreateBuilding);					\
-	lua_register((_State), "CreateAnimal", luaCreateAnimal)
+	lua_register((_State), "CreateAnimal", LuaCreateAnimal)
 
 extern lua_State* g_LuaState;
 
@@ -96,7 +96,7 @@ int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
 
 int LuaCreateGood(lua_State* _State);
 int LuaCreateBuilding(lua_State* _State);
-int luaCreateAnimal(lua_State* _State);
+int LuaCreateAnimal(lua_State* _State);
 
 void LuaStackToTable(lua_State* _State, int* _Table);
 void LuaCopyTable(lua_State* _State, int _Index);

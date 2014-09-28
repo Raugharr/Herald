@@ -5,7 +5,7 @@ DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h Occupation
 OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)Occupation.o $(OBJFLD)World.o
 ODIR=.
-LIB=-llua
+LIB=-lmingw32 -llua -lsdl2main -lsdl2 -lSDL2_ttf
 SYS=sys
 AI=ai
 NAME=herald
@@ -13,7 +13,7 @@ NAME=herald
 $(OBJFLD)%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-herald: sys ai main.c $(OBJ)
+herald: sys ai video main.c $(OBJ)
 	$(CC) -o ../$(NAME) main.c $(CFLAGS) $(OBJFLD)* $(LIB)
 	
 all: herald
@@ -23,7 +23,8 @@ sys:
 
 ai:
 	$(MAKE) -C $(AI)
-.PHONY: clean all sys ai
+	
+.PHONY: clean all sys ai video
 
 clean:
 	rm $(OBJFLD)*.o

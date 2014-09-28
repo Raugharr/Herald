@@ -16,7 +16,6 @@
 
 struct Array;
 struct RBTree;
-typedef struct lua_State lua_State;
 
 extern DATE g_Date;
 extern struct Array* g_World;

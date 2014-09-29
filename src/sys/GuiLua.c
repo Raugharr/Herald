@@ -314,12 +314,13 @@ int LuaSetColor(lua_State* _State) {
 
 int LuaOnKey(lua_State* _State) {
 	int _Key = SDLK_RETURN; //LuaStringToKey(_State, 2);
-	int _KeyState = SDL_RELEASED;//LuaKeyState(_State, 3);
+	int _KeyState = LuaKeyState(_State, 3);
 	int _KeyMod = KMOD_NONE;
 	SDL_Event _Event;
 
 	luaL_argcheck(_State, (lua_isfunction(_State, 4) == 1 || lua_iscfunction(_State, 4) == 1), 4, "Is not a function");
-	_Event.type = SDL_KEYDOWN;
+	luaL_argcheck(_State, (_KeyState != -1), 3, "Is not a valid key state");
+	_Event.type = SDL_KEYUP;
 	_Event.key.state = _KeyState;
 	_Event.key.keysym.sym = _Key;
 	_Event.key.keysym.mod = _KeyMod;
@@ -328,6 +329,12 @@ int LuaOnKey(lua_State* _State) {
 		g_GUIEvents.Events = realloc(g_GUIEvents.Events, sizeof(SDL_Event) * g_GUIEvents.TblSz * 2);
 		g_GUIEvents.TblSz *= 2;
 	}
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "EventIds");
+	lua_rawget(_State, -2);
+	lua_pushvalue(_State, 4);
+	lua_rawseti(_State, -2, luaL_ref(_State, -2));
+	lua_pop(_State, 1);
 	g_GUIEvents.Events[g_GUIEvents.Size++] = _Event;
 	qsort(g_GUIEvents.Events, g_GUIEvents.Size, sizeof(SDL_Event), SDLEventCmp);
 	return 0;
@@ -486,6 +493,10 @@ int LoadGUILua(lua_State* _State) {
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
 
+	lua_pushstring(_State, "EventIds");
+	lua_createtable(_State, g_GUIEvents.TblSz, 0);
+	lua_rawset(_State, -3);
+
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, -2);
 	if(LuaCallFunc(_State, 0, 0, 0) == 0)
@@ -512,4 +523,26 @@ struct Container* GetScreen(lua_State* _State) {
 	_Screen = lua_touserdata(_State, -1);
 	lua_pop(_State, 2);
 	return _Screen;
+}
+
+int LuaKeyState(lua_State* _State, int _Index) {
+	const char* _Type = NULL;
+
+	if(lua_type(_State, _Index) != LUA_TSTRING)
+		return -1;
+	_Type = lua_tostring(_State, _Index);
+	if(strcmp(_Type, "Released") == 0)
+		return SDL_RELEASED;
+	else if(strcmp(_Type, "Pressed") == 0)
+		return SDL_PRESSED;
+	return -1;
+}
+
+void LuaCallEvent(lua_State* _State, int _EvntIndx) {
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "EventIds");
+	lua_rawget(_State, -2);
+	lua_rawgeti(_State, -1, _EvntIndx + 1);
+	LuaCallFunc(_State, 0, 0, 0);
+	lua_pop(_State, 2);
 }

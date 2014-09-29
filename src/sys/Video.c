@@ -73,8 +73,8 @@ void DecrFocus(struct GUIFocus* _Focus) {
 }
 
 void Events() {
+	int i;
 	SDL_Event _Event;
-	struct Container* _Screen = GetScreen(g_LuaState);
 
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP) {
@@ -87,6 +87,9 @@ void Events() {
 				IncrFocus(&g_Focus);
 				g_Focus.Parent->Children[g_Focus.Index]->OnFocus(g_Focus.Parent->Children[g_Focus.Index]);
 			}
+		for(i = 0; i < g_GUIEvents.Size; ++i)
+			if(KeyEventCmp(&g_GUIEvents.Events[i], &_Event) == 0)
+				LuaCallEvent(g_LuaState, i);
 		}
 	}
 }
@@ -94,6 +97,8 @@ void Events() {
 void Draw() {
 	struct Container* _Screen = NULL;
 
+	if(g_GUIOk == 0)
+		return;
 	g_GUIOk = (SDL_RenderClear(g_Renderer) == 0);
 	_Screen = GetScreen(g_LuaState);
 	if(_Screen != NULL)

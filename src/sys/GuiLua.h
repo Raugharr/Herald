@@ -30,6 +30,7 @@ int LuaSetMenu(lua_State* _State);
 int LuaSetColor(lua_State* _State);
 int LuaOnKey(lua_State* _State);
 int LuaQuit(lua_State* _State);
+
 /**
  * Check functions
  */
@@ -68,5 +69,6 @@ int LuaTextBoxSetText(lua_State* _State);
 int LoadGUILua(lua_State* _State);
 struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
+void LuaCallEvent(lua_State* _State, int _EvntIndx);
 
 #endif

@@ -12,6 +12,7 @@
 #define SDL_HEIGHT (1024)
 #define SDL_WIDTH (768)
 
+typedef struct lua_State lua_State;
 typedef struct SDL_Window SDL_Window;
 typedef struct SDL_Renderer SDL_Renderer;
 typedef struct _TTF_Font TTF_Font;
@@ -56,10 +57,12 @@ struct Widget {
 	const struct Widget* Parent;
 	struct Widget** Children;
 	int ChildrenSz;
+	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
+	void (*OnDestroy)(struct Widget*);
 };
 
 struct TextBox {
@@ -68,10 +71,12 @@ struct TextBox {
 	const struct Widget* Parent;
 	struct Widget** Children;
 	int ChildrenSz;
+	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
+	void (*OnDestroy)(struct Widget*);
 	int (*SetText)(struct Widget*, SDL_Surface*);
 	SDL_Surface* Text;
 };
@@ -82,12 +87,30 @@ struct Container {
 	struct Widget* Parent;
 	struct Widget** Children;
 	int ChildrenSz;
+	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
+	void (*OnDestroy)(struct Widget*);
 	int Spacing;
 	struct Margin Margins;
+};
+
+struct Table {
+	int Id;
+	SDL_Rect Rect;
+	struct Widget* Parent;
+	struct Widget** Children;
+	int ChildrenSz;
+	int LuaRef;
+	int CanFocus;
+	int (*OnDraw)(struct Widget*);
+	int (*OnFocus)(struct Widget*);
+	int (*OnUnfocus)(struct Widget*);
+	void (*OnDestroy)(struct Widget*);
+	int Columns;
+	int Rows;
 };
 
 int VideoInit();
@@ -101,9 +124,9 @@ void Draw();
  * Constructors
  */
 
-void ConstructWidget(struct Widget* _Widget, const struct Widget* _Parent,SDL_Rect* _Rect);
-struct TextBox* CreateText(const struct Widget* _Parent, SDL_Rect* _Rect, SDL_Surface* _Text);
-struct Container* CreateContainer(const struct Widget* _Parent, SDL_Rect* _Rect, int _Spacing, const struct Margin* _Margin);
+void ConstructWidget(struct Widget* _Widget, const struct Widget* _Parent,SDL_Rect* _Rect, lua_State* _State);
+struct TextBox* CreateText(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
+struct Container* CreateContainer(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 void WidgetSetParent(struct Widget* _Parent, struct Widget* _Child);
@@ -111,7 +134,7 @@ void WidgetSetParent(struct Widget* _Parent, struct Widget* _Child);
  * Deconstructors
  */
 
-void DestroyText(struct TextBox* _Text);
+void DestroyTextBox(struct TextBox* _Text);
 void DestroyContainer(struct Container* _Container);
 
 int WidgetOnDraw(struct Widget* _Widget);

@@ -1,6 +1,11 @@
 #ifndef __GUILUA_H
 #define __GUILUA_H
 
+/*
+ * TODO: In LuaOnKey all elements that have a luaL_ref need luaL_unref
+ * called on them when the screen changes to not potentially leak memory.
+ */
+
 typedef struct lua_State lua_State;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
@@ -11,16 +16,7 @@ int LuaRegisterTextBox(lua_State* _State);
 int LuaRegisterSurface(lua_State* _State);
 int LuaRegisterFont(lua_State* _State);
 
-/**
- * Push functions
- */
-
-struct Widget* LuaWidgetPush(lua_State* _State);
-struct Container* LuaContainerPush(lua_State* _State);
-struct TextBox* LuaTextBoxPush(lua_State* _State);
-
 int LuaCreateTextBox(lua_State* _State);
-
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
 int LuaBackgroundColor(lua_State* _State);
@@ -66,9 +62,11 @@ int LuaContainerGetMargins(lua_State* _State);
 
 int LuaTextBoxSetText(lua_State* _State);
 
-int LoadGUILua(lua_State* _State);
+int InitGUILua(lua_State* _State);
+int QuitGUILua(lua_State* _State);
 struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
 void LuaCallEvent(lua_State* _State, int _EvntIndx);
+int LuaWidgetRef(lua_State* _State);
 
 #endif

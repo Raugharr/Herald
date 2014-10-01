@@ -13,6 +13,8 @@ struct LinkedList;
 struct Constraint;
 typedef struct lua_State lua_State;
 
+#define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (lua_gettop(_State) + (_Index) + 1))
+
 #define ConstraintToLua(_State, _Constraint)			\
 	lua_createtable((_State), 0, 2);					\
 	lua_pushstring((_State), "Min");					\
@@ -100,6 +102,8 @@ int LuaCreateAnimal(lua_State* _State);
 
 void LuaStackToTable(lua_State* _State, int* _Table);
 void LuaCopyTable(lua_State* _State, int _Index);
+void* LuaToClass(lua_State* _State, int _Index);
+void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*
  * These functions are for retrieving data from simple tables.

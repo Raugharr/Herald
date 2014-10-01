@@ -490,6 +490,33 @@ void LuaCopyTable(lua_State* _State, int _Index) {
 	lua_remove(_State, _Index);
 }
 
+void* LuaToClass(lua_State* _State, int _Index) {
+	void* _Pointer = NULL;
+	int _Pos = LuaAbsPos(_State, _Index);
+
+	if((_Pointer = lua_touserdata(_State, _Index)) == NULL) {
+		luaL_checktype(_State, _Index, LUA_TTABLE);
+		lua_pushstring(_State, "__self");
+		int _Top = lua_gettop(_State);
+		lua_rawget(_State, _Pos);
+		_Pointer = lua_touserdata(_State, -1);
+		lua_pop(_State, 1);
+	}
+	return _Pointer;
+}
+
+void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
+	if(lua_getmetatable(_State, _Index) == 0)
+		 luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaTestClass"));
+	lua_pushstring(_State, "__class");
+	lua_rawget(_State, -2);
+	if(lua_isstring(_State, -1) && strcmp(_Class, lua_tostring(_State, -1)) != 0) {
+		lua_pop(_State, 2);
+		return NULL;
+	}
+	return LuaToClass(_State, _Index);
+}
+
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	lua_pushvalue(_State, _Index);
 	top:
@@ -509,12 +536,12 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 		lua_getmetatable(_State, -1);
 		if(lua_rawequal(_State, -3, -1)) {
 			lua_pop(_State, 3);
-			return lua_touserdata(_State, _Index);
+			return LuaToClass(_State, _Index);
 		}
 		lua_pop(_State, 2);
 	}
 	lua_pop(_State, 1);
-	return (struct Widget*) luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaCheckClass"));
+	return (void*) luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaCheckClass"));
 }
 
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {

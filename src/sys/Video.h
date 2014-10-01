@@ -20,11 +20,12 @@ typedef struct SDL_Surface SDL_Surface;
 struct Widget;
 
 struct GUIFocus {
-	struct Widget* Parent;
+	struct Container* Parent;
 	int Index;
 };
 
 struct GUIEvents {
+	/* TODO: Events based on clicking a widget are not possible as the hooking widget is not stored. */
 	SDL_Event* Events;
 	int TblSz;
 	int Size;
@@ -53,10 +54,8 @@ struct Margin {
 
 struct Widget {
 	int Id;
+	const struct Container* Parent;
 	SDL_Rect Rect;
-	const struct Widget* Parent;
-	struct Widget** Children;
-	int ChildrenSz;
 	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
@@ -67,10 +66,8 @@ struct Widget {
 
 struct TextBox {
 	int Id;
+	const struct Container* Parent;
 	SDL_Rect Rect;
-	const struct Widget* Parent;
-	struct Widget** Children;
-	int ChildrenSz;
 	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
@@ -83,32 +80,32 @@ struct TextBox {
 
 struct Container {
 	int Id;
-	SDL_Rect Rect;
-	struct Widget* Parent;
-	struct Widget** Children;
-	int ChildrenSz;
-	int LuaRef;
+	const struct Container* Parent;
+	SDL_Rect Rect;	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
 	void (*OnDestroy)(struct Widget*);
+	void (*NewChild)(struct Container*, struct Widget*);
+	struct Widget** Children;
+	int ChildrenSz;
 	int Spacing;
 	struct Margin Margins;
 };
 
 struct Table {
 	int Id;
+	const struct Container* Parent;
 	SDL_Rect Rect;
-	struct Widget* Parent;
-	struct Widget** Children;
-	int ChildrenSz;
 	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
 	void (*OnDestroy)(struct Widget*);
+	struct Widget** Children;
+	int ChildrenSz;
 	int Columns;
 	int Rows;
 };
@@ -124,22 +121,25 @@ void Draw();
  * Constructors
  */
 
-void ConstructWidget(struct Widget* _Widget, const struct Widget* _Parent,SDL_Rect* _Rect, lua_State* _State);
-struct TextBox* CreateText(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
-struct Container* CreateContainer(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
+struct TextBox* CreateText(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
+struct Container* CreateContainer(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
-void WidgetSetParent(struct Widget* _Parent, struct Widget* _Child);
+void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 /**
  * Deconstructors
  */
-
+void DestroyWidget(struct Widget* _Widget);
 void DestroyTextBox(struct TextBox* _Text);
 void DestroyContainer(struct Container* _Container);
 
-int WidgetOnDraw(struct Widget* _Widget);
-int WidgetOnFocus(struct Widget* _Widget);
-int WidgetOnUnfocus(struct Widget* _Widget);
+int ContainerOnDraw(struct Container* _Container);
+int ContainerOnFocus(struct Container* _Container);
+int ContainerOnUnfocus(struct Container* _Container);
+
+void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
+void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
 
 int TextBoxOnDraw(struct Widget* _Widget);
 int TextBoxOnFocus(struct Widget* _Widget);

@@ -4,6 +4,7 @@
 /*
  * TODO: In LuaOnKey all elements that have a luaL_ref need luaL_unref
  * called on them when the screen changes to not potentially leak memory.
+ * TODO: when Widget:Close() is called all events and widgets must be cleaned up.
  */
 
 typedef struct lua_State lua_State;
@@ -17,6 +18,7 @@ int LuaRegisterSurface(lua_State* _State);
 int LuaRegisterFont(lua_State* _State);
 
 int LuaCreateTextBox(lua_State* _State);
+struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
 int LuaBackgroundColor(lua_State* _State);
@@ -25,7 +27,7 @@ int LuaDefaultFont(lua_State* _State);
 int LuaSetMenu(lua_State* _State);
 int LuaSetColor(lua_State* _State);
 int LuaOnKey(lua_State* _State);
-int LuaQuit(lua_State* _State);
+int LuaContainerClose(lua_State* _State);
 
 /**
  * Check functions
@@ -68,5 +70,6 @@ struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
 void LuaCallEvent(lua_State* _State, int _EvntIndx);
 int LuaWidgetRef(lua_State* _State);
+void LuaWidgetUnref(lua_State* _State, int _Ref);
 
 #endif

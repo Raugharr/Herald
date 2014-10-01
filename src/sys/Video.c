@@ -26,6 +26,7 @@ struct GUIEvents g_GUIEvents = {NULL, 16, 0};
 SDL_Surface* g_Surface = NULL;
 
 int VideoInit() {
+	struct Container* _Screen = NULL;
 	Log(ELOG_INFO, "Setting up video.");
 	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
 		goto error;
@@ -39,6 +40,11 @@ int VideoInit() {
 	g_GUIEvents.Events = calloc(g_GUIEvents.TblSz, sizeof(SDL_Event));
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
+	_Screen = GetScreen(g_LuaState);
+	g_Focus.Parent = _Screen;
+	g_Focus.Index = 0;
+	if(_Screen->ChildrenSz > 0)
+		_Screen->Children[0]->OnFocus(_Screen->Children[0]);
 	return 1;
 	error:
 	g_GUIOk = 0;
@@ -56,7 +62,7 @@ void VideoQuit() {
 int NextGUIId() {return g_GUIId++;}
 
 void IncrFocus(struct GUIFocus* _Focus) {
-	const struct Widget* _Parent = _Focus->Parent;
+	const struct Container* _Parent = _Focus->Parent;
 
 	if(++_Focus->Index >= _Parent->ChildrenSz)
 		_Focus->Index = 0;
@@ -65,7 +71,7 @@ void IncrFocus(struct GUIFocus* _Focus) {
 }
 
 void DecrFocus(struct GUIFocus* _Focus) {
-	const struct Widget* _Parent = _Focus->Parent;
+	const struct Container* _Parent = _Focus->Parent;
 
 	if(--_Focus->Index < 0)
 		_Focus->Index = _Parent->ChildrenSz - 1;
@@ -89,8 +95,9 @@ void Events() {
 				g_Focus.Parent->Children[g_Focus.Index]->OnFocus(g_Focus.Parent->Children[g_Focus.Index]);
 			}
 		for(i = 0; i < g_GUIEvents.Size; ++i)
+			/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
 			if(KeyEventCmp(&g_GUIEvents.Events[i], &_Event) == 0)
-				LuaCallEvent(g_LuaState, i);
+				LuaCallEvent(g_LuaState, i + 1);
 		}
 	}
 }
@@ -110,24 +117,25 @@ void Draw() {
 	g_GUITimer = SDL_GetTicks();
 }
 
-void ConstructWidget(struct Widget* _Widget, const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State) {
+void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
 	_Widget->Rect.x = _Rect->x;
 	_Widget->Rect.y = _Rect->y;
 	_Widget->Rect.w = _Rect->w;
 	_Widget->Rect.h = _Rect->h;
-	_Widget->Parent = _Parent;
-	_Widget->Children = NULL;
-	_Widget->ChildrenSz = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
 	_Widget->CanFocus = 1;
-	_Widget->OnDraw = WidgetOnDraw;
-	_Widget->OnFocus = WidgetOnFocus;
-	_Widget->OnUnfocus = WidgetOnUnfocus;
+	_Widget->OnDraw = NULL;
+	_Widget->OnFocus = NULL;
+	_Widget->OnUnfocus = NULL;
 	_Widget->OnDestroy = NULL;
+	if(_Parent != NULL)
+		_Parent->NewChild(_Parent, _Widget);
+	else
+		_Widget->Parent = NULL;
 }
 
-struct TextBox* CreateText(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text) {
+struct TextBox* CreateText(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text) {
 	struct TextBox* _Widget = (struct TextBox*) malloc(sizeof(struct TextBox));
 
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
@@ -141,12 +149,15 @@ struct TextBox* CreateText(const struct Widget* _Parent, SDL_Rect* _Rect, lua_St
 	return _Widget;
 }
 
-struct Container* CreateContainer(const struct Widget* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
+struct Container* CreateContainer(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	struct Container* _Container = (struct Container*) malloc(sizeof(struct Container));
 
 	ConstructWidget((struct Widget*)_Container, _Parent, _Rect, _State);
+	_Container->Children = NULL;
+	_Container->ChildrenSz = 0;
 	_Container->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
-	_Container->OnDraw = WidgetOnDraw;
+	_Container->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
+	_Container->NewChild = NULL;
 	_Container->Spacing = _Spacing;
 	_Container->Margins.Top = _Margin->Top;
 	_Container->Margins.Left = _Margin->Left;
@@ -159,17 +170,17 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 	int i;
 	int j;
 	int _X = _Parent->Margins.Left;
-	int _Y = _Parent->Margins.Right;
+	int _Y = _Parent->Margins.Top;
 
 	if(_Parent->Children == NULL) {
 		_Parent->Children = calloc(2, sizeof(struct Widget*));
 		memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
 		_Parent->ChildrenSz = 2;
 	}
-	_Child->Parent = (struct Widget*)_Parent;
+	_Child->Parent = _Parent;
 	for(i = 0; i < _Parent->ChildrenSz && _Parent->Children[i] != NULL; ++i) {
-		//_X += _Parent->Spacing + _Parent->Children[i]->Rect.w;
-		_Y += _Parent->Spacing+ _Parent->Children[i]->Rect.h;
+		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
+		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
 	if(i == _Parent->ChildrenSz) {
 		_Parent->Children = realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
@@ -182,7 +193,7 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 	_Child->Rect.y = _Y;
 }
 
-void WidgetSetParent(struct Widget* _Parent, struct Widget* _Child) {
+void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 	int i;
 
 	if(_Parent->Children == NULL) {
@@ -201,49 +212,64 @@ void WidgetSetParent(struct Widget* _Parent, struct Widget* _Child) {
 	_Child->Parent = _Parent;
 }
 
+void DestroyWidget(struct Widget* _Widget) {
+	LuaWidgetUnref(g_LuaState, _Widget->LuaRef);
+}
+
 void DestroyTextBox(struct TextBox* _Text) {
+	DestroyWidget((struct Widget*)_Text);
 	SDL_FreeSurface(_Text->Text);
 }
 void DestroyContainer(struct Container* _Container) {
+	DestroyWidget((struct Widget*)_Container);
 	free(_Container);
 }
 
-int WidgetOnDraw(struct Widget* _Widget) {
+int ContainerOnDraw(struct Container* _Container) {
 	int i;
 	int _Ret = 0;
 
-	if(_Widget->Children == NULL)
+	if(_Container->Children == NULL)
 		return 1;
-	for(i = 0; _Widget->Children[i] != NULL && i < _Widget->ChildrenSz; ++i) {
-		_Ret = _Widget->Children[i]->OnDraw(_Widget->Children[i]);
+	for(i = 0; _Container->Children[i] != NULL && i < _Container->ChildrenSz; ++i) {
+		_Ret = _Container->Children[i]->OnDraw(_Container->Children[i]);
 		if(_Ret == 0)
 			return 0;
 	}
 	return 1;
 }
 
-int WidgetOnFocus(struct Widget* _Widget) {
+int ContainerOnFocus(struct Container* _Container) {
 	int i;
 
-	for(i = 0; i < _Widget->ChildrenSz; ++i)
-		if(_Widget->Children[i]->OnFocus(_Widget->Children[i]) == 0)
+	for(i = 0; i < _Container->ChildrenSz; ++i)
+		if(_Container->Children[i]->OnFocus(_Container->Children[i]) == 0)
 			return 0;
 	return 1;
 }
 
-int WidgetOnUnfocus(struct Widget* _Widget) {
+int ContainerOnUnfocus(struct Container* _Container) {
 	int i;
 
-	for(i = 0; i < _Widget->ChildrenSz; ++i)
-		if(_Widget->Children[i]->OnUnfocus(_Widget->Children[i]) == 0)
+	for(i = 0; i < _Container->ChildrenSz; ++i)
+		if(_Container->Children[i]->OnUnfocus(_Container->Children[i]) == 0)
 			return 0;
 	return 1;
+}
+
+void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
+	ContainerPosChild(_Parent, _Child);
+	_Child->Rect.x = 0;
+}
+
+void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
+	ContainerPosChild(_Parent, _Child);
+	_Child->Rect.y = 0;
 }
 
 int TextBoxOnDraw(struct Widget* _Widget) {
 	if(SDL_BlitSurface(((struct TextBox*)_Widget)->Text, NULL, g_Surface, &_Widget->Rect) != 0)
 		return 0;
-	WidgetOnDraw(_Widget);
 	return 1;
 }
 

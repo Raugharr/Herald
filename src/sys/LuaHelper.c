@@ -497,7 +497,6 @@ void* LuaToClass(lua_State* _State, int _Index) {
 	if((_Pointer = lua_touserdata(_State, _Index)) == NULL) {
 		luaL_checktype(_State, _Index, LUA_TTABLE);
 		lua_pushstring(_State, "__self");
-		int _Top = lua_gettop(_State);
 		lua_rawget(_State, _Pos);
 		_Pointer = lua_touserdata(_State, -1);
 		lua_pop(_State, 1);

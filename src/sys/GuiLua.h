@@ -1,12 +1,6 @@
 #ifndef __GUILUA_H
 #define __GUILUA_H
 
-/*
- * TODO: In LuaOnKey all elements that have a luaL_ref need luaL_unref
- * called on them when the screen changes to not potentially leak memory.
- * TODO: when Widget:Close() is called all events and widgets must be cleaned up.
- */
-
 typedef struct lua_State lua_State;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
@@ -27,7 +21,7 @@ int LuaDefaultFont(lua_State* _State);
 int LuaSetMenu(lua_State* _State);
 int LuaSetColor(lua_State* _State);
 int LuaOnKey(lua_State* _State);
-int LuaContainerClose(lua_State* _State);
+int LuaCloseMenu(lua_State* _State);
 
 /**
  * Check functions

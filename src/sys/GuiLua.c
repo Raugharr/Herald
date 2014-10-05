@@ -29,6 +29,7 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"DefaultFont", LuaDefaultFont},
 		{"SetMenu", LuaSetMenu},
 		{"SetColor", LuaSetColor},
+		{"CloseMenu", LuaCloseMenu},
 		{NULL, NULL}
 };
 
@@ -48,7 +49,6 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"Spacing", LuaContainerGetSpacing},
 		{"Margins", LuaContainerGetMargins},
 		{"CreateTextBox", LuaCreateTextBox},
-		{"Close", LuaContainerClose},
 		{NULL, NULL}
 };
 
@@ -198,7 +198,8 @@ int LuaCreateTextBox(lua_State* _State) {
 	_Rect.w = _Surface->w;
 	_Rect.h = _Surface->h;
 	lua_newtable(_State);
-	_TextBox = CreateText(_Parent, &_Rect, _State, _Surface);
+	_TextBox = CreateTextBox();
+	ConstructTextBox(_TextBox, _Parent, &_Rect, _State, _Surface);
 	lua_getglobal(_State, "TextBox");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
@@ -222,10 +223,11 @@ struct Container* LuaContainer(lua_State* _State) {
 	}
 	luaL_argcheck(_State, (i == 4), 6, "Table requires 4 elements.");
 	lua_newtable(_State);
+	_Container = CreateContainer();
 	if(lua_gettop(_State) > 7) {
-		_Container = CreateContainer(LuaCheckClass(_State, 7, "Widget"), &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
+		ConstructContainer(_Container, LuaCheckClass(_State, 7, "Widget"), &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	} else
-		_Container = CreateContainer(NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
+		ConstructContainer(_Container, NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	lua_getglobal(_State, "Container");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
@@ -234,6 +236,10 @@ struct Container* LuaContainer(lua_State* _State) {
 
 	/* NOTE: Is this if statement needed? */
 	if(_Container->Parent == NULL) {
+		struct Container* _Screen = GetScreen(_State);
+
+		if(_Screen != NULL)
+			_Screen->OnDestroy((struct Widget*)_Screen);
 		lua_getglobal(_State, "GUI");
 		lua_pushstring(_State, "Screen");
 		lua_pushvalue(_State, -3);
@@ -283,6 +289,11 @@ int LuaDefaultFont(lua_State* _State) {
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 
+	if(GetScreen(_State) != NULL)
+		LuaCloseMenu(_State);
+	g_Focus.Parent = NULL;
+	g_Focus.Index = 0;
+	g_Focus.Id = 0;
 	lua_getglobal(_State, _Name);
 	if(lua_type(_State, -1) != LUA_TTABLE)
 		return luaL_error(_State, "%s is not a table.", _Name);
@@ -294,9 +305,9 @@ int LuaSetMenu(lua_State* _State) {
 	lua_pushinteger(_State, SDL_HEIGHT);
 	if(LuaCallFunc(_State, 2, 1, 0) == 0)
 		luaL_error(_State, "%s.Init function call failed", _Name);
-	if(lua_type(_State, -1) != LUA_TNUMBER)
-		luaL_error(_State, "%s.Init function did not return a number", _Name);
-	if(lua_tointeger(_State, -1) > 0) {
+	if(lua_type(_State, -1) != LUA_TBOOLEAN)
+		luaL_error(_State, "%s.Init function did not return a boolean", _Name);
+	if(lua_toboolean(_State, -1) > 0) {
 		lua_getglobal(_State, "GUI");
 		lua_pushstring(_State, "ScreenStack");
 		lua_rawget(_State, -2);
@@ -305,6 +316,7 @@ int LuaSetMenu(lua_State* _State) {
 		lua_pop(_State, 2);
 	}
 	lua_pop(_State, 2);
+	g_GUIOk = 1;
 	return 0;
 }
 
@@ -326,10 +338,12 @@ int LuaSetColor(lua_State* _State) {
 }
 
 int LuaOnKey(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 	int _Key = SDLK_RETURN; //LuaStringToKey(_State, 2);
 	int _KeyState = LuaKeyState(_State, 3);
 	int _KeyMod = KMOD_NONE;
 	SDL_Event _Event;
+	struct WEvent _WEvent;
 
 	luaL_argcheck(_State, (lua_isfunction(_State, 4) == 1 || lua_iscfunction(_State, 4) == 1), 4, "Is not a function");
 	luaL_argcheck(_State, (_KeyState != -1), 3, "Is not a valid key state");
@@ -348,25 +362,40 @@ int LuaOnKey(lua_State* _State) {
 	lua_pushvalue(_State, 4);
 	lua_rawseti(_State, -2, luaL_ref(_State, -2));
 	lua_pop(_State, 1);
-	g_GUIEvents.Events[g_GUIEvents.Size++] = _Event;
-	qsort(g_GUIEvents.Events, g_GUIEvents.Size, sizeof(SDL_Event), SDLEventCmp);
+	_WEvent.Event = _Event;
+	_WEvent.WidgetId = _Widget->Id;
+	g_GUIEvents.Events[g_GUIEvents.Size++] = _WEvent;
+	//qsort(g_GUIEvents.Events, g_GUIEvents.Size, sizeof(struct WEvent), SDLEventCmp);
 	return 0;
 }
 
-int LuaContainerClose(lua_State* _State) {
+int LuaCloseMenu(lua_State* _State) {
+	struct Container* _Container = GetScreen(_State);
 	int _Len = 0;
 
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "ScreenStack");
 	lua_rawget(_State, -2);
 	_Len = lua_rawlen(_State, -1);
+	lua_pop(_State, 1);
 	if(_Len > 0) {
 		luaL_unref(_State, -1, _Len);
-		if(_Len == 1)
+		if(_Len == 1) {
 			g_GUIOk = 0;
-	} else {
+		} else {
+			lua_pushstring(_State, "Screen");
+			lua_pushstring(_State, "ScreenStack");
+			lua_rawget(_State, -3);
+			lua_rawset(_State, -3);
+		}
+	} else
 		g_GUIOk = 0;
-	}
+	lua_pushstring(_State, "Screen");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
+	if(_Container != NULL)
+		_Container->OnDestroy((struct Widget*)_Container);
 	return 0;
 }
 

@@ -20,7 +20,7 @@ struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIOk = 1;
 int g_GUIId = 0;
 int g_GUITimer = 0;
-struct GUIFocus g_Focus = {NULL, 0};
+struct GUIFocus g_Focus = {NULL, 0, 0};
 struct GUIEvents g_GUIEvents = {NULL, 16, 0};
 
 SDL_Surface* g_Surface = NULL;
@@ -37,7 +37,7 @@ int VideoInit() {
 	if(TTF_Init() == -1)
 		goto error;
 	g_Surface = SDL_GetWindowSurface(g_Window);
-	g_GUIEvents.Events = calloc(g_GUIEvents.TblSz, sizeof(SDL_Event));
+	g_GUIEvents.Events = calloc(g_GUIEvents.TblSz, sizeof(struct WEvent));
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	_Screen = GetScreen(g_LuaState);
@@ -68,6 +68,7 @@ void IncrFocus(struct GUIFocus* _Focus) {
 		_Focus->Index = 0;
 	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildrenSz)
 		++_Focus->Index;
+	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 }
 
 void DecrFocus(struct GUIFocus* _Focus) {
@@ -77,6 +78,7 @@ void DecrFocus(struct GUIFocus* _Focus) {
 		_Focus->Index = _Parent->ChildrenSz - 1;
 	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index >= 0)
 		--_Focus->Index;
+	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 }
 
 void Events() {
@@ -96,7 +98,7 @@ void Events() {
 			}
 		for(i = 0; i < g_GUIEvents.Size; ++i)
 			/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
-			if(KeyEventCmp(&g_GUIEvents.Events[i], &_Event) == 0)
+			if(g_GUIEvents.Events[i].WidgetId == g_Focus.Id && KeyEventCmp(&g_GUIEvents.Events[i].Event, &_Event) == 0)
 				LuaCallEvent(g_LuaState, i + 1);
 		}
 	}
@@ -107,7 +109,6 @@ void Draw() {
 
 	if(g_GUIOk == 0)
 		return;
-	g_GUIOk = (SDL_RenderClear(g_Renderer) == 0);
 	_Screen = GetScreen(g_LuaState);
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
@@ -115,6 +116,18 @@ void Draw() {
 	if(SDL_GetTicks() <= g_GUITimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_GUITimer);
 	g_GUITimer = SDL_GetTicks();
+}
+
+struct TextBox* CreateTextBox() {
+	return (struct TextBox*) malloc(sizeof(struct TextBox));
+}
+
+struct Container* CreateContainer() {
+	return (struct Container*) malloc(sizeof(struct Container));
+}
+
+struct Table* CreateTable() {
+	return (struct Table*) malloc(sizeof(struct Table));
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
@@ -135,9 +148,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 		_Widget->Parent = NULL;
 }
 
-struct TextBox* CreateText(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text) {
-	struct TextBox* _Widget = (struct TextBox*) malloc(sizeof(struct TextBox));
-
+void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->OnDraw = TextBoxOnDraw;
 	_Widget->OnFocus = TextBoxOnFocus;
@@ -146,24 +157,29 @@ struct TextBox* CreateText(struct Container* _Parent, SDL_Rect* _Rect, lua_State
 	_Widget->OnDraw = TextBoxOnDraw;
 	_Widget->SetText = WidgetSetText;
 	_Widget->Text = _Text;
-	return _Widget;
 }
 
-struct Container* CreateContainer(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
-	struct Container* _Container = (struct Container*) malloc(sizeof(struct Container));
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 
-	ConstructWidget((struct Widget*)_Container, _Parent, _Rect, _State);
-	_Container->Children = NULL;
-	_Container->ChildrenSz = 0;
-	_Container->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
-	_Container->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
-	_Container->NewChild = NULL;
-	_Container->Spacing = _Spacing;
-	_Container->Margins.Top = _Margin->Top;
-	_Container->Margins.Left = _Margin->Left;
-	_Container->Margins.Right = _Margin->Right;
-	_Container->Margins.Bottom = _Margin->Bottom;
-	return _Container;
+	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
+	_Widget->Children = NULL;
+	_Widget->ChildrenSz = 0;
+	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
+	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
+	_Widget->NewChild = NULL;
+	_Widget->Spacing = _Spacing;
+	_Widget->Margins.Top = _Margin->Top;
+	_Widget->Margins.Left = _Margin->Left;
+	_Widget->Margins.Right = _Margin->Right;
+	_Widget->Margins.Bottom = _Margin->Bottom;
+}
+
+void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows) {
+	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
+	_Widget->ChildrenSz = _Columns * _Rows;
+	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
+	_Widget->Columns = _Columns;
+	_Widget->Rows = _Rows;
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
@@ -221,6 +237,13 @@ void DestroyTextBox(struct TextBox* _Text) {
 	SDL_FreeSurface(_Text->Text);
 }
 void DestroyContainer(struct Container* _Container) {
+	int i;
+
+	for(i = 0; i < _Container->ChildrenSz; ++i) {
+		if(_Container->Children[i] == NULL)
+			continue;
+		_Container->Children[i]->OnDestroy(_Container->Children[i]);
+	}
 	DestroyWidget((struct Widget*)_Container);
 	free(_Container);
 }
@@ -318,7 +341,7 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 			return;
 	for(i = 0; i < _Palette->ncolors; ++i) {
 		_Color = &_Palette->colors[i];
-		if(_Color->r == _Prev->r && _Color->b == _Prev->g && _Color->g == _Prev->b && _Color->a == _Prev->a) {
+		if(_Color->r == _Prev->r && _Color->g == _Prev->g && _Color->b == _Prev->b && _Color->a == _Prev->a) {
 			_Color->r = _To->r;
 			_Color->g = _To->g;
 			_Color->b = _To->b;
@@ -330,3 +353,23 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	if(SDL_MUSTLOCK(_Surface))
 		SDL_UnlockSurface(_Surface);
 }
+
+/*SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2) {
+	int _DeltaX = _X2 - _X1;
+	int _DeltaY = _Y2 - _Y1;
+	int x;
+	int y = 0;
+	float _Error = 0.0f;
+	float _DeltaError = abs(_DeltaY / _DeltaX);
+	SDL_Surface* _Surface = SDL_CreateRGBSurface(0, abs(_X1 - _X2), abs(_Y1, _Y2), 8, 0, 0, 0, 0);
+
+	for(x = _X1; x < _X2; ++x) {
+		_Surface->pixels
+		_Error += _DeltaError;
+		if(_Error >= 0.5f) {
+			++y;
+			_Error -= 1.0f;
+		}
+	}
+	return _Surface;
+}*/

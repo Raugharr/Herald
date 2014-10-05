@@ -22,11 +22,17 @@ struct Widget;
 struct GUIFocus {
 	struct Container* Parent;
 	int Index;
+	int Id;
+};
+
+struct WEvent {
+	SDL_Event Event;
+	int WidgetId;
 };
 
 struct GUIEvents {
 	/* TODO: Events based on clicking a widget are not possible as the hooking widget is not stored. */
-	SDL_Event* Events;
+	struct WEvent* Events;
 	int TblSz;
 	int Size;
 };
@@ -81,7 +87,8 @@ struct TextBox {
 struct Container {
 	int Id;
 	const struct Container* Parent;
-	SDL_Rect Rect;	int LuaRef;
+	SDL_Rect Rect;
+	int LuaRef;
 	int CanFocus;
 	int (*OnDraw)(struct Widget*);
 	int (*OnFocus)(struct Widget*);
@@ -104,8 +111,11 @@ struct Table {
 	int (*OnFocus)(struct Widget*);
 	int (*OnUnfocus)(struct Widget*);
 	void (*OnDestroy)(struct Widget*);
+	void (*NewChild)(struct Container*, struct Widget*);
 	struct Widget** Children;
 	int ChildrenSz;
+	int Spacing;
+	struct Margin Margins;
 	int Columns;
 	int Rows;
 };
@@ -117,13 +127,18 @@ void IncrFocus(struct GUIFocus* _Focus);
 void DecrFocus(struct GUIFocus* _Focus);
 void Events();
 void Draw();
+
+struct TextBox* CreateTextBox();
+struct Container* CreateContainer();
+struct Table* CreateTable();
+
 /**
  * Constructors
  */
-
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
-struct TextBox* CreateText(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
-struct Container* CreateContainer(struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
@@ -150,4 +165,5 @@ int SDLEventCmp(const void* _One, const void* _Two);
 int KeyEventCmp(const void* _One, const void* _Two);
 
 void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
+//SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

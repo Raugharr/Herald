@@ -494,8 +494,11 @@ void* LuaToClass(lua_State* _State, int _Index) {
 	void* _Pointer = NULL;
 	int _Pos = LuaAbsPos(_State, _Index);
 
-	if((_Pointer = lua_touserdata(_State, _Index)) == NULL) {
-		luaL_checktype(_State, _Pos, LUA_TTABLE);
+	if((_Pointer = lua_touserdata(_State, _Pos)) == NULL) {
+		if(lua_type(_State, _Pos) == LUA_TNIL)
+			return NULL;
+		if(lua_type(_State, _Pos) != LUA_TTABLE)
+			luaL_error(_State, "LuaToClass: index is not a class.");
 		lua_pushstring(_State, "__self");
 		lua_rawget(_State, _Pos);
 		_Pointer = lua_touserdata(_State, -1);

@@ -28,7 +28,8 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"SetFont", LuaDefaultFont},
 		{"DefaultFont", LuaDefaultFont},
 		{"SetMenu", LuaSetMenu},
-		{"SetColor", LuaSetColor},
+		{"SetFocusColor", LuaSetFocusColor},
+		{"SetUnfocusColor", LuaSetUnfocusColor},
 		{"CloseMenu", LuaCloseMenu},
 		{NULL, NULL}
 };
@@ -320,7 +321,7 @@ int LuaSetMenu(lua_State* _State) {
 	return 0;
 }
 
-int LuaSetColor(lua_State* _State) {
+void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr) {
 	int _Red = luaL_checkint(_State, 1);
 	int _Blue = luaL_checkint(_State, 2);
 	int _Green = luaL_checkint(_State, 3);
@@ -331,9 +332,18 @@ int LuaSetColor(lua_State* _State) {
 		luaL_error(_State, "Blue is not between 0 and 255");
 	if(_Green < 0 || _Red > 255)
 		luaL_error(_State, "Green is not between 0 and 255");
-	g_GUIDefs.FontFocus.r = _Red;
-	g_GUIDefs.FontFocus.b = _Blue;
-	g_GUIDefs.FontFocus.g = _Green;
+	*_RedPtr = _Red;
+	*_GreenPtr = _Blue;
+	*_BluePtr = _Green;
+}
+
+int LuaSetFocusColor(lua_State* _State) {
+	LuaSetColor(_State, &g_GUIDefs.FontFocus.r, &g_GUIDefs.FontFocus.g, &g_GUIDefs.FontFocus.b);
+	return 0;
+}
+
+int LuaSetUnfocusColor(lua_State* _State) {
+	LuaSetColor(_State, &g_GUIDefs.FontUnfocus.r, &g_GUIDefs.FontUnfocus.g, &g_GUIDefs.FontUnfocus.b);
 	return 0;
 }
 

@@ -19,7 +19,9 @@ int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
 int LuaDefaultFont(lua_State* _State);
 int LuaSetMenu(lua_State* _State);
-int LuaSetColor(lua_State* _State);
+void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);
+int LuaSetFocusColor(lua_State* _State);
+int LuaSetUnfocusColor(lua_State* _State);
 int LuaOnKey(lua_State* _State);
 int LuaCloseMenu(lua_State* _State);
 

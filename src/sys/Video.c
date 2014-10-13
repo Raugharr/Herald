@@ -331,14 +331,47 @@ int KeyEventCmp(const void* _One, const void* _Two) {
 	return 0;
 }
 
+SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
+	SDL_Surface* _Temp = SDL_ConvertSurface(_Surface, g_Surface->format, 0);
+
+	if(_Temp == NULL)
+		Log(ELOG_ERROR, SDL_GetError());
+	SDL_FreeSurface(_Surface);
+	return _Temp;
+}
+
 void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	int i;
-	SDL_Palette* _Palette = _Surface->format->palette;
+	int j;
+	int _Width = 0;
+	int _Height = 0;
+	Uint32* _Pixel;
 	SDL_Color* _Color;
+	SDL_Palette* _Palette = _Surface->format->palette;
+	SDL_PixelFormat* _Format = _Surface->format;
 
 	if(SDL_MUSTLOCK(_Surface))
 		if(SDL_LockSurface(_Surface) != 0)
 			return;
+	if(_Format->BytesPerPixel == 1)
+		goto palette;
+	else if(_Format->BytesPerPixel != 4)
+		return;
+	_Width = _Surface->w;
+	_Height = _Surface->h;
+	for(i = 0; i < _Width; ++i) {
+		for(j = 0; j < _Height; ++j) {
+			_Pixel = (Uint8*)_Surface->pixels + j * _Surface->pitch + i * sizeof(*_Pixel);
+			if((((*_Pixel & _Format->Rmask) >> _Format->Rshift) << _Format->Rloss) == _Prev->r &&
+					(((*_Pixel & _Format->Gmask) >> _Format->Gshift) << _Format->Gloss) == _Prev->g &&
+					(((*_Pixel & _Format->Bmask) >> _Format->Bshift) << _Format->Bloss) == _Prev->b &&
+					(((*_Pixel & _Format->Amask) >> _Format->Ashift) << _Format->Aloss) == (((_Prev->a & _Format->Amask) >> _Format->Ashift) << _Format->Aloss)) {
+				*_Pixel = (_To->r << _Format->Rshift) | (_To->g << _Format->Gshift) | (_To->b << _Format->Bshift) | ((_To->a & _Format->Amask) << _Format->Ashift);
+			}
+		}
+	}
+	goto end;
+	palette:
 	for(i = 0; i < _Palette->ncolors; ++i) {
 		_Color = &_Palette->colors[i];
 		if(_Color->r == _Prev->r && _Color->g == _Prev->g && _Color->b == _Prev->b && _Color->a == _Prev->a) {
@@ -350,6 +383,7 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 			break;
 		}
 	}
+	end:
 	if(SDL_MUSTLOCK(_Surface))
 		SDL_UnlockSurface(_Surface);
 }

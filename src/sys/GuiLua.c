@@ -193,7 +193,7 @@ int LuaCreateTextBox(lua_State* _State) {
 	SDL_Surface* _Surface = NULL;
 	if(g_GUIDefs.Font == NULL)
 		return luaL_error(_State, "Default font is NULL");
-	_Surface = TTF_RenderText_Solid(g_GUIDefs.Font, _Text, g_GUIDefs.FontUnfocus);
+	_Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font, _Text, g_GUIDefs.FontUnfocus));
 	_Rect.x = 0;
 	_Rect.y = 0;
 	_Rect.w = _Surface->w;

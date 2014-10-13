@@ -41,6 +41,7 @@ struct GUIDef {
 	TTF_Font* Font;
 	SDL_Color FontFocus;
 	SDL_Color FontUnfocus;
+	SDL_Color Background;
 };
 
 extern SDL_Window* g_Window;

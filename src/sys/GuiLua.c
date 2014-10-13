@@ -265,7 +265,9 @@ int LuaVerticalContainer(lua_State* _State) {
 }
 
 int LuaBackgroundColor(lua_State* _State) {
-	SDL_SetRenderDrawColor(g_Renderer, luaL_checkint(_State, 1), luaL_checkint(_State, 2), luaL_checkint(_State, 3), 255);
+	g_GUIDefs.Background.r = luaL_checkint(_State, 1);
+	g_GUIDefs.Background.g = luaL_checkint(_State, 2);
+	g_GUIDefs.Background.b = luaL_checkint(_State, 3);
 	return 0;
 }
 

@@ -22,7 +22,6 @@ int g_GUIId = 0;
 int g_GUITimer = 0;
 struct GUIFocus g_Focus = {NULL, 0, 0};
 struct GUIEvents g_GUIEvents = {NULL, 16, 0};
-
 SDL_Surface* g_Surface = NULL;
 
 int VideoInit() {
@@ -110,6 +109,7 @@ void Draw() {
 	if(g_GUIOk == 0)
 		return;
 	_Screen = GetScreen(g_LuaState);
+	SDL_FillRect(g_Surface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
 	g_GUIOk = (SDL_UpdateWindowSurface(g_Window) == 0);

@@ -516,6 +516,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 		lua_pop(_State, 2);
 		return NULL;
 	}
+	lua_pop(_State, 2);
 	return LuaToClass(_State, _Index);
 }
 

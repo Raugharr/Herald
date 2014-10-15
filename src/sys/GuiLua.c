@@ -158,7 +158,7 @@ int LuaRegisterFont(lua_State* _State) {
 
 	lua_pushstring(_State, "__class");
 	lua_pushstring(_State, "Font");
-	lua_rawset(_State, -2);
+	lua_rawset(_State, -3);
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
@@ -191,9 +191,21 @@ int LuaCreateTextBox(lua_State* _State) {
 	const char* _Text = luaL_checkstring(_State, 2);
 	SDL_Rect _Rect;
 	SDL_Surface* _Surface = NULL;
-	if(g_GUIDefs.Font == NULL)
-		return luaL_error(_State, "Default font is NULL");
-	_Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font, _Text, g_GUIDefs.FontUnfocus));
+	struct Font* _Font = g_GUIDefs.Font;
+	const char* _Name = NULL;
+	int _Size = 0;
+
+	if(lua_gettop(_State) >= 4) {
+		_Name = luaL_checkstring(_State, 3);
+		_Size = luaL_checkinteger(_State, 4);
+		_Font = g_GUIFonts;
+		while(_Font != NULL) {
+			if(strcmp(_Font->Name, _Name) == 0 && _Font->Size == _Size)
+				break;
+			_Font = _Font->Next;
+		}
+	}
+	_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
 	_Rect.x = 0;
 	_Rect.y = 0;
 	_Rect.w = _Surface->w;
@@ -235,7 +247,8 @@ struct Container* LuaContainer(lua_State* _State) {
 	lua_pushlightuserdata(_State, _Container);
 	lua_rawset(_State, -3);
 
-	/* NOTE: Is this if statement needed? */
+	/* NOTE: Can this if statement be removed by
+	 * having more sound logic? */
 	if(_Container->Parent == NULL) {
 		struct Container* _Screen = GetScreen(_State);
 
@@ -274,18 +287,29 @@ int LuaBackgroundColor(lua_State* _State) {
 int LuaGetFont(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 	int _Size = luaL_checkint(_State, 2);
-	TTF_Font* _Font = NULL;
+	struct Font* _Font = g_GUIFonts;
 
 	chdir("Fonts");
-	_Font = TTF_OpenFont(_Name, _Size);
+	while(_Font != NULL) {
+		if(strcmp(_Font->Name, _Name) == 0 && _Font->Size == _Size)
+			break;
+		_Font = _Font->Next;
+	}
+	if(_Font == NULL)
+		_Font = CreateFont(_Name, _Size);
+	lua_newtable(_State);
+	lua_getglobal(_State, "Font");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Font);
+	lua_rawset(_State, -3);
 	chdir("..");
 	return 1;
 }
 
 int LuaDefaultFont(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
-	g_GUIDefs.Font = lua_touserdata(_State, 1);
+	g_GUIDefs.Font = LuaCheckFont(_State, 1);
 	return 0;
 }
 
@@ -443,6 +467,14 @@ SDL_Surface* LuaCheckSurface(lua_State* _State, int _Index) {
 	return _Surface;
 }
 
+struct Font* LuaCheckFont(lua_State* _State, int _Index) {
+	struct Font* _Font = NULL;
+
+	if((_Font = LuaTestClass(_State, _Index, "Font")) == NULL)
+		return (struct Font*) LuaCheckClass(_State, _Index, "Font");
+	return _Font;
+}
+
 int LuaWidgetId(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 
@@ -539,7 +571,8 @@ int InitGUILua(lua_State* _State) {
 	if(LuaRegisterWidget(_State) == 0 ||
 			LuaRegisterContainer(_State) == 0 ||
 			LuaRegisterTextBox(_State) == 0 ||
-			LuaRegisterSurface(_State) == 0)
+			LuaRegisterSurface(_State) == 0 ||
+			LuaRegisterFont(_State) == 0)
 		return 0;
 	luaL_newlib(_State, g_LuaFuncsGUI);
 	lua_setglobal(_State, "GUI");

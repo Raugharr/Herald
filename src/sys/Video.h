@@ -6,6 +6,8 @@
 #ifndef __VIDEO_H
 #define __VIDEO_H
 
+#include "LinkedList.h"
+
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
@@ -37,8 +39,17 @@ struct GUIEvents {
 	int Size;
 };
 
-struct GUIDef {
+struct Font {
 	TTF_Font* Font;
+	char* Name;
+	int Size;
+	struct Font* Next;
+	struct Font* Prev;
+	struct LinkedList WidgetList;
+};
+
+struct GUIDef {
+	struct Font* Font;
 	SDL_Color FontFocus;
 	SDL_Color FontUnfocus;
 	SDL_Color Background;
@@ -51,6 +62,7 @@ extern int g_GUIId;
 extern struct GUIFocus g_Focus;
 extern struct GUIEvents g_GUIEvents;
 extern struct GUIDef g_GUIDefs;
+extern struct Font* g_GUIFonts;
 
 struct Margin {
 	int Top;
@@ -140,7 +152,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect*
 void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows);
-
+struct Font* CreateFont(const char* _Name, int _Size);
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 /**
@@ -149,6 +161,7 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void DestroyWidget(struct Widget* _Widget);
 void DestroyTextBox(struct TextBox* _Text);
 void DestroyContainer(struct Container* _Container);
+void DestroyFont(struct Font* _Font);
 
 int ContainerOnDraw(struct Container* _Container);
 int ContainerOnFocus(struct Container* _Container);

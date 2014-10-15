@@ -23,6 +23,7 @@ int g_GUITimer = 0;
 struct GUIFocus g_Focus = {NULL, 0, 0};
 struct GUIEvents g_GUIEvents = {NULL, 16, 0};
 SDL_Surface* g_Surface = NULL;
+struct Font* g_GUIFonts = NULL;
 
 int VideoInit() {
 	struct Container* _Screen = NULL;
@@ -180,6 +181,38 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
+}
+
+struct Font* CreateFont(const char* _Name, int _Size) {
+	struct Font* _Ret = malloc(sizeof(struct Font));
+
+	_Ret->Font = TTF_OpenFont(_Name, _Size);
+	_Ret->Name = calloc(strlen(_Name), sizeof(char));
+	strcpy(_Ret->Name, _Name);
+	_Ret->Size = _Size;
+	_Ret->Prev = NULL;
+	_Ret->Next = NULL;
+	if(g_GUIFonts != NULL) {
+		g_GUIFonts->Prev = _Ret;
+		_Ret->Next = g_GUIFonts;
+	}
+	_Ret->WidgetList.Size = 0;
+	_Ret->WidgetList.Front = NULL;
+	_Ret->WidgetList.Back = NULL;
+	g_GUIFonts = _Ret;
+	return _Ret;
+}
+
+void DestroyFont(struct Font* _Font) {
+	if(_Font == g_GUIFonts)
+		g_GUIFonts = _Font->Next;
+	else {
+		_Font->Prev->Next = _Font->Next;
+		_Font->Next->Prev = _Font->Prev;
+	}
+	TTF_CloseFont(_Font->Font);
+	free(_Font->Name);
+	free(_Font);
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {

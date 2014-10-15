@@ -15,6 +15,8 @@ int LuaCreateTextBox(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
+
+
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
 int LuaDefaultFont(lua_State* _State);
@@ -33,7 +35,7 @@ struct Widget* LuaCheckWidget(lua_State* _State, int _Index);
 struct Container* LuaCheckContainer(lua_State* _State, int _Index);
 struct TextBox* LuaCheckTextBox(lua_State* _State, int _Index);
 SDL_Surface* LuaCheckSurface(lua_State* _State, int _Index);
-TTF_Font* LuaCheckFont(lua_State* _State, int _Index);
+struct Font* LuaCheckFont(lua_State* _State, int _Index);
 
 /**
  * Widget functions

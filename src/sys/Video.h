@@ -131,19 +131,20 @@ struct Table {
 	struct Margin Margins;
 	int Columns;
 	int Rows;
+	struct Font* Font;
 };
 
-int VideoInit();
-void VideoQuit();
-int NextGUIId();
+int VideoInit(void);
+void VideoQuit(void);
+int NextGUIId(void);
 void IncrFocus(struct GUIFocus* _Focus);
 void DecrFocus(struct GUIFocus* _Focus);
-void Events();
-void Draw();
+void Events(void);
+void Draw(void);
 
-struct TextBox* CreateTextBox();
-struct Container* CreateContainer();
-struct Table* CreateTable();
+struct TextBox* CreateTextBox(void);
+struct Container* CreateContainer(void);
+struct Table* CreateTable(void);
 
 /**
  * Constructors
@@ -151,8 +152,10 @@ struct Table* CreateTable();
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
 void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
-void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows);
+void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
+		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
 struct Font* CreateFont(const char* _Name, int _Size);
+
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 /**

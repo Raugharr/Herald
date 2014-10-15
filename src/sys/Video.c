@@ -25,7 +25,7 @@ struct GUIEvents g_GUIEvents = {NULL, 16, 0};
 SDL_Surface* g_Surface = NULL;
 struct Font* g_GUIFonts = NULL;
 
-int VideoInit() {
+int VideoInit(void) {
 	struct Container* _Screen = NULL;
 	Log(ELOG_INFO, "Setting up video.");
 	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
@@ -51,7 +51,7 @@ int VideoInit() {
 	return 0;
 }
 
-void VideoQuit() {
+void VideoQuit(void) {
 	QuitGUILua(g_LuaState);
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
@@ -59,7 +59,7 @@ void VideoQuit() {
 	free(g_GUIEvents.Events);
 }
 
-int NextGUIId() {return g_GUIId++;}
+int NextGUIId(void) {return g_GUIId++;}
 
 void IncrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
@@ -81,7 +81,7 @@ void DecrFocus(struct GUIFocus* _Focus) {
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 }
 
-void Events() {
+void Events(void) {
 	int i;
 	SDL_Event _Event;
 
@@ -104,7 +104,7 @@ void Events() {
 	}
 }
 
-void Draw() {
+void Draw(void) {
 	struct Container* _Screen = NULL;
 
 	if(g_GUIOk == 0)
@@ -119,15 +119,15 @@ void Draw() {
 	g_GUITimer = SDL_GetTicks();
 }
 
-struct TextBox* CreateTextBox() {
+struct TextBox* CreateTextBox(void) {
 	return (struct TextBox*) malloc(sizeof(struct TextBox));
 }
 
-struct Container* CreateContainer() {
+struct Container* CreateContainer(void) {
 	return (struct Container*) malloc(sizeof(struct Container));
 }
 
-struct Table* CreateTable() {
+struct Table* CreateTable(void) {
 	return (struct Table*) malloc(sizeof(struct Table));
 }
 
@@ -175,12 +175,17 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Margins.Bottom = _Margin->Bottom;
 }
 
-void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows) {
+void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
+		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font) {
+	int _THeight = TTF_FontHeight(_Font->Font) + _Spacing;
+
+	_Rect->h = _THeight * _Columns;
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
+	_Widget->Font = _Font;
 }
 
 struct Font* CreateFont(const char* _Name, int _Size) {
@@ -394,7 +399,7 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	_Height = _Surface->h;
 	for(i = 0; i < _Width; ++i) {
 		for(j = 0; j < _Height; ++j) {
-			_Pixel = (Uint8*)_Surface->pixels + j * _Surface->pitch + i * sizeof(*_Pixel);
+			_Pixel = (Uint32*)((Uint8*)_Surface->pixels + j * _Surface->pitch + i * sizeof(*_Pixel));
 			if((((*_Pixel & _Format->Rmask) >> _Format->Rshift) << _Format->Rloss) == _Prev->r &&
 					(((*_Pixel & _Format->Gmask) >> _Format->Gshift) << _Format->Gloss) == _Prev->g &&
 					(((*_Pixel & _Format->Bmask) >> _Format->Bshift) << _Format->Bloss) == _Prev->b &&

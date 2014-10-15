@@ -50,6 +50,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"Spacing", LuaContainerGetSpacing},
 		{"Margins", LuaContainerGetMargins},
 		{"CreateTextBox", LuaCreateTextBox},
+		{"CreateTable", LuaCreateTable},
 		{NULL, NULL}
 };
 
@@ -221,6 +222,37 @@ int LuaCreateTextBox(lua_State* _State) {
 	return 1;
 }
 
+int LuaCreateTable(lua_State* _State) {
+	int i = 0;
+	int _Rows = luaL_checkinteger(_State, 3);
+	int _Columns = luaL_checkinteger(_State, 4);
+	int _Spacing = luaL_checkinteger(_State, 5);
+	struct Margin _Margins;
+	struct Container* _Parent = LuaCheckContainer(_State, 1);
+	struct Table* _Table = NULL;
+	struct Font* _Font = g_GUIDefs.Font;
+	SDL_Rect _Rect = {0, 0, luaL_checkinteger(_State, 2), 0};
+
+	luaL_checktype(_State, 6, LUA_TTABLE);
+	if(lua_gettop(_State) == 7)
+		_Font = LuaCheckFont(_State, 7);
+	lua_pushnil(_State);
+	while(lua_next(_State, 6) != 0 && i < 4) {
+		((int*)&_Margins)[i] = lua_tointeger(_State, 1);
+		lua_pop(_State, 1);
+		++i;
+	}
+	_Table = CreateTable();
+	ConstructTable(_Table, _Parent, &_Rect,_State, _Spacing, &_Margins, _Columns, _Rows, _Font);
+	lua_newtable(_State);
+	lua_getglobal(_State, "Table");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Table);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
 struct Container* LuaContainer(lua_State* _State) {
 	int i = 0;
 	struct Container* _Container = NULL;
@@ -315,9 +347,20 @@ int LuaDefaultFont(lua_State* _State) {
 
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
+	struct Font* _Font = g_GUIFonts;
+	struct Font* _Prev = NULL;
 
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
+	while(_Font != NULL) {
+		_Prev = _Font;
+		_Font = _Font->Next;
+		/*NOTE: widgets might stay alive when another menu is brought up,
+		 * we should only delete fonts to widgets that are dead.
+		 */
+		if(_Prev != g_GUIDefs.Font)
+			DestroyFont(_Prev);
+	}
 	g_Focus.Parent = NULL;
 	g_Focus.Index = 0;
 	g_Focus.Id = 0;

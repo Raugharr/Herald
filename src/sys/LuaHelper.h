@@ -27,22 +27,10 @@ typedef struct lua_State lua_State;
 #define LUA_TYPERROR(_State, _Arg, _Type, _Func) "bad argument %i to '%s' (%s expected got %s)", (_Arg), (_Func),  (_Type), lua_typename((_State), (_Arg))
 #define LUA_BADARG(_Arg, _Extra) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra))
 #define LUA_BADARG_V(_Arg, _Extra, ...) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra), __VA_ARGS__)
-#define LuaLoadCFuncs(_State)														\
-	lua_register((_State), "CreateConstraint", LuaConstraint);						\
-	lua_register((_State), "CreateConstraintBounds", LuaConstraintBnds);			\
-	lua_register((_State), "Crop", LuaCrop);										\
-	lua_register((_State), "Good", LuaGoodBase);									\
-	lua_register((_State), "Food", LuaFoodBase);									\
-	lua_register((_State), "Animal", LuaPopulation);								\
-	lua_register((_State), "Person", LuaPerson);									\
-	lua_register((_State), "ToMonth", LuaMonth);									\
-	lua_register((_State), "Hook", LuaHook);										\
-	lua_register((_State), "CreateGood", LuaCreateGood);							\
-	lua_register((_State), "CreateBuilding", LuaCreateBuilding);					\
-	lua_register((_State), "CreateAnimal", LuaCreateAnimal)
 
 extern lua_State* g_LuaState;
 
+void RegisterLuaFuncs(lua_State* _State);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.

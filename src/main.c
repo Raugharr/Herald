@@ -45,7 +45,7 @@ int main(int argc, char* args[]) {
 	LogSetFile("Log.txt");
 	g_LuaState = luaL_newstate();
 	luaL_openlibs(g_LuaState);
-	LuaLoadCFuncs(g_LuaState);
+	RegisterLuaFuncs(g_LuaState);
 	atexit(LogCloseFile);
  	HeraldInit();
  	VideoInit();

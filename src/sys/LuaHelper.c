@@ -26,6 +26,28 @@
 
 lua_State* g_LuaState = NULL;
 
+static const luaL_Reg g_LuaFuncs[] = {
+		{"CreateConstraintBounds", LuaConstraintBnds},
+		{"Crops", LuaCrop},
+		{"Good", LuaGoodBase},
+		{"Food", LuaFoodBase},
+		{"Animal", LuaPopulation},
+		{"Person", LuaPerson},
+		{"ToMonth", LuaMonth},
+		{"Hook", LuaHook},
+		{"CreateGood", LuaCreateGood},
+		{"CreateBuilding", LuaCreateBuilding},
+		{"CreateAnimal", LuaCreateAnimal},
+		{NULL, NULL}
+};
+
+void RegisterLuaFuncs(lua_State* _State) {
+	int i;
+
+	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
+		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
+}
+
 int LuaConstraint(lua_State* _State) {
 	lua_pushlightuserdata(_State, CreateConstrntLst(NULL, luaL_checkint(_State, 1),  luaL_checkint(_State, 2),  luaL_checkint(_State, 3)));
 	return 1;

@@ -583,7 +583,7 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 			goto top;
 		}
 		lua_pop(_State, 2);
-		return lua_touserdata(_State, _Index);
+		return LuaToClass(_State, _Index);
 	} else {
 		lua_getglobal(_State, _Class);
 		lua_getmetatable(_State, -1);

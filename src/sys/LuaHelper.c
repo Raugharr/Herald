@@ -46,6 +46,29 @@ void RegisterLuaFuncs(lua_State* _State) {
 
 	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
 		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
+	if(luaL_newmetatable(_State, "Iterator") == 0)
+		return;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Itr");
+	lua_pushcfunction(_State, NULL);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Next");
+	lua_pushcfunction(_State, NULL);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Prev");
+	lua_pushcfunction(_State, NULL);
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	lua_setglobal(_State, "Iterator");
+	lua_pop(_State, 1);
 }
 
 int LuaConstraint(lua_State* _State) {
@@ -197,7 +220,7 @@ int LuaPopulation(lua_State* _State) {
 	const char* _Name = NULL;
 	const struct Population* _Pop = NULL;
 
-	_Name = luaL_checklstring(_State, -1, NULL);
+	_Name = luaL_checklstring(_State, 1, NULL);
 	if((_Pop = HashSearch(&g_Populations, _Name)) == NULL) {
 		Log(ELOG_WARNING, "%s is not a valid population.", _Name);
 		return 0;
@@ -249,10 +272,9 @@ int LuaPopulation(lua_State* _State) {
 	return 1;
 }
 
-int LuaPerson(lua_State* _State) {
+int LuaPushPerson(lua_State* _State, int _Index) {
 	struct Person* _Person = NULL;
 
-	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
 	_Person = lua_touserdata(_State, 1);
 	lua_createtable(_State, 0, 10);
 
@@ -287,6 +309,12 @@ int LuaPerson(lua_State* _State) {
 	lua_pushstring(_State, "Parent");
 	lua_pushstring(_State, (_Person->Parent != NULL) ? (_Person->Parent->Name) : ("NULL"));
 	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaPerson(lua_State* _State) {
+	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
+	LuaPushPerson(_State, 1);
 
 	return 1;
 }

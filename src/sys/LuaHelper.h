@@ -61,6 +61,7 @@ int LuaFoodBase(lua_State* _State);
  * Requires one parameter that is a string equaling the key of a crop in g_Populations.
  */
 int LuaPopulation(lua_State* _State);
+int LuaPushPerson(lua_State* _State, int _Index);
 /*!
  * Creates a table containing information about a Person.
  * Requires one parameter that is a light user data that contains a pointer to a Person.
@@ -80,7 +81,7 @@ int AddNumber(lua_State* _State, int _Index, double* _Number);
 int LuaLudata(lua_State* _State, int _Index, void** _Data);
 int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
 
-/*
+/**
  * Functions that create an object type.
  */
 
@@ -88,9 +89,24 @@ int LuaCreateGood(lua_State* _State);
 int LuaCreateBuilding(lua_State* _State);
 int LuaCreateAnimal(lua_State* _State);
 
+/**
+ * _Table must be big enough to contain at least lua_gettop(_State) elements.
+ */
 void LuaStackToTable(lua_State* _State, int* _Table);
+/**
+ * Copies every element of the table at _Index into the table at the top of the stack.
+ * The table at _Index will be removed.
+ */
 void LuaCopyTable(lua_State* _State, int _Index);
+/**
+ * Returns a pointer to C data that is contained inside a Lua class.
+ */
 void* LuaToClass(lua_State* _State, int _Index);
+/**
+ * Checks if the element at _Index in the Lua stack is of type _Class.
+ * Returns a pointer to it's C data or NULL if the element at _Index is not
+ * of type _Class.
+ */
 void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*

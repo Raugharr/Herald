@@ -11,8 +11,8 @@
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
-#define SDL_HEIGHT (1024)
-#define SDL_WIDTH (768)
+#define SDL_HEIGHT (768)
+#define SDL_WIDTH (1024)
 
 typedef struct lua_State lua_State;
 typedef struct SDL_Window SDL_Window;

@@ -68,7 +68,6 @@ void RegisterLuaFuncs(lua_State* _State) {
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "Iterator");
-	lua_pop(_State, 1);
 }
 
 int LuaConstraint(lua_State* _State) {
@@ -388,7 +387,7 @@ int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 void LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return) {
 	void* _CallRet = NULL;
 
-	if(LuaLoadFile(_State, _File) != 1)
+	if(LuaLoadFile(_State, _File) != LUA_OK)
 		return;
 	lua_getglobal(_State, _Global);
 	if(!lua_istable(_State, -1))

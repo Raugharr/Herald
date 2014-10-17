@@ -44,6 +44,11 @@ struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
 struct KDTree g_ObjPos;
 
+static const luaL_Reg g_LuaWorldFuncs[] = {
+		{"GetPersons", LuaGetPersons},
+		{NULL, NULL}
+};
+
 int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
 	return _One->Id - _Two->Id;
 }
@@ -103,7 +108,7 @@ int PopulateWorld() {
 	int _ManorInterval = 0;
 	int i = 0;
 
-	if(LuaLoadFile(g_LuaState, "std.lua") == 0) {
+	if(LuaLoadFile(g_LuaState, "std.lua") != LUA_OK) {
 		goto end;
 	}
 	lua_getglobal(g_LuaState, "ManorConstraints");
@@ -152,6 +157,86 @@ int PopulateWorld() {
 	return 0;
 }
 
+int LuaPersonItrItr(lua_State* _State) {
+	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
+	return 1;
+}
+
+int LuaPersonItrNext(lua_State* _State) {
+	struct Person* _Person = LuaCheckClass(_State, 1, "Iterator");
+	int _Max = 1;
+
+	if(lua_gettop(_State) == 2)
+		_Max = luaL_checkinteger(_State, 2);
+	while(_Max > 0) {
+		if(_Person->Next == NULL) {
+			lua_pushnil(_State);
+			lua_pushvalue(_State, 1);
+			lua_pushnil(_State);
+			return 3;
+		}
+		_Person = _Person->Next;
+		--_Max;
+	}
+	lua_pushlightuserdata(_State, _Person);
+	lua_pushvalue(_State, 1);
+	lua_pushnil(_State);
+	return 3;
+}
+
+int LuaPersonItrPrev(lua_State* _State) {
+	struct Person* _Person = LuaCheckClass(_State, 1, "Iterator");
+	int _Max = 1;
+
+	if(lua_gettop(_State) == 2)
+		_Max = luaL_checkinteger(_State, 2);
+	while(_Max > 0) {
+		if(_Person->Prev == NULL) {
+			lua_pushnil(_State);
+			lua_pushvalue(_State, 1);
+			lua_pushnil(_State);
+			return 3;
+		}
+		_Person = _Person->Prev;
+		--_Max;
+	}
+	lua_pushlightuserdata(_State, _Person);
+	lua_pushvalue(_State, 1);
+	lua_pushnil(_State);
+	return 3;
+}
+
+int LuaRegisterPersonItr(lua_State* _State) {
+	if(luaL_newmetatable(_State, "PersonIterator") == 0)
+		return 0;
+	lua_pushstring(_State, "Itr");
+	lua_pushcfunction(_State, LuaPersonItrItr);
+	lua_rawset(_State, -3);
+	lua_pushstring(_State, "Next");
+	lua_pushcfunction(_State, LuaPersonItrNext);
+	lua_rawset(_State, -3);
+	lua_pushstring(_State, "Prev");
+	lua_pushcfunction(_State, LuaPersonItrPrev);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__baseclass");
+	lua_pushstring(_State, "Iterator");
+	lua_rawset(_State, -3);
+	lua_setglobal(_State, "PersonIterator");
+	return 1;
+}
+
+int LuaGetPersons(lua_State* _State) {
+	lua_newtable(_State);
+
+	lua_getglobal(_State, "PersonIterator");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
 void WorldInit(int _Area) {
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
@@ -162,8 +247,10 @@ void WorldInit(int _Area) {
 	struct LnkLst_Node* _Itr = NULL;
 
 	Log(ELOG_INFO, "Creating World.");
-	g_World = CreateArray(_Area * _Area);;
-
+	g_World = CreateArray(_Area * _Area);
+	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
+	lua_setglobal(g_LuaState, "World");
+	LuaRegisterPersonItr(g_LuaState);
 	g_ManorList = (struct LinkedList*) CreateLinkedList();
 	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(DATAFLD);

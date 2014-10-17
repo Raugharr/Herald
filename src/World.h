@@ -14,6 +14,8 @@
 #define DAY(__Date) (__Date & 31)
 #define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
 
+typedef struct lua_State lua_State;
+
 struct Array;
 struct RBTree;
 
@@ -33,6 +35,9 @@ struct FamilyType {
 struct WorldTile {
 	int Temperature;
 };
+
+int LuaRegisterPersonItr(lua_State* _State);
+int LuaGetPersons(lua_State* _State);
 
 void WorldInit(int _Area);
 void WorldQuit();

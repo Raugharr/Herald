@@ -24,7 +24,7 @@ typedef struct lua_State lua_State;
 	lua_pushinteger((_State), (_Constraint)->Max);		\
 	lua_rawset((_State), -3)
 
-#define LUA_TYPERROR(_State, _Arg, _Type, _Func) "bad argument %i to '%s' (%s expected got %s)", (_Arg), (_Func),  (_Type), lua_typename((_State), (_Arg))
+#define LUA_TYPERROR(_State, _Arg, _Type, _Func) "bad argument %d to '%s' (%s expected got %s)", (_Arg), (_Func), (_Type), lua_typename((_State), lua_type((_State), (_Arg)))
 #define LUA_BADARG(_Arg, _Extra) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra))
 #define LUA_BADARG_V(_Arg, _Extra, ...) Log(ELOG_WARNING, "Bad argument #%i (%s)", (_Arg), (_Extra), __VA_ARGS__)
 

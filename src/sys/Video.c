@@ -149,7 +149,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 		_Widget->Parent = NULL;
 }
 
-void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text) {
+void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->OnDraw = TextBoxOnDraw;
 	_Widget->OnFocus = TextBoxOnFocus;
@@ -158,6 +158,8 @@ void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Re
 	_Widget->OnDraw = TextBoxOnDraw;
 	_Widget->SetText = WidgetSetText;
 	_Widget->Text = _Text;
+	_Widget->Font = _Font;
+	++_Font->RefCt;
 }
 
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
@@ -178,40 +180,49 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
 		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font) {
 	int _THeight = TTF_FontHeight(_Font->Font) + _Spacing;
+	int _Size = _Rows * _Columns;
+	int i;
 
 	_Rect->h = _THeight * _Columns;
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
+	_Widget->OnDraw = TableOnDraw;
+	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
+	_Widget->Data = calloc(_Columns * _Rows, sizeof(char*));
 	_Widget->Font = _Font;
+	++_Font->RefCt;
+	for(i = 0; i < _Size; ++i)
+		_Widget->Data[i] = NULL;
 }
 
 struct Font* CreateFont(const char* _Name, int _Size) {
 	struct Font* _Ret = malloc(sizeof(struct Font));
 
 	_Ret->Font = TTF_OpenFont(_Name, _Size);
-	_Ret->Name = calloc(strlen(_Name), sizeof(char));
+	_Ret->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Ret->Name, _Name);
 	_Ret->Size = _Size;
 	_Ret->Prev = NULL;
 	_Ret->Next = NULL;
+	_Ret->RefCt = 0;
 	if(g_GUIFonts != NULL) {
 		g_GUIFonts->Prev = _Ret;
 		_Ret->Next = g_GUIFonts;
 	}
-	_Ret->WidgetList.Size = 0;
-	_Ret->WidgetList.Front = NULL;
-	_Ret->WidgetList.Back = NULL;
 	g_GUIFonts = _Ret;
 	return _Ret;
 }
 
 void DestroyFont(struct Font* _Font) {
-	if(_Font == g_GUIFonts)
+	if(--_Font->RefCt > 0)
+		return;
+	if(_Font == g_GUIFonts) {
+		g_GUIDefs.Font = NULL;
 		g_GUIFonts = _Font->Next;
-	else {
+	} else {
 		_Font->Prev->Next = _Font->Next;
 		_Font->Next->Prev = _Font->Prev;
 	}
@@ -271,8 +282,9 @@ void DestroyWidget(struct Widget* _Widget) {
 }
 
 void DestroyTextBox(struct TextBox* _Text) {
-	DestroyWidget((struct Widget*)_Text);
+	DestroyFont(_Text->Font);
 	SDL_FreeSurface(_Text->Text);
+	DestroyWidget((struct Widget*)_Text);
 }
 void DestroyContainer(struct Container* _Container) {
 	int i;
@@ -284,6 +296,17 @@ void DestroyContainer(struct Container* _Container) {
 	}
 	DestroyWidget((struct Widget*)_Container);
 	free(_Container);
+}
+
+void DestroyTable(struct Table* _Table) {
+	int i;
+	int _Size = _Table->Rows * _Table->Columns;
+
+	for(i = 0; i < _Size; ++i)
+		free(_Table->Data[i]);
+	free(_Table->Data);
+	DestroyFont(_Table->Font);
+	DestroyWidget((struct Widget*)_Table);
 }
 
 int ContainerOnDraw(struct Container* _Container) {
@@ -347,6 +370,39 @@ int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text) {
 	if(((struct TextBox*)_Widget)->Text != NULL)
 		SDL_FreeSurface(_Text);
 	((struct TextBox*)_Widget)->Text = _Text;
+	return 1;
+}
+
+void TableSetRow(struct Table* _Table, int _Row, ...) {
+	int i;
+	int _Size = _Row * _Table->Rows + _Table->Rows - 1;
+	struct Widget* _Field = NULL;
+	va_list _List;
+
+	va_start(_List, _Row);
+	for(i = _Row * _Table->Rows; i < _Size; ++i) {
+		if(_Table->Data[i] != NULL)
+			_Table->Data[i]->OnDestroy(_Table->Data[i]);
+		_Field = va_arg(_List, struct Widget*);
+		if(_Field->Parent != (struct Container*)_Table)
+			return;
+		_Table->Data[i] = _Field;
+	}
+}
+
+int TableOnDraw(struct Widget* _Widget) {
+	int x;
+	int y;
+	struct Table* _Table = (struct Table*)_Widget;
+	struct Widget* _Child = NULL;
+
+	for(x = 0; x < _Table->Rows; ++x) {
+		for(y = 0; y < _Table->Columns; ++y) {
+			_Child = _Table->Data[y * _Table->Columns + x];
+			_Child->OnDraw(_Child);
+		}
+	}
+
 	return 1;
 }
 

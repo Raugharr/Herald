@@ -6,8 +6,6 @@
 #ifndef __VIDEO_H
 #define __VIDEO_H
 
-#include "LinkedList.h"
-
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
@@ -45,7 +43,7 @@ struct Font {
 	int Size;
 	struct Font* Next;
 	struct Font* Prev;
-	struct LinkedList WidgetList;
+	int RefCt;
 };
 
 struct GUIDef {
@@ -95,6 +93,7 @@ struct TextBox {
 	void (*OnDestroy)(struct Widget*);
 	int (*SetText)(struct Widget*, SDL_Surface*);
 	SDL_Surface* Text;
+	struct Font* Font;
 };
 
 struct Container {
@@ -131,6 +130,7 @@ struct Table {
 	struct Margin Margins;
 	int Columns;
 	int Rows;
+	struct Widget** Data;
 	struct Font* Font;
 };
 
@@ -150,7 +150,7 @@ struct Table* CreateTable(void);
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
-void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text);
+void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
 		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
@@ -164,6 +164,7 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void DestroyWidget(struct Widget* _Widget);
 void DestroyTextBox(struct TextBox* _Text);
 void DestroyContainer(struct Container* _Container);
+void DestroyTable(struct Table* _Table);
 void DestroyFont(struct Font* _Font);
 
 int ContainerOnDraw(struct Container* _Container);
@@ -177,6 +178,9 @@ int TextBoxOnDraw(struct Widget* _Widget);
 int TextBoxOnFocus(struct Widget* _Widget);
 int TextBoxOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
+
+void TableSetRow(struct Table* _Table, int _Row, ...);
+int TableOnDraw(struct Widget* _Widget);
 
 int SDLEventCmp(const void* _One, const void* _Two);
 int KeyEventCmp(const void* _One, const void* _Two);

@@ -137,7 +137,7 @@ struct Table {
 	struct Margin Margins;
 	int Rows;
 	int Columns;
-	struct Area CellMax; /* max area of a cel. */
+	struct Area CellMax; /* max area of a cell. */
 	struct Font* Font;
 };
 
@@ -186,7 +186,6 @@ int TextBoxOnFocus(struct Widget* _Widget);
 int TextBoxOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
 
-void TableSetRow(struct Table* _Table, int _Row, ...);
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 
 int SDLEventCmp(const void* _One, const void* _Two);

@@ -41,10 +41,6 @@ int VideoInit(void) {
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	_Screen = GetScreen(g_LuaState);
-	g_Focus.Parent = _Screen;
-	g_Focus.Index = 0;
-	if(_Screen->ChildrenSz > 0)
-		_Screen->Children[0]->OnFocus(_Screen->Children[0]);
 	return 1;
 	error:
 	g_GUIOk = 0;
@@ -200,7 +196,9 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
-	_Widget->OnDraw = ContainerOnDraw;
+	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
+	_Widget->OnFocus = (int(*)(struct Widget*))ContainerOnFocus;
+	_Widget->OnUnfocus = (int(*)(struct Widget*))ContainerOnUnfocus;
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
 	_Widget->NewChild = TableNewChild;
 	_Widget->Columns = _Columns;
@@ -319,7 +317,7 @@ int ContainerOnDraw(struct Container* _Container) {
 int ContainerOnFocus(struct Container* _Container) {
 	int i;
 
-	for(i = 0; i < _Container->ChildrenSz; ++i)
+	for(i = 0; i < _Container->ChildCt; ++i)
 		if(_Container->Children[i]->OnFocus(_Container->Children[i]) == 0)
 			return 0;
 	return 1;
@@ -328,7 +326,7 @@ int ContainerOnFocus(struct Container* _Container) {
 int ContainerOnUnfocus(struct Container* _Container) {
 	int i;
 
-	for(i = 0; i < _Container->ChildrenSz; ++i)
+	for(i = 0; i < _Container->ChildCt; ++i)
 		if(_Container->Children[i]->OnUnfocus(_Container->Children[i]) == 0)
 			return 0;
 	return 1;
@@ -364,23 +362,6 @@ int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text) {
 		SDL_FreeSurface(_Text);
 	((struct TextBox*)_Widget)->Text = _Text;
 	return 1;
-}
-
-void TableSetRow(struct Table* _Table, int _Row, ...) {
-	int i;
-	int _Size = _Row * _Table->Rows + _Table->Rows - 1;
-	struct Widget* _Field = NULL;
-	va_list _List;
-
-	va_start(_List, _Row);
-	for(i = _Row * _Table->Rows; i < _Size; ++i) {
-		if(_Table->Children[i] != NULL)
-			_Table->Children[i]->OnDestroy(_Table->Children[i]);
-		_Field = va_arg(_List, struct Widget*);
-		if(_Field->Parent != (struct Container*)_Table)
-			return;
-		_Table->Children[i] = _Field;
-	}
 }
 
 void TableNewChild(struct Container* _Parent, struct Widget* _Child) {

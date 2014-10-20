@@ -407,9 +407,6 @@ int LuaSetMenu(lua_State* _State) {
 		if(_Prev != g_GUIDefs.Font)
 			DestroyFont(_Prev);
 	}
-	g_Focus.Parent = NULL;
-	g_Focus.Index = 0;
-	g_Focus.Id = 0;
 	lua_getglobal(_State, _Name);
 	if(lua_type(_State, -1) != LUA_TTABLE)
 		return luaL_error(_State, "%s is not a table.", _Name);
@@ -430,6 +427,14 @@ int LuaSetMenu(lua_State* _State) {
 		lua_getglobal(_State, _Name);
 		luaL_ref(_State, -2);
 		lua_pop(_State, 2);
+	}
+	g_Focus.Parent = GetScreen(_State);
+	g_Focus.Index = 0;
+	if(g_Focus.Parent->Children[0] != NULL) {
+		g_Focus.Id = g_Focus.Parent->Children[0]->Id;
+		g_Focus.Parent->Children[0]->OnFocus(g_Focus.Parent->Children[0]);
+	} else {
+		g_Focus.Parent->Children[0]->Id = -1;
 	}
 	lua_pop(_State, 2);
 	g_GUIOk = 1;

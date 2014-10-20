@@ -8,12 +8,6 @@
 
 #include "Herald.h"
 
-#define YEAR(__Date) (__Date >> 9)
-#define MONTH(__Date) ((__Date >> 5) & 15)
-#define MONTHS (12)
-#define DAY(__Date) (__Date & 31)
-#define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
-
 typedef struct lua_State lua_State;
 
 struct Array;
@@ -41,7 +35,6 @@ int LuaGetPersons(lua_State* _State);
 
 void WorldInit(int _Area);
 void WorldQuit();
-void NextDay(int* _Date);
 int World_Tick();
 
 

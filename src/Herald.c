@@ -47,7 +47,7 @@ struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
 int g_Id = 0;
-char* g_Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
+const char* ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
@@ -236,7 +236,7 @@ DATE MonthToInt(const char* _Month) {
 	int i;
 
 	for(i = 0; i < MONTHS; ++i)
-		if(strcmp(_Month, g_Months[i]) == 0)
+		if(strcmp(_Month, ShortMonths[i]) == 0)
 			return i;
 	return -1;
 }
@@ -266,5 +266,34 @@ DATE DateToDays(int _Date) {
 	if(_Months >= 8)
 		++_Total;
 	return _Total;
+}
+
+void NextDay(int* _Date) {
+	int _Day = DAY(*_Date);
+	int _Month = MONTH(*_Date);
+	int _Year = YEAR(*_Date);
+
+	if((_Month & 1) == 0 || _Month == 7) {
+		if(_Day == 31) {
+			_Day = 0;
+			++_Month;
+		}
+	} else if(_Month == 1) {
+		if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29)) {
+			_Day = 0;
+			++_Month;
+		}
+	} else {
+		if(_Day == 30) {
+			_Day = 0;
+			++_Month;
+		}
+	}
+	++_Day;
+	if(_Month >= 12) {
+		++_Year;
+		_Month = 0;
+	}
+	*_Date = TO_DATE(_Year, _Month, _Day);
 }
 

@@ -325,35 +325,6 @@ void WorldQuit() {
 	DestroyArray(g_AnFoodDep);
 }
 
-void NextDay(int* _Date) {
-	int _Day = DAY(*_Date);
-	int _Month = MONTH(*_Date);
-	int _Year = YEAR(*_Date);
-
-	if((_Month & 1) == 0 || _Month == 7) {
-		if(_Day == 31) {
-			_Day = 0;
-			++_Month;
-		}
-	} else if(_Month == 1) {
-		if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29)) {
-			_Day = 0;
-			++_Month;
-		}
-	} else {
-		if(_Day == 30) {
-			_Day = 0;
-			++_Month;
-		}
-	}
-	++_Day;
-	if(_Month >= 12) {
-		++_Year;
-		_Month = 0;
-	}
-	*_Date = TO_DATE(_Year, _Month, _Day);
-}
-
 int World_Tick() {
 	NextDay(&g_Date);
 	return 1;

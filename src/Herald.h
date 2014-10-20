@@ -13,6 +13,11 @@
 #define TO_YEARS(_Months) ((_Months) * 12)
 #define TO_MONTHS(_Days) ((int)((_Days) / 30))
 #define TO_DAYS(_Months) ((_Months) * 30)
+#define YEAR(__Date) ((__Date) >> 9)
+#define MONTH(__Date) (((__Date) >> 5) & 15)
+#define MONTHS (12)
+#define DAY(__Date) (__Date & 31)
+#define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
 #define LISTTOHASH(_List, _Itr, _Hash, _Key)				\
 	(_Itr) = (_List)->Front;								\
 	while((_Itr) != NULL) {									\
@@ -27,6 +32,8 @@
 typedef struct lua_State lua_State;
 struct StackNode;
 struct LinkedList;
+
+static const char* g_ShortMonths[];
 
 enum {
 	BABY = 0,
@@ -76,5 +83,6 @@ void CreateObject(struct Object* _Obj, int _X, int _Y);
 DATE MonthToInt(const char* _Month);
 DATE DaysBetween(int _DateOne, int _DateTwo);
 DATE DateToDays(int _Date);
+void NextDay(int* _Date);
 
 #endif

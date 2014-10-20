@@ -69,6 +69,11 @@ struct Margin {
 	int Bottom;
 };
 
+struct Area {
+	int w;
+	int h;
+};
+
 struct Widget {
 	int Id;
 	const struct Container* Parent;
@@ -109,6 +114,7 @@ struct Container {
 	void (*NewChild)(struct Container*, struct Widget*);
 	struct Widget** Children;
 	int ChildrenSz;
+	int ChildCt;
 	int Spacing;
 	struct Margin Margins;
 };
@@ -126,11 +132,12 @@ struct Table {
 	void (*NewChild)(struct Container*, struct Widget*);
 	struct Widget** Children;
 	int ChildrenSz;
+	int ChildCt;
 	int Spacing;
 	struct Margin Margins;
-	int Columns;
 	int Rows;
-	struct Widget** Data;
+	int Columns;
+	struct Area CellMax; /* max area of a cel. */
 	struct Font* Font;
 };
 
@@ -180,7 +187,7 @@ int TextBoxOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
 
 void TableSetRow(struct Table* _Table, int _Row, ...);
-int TableOnDraw(struct Widget* _Widget);
+void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 
 int SDLEventCmp(const void* _One, const void* _Two);
 int KeyEventCmp(const void* _One, const void* _Two);

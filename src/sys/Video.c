@@ -132,6 +132,7 @@ struct Table* CreateTable(void) {
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
+	int i;
 	_Widget->Id = NextGUIId();
 	_Widget->Rect.x = _Rect->x;
 	_Widget->Rect.y = _Rect->y;
@@ -143,9 +144,20 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->OnFocus = NULL;
 	_Widget->OnUnfocus = NULL;
 	_Widget->OnDestroy = NULL;
-	if(_Parent != NULL)
+	if(_Parent != NULL) {
+		if(_Parent->Children == NULL) {
+			_Parent->Children = calloc(2, sizeof(struct Widget*));
+			memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
+			_Parent->ChildrenSz = 2;
+		} else if(_Parent->ChildCt == _Parent->ChildrenSz) {
+			_Parent->Children = realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
+			for(i = _Parent->ChildrenSz; i < _Parent->ChildrenSz * 2; ++i)
+				_Parent->Children[i] = NULL;
+			_Parent->ChildrenSz *= 2;
+		}
+		_Parent->Children[_Parent->ChildCt++] = _Widget;
 		_Parent->NewChild(_Parent, _Widget);
-	else
+	} else
 		_Widget->Parent = NULL;
 }
 
@@ -167,6 +179,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
+	_Widget->ChildCt = 0;
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
 	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
 	_Widget->NewChild = NULL;
@@ -187,15 +200,15 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
-	_Widget->OnDraw = TableOnDraw;
+	_Widget->OnDraw = ContainerOnDraw;
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
+	_Widget->NewChild = TableNewChild;
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
-	_Widget->Data = calloc(_Columns * _Rows, sizeof(char*));
 	_Widget->Font = _Font;
 	++_Font->RefCt;
 	for(i = 0; i < _Size; ++i)
-		_Widget->Data[i] = NULL;
+		_Widget->Children[i] = NULL;
 }
 
 struct Font* CreateFont(const char* _Name, int _Size) {
@@ -217,10 +230,9 @@ struct Font* CreateFont(const char* _Name, int _Size) {
 }
 
 void DestroyFont(struct Font* _Font) {
-	if(--_Font->RefCt > 0)
+	if(--_Font->RefCt > 0 || (_Font == g_GUIDefs.Font && _Font->RefCt != -1))
 		return;
 	if(_Font == g_GUIFonts) {
-		g_GUIDefs.Font = NULL;
 		g_GUIFonts = _Font->Next;
 	} else {
 		_Font->Prev->Next = _Font->Next;
@@ -233,27 +245,14 @@ void DestroyFont(struct Font* _Font) {
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 	int i;
-	int j;
 	int _X = _Parent->Margins.Left;
 	int _Y = _Parent->Margins.Top;
 
-	if(_Parent->Children == NULL) {
-		_Parent->Children = calloc(2, sizeof(struct Widget*));
-		memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
-		_Parent->ChildrenSz = 2;
-	}
 	_Child->Parent = _Parent;
 	for(i = 0; i < _Parent->ChildrenSz && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
-	if(i == _Parent->ChildrenSz) {
-		_Parent->Children = realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
-		for(j = _Parent->ChildrenSz; j < _Parent->ChildrenSz * 2; ++j)
-			_Parent->Children[j] = NULL;
-		_Parent->ChildrenSz *= 2;
-	}
-	_Parent->Children[i] = _Child;
 	_Child->Rect.x = _X;
 	_Child->Rect.y = _Y;
 }
@@ -299,14 +298,8 @@ void DestroyContainer(struct Container* _Container) {
 }
 
 void DestroyTable(struct Table* _Table) {
-	int i;
-	int _Size = _Table->Rows * _Table->Columns;
-
-	for(i = 0; i < _Size; ++i)
-		free(_Table->Data[i]);
-	free(_Table->Data);
 	DestroyFont(_Table->Font);
-	DestroyWidget((struct Widget*)_Table);
+	DestroyContainer((struct Container*)_Table);
 }
 
 int ContainerOnDraw(struct Container* _Container) {
@@ -381,29 +374,27 @@ void TableSetRow(struct Table* _Table, int _Row, ...) {
 
 	va_start(_List, _Row);
 	for(i = _Row * _Table->Rows; i < _Size; ++i) {
-		if(_Table->Data[i] != NULL)
-			_Table->Data[i]->OnDestroy(_Table->Data[i]);
+		if(_Table->Children[i] != NULL)
+			_Table->Children[i]->OnDestroy(_Table->Children[i]);
 		_Field = va_arg(_List, struct Widget*);
 		if(_Field->Parent != (struct Container*)_Table)
 			return;
-		_Table->Data[i] = _Field;
+		_Table->Children[i] = _Field;
 	}
 }
 
-int TableOnDraw(struct Widget* _Widget) {
-	int x;
-	int y;
-	struct Table* _Table = (struct Table*)_Widget;
-	struct Widget* _Child = NULL;
+void TableNewChild(struct Container* _Parent, struct Widget* _Child) {
+	int _Row = _Parent->ChildCt - 1;
+	int _Col = 0;
 
-	for(x = 0; x < _Table->Rows; ++x) {
-		for(y = 0; y < _Table->Columns; ++y) {
-			_Child = _Table->Data[y * _Table->Columns + x];
-			_Child->OnDraw(_Child);
-		}
+	while(_Row >= ((struct Table*)_Parent)->Rows) {
+		_Row -= ((struct Table*)_Parent)->Rows;
+		++_Col;
 	}
-
-	return 1;
+	_Child->Rect.x = _Row * ((struct Table*)_Parent)->CellMax.w;
+	_Child->Rect.y = _Col * ((struct Table*)_Parent)->CellMax.h;
+	_Child->Rect.w = ((struct Table*)_Parent)->CellMax.w;
+	_Child->Rect.h = ((struct Table*)_Parent)->CellMax.h;
 }
 
 int SDLEventCmp(const void* _One, const void* _Two) {

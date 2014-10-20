@@ -246,8 +246,8 @@ int LuaCreateTextBox(lua_State* _State) {
 		}
 	}
 	_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
-	_Rect.x = 0;
-	_Rect.y = 0;
+	_Rect.x = _Parent->Rect.x;
+	_Rect.y = _Parent->Rect.y;
 	_Rect.w = _Surface->w;
 	_Rect.h = _Surface->h;
 	lua_newtable(_State);
@@ -311,7 +311,7 @@ struct Container* LuaContainer(lua_State* _State) {
 	lua_newtable(_State);
 	_Container = CreateContainer();
 	if(lua_gettop(_State) > 7) {
-		ConstructContainer(_Container, LuaCheckClass(_State, 7, "Widget"), &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
+		ConstructContainer(_Container, LuaCheckClass(_State, 7, "Container"), &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	} else
 		ConstructContainer(_Container, NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	lua_getglobal(_State, "Container");

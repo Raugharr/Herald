@@ -176,6 +176,9 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
 	_Widget->ChildCt = 0;
+	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
+	_Widget->OnFocus = (int(*)(struct Widget*))ContainerOnFocus;
+	_Widget->OnUnfocus = (int(*)(struct Widget*))ContainerOnUnfocus;
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
 	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
 	_Widget->NewChild = NULL;
@@ -196,9 +199,6 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
-	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
-	_Widget->OnFocus = (int(*)(struct Widget*))ContainerOnFocus;
-	_Widget->OnUnfocus = (int(*)(struct Widget*))ContainerOnUnfocus;
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
 	_Widget->NewChild = TableNewChild;
 	_Widget->Columns = _Columns;
@@ -247,12 +247,12 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 	int _Y = _Parent->Margins.Top;
 
 	_Child->Parent = _Parent;
-	for(i = 0; i < _Parent->ChildrenSz && _Parent->Children[i] != NULL; ++i) {
+	for(i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
-	_Child->Rect.x = _X;
-	_Child->Rect.y = _Y;
+	_Child->Rect.x += _X;
+	_Child->Rect.y += _Y;
 }
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
@@ -334,12 +334,12 @@ int ContainerOnUnfocus(struct Container* _Container) {
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
 	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.x = 0;
+	_Child->Rect.x = _Parent->Rect.x;
 }
 
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
 	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.y = 0;
+	_Child->Rect.y = _Parent->Rect.y;
 }
 
 int TextBoxOnDraw(struct Widget* _Widget) {

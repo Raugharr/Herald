@@ -162,65 +162,84 @@ int LuaPersonItrItr(lua_State* _State) {
 	return 1;
 }
 
-int LuaPersonItrNext(lua_State* _State) {
-	struct Person* _Person = LuaCheckClass(_State, 1, "Iterator");
-	int _Max = 1;
+int LuaPersonItrNext_Aux(lua_State* _State) {
+	int _UpValue = lua_upvalueindex(1);
+	struct Person* _Person = lua_touserdata(_State, _UpValue);
 
-	if(lua_gettop(_State) == 2)
-		_Max = luaL_checkinteger(_State, 2);
-	while(_Max > 0) {
-		if(_Person->Next == NULL) {
-			lua_pushnil(_State);
-			lua_pushvalue(_State, 1);
-			lua_pushnil(_State);
-			return 3;
-		}
-		_Person = _Person->Next;
-		--_Max;
+	if(_Person == NULL)
+		goto end;
+	if(_Person->Next == NULL) {
+		lua_pushnil(_State);
+		lua_pushvalue(_State, 1);
+		lua_pushnil(_State);
+		return 3;
 	}
+	_Person = _Person->Next;
+	end:
 	lua_pushlightuserdata(_State, _Person);
-	lua_pushvalue(_State, 1);
-	lua_pushnil(_State);
-	return 3;
+	lua_pushvalue(_State, -1);
+	lua_replace(_State, _UpValue);
+	return 1;
+}
+
+int LuaPersonItrNext(lua_State* _State) {
+	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
+	lua_pushcclosure(_State, LuaPersonItrNext_Aux, 1);
+	return 1;
+}
+
+int LuaPersonItrPrev_Aux(lua_State* _State) {
+	int _UpValue = lua_upvalueindex(1);
+	struct Person* _Person = lua_touserdata(_State, _UpValue);
+
+	if(_Person == NULL)
+		goto end;
+	if(_Person->Prev == NULL) {
+		lua_pushnil(_State);
+		lua_pushvalue(_State, 1);
+		lua_pushnil(_State);
+		return 3;
+	}
+	_Person = _Person->Prev;
+	end:
+	lua_pushlightuserdata(_State, _Person);
+	lua_pushvalue(_State, -1);
+	lua_replace(_State, _UpValue);
+	return 1;
 }
 
 int LuaPersonItrPrev(lua_State* _State) {
-	struct Person* _Person = LuaCheckClass(_State, 1, "Iterator");
-	int _Max = 1;
-
-	if(lua_gettop(_State) == 2)
-		_Max = luaL_checkinteger(_State, 2);
-	while(_Max > 0) {
-		if(_Person->Prev == NULL) {
-			lua_pushnil(_State);
-			lua_pushvalue(_State, 1);
-			lua_pushnil(_State);
-			return 3;
-		}
-		_Person = _Person->Prev;
-		--_Max;
-	}
-	lua_pushlightuserdata(_State, _Person);
-	lua_pushvalue(_State, 1);
-	lua_pushnil(_State);
-	return 3;
+	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
+	lua_pushcclosure(_State, LuaPersonItrPrev_Aux, 1);
+	return 1;
 }
 
 int LuaRegisterPersonItr(lua_State* _State) {
 	if(luaL_newmetatable(_State, "PersonIterator") == 0)
 		return 0;
-	lua_pushstring(_State, "Itr");
+
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "Itr");
 	lua_pushcfunction(_State, LuaPersonItrItr);
 	lua_rawset(_State, -3);
-	lua_pushstring(_State, "Next");
+
+	lua_pushliteral(_State, "Next");
 	lua_pushcfunction(_State, LuaPersonItrNext);
 	lua_rawset(_State, -3);
-	lua_pushstring(_State, "Prev");
+
+	lua_pushliteral(_State, "Prev");
 	lua_pushcfunction(_State, LuaPersonItrPrev);
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "__baseclass");
-	lua_pushstring(_State, "Iterator");
+	lua_getglobal(_State, "Iterator");
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "PersonIterator");
 	return 1;
@@ -232,7 +251,7 @@ int LuaGetPersons(lua_State* _State) {
 	lua_getglobal(_State, "PersonIterator");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
-	lua_pushnil(_State);
+	lua_pushlightuserdata(_State, g_PersonList);
 	lua_rawset(_State, -3);
 	return 1;
 }

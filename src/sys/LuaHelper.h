@@ -69,6 +69,7 @@ int LuaPushPerson(lua_State* _State, int _Index);
 int LuaPerson(lua_State* _State);
 
 int LuaMonth(lua_State* _State);
+int LuaIntToMonth(lua_State* _State);
 int LuaHook(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File);

@@ -34,6 +34,7 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"Animal", LuaPopulation},
 		{"Person", LuaPerson},
 		{"ToMonth", LuaMonth},
+		{"IntToMonth", LuaIntToMonth},
 		{"Hook", LuaHook},
 		{"CreateGood", LuaCreateGood},
 		{"CreateBuilding", LuaCreateBuilding},
@@ -331,6 +332,18 @@ int LuaMonth(lua_State* _State) {
 		LUA_BADARG(2, "Must be either \"Years\" or \"Days\".");
 		return 0;
 	}
+	return 1;
+}
+
+int LuaIntToMonth(lua_State* _State) {
+	DATE _Date = luaL_checkinteger(_State, 1);
+	DATE _Days = DAY(_Date);
+	DATE _Months = MONTH(_Date);
+	DATE _Years = YEAR(_Date);
+
+	if(_Months > 11)
+		_Months = 11;
+	lua_pushfstring(_State, "%s %d, %d", g_ShortMonths[_Months], _Days, _Years);
 	return 1;
 }
 

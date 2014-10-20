@@ -59,6 +59,19 @@ static const luaL_Reg g_LuaFuncsTextBox[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsTable[] = {
+		{"GetFont", LuaTableGetFont},
+		{"SetCellWidth", LuaTableSetCellWidth},
+		{"SetCellHeight", LuaTableSetCellHeight},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsFont[] = {
+		{"FontWidth", LuaFontWidth},
+		{"FontHeight", LuaFontHeight},
+		{NULL, NULL}
+};
+
 int LuaRegisterWidget(lua_State* _State) {
 	if(luaL_newmetatable(_State, "Widget") == 0)
 		return 0;
@@ -112,7 +125,6 @@ int LuaRegisterTextBox(lua_State* _State) {
 		return 0;
 	}
 	LuaCopyTable(_State, -2);
-
 	lua_pushliteral(_State, "__index");
 	lua_pushvalue(_State, -2);
 	lua_rawset(_State, -3);
@@ -129,6 +141,32 @@ int LuaRegisterTextBox(lua_State* _State) {
 	lua_rawset(_State, -3);
 	luaL_setfuncs(_State, g_LuaFuncsTextBox, 0);
 	lua_setglobal(_State, "TextBox");
+	return 1;
+}
+
+int LuaRegisterTable(lua_State* _State) {
+	lua_getglobal(_State, "Container");
+	if(luaL_newmetatable(_State, "Table") == 0) {
+		lua_pop(_State, 1);
+		return 0;
+	}
+	LuaCopyTable(_State, -2);
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Table");
+	lua_rawset(_State, -3);
+	lua_pushliteral(_State, "__baseclass");
+	lua_getglobal(_State, "Container");
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsTable, 0);
+	lua_setglobal(_State, "Table");
 	return 1;
 }
 
@@ -163,6 +201,7 @@ int LuaRegisterFont(lua_State* _State) {
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsFont, 0);
 	lua_setglobal(_State, "Font");
 	return 1;
 }
@@ -213,7 +252,7 @@ int LuaCreateTextBox(lua_State* _State) {
 	_Rect.h = _Surface->h;
 	lua_newtable(_State);
 	_TextBox = CreateTextBox();
-	ConstructTextBox(_TextBox, _Parent, &_Rect, _State, _Surface);
+	ConstructTextBox(_TextBox, _Parent, &_Rect, _State, _Surface, _Font);
 	lua_getglobal(_State, "TextBox");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
@@ -224,25 +263,27 @@ int LuaCreateTextBox(lua_State* _State) {
 
 int LuaCreateTable(lua_State* _State) {
 	int i = 0;
-	int _Rows = luaL_checkinteger(_State, 3);
-	int _Columns = luaL_checkinteger(_State, 4);
-	int _Spacing = luaL_checkinteger(_State, 5);
+	int _Rows = luaL_checkinteger(_State, 2);
+	int _Columns = luaL_checkinteger(_State, 3);
+	int _Spacing = luaL_checkinteger(_State, 4);
 	struct Margin _Margins;
 	struct Container* _Parent = LuaCheckContainer(_State, 1);
 	struct Table* _Table = NULL;
 	struct Font* _Font = g_GUIDefs.Font;
-	SDL_Rect _Rect = {0, 0, luaL_checkinteger(_State, 2), 0};
+	SDL_Rect _Rect = {0, 0, 0, 0};
 
-	luaL_checktype(_State, 6, LUA_TTABLE);
-	if(lua_gettop(_State) == 7)
-		_Font = LuaCheckFont(_State, 7);
+	luaL_checktype(_State, 5, LUA_TTABLE);
+	if(lua_gettop(_State) == 6)
+		_Font = LuaCheckFont(_State, 6);
 	lua_pushnil(_State);
-	while(lua_next(_State, 6) != 0 && i < 4) {
+	while(lua_next(_State, 5) != 0 && i < 4) {
 		((int*)&_Margins)[i] = lua_tointeger(_State, 1);
 		lua_pop(_State, 1);
 		++i;
 	}
 	_Table = CreateTable();
+	if(_Font == NULL)
+		luaL_error(_State, "No default font or font passed as argument.");
 	ConstructTable(_Table, _Parent, &_Rect,_State, _Spacing, &_Margins, _Columns, _Rows, _Font);
 	lua_newtable(_State);
 	lua_getglobal(_State, "Table");
@@ -341,17 +382,22 @@ int LuaGetFont(lua_State* _State) {
 }
 
 int LuaDefaultFont(lua_State* _State) {
+	if(g_GUIDefs.Font != NULL) {
+		g_GUIDefs.Font->RefCt = -1;
+		DestroyFont(g_GUIDefs.Font);
+	}
 	g_GUIDefs.Font = LuaCheckFont(_State, 1);
 	return 0;
 }
 
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
-	struct Font* _Font = g_GUIFonts;
+	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
+	_Font = g_GUIDefs.Font;
 	while(_Font != NULL) {
 		_Prev = _Font;
 		_Font = _Font->Next;
@@ -502,6 +548,14 @@ struct TextBox* LuaCheckTextBox(lua_State* _State, int _Index) {
 	return _TextBox;
 }
 
+struct Table* LuaCheckTable(lua_State* _State, int _Index) {
+	struct Table* _Table = NULL;
+
+	if((_Table = LuaTestClass(_State, _Index, "Table")) == NULL)
+		return (struct Table*) LuaCheckClass(_State, _Index, "Table");
+	return _Table;
+}
+
 SDL_Surface* LuaCheckSurface(lua_State* _State, int _Index) {
 	SDL_Surface* _Surface = NULL;
 
@@ -607,6 +661,52 @@ int LuaTextBoxSetText(lua_State* _State) {
 	return 0;
 }
 
+int LuaTableGetFont(lua_State* _State) {
+	struct Table* _Table = LuaCheckTable(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Font");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Table->Font);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaTableSetCellWidth(lua_State* _State) {
+	struct Table* _Table = LuaCheckTable(_State, 1);
+
+	_Table->CellMax.w = luaL_checkinteger(_State, 2);
+	lua_pushvalue(_State, 1);
+	return 1;
+}
+
+int LuaTableSetCellHeight(lua_State* _State) {
+	struct Table* _Table = LuaCheckTable(_State, 1);
+
+	_Table->CellMax.h = luaL_checkinteger(_State, 2);
+	lua_pushvalue(_State, 1);
+	return 1;
+}
+
+int LuaFontWidth(lua_State* _State) {
+	struct Font* _Font = LuaCheckFont(_State, 1);
+	int _Size = TTF_FontFaceIsFixedWidth(_Font->Font);
+
+	if(_Size == 0)
+		TTF_SizeText(_Font->Font, "w", &_Size, NULL);
+	lua_pushinteger(_State, _Size);
+	return 1;
+}
+
+int LuaFontHeight(lua_State* _State) {
+	struct Font* _Font = LuaCheckFont(_State, 1);
+
+	lua_pushinteger(_State, TTF_FontHeight(_Font->Font));
+	return 1;
+}
+
 int InitGUILua(lua_State* _State) {
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
@@ -614,6 +714,7 @@ int InitGUILua(lua_State* _State) {
 	if(LuaRegisterWidget(_State) == 0 ||
 			LuaRegisterContainer(_State) == 0 ||
 			LuaRegisterTextBox(_State) == 0 ||
+			LuaRegisterTable(_State) == 0 ||
 			LuaRegisterSurface(_State) == 0 ||
 			LuaRegisterFont(_State) == 0)
 		return 0;

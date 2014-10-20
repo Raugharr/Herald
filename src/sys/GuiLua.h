@@ -8,6 +8,7 @@ typedef struct SDL_Surface SDL_Surface;
 int LuaRegisterWidget(lua_State* _State);
 int LuaRegisterContainer(lua_State* _State);
 int LuaRegisterTextBox(lua_State* _State);
+int LuaRegisterTable(lua_State* _State);
 int LuaRegisterSurface(lua_State* _State);
 int LuaRegisterFont(lua_State* _State);
 
@@ -61,6 +62,21 @@ int LuaContainerGetMargins(lua_State* _State);
  */
 
 int LuaTextBoxSetText(lua_State* _State);
+
+/**
+ * Table functions
+ */
+
+int LuaTableGetFont(lua_State* _State);
+int LuaTableSetCellWidth(lua_State* _State);
+int LuaTableSetCellHeight(lua_State* _State);
+
+/**
+ * Font functions
+ */
+
+int LuaFontWidth(lua_State* _State);
+int LuaFontHeight(lua_State* _State);
 
 int InitGUILua(lua_State* _State);
 int QuitGUILua(lua_State* _State);

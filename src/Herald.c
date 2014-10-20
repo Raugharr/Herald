@@ -47,7 +47,7 @@ struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
 int g_Id = 0;
-const char* ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
@@ -236,7 +236,7 @@ DATE MonthToInt(const char* _Month) {
 	int i;
 
 	for(i = 0; i < MONTHS; ++i)
-		if(strcmp(_Month, ShortMonths[i]) == 0)
+		if(strcmp(_Month, g_ShortMonths[i]) == 0)
 			return i;
 	return -1;
 }

@@ -33,7 +33,7 @@ typedef struct lua_State lua_State;
 struct StackNode;
 struct LinkedList;
 
-static const char* g_ShortMonths[];
+extern const char* g_ShortMonths[];
 
 enum {
 	BABY = 0,

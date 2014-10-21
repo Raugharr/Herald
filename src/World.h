@@ -31,7 +31,8 @@ struct WorldTile {
 };
 
 int LuaRegisterPersonItr(lua_State* _State);
-int LuaGetPersons(lua_State* _State);
+int LuaWorldGetPersons(lua_State* _State);
+int LuaWorldGetDate(lua_State* _State);
 
 void WorldInit(int _Area);
 void WorldQuit();

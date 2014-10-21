@@ -45,7 +45,8 @@ struct RBTree g_Families;
 struct KDTree g_ObjPos;
 
 static const luaL_Reg g_LuaWorldFuncs[] = {
-		{"GetPersons", LuaGetPersons},
+		{"GetDate", LuaWorldGetDate},
+		{"GetPersons", LuaWorldGetPersons},
 		{NULL, NULL}
 };
 
@@ -245,7 +246,7 @@ int LuaRegisterPersonItr(lua_State* _State) {
 	return 1;
 }
 
-int LuaGetPersons(lua_State* _State) {
+int LuaWorldGetPersons(lua_State* _State) {
 	lua_newtable(_State);
 
 	lua_getglobal(_State, "PersonIterator");
@@ -253,6 +254,11 @@ int LuaGetPersons(lua_State* _State) {
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, g_PersonList);
 	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaWorldGetDate(lua_State* _State) {
+	lua_pushinteger(_State, g_Date);
 	return 1;
 }
 

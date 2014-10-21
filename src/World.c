@@ -38,7 +38,6 @@
 
 int g_Date = 0;
 struct Array* g_World = NULL;
-struct LinkedList* g_ManorList = NULL;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
@@ -276,16 +275,21 @@ void WorldInit(int _Area) {
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
 	LuaRegisterPersonItr(g_LuaState);
-	g_ManorList = (struct LinkedList*) CreateLinkedList();
-	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	chdir(DATAFLD);
 	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
 	LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList);
+	g_Crops.TblSize = (_CropList->Size * 5) / 4;
+	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * _CropList->Size);
+	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
+	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
+
 	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
-	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name);
+	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
+	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
+	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 
 	if(_GoodList->Size == 0) {
@@ -314,8 +318,21 @@ void WorldInit(int _Area) {
 	lua_pop(g_LuaState, 1);
 	GoodLoadEnd:
 	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
+	g_Populations.TblSize = (_PopList->Size * 5) / 4;
+	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
+	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
+
 	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
+	g_Occupations.TblSize = ((_OccupationList->Size + 1) * 5) / 4;
+	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
+	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
+	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
+
 	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList);
+	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
+	g_BuildMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuildMats.TblSize);
+	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
+
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
 	LISTTOHASH(_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
@@ -342,7 +359,6 @@ void WorldInit(int _Area) {
 void WorldQuit() {
 	AIQuit();
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
-	DestroyLinkedList(g_ManorList);
 	DestroyArray(g_World);
 	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();

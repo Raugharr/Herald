@@ -31,10 +31,6 @@
 #include <lua/lauxlib.h>
 
 #define AGEDIST_SIZE (17)
-#define CROPS_TBLSZ (64)
-#define GOODS_TBLSZ (512)
-#define BUILDINGS_TBLSZ (64)
-#define OCCUPATIONS_TBLSZ (128)
 
 struct HashTable g_Crops;
 struct HashTable g_Goods;
@@ -54,30 +50,25 @@ int IdISCallback(const int* _One, const int* _Two) {
 }
 
 void HeraldInit() {
-	g_Crops.TblSize = CROPS_TBLSZ;
-	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Crops.TblSize);
+	g_Crops.TblSize = 0;
+	g_Crops.Table = NULL;
 	g_Crops.Size = 0;
-	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
 
-	g_Goods.TblSize = GOODS_TBLSZ;
-	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
+	g_Goods.TblSize = 0;
+	g_Goods.Table = NULL;
 	g_Goods.Size = 0;
-	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
-	g_BuildMats.TblSize = BUILDINGS_TBLSZ;
-	g_BuildMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuildMats.TblSize);
+	g_BuildMats.TblSize = 0;
+	g_BuildMats.Table = NULL;
 	g_BuildMats.Size = 0;
-	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
 
-	g_Occupations.TblSize = OCCUPATIONS_TBLSZ;
-	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
+	g_Occupations.TblSize = 0;
+	g_Occupations.Table = NULL;
 	g_Occupations.Size = 0;
-	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
-	g_Populations.TblSize = OCCUPATIONS_TBLSZ;
-	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
+	g_Populations.TblSize = 0;
+	g_Populations.Table = NULL;
 	g_Populations.Size = 0;
-	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
 	g_ATimer.Tree = CreateRBTree((int(*)(const void*, const void*))ATimerICallback, (int(*)(const void*, const void*))ATimerSCallback);
 	g_ATimer.ATypes = calloc(ATT_SIZE, sizeof(struct ATType*));

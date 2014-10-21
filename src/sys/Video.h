@@ -29,6 +29,7 @@ struct GUIFocus {
 struct WEvent {
 	SDL_Event Event;
 	int WidgetId;
+	int RefId;
 };
 
 struct GUIEvents {

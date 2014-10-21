@@ -70,7 +70,7 @@ int NextGUIId(void) {return g_GUIId++;}
 struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
 
-	if(++_Focus->Index >= _Parent->ChildCt) {
+	if(++_Focus->Index >= _Parent->ChildrenSz) {
 		if(_Parent->Parent != NULL) {
 			struct GUIFocus* _Temp = _Focus;
 
@@ -82,7 +82,7 @@ struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 		} else
 			_Focus->Index = 0;
 	}
-	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildCt)
+	while(_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildrenSz))
 		++_Focus->Index;
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 	return _Focus;
@@ -98,12 +98,12 @@ struct GUIFocus* DecrFocus(struct GUIFocus* _Focus) {
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
 			if(--_Focus->Index < 0)
-				_Focus->Index = _Parent->ChildCt - 1;
+				_Focus->Index = _Parent->ChildrenSz - 1;
 			free(_Temp);
 		} else
 			_Focus->Index = _Parent->ChildCt - 1;
 	}
-	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index >= 0)
+	while(_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index >= 0))
 		--_Focus->Index;
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 	return _Focus;
@@ -127,7 +127,7 @@ void Events(void) {
 		for(i = 0; i < g_GUIEvents.Size; ++i)
 			/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
 			if(g_GUIEvents.Events[i].WidgetId == g_Focus->Id && KeyEventCmp(&g_GUIEvents.Events[i].Event, &_Event) == 0)
-				LuaCallEvent(g_LuaState, i + 1);
+				LuaCallEvent(g_LuaState, g_GUIEvents.Events[i].RefId);
 		}
 	}
 }

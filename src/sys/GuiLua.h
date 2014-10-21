@@ -54,6 +54,9 @@ int LuaWidgetGetChildren(lua_State* _State);
  * Container functions
  */
 
+int LuaContainerGetChild(lua_State* _State);
+int LuaContainerSetChild(lua_State* _State);
+int LuaContainerGetChildCt(lua_State* _State);
 int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
 
@@ -67,6 +70,7 @@ int LuaTextBoxSetText(lua_State* _State);
  * Table functions
  */
 
+int LuaTableGetCellIndex(lua_State* _State);
 int LuaTableGetFont(lua_State* _State);
 int LuaTableSetCellWidth(lua_State* _State);
 int LuaTableSetCellHeight(lua_State* _State);
@@ -83,6 +87,9 @@ int QuitGUILua(lua_State* _State);
 struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
 void LuaCallEvent(lua_State* _State, int _EvntIndx);
+/**
+ * The table that contains the Widget must be on top of the stack.
+ */
 int LuaWidgetRef(lua_State* _State);
 void LuaWidgetUnref(lua_State* _State, int _Ref);
 

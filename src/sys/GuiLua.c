@@ -428,13 +428,13 @@ int LuaSetMenu(lua_State* _State) {
 		luaL_ref(_State, -2);
 		lua_pop(_State, 2);
 	}
-	g_Focus.Parent = GetScreen(_State);
-	g_Focus.Index = 0;
-	if(g_Focus.Parent->Children[0] != NULL) {
-		g_Focus.Id = g_Focus.Parent->Children[0]->Id;
-		g_Focus.Parent->Children[0]->OnFocus(g_Focus.Parent->Children[0]);
+	g_Focus->Parent = GetScreen(_State);
+	g_Focus->Index = 0;
+	if(g_Focus->Parent->Children[0] != NULL) {
+		g_Focus->Id = g_Focus->Parent->Children[0]->Id;
+		g_Focus->Parent->Children[0]->OnFocus(g_Focus->Parent->Children[0]);
 	} else {
-		g_Focus.Parent->Children[0]->Id = -1;
+		g_Focus->Parent->Children[0]->Id = -1;
 	}
 	lua_pop(_State, 2);
 	g_GUIOk = 1;

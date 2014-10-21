@@ -20,13 +20,12 @@ struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIOk = 1;
 int g_GUIId = 0;
 int g_GUITimer = 0;
-struct GUIFocus g_Focus = {NULL, 0, 0};
+struct GUIFocus* g_Focus = NULL;
 struct GUIEvents g_GUIEvents = {NULL, 16, 0};
 SDL_Surface* g_Surface = NULL;
 struct Font* g_GUIFonts = NULL;
 
 int VideoInit(void) {
-	struct Container* _Screen = NULL;
 	Log(ELOG_INFO, "Setting up video.");
 	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
 		goto error;
@@ -38,9 +37,13 @@ int VideoInit(void) {
 		goto error;
 	g_Surface = SDL_GetWindowSurface(g_Window);
 	g_GUIEvents.Events = calloc(g_GUIEvents.TblSz, sizeof(struct WEvent));
+	g_Focus = malloc(sizeof(struct GUIFocus));
+	g_Focus->Id = 0;
+	g_Focus->Index = 0;
+	g_Focus->Parent = NULL;
+	g_Focus->Prev = NULL;
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
-	_Screen = GetScreen(g_LuaState);
 	return 1;
 	error:
 	g_GUIOk = 0;
@@ -48,33 +51,62 @@ int VideoInit(void) {
 }
 
 void VideoQuit(void) {
+	struct GUIFocus* _Focus = NULL;
+
 	QuitGUILua(g_LuaState);
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
 	SDL_Quit();
 	free(g_GUIEvents.Events);
+	while(g_Focus != NULL) {
+		_Focus = g_Focus;
+		g_Focus = g_Focus->Prev;
+		free(_Focus);
+	}
 }
 
 int NextGUIId(void) {return g_GUIId++;}
 
-void IncrFocus(struct GUIFocus* _Focus) {
+struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
 
-	if(++_Focus->Index >= _Parent->ChildrenSz)
-		_Focus->Index = 0;
-	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildrenSz)
+	if(++_Focus->Index >= _Parent->ChildCt) {
+		if(_Parent->Parent != NULL) {
+			struct GUIFocus* _Temp = _Focus;
+
+			_Focus = _Focus->Prev;
+			_Parent = _Focus->Parent;
+			if(++_Focus->Index >= _Parent->ChildCt)
+				_Focus->Index = 0;
+			free(_Temp);
+		} else
+			_Focus->Index = 0;
+	}
+	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildCt)
 		++_Focus->Index;
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
+	return _Focus;
 }
 
-void DecrFocus(struct GUIFocus* _Focus) {
+struct GUIFocus* DecrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
 
-	if(--_Focus->Index < 0)
-		_Focus->Index = _Parent->ChildrenSz - 1;
+	if(--_Focus->Index < 0) {
+		if(_Parent->Parent != NULL) {
+			struct GUIFocus* _Temp = _Focus;
+
+			_Focus = _Focus->Prev;
+			_Parent = _Focus->Parent;
+			if(--_Focus->Index < 0)
+				_Focus->Index = _Parent->ChildCt - 1;
+			free(_Temp);
+		} else
+			_Focus->Index = _Parent->ChildCt - 1;
+	}
 	while(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index >= 0)
 		--_Focus->Index;
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
+	return _Focus;
 }
 
 void Events(void) {
@@ -84,17 +116,17 @@ void Events(void) {
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP) {
 			if(_Event.key.keysym.sym == SDLK_w || _Event.key.keysym.sym == SDLK_UP) {
-				g_Focus.Parent->Children[g_Focus.Index]->OnUnfocus(g_Focus.Parent->Children[g_Focus.Index]);
-				DecrFocus(&g_Focus);
-				g_Focus.Parent->Children[g_Focus.Index]->OnFocus(g_Focus.Parent->Children[g_Focus.Index]);
+				g_Focus->Parent->Children[g_Focus->Index]->OnUnfocus(g_Focus->Parent->Children[g_Focus->Index]);
+				g_Focus = DecrFocus(g_Focus);
+				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			} else if(_Event.key.keysym.sym == SDLK_s || _Event.key.keysym.sym == SDLK_DOWN) {
-				g_Focus.Parent->Children[g_Focus.Index]->OnUnfocus(g_Focus.Parent->Children[g_Focus.Index]);
-				IncrFocus(&g_Focus);
-				g_Focus.Parent->Children[g_Focus.Index]->OnFocus(g_Focus.Parent->Children[g_Focus.Index]);
+				g_Focus->Parent->Children[g_Focus->Index]->OnUnfocus(g_Focus->Parent->Children[g_Focus->Index]);
+				g_Focus = IncrFocus(g_Focus);
+				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
 		for(i = 0; i < g_GUIEvents.Size; ++i)
 			/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
-			if(g_GUIEvents.Events[i].WidgetId == g_Focus.Id && KeyEventCmp(&g_GUIEvents.Events[i].Event, &_Event) == 0)
+			if(g_GUIEvents.Events[i].WidgetId == g_Focus->Id && KeyEventCmp(&g_GUIEvents.Events[i].Event, &_Event) == 0)
 				LuaCallEvent(g_LuaState, i + 1);
 		}
 	}
@@ -306,7 +338,7 @@ int ContainerOnDraw(struct Container* _Container) {
 
 	if(_Container->Children == NULL)
 		return 1;
-	for(i = 0; _Container->Children[i] != NULL && i < _Container->ChildrenSz; ++i) {
+	for(i = 0; i < _Container->ChildCt; ++i) {
 		_Ret = _Container->Children[i]->OnDraw(_Container->Children[i]);
 		if(_Ret == 0)
 			return 0;
@@ -315,20 +347,30 @@ int ContainerOnDraw(struct Container* _Container) {
 }
 
 int ContainerOnFocus(struct Container* _Container) {
-	int i;
+	if(_Container->Children[0] != NULL) {
+		struct GUIFocus* _Focus = NULL;
 
-	for(i = 0; i < _Container->ChildCt; ++i)
-		if(_Container->Children[i]->OnFocus(_Container->Children[i]) == 0)
+		if(_Container->Children[0]->OnFocus(_Container->Children[0]) == 0)
 			return 0;
+		_Focus = malloc(sizeof(struct GUIFocus));
+		_Focus->Parent = _Container;
+		_Focus->Index = 0;
+		_Focus->Id = _Container->Children[0]->Id;
+		_Focus->Prev = g_Focus;
+		g_Focus = _Focus;
+	}
 	return 1;
 }
 
 int ContainerOnUnfocus(struct Container* _Container) {
-	int i;
+	if(g_Focus->Parent == _Container && _Container->Children[g_Focus->Index] != NULL) {
+		struct GUIFocus* _Focus = g_Focus;
 
-	for(i = 0; i < _Container->ChildCt; ++i)
-		if(_Container->Children[i]->OnUnfocus(_Container->Children[i]) == 0)
+		if(_Container->Children[g_Focus->Index]->OnUnfocus(_Container->Children[g_Focus->Index]) == 0)
 			return 0;
+		g_Focus = g_Focus->Prev;
+		free(_Focus);
+	}
 	return 1;
 }
 

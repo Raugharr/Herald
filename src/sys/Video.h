@@ -20,9 +20,10 @@ typedef struct SDL_Surface SDL_Surface;
 struct Widget;
 
 struct GUIFocus {
-	struct Container* Parent;
+	const struct Container* Parent;
 	int Index;
 	int Id;
+	struct GUIFocus* Prev;
 };
 
 struct WEvent {
@@ -57,7 +58,7 @@ extern SDL_Window* g_Window;
 extern SDL_Renderer* g_Renderer;
 extern int g_GUIOk;
 extern int g_GUIId;
-extern struct GUIFocus g_Focus;
+extern struct GUIFocus* g_Focus;
 extern struct GUIEvents g_GUIEvents;
 extern struct GUIDef g_GUIDefs;
 extern struct Font* g_GUIFonts;
@@ -144,8 +145,8 @@ struct Table {
 int VideoInit(void);
 void VideoQuit(void);
 int NextGUIId(void);
-void IncrFocus(struct GUIFocus* _Focus);
-void DecrFocus(struct GUIFocus* _Focus);
+struct GUIFocus* IncrFocus(struct GUIFocus* _Focus);
+struct GUIFocus* DecrFocus(struct GUIFocus* _Focus);
 void Events(void);
 void Draw(void);
 

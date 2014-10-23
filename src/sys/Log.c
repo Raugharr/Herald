@@ -26,7 +26,11 @@ void SetFilter(int _Level) {
 int LogSetFile(const char* _File) {
 	if(g_LogFile >= 0)
 		close(g_LogFile);
+#ifdef WINDOWS
 	if((g_LogFile = open(_File, _O_WRONLY, _O_CREAT, _O_TRUNC)) < 0)
+#else
+	if((g_LogFile = open(_File, O_WRONLY, O_CREAT, O_TRUNC)) < 0)
+#endif
 		return 0;
 	return 1;
 }

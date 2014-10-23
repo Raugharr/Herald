@@ -5,9 +5,13 @@ DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h Occupation
 OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)Occupation.o $(OBJFLD)World.o
 ODIR=.
-LIB=-lmingw32 -llua -lsdl2main -lsdl2 -lSDL2_ttf
+ifdef Windows
+	LIB=-lmingw32 -llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf
+else
+	LIB=-llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf
+endif
 SYS=sys
-AI=ai
+AI=AI
 NAME=herald
 
 $(OBJFLD)%.o: %.c $(DEPS)

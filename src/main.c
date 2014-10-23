@@ -14,7 +14,11 @@
 #include "AI/Setup.h"
 
 #include <stdlib.h>
-#include <io.h>
+#ifdef WINDOWS
+	#include <io.h>
+#else
+	#include <sys/io.h>
+#endif
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 

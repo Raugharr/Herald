@@ -9,12 +9,16 @@
 #include "LuaHelper.h"
 #include "Array.h"
 
-#include <sdl2/SDL.h>
-#include <sdl2/SDL_events.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_ttf.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
-#include <io.h>
+#ifdef WINDOWS
+	#include <io.h>
+#else
+	#include <sys/io.h>
+#endif
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>

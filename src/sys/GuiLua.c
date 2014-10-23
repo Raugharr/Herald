@@ -370,7 +370,7 @@ int LuaGetFont(lua_State* _State) {
 	int _Size = luaL_checkint(_State, 2);
 	struct Font* _Font = g_GUIFonts;
 
-	chdir("Fonts");
+	chdir("fonts");
 	while(_Font != NULL) {
 		if(strcmp(_Font->Name, _Name) == 0 && _Font->Size == _Size)
 			goto no_new_font;

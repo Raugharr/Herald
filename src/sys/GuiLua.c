@@ -14,15 +14,16 @@
 #include <SDL2/SDL_ttf.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
-#ifdef WINDOWS
-	#include <io.h>
-#else
-	#include <sys/io.h>
-#endif
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#ifdef WINDOWS
+	#include <io.h>
+#else
+	#include <sys/io.h>
+	#include <unistd.h>
+#endif
 
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
@@ -372,11 +373,11 @@ int LuaGetFont(lua_State* _State) {
 	chdir("Fonts");
 	while(_Font != NULL) {
 		if(strcmp(_Font->Name, _Name) == 0 && _Font->Size == _Size)
-			break;
+			goto no_new_font;
 		_Font = _Font->Next;
 	}
-	if(_Font == NULL)
 		_Font = CreateFont(_Name, _Size);
+	no_new_font:
 	lua_newtable(_State);
 	lua_getglobal(_State, "Font");
 	lua_setmetatable(_State, -2);

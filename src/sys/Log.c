@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <lua/lua.h>
+#ifndef WINDOWS
+	#include <unistd.h>
+#endif
 
 #define LOG_MAXSIZE (512)
 #define LOG_LUAMSG "Function %s contains error (%s) on line %i"

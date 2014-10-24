@@ -403,23 +403,67 @@ int LuaSetMenu(lua_State* _State) {
 	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Menu");
+	lua_getglobal(_State, _Name);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
-	_Font = g_GUIDefs.Font;
-	while(_Font != NULL) {
-		_Prev = _Font;
-		_Font = _Font->Next;
-		/*NOTE: widgets might stay alive when another menu is brought up,
-		 * we should only delete fonts to widgets that are dead.
-		 */
-		if(_Prev != g_GUIDefs.Font)
-			DestroyFont(_Prev);
-	}
 	lua_getglobal(_State, _Name);
+	lua_pushstring(_State, "__name");
+	lua_pushstring(_State, _Name);
+	lua_rawset(_State, -3);
+		
+	lua_pushstring(_State, "__savestate");
+	lua_rawget(_State, -2);
+	if(lua_toboolean(_State, -1) == 0) {
+		_Font = g_GUIDefs.Font;
+		while(_Font != NULL) {
+			_Prev = _Font;
+			_Font = _Font->Next;
+			/*NOTE: widgets might stay alive when another menu is brought up,
+		 	* we should only delete fonts to widgets that are dead.
+		 	*/
+			if(_Prev != g_GUIDefs.Font)
+				DestroyFont(_Prev);
+		}
+	} else {
+		//Restore the previous menu then return.
+		lua_getglobal(_State, "GUI");
+		lua_pushstring(_State, "ScreenStack");
+		lua_rawget(_State, -2);
+		int _type = lua_type(_State, -1);
+		int i = 0;
+		lua_pushnil(_State);
+		while(lua_next(_State, -2) != 0) {
+			lua_pushstring(_State, "__name");
+			lua_rawget(_State, -2);
+
+			lua_getglobal(_State, "GUI");
+			lua_pushstring(_State, "Screen");
+			lua_pushstring(_State, "__screen");
+			lua_rawget(_State, -7);
+			lua_rawset(_State, -3);
+			lua_pop(_State, 3);
+
+			if(strcmp(lua_tostring(_State, -1), _Name) == 0) {
+				lua_pushvalue(_State, -3);
+				lua_pushnil(_State);
+				lua_rawset(_State, -6);
+			}
+			++i;
+			lua_pop(_State, 3);		
+		}
+		lua_pop(_State, 2);
+		return 0;
+	}
+	lua_pop(_State, 1);
 	if(lua_type(_State, -1) != LUA_TTABLE)
 		return luaL_error(_State, "%s is not a table.", _Name);
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
 	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0)
 		return luaL_error(_State, "%s is not a function.", _Name);
 	lua_pushinteger(_State, SDL_WIDTH);
@@ -429,6 +473,11 @@ int LuaSetMenu(lua_State* _State) {
 	if(lua_type(_State, -1) != LUA_TBOOLEAN)
 		luaL_error(_State, "%s.Init function did not return a boolean", _Name);
 	if(lua_toboolean(_State, -1) > 0) {
+		lua_getglobal(_State, _Name);
+		lua_pushstring(_State, "__savestate");
+		lua_pushboolean(_State, 1);
+		lua_rawset(_State, -3);
+		lua_pop(_State, 1);
 		lua_getglobal(_State, "GUI");
 		lua_pushstring(_State, "ScreenStack");
 		lua_rawget(_State, -2);
@@ -513,7 +562,18 @@ int LuaCloseMenu(lua_State* _State) {
 	struct Container* _Container = GetScreen(_State);
 	int _Len = 0;
 
+	/*Get the current menu and assign to the table's __container field the value of GUI["Screen"]. */ 
 	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Menu");
+	lua_rawget(_State, -2);
+	lua_pushstring(_State, "__container");
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Screen");
+	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
+
 	lua_pushstring(_State, "EventIds");
 	lua_rawget(_State, -2);
 	for(i = 0; i < g_GUIEvents.Size; ++i) {

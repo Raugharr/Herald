@@ -280,17 +280,18 @@ void WorldInit(int _Area) {
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
 	Family_Init(_Array);
+	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
+	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
+	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
+	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
+	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
+	
 	LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList);
 	g_Crops.TblSize = (_CropList->Size * 5) / 4;
 	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * _CropList->Size);
 	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
 
-	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
-	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
-	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
-	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
-	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 
 	if(_GoodList->Size == 0) {
 		Log(ELOG_WARNING, "Failed to load goods.");

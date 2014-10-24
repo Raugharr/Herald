@@ -41,6 +41,7 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	_Crop->GrowDays = _GrowDays;
 	if((_Good = HashSearch(&g_Goods, _Name)))
 		DestroyGoodBase(_Good);
+	HashInsert(&g_Goods, _Name, CreateFoodBase(_Name, ESEED, _NutVal));	
 	return _Crop;
 }
 

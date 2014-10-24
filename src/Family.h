@@ -6,7 +6,7 @@
 #ifndef __FAMILY_H
 #define __FAMILY_H
 
-#define CHILDREN_SIZE (4)
+#define CHILDREN_SIZE (8)
 
 #define HUSBAND (0)
 #define WIFE (1)

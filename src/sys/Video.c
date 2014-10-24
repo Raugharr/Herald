@@ -240,11 +240,12 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	for(i = 0; i < _Size; ++i)
 		_Widget->Children[i] = NULL;
 }
-
+#include <unistd.h>
 struct Font* CreateFont(const char* _Name, int _Size) {
 	struct Font* _Ret = malloc(sizeof(struct Font));
 
-	_Ret->Font = TTF_OpenFont(_Name, _Size);
+	if((_Ret->Font = TTF_OpenFont(_Name, _Size)) == NULL)
+		Log(ELOG_ERROR, TTF_GetError());
 	_Ret->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Ret->Name, _Name);
 	_Ret->Size = _Size;

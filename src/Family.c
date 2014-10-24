@@ -48,7 +48,6 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 
 	_Family->Name = _Name;
 	_Family->Id = NextId();
-	_Family->People = (struct Person**) malloc(sizeof(struct Person) * (CHILDREN_SIZE + 2));
 	memset(_Family->People, 0, sizeof(struct Person*) * (CHILDREN_SIZE + 2));
 	_Family->People[HUSBAND] = _Husband;
 	_Husband->Family = _Family;

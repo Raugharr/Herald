@@ -18,7 +18,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#ifdef WINDOWS
+#ifdef _WIN32
 	#include <io.h>
 #else
 	#include <sys/io.h>
@@ -453,7 +453,7 @@ int LuaSetMenu(lua_State* _State) {
 				lua_rawset(_State, -6);
 			}
 			++i;
-			lua_pop(_State, 3);		
+			lua_pop(_State, 3);
 		}
 		lua_pop(_State, 2);
 		return 0;
@@ -579,8 +579,8 @@ int LuaCloseMenu(lua_State* _State) {
 	for(i = 0; i < g_GUIEvents.Size; ++i) {
 		luaL_unref(_State, -1, g_GUIEvents.Events[i].RefId);
 	}
-	g_GUIEvents.Size = 0;
 	lua_pop(_State, 1);
+	g_GUIEvents.Size = 0;
 	lua_pushstring(_State, "ScreenStack");
 	lua_rawget(_State, -2);
 	_Len = lua_rawlen(_State, -1);
@@ -944,5 +944,5 @@ void LuaWidgetUnref(lua_State* _State, int _Ref) {
 	lua_pushstring(_State, "Widgets");
 	lua_rawget(_State, -2);
 	luaL_unref(_State, -1, _Ref);
-	lua_pop(_State, 1);
+	lua_pop(_State, 2);
 }

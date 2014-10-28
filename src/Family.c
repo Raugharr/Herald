@@ -201,8 +201,6 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				lua_pushlightuserdata(_State, _Family->People[j]);
 				if(LuaCallFunc(_State, 1, 1, 0) == 0)
 					return;
-				if(LuaCallFunc(_State, 1, 1, 0) == 0)
-					return;
 				_Cmp.Name = luaL_checkstring(_State, -1);
 				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
 					Log(ELOG_WARNING, "%s is not a behavior", lua_tostring(_State, -1));

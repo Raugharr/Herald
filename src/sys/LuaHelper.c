@@ -560,7 +560,7 @@ void* LuaToClass(lua_State* _State, int _Index) {
 		if(lua_type(_State, _Pos) == LUA_TNIL)
 			return NULL;
 		if(lua_type(_State, _Pos) != LUA_TTABLE)
-			luaL_error(_State, "LuaToClass: index is not a class.");
+			luaL_error(_State, "LuaToClass: index is not a class (expected table got %s).", lua_typename(_State, lua_type(_State, _Pos)));
 		lua_pushstring(_State, "__self");
 		lua_rawget(_State, _Pos);
 		_Pointer = lua_touserdata(_State, -1);
@@ -574,7 +574,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 		 luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaTestClass"));
 	lua_pushstring(_State, "__class");
 	lua_rawget(_State, -2);
-	if(lua_isstring(_State, -1) && strcmp(_Class, lua_tostring(_State, -1)) != 0) {
+	if(!lua_isstring(_State, -1) || strcmp(_Class, lua_tostring(_State, -1)) != 0) {
 		lua_pop(_State, 2);
 		return NULL;
 	}

@@ -34,7 +34,7 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"Animal", LuaPopulation},
 		{"Person", LuaPerson},
 		{"ToMonth", LuaMonth},
-		{"IntToMonth", LuaIntToMonth},
+		{"IntToDate", LuaIntToDate},
 		{"Hook", LuaHook},
 		{"CreateGood", LuaCreateGood},
 		{"CreateBuilding", LuaCreateBuilding},
@@ -335,7 +335,7 @@ int LuaMonth(lua_State* _State) {
 	return 1;
 }
 
-int LuaIntToMonth(lua_State* _State) {
+int LuaIntToDate(lua_State* _State) {
 	DATE _Date = luaL_checkinteger(_State, 1);
 	DATE _Days = DAY(_Date);
 	DATE _Months = MONTH(_Date);

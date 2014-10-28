@@ -58,9 +58,10 @@ struct GUIDef {
 extern SDL_Window* g_Window;
 extern SDL_Renderer* g_Renderer;
 extern int g_GUIOk;
+extern int g_GUIMenuChange;
 extern int g_GUIId;
 extern struct GUIFocus* g_Focus;
-extern struct GUIEvents g_GUIEvents;
+extern struct GUIEvents* g_GUIEvents;
 extern struct GUIDef g_GUIDefs;
 extern struct Font* g_GUIFonts;
 
@@ -154,6 +155,8 @@ void Draw(void);
 struct TextBox* CreateTextBox(void);
 struct Container* CreateContainer(void);
 struct Table* CreateTable(void);
+struct GUIEvents* CreateGUIEvents(void);
+struct GUIFocus* CreateGUIFocus(void);
 
 /**
  * Constructors
@@ -175,6 +178,8 @@ void DestroyTextBox(struct TextBox* _Text);
 void DestroyContainer(struct Container* _Container);
 void DestroyTable(struct Table* _Table);
 void DestroyFont(struct Font* _Font);
+void DestroyGUIEvents(struct GUIEvents* _Events);
+void DestroyFocus(struct GUIFocus* _Focus);
 
 int ContainerOnDraw(struct Container* _Container);
 int ContainerOnFocus(struct Container* _Container);

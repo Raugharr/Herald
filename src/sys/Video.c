@@ -18,10 +18,11 @@ SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
 struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIOk = 1;
+int g_GUIMenuChange = 0;
 int g_GUIId = 0;
 int g_GUITimer = 0;
 struct GUIFocus* g_Focus = NULL;
-struct GUIEvents g_GUIEvents = {NULL, 16, 0};
+struct GUIEvents* g_GUIEvents = NULL;
 SDL_Surface* g_Surface = NULL;
 struct Font* g_GUIFonts = NULL;
 
@@ -36,12 +37,6 @@ int VideoInit(void) {
 	if(TTF_Init() == -1)
 		goto error;
 	g_Surface = SDL_GetWindowSurface(g_Window);
-	g_GUIEvents.Events = calloc(g_GUIEvents.TblSz, sizeof(struct WEvent));
-	g_Focus = malloc(sizeof(struct GUIFocus));
-	g_Focus->Id = 0;
-	g_Focus->Index = 0;
-	g_Focus->Parent = NULL;
-	g_Focus->Prev = NULL;
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	return 1;
@@ -57,7 +52,8 @@ void VideoQuit(void) {
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
 	SDL_Quit();
-	free(g_GUIEvents.Events);
+	if(g_GUIEvents != NULL)
+		DestroyGUIEvents(g_GUIEvents);
 	while(g_Focus != NULL) {
 		_Focus = g_Focus;
 		g_Focus = g_Focus->Prev;
@@ -69,10 +65,13 @@ int NextGUIId(void) {return g_GUIId++;}
 
 struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
+	struct GUIFocus* _Temp = NULL;
+	int _LastIndex = 0;
 
 	if(++_Focus->Index >= _Parent->ChildrenSz) {
 		if(_Parent->Parent != NULL) {
-			struct GUIFocus* _Temp = _Focus;
+			new_stack:
+			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
@@ -82,18 +81,26 @@ struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 		} else
 			_Focus->Index = 0;
 	}
-	while(_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index < _Parent->ChildrenSz))
+	_LastIndex = _Focus->Index;
+	while(_Focus->Index < _Parent->ChildrenSz && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
 		++_Focus->Index;
+	if(_Focus->Index >= _Parent->ChildrenSz) {
+		_Focus->Index = _LastIndex;
+		goto new_stack;
+	}
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 	return _Focus;
 }
 
 struct GUIFocus* DecrFocus(struct GUIFocus* _Focus) {
 	const struct Container* _Parent = _Focus->Parent;
+	struct GUIFocus* _Temp = NULL;
+	int _LastIndex = 0;
 
 	if(--_Focus->Index < 0) {
 		if(_Parent->Parent != NULL) {
-			struct GUIFocus* _Temp = _Focus;
+			new_stack:
+			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
@@ -103,8 +110,13 @@ struct GUIFocus* DecrFocus(struct GUIFocus* _Focus) {
 		} else
 			_Focus->Index = _Parent->ChildCt - 1;
 	}
-	while(_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0 && _Focus->Index >= 0))
+	_LastIndex = _Focus->Index;
+	while(_Focus->Index >= 0 && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
 		--_Focus->Index;
+	if(_Focus->Index >= _Parent->ChildrenSz) {
+		_Focus->Index = _LastIndex;
+		goto new_stack;
+	}
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 	return _Focus;
 }
@@ -124,10 +136,15 @@ void Events(void) {
 				g_Focus = IncrFocus(g_Focus);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
-		for(i = 0; i < g_GUIEvents.Size; ++i)
+		for(i = 0; i < g_GUIEvents->Size; ++i)
 			/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
-			if(g_GUIEvents.Events[i].WidgetId == g_Focus->Id && KeyEventCmp(&g_GUIEvents.Events[i].Event, &_Event) == 0)
-				LuaCallEvent(g_LuaState, g_GUIEvents.Events[i].RefId);
+			if(g_GUIEvents->Events[i].WidgetId == g_Focus->Id && KeyEventCmp(&g_GUIEvents->Events[i].Event, &_Event) == 0) {
+				LuaCallEvent(g_LuaState, g_GUIEvents->Events[i].RefId);
+				if(g_GUIMenuChange != 0) {
+					g_GUIMenuChange = 0;
+					return;
+				}
+			}
 		}
 	}
 }
@@ -157,6 +174,23 @@ struct Container* CreateContainer(void) {
 
 struct Table* CreateTable(void) {
 	return (struct Table*) malloc(sizeof(struct Table));
+}
+
+struct GUIEvents* CreateGUIEvents(void) {
+	struct GUIEvents* _New = (struct GUIEvents*) malloc(sizeof(struct GUIEvents));
+	_New->TblSz = 16;
+	_New->Size = 0;
+	_New->Events = calloc(_New->TblSz, sizeof(struct WEvent));
+	return _New;
+}
+
+struct GUIFocus* CreateGUIFocus(void) {
+	struct GUIFocus* _New = (struct GUIFocus*) malloc(sizeof(struct GUIFocus));
+	_New->Id = 0;
+	_New->Index = 0;
+	_New->Parent = NULL;
+	_New->Prev = NULL;
+	return _New;
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
@@ -240,7 +274,7 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	for(i = 0; i < _Size; ++i)
 		_Widget->Children[i] = NULL;
 }
-#include <unistd.h>
+
 struct Font* CreateFont(const char* _Name, int _Size) {
 	struct Font* _Ret = malloc(sizeof(struct Font));
 
@@ -272,6 +306,21 @@ void DestroyFont(struct Font* _Font) {
 	TTF_CloseFont(_Font->Font);
 	free(_Font->Name);
 	free(_Font);
+}
+
+void DestroyGUIEvents(struct GUIEvents* _Events) {
+	free(_Events->Events);
+	free(_Events);
+}
+
+void DestroyFocus(struct GUIFocus* _Focus) {
+	struct GUIFocus* _Prev = NULL;
+
+	if(_Focus == NULL)
+		return;
+	_Prev = _Focus->Prev;
+	free(_Focus);
+	DestroyFocus(_Prev);
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {

@@ -474,12 +474,8 @@ int LuaSetMenu(lua_State* _State) {
 				i = 0;
 				while(lua_next(_State, -2) != 0) {
 					g_GUIEvents->Events[i++].RefId = luaL_ref(_State, -4);
-					_Top = lua_gettop(_State);
 				}
-					//luaL_unref(_State, -1, g_GUIEvents->Events[i].RefId);
 				lua_pop(_State, 4);
-				_Top = lua_gettop(_State);
-
 				lua_pushstring(_State, "__refid");
 				lua_rawget(_State, -5);
 				luaL_unref(_State, -6, lua_tointeger(_State, -1));

@@ -458,7 +458,6 @@ int LuaSetMenu(lua_State* _State) {
 				lua_rawset(_State, -3);
 				lua_pop(_State, 1);
 
-				int _Top = lua_gettop(_State);
 				lua_pushstring(_State, "__focus");
 				lua_rawget(_State, -3);
 				g_Focus = lua_touserdata(_State, -1);
@@ -471,12 +470,9 @@ int LuaSetMenu(lua_State* _State) {
 				lua_remove(_State, -2);
 				lua_pushstring(_State, "__ehooks");
 				lua_rawget(_State, -6);
-				int _Len = lua_rawlen(_State, -1);
 				lua_pushnil(_State);
 				i = 0;
 				while(lua_next(_State, -2) != 0) {
-					int _Top = lua_gettop(_State);
-					int _Type = lua_type(_State, -1);
 					g_GUIEvents->Events[i++].RefId = luaL_ref(_State, -4);
 					_Top = lua_gettop(_State);
 				}
@@ -623,13 +619,23 @@ int LuaCloseMenu(lua_State* _State) {
 		lua_pop(_State, 4);
 		goto destroy;
 	}
-	lua_pop(_State, 4);
+	lua_pushstring(_State, "__saved");
+	lua_rawget(_State, -3);
+	if(lua_toboolean(_State, -1) == 1) {
+		lua_pop(_State, 5);
+		goto no_destroy;
+	}
+
+	lua_pop(_State, 5);
 
 	lua_pushstring(_State, "ScreenStack");
 	lua_rawget(_State, -2);
 	_Len = lua_rawlen(_State, -1);
 	if(_Len > 0) {
 		lua_rawgeti(_State, -1, _Len);
+		lua_pushstring(_State, "__saved");
+		lua_pushboolean(_State, 1);
+		lua_rawset(_State, -3);
 		lua_pushstring(_State, "__ehooks");
 		lua_newtable(_State);
 		lua_pushstring(_State, "EventIds");
@@ -646,6 +652,8 @@ int LuaCloseMenu(lua_State* _State) {
 		}
 		lua_pop(_State, 1);
 		lua_rawset(_State, -3);
+		/* unref the Menu from ScreenStack. */
+		//luaL_unref(_State, -2, _Ref);
 		lua_pushstring(_State, "__events");
 		lua_pushlightuserdata(_State, g_GUIEvents);
 		lua_rawset(_State, -3);
@@ -680,9 +688,9 @@ int LuaCloseMenu(lua_State* _State) {
 		_Container->OnDestroy((struct Widget*)_Container);
 	DestroyFocus(g_Focus);
 	DestroyGUIEvents(g_GUIEvents);
+	no_destroy:
 	g_Focus = NULL;
 	g_GUIEvents = NULL;
-	no_destroy:
 	lua_pushstring(_State, "Screen");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);

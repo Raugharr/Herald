@@ -329,8 +329,8 @@ int LuaMonth(lua_State* _State) {
 	else if(!strcmp(_Type, "Days"))
 		lua_pushinteger(_State, TO_DAYS(lua_tointeger(_State, 2)));
 	else {
-		LUA_BADARG(2, "Must be either \"Years\" or \"Days\".");
-		return 0;
+		return luaL_argerror(_State, 2, "Must be either \"Years\" or \"Days\".");
+
 	}
 	return 1;
 }

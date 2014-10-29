@@ -130,7 +130,7 @@ int LuaGoodBase(lua_State* _State) {
 
 	_Name = luaL_checklstring(_State, -1, NULL);
 	if((_Good = HashSearch(&g_Goods, _Name)) == NULL) {
-		Log(ELOG_WARNING, "%s is not a valid GoodBase.", _Name);
+		luaL_error(_State, "%s is not a valid GoodBase.", _Name);
 		return 0;
 	}
 	lua_createtable(_State, 0, 4);
@@ -180,7 +180,7 @@ int LuaCrop(lua_State* _State) {
 
 	_Name = luaL_checklstring(_State, -1, NULL);
 	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL) {
-		Log(ELOG_WARNING, "%s is not a valid crop.", _Name);
+		luaL_error(_State, "%s is not a valid crop.", _Name);
 		return 0;
 	}
 	lua_createtable(_State, 0, 7);
@@ -275,7 +275,7 @@ int LuaPopulation(lua_State* _State) {
 int LuaPushPerson(lua_State* _State, int _Index) {
 	struct Person* _Person = NULL;
 
-	_Person = lua_touserdata(_State, 1);
+	_Person = lua_touserdata(_State, _Index);
 	lua_createtable(_State, 0, 10);
 
 	lua_pushstring(_State, "X");

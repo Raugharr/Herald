@@ -603,6 +603,7 @@ int LuaCloseMenu(lua_State* _State) {
 	struct Container* _Container = GetScreen(_State);
 	int _Len = 0;
 
+	g_GUIMenuChange = 1;
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Menu");
 	lua_rawget(_State, -2);

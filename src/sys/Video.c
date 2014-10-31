@@ -158,7 +158,9 @@ void Draw(void) {
 	SDL_FillRect(g_Surface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
-	g_GUIOk = (SDL_UpdateWindowSurface(g_Window) == 0);
+	else
+		g_GUIOk = 0;
+	g_GUIOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
 	if(SDL_GetTicks() <= g_GUITimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_GUITimer);
 	g_GUITimer = SDL_GetTicks();

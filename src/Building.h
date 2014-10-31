@@ -27,9 +27,9 @@ struct Building {
 	int ResidentType;
 	int Width;
 	int Length;
-	struct BuildMat* Walls;
-	struct BuildMat* Floor;
-	struct BuildMat* Roof;
+	const struct BuildMat* Walls;
+	const struct BuildMat* Floor;
+	const struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
 };

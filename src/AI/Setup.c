@@ -376,25 +376,25 @@ void AIInit(lua_State* _State) {
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(!lua_istable(_State, -1)) {
-			LogLua(_State, ELOG_WARNING, "Element #%i of AI.Init should be a table.", i);
+			luaL_error(_State, "Element #%d of AI.Init should be a table.", i);
 			goto BhvListEnd;
 		}
 		lua_pushnil(_State);
 		if(lua_next(_State, -2) != 0) {
 			if(!lua_isstring(_State, -1)) {
-				LogLua(_State, ELOG_WARNING, "First element of table #%i in AI.Init should be a string.", i);
+				luaL_error(_State, "First element of table #%d in AI.Init should be a string.", i);
 				goto BhvListEnd;
 			}
 			_Str = lua_tostring(_State, -1);
 			if(BinarySearch(_Str, g_BhvList.Table, g_BhvList.Size, luaStrLuaBhvCmp) != 0) {
-				LogLua(_State, ELOG_WARNING, "Element #%i in AI.Init name is already used.", i);
+				luaL_error(_State, "Element #%d in AI.Init name is already used.", i);
 				goto BhvListEnd;
 			}
 		}
 		lua_pop(_State, 1);
 		if(lua_next(_State, -2) != 0) {
 			if(!lua_islightuserdata(_State, -1)) {
-				LogLua(_State, ELOG_WARNING, "Second element of table #%i in AI.Init should be a behavior.", i);
+				luaL_error(_State, "Second element of table #%d in AI.Init should be a behavior.", i);
 				goto BhvListEnd;
 			}
 			_Bhv = (struct LuaBehavior*) malloc(sizeof(struct LuaBehavior));
@@ -402,7 +402,7 @@ void AIInit(lua_State* _State) {
 			_Bhv->Behavior = lua_touserdata(_State, -1);
 		}
 		if(_Bhv == NULL) {
-			LogLua(_State, ELOG_WARNING, "Cannot add NULL behavior to AI.Init.");
+			luaL_error(_State, "Cannot add NULL behavior to AI.Init.");
 			goto BhvListEnd;
 		}
 		ArrayInsertSort(&g_BhvList, _Bhv, LuaBhvCmp);

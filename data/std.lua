@@ -1,24 +1,24 @@
 ManorConstraints = {Min = 50, Max = 800, Interval = 50}
 BabyAvg = {0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999}
-AgeGroups = {5, 0, 2190, 4745, 5659, 21900, 36500}
-FamilyTypes = {{0.75, "Farmer"}, {0.2, "Herder"}, {0.5, "Lumberjack"}}
+AgeGroups = {0, 2190, 4745, 5659, 21900, 36500}
+FamilyTypes = {{0.75, "Farmer"}, {0.2, "Herder"}, {0.05, "Lumberjack"}}
 
 function CopyTable(Old)
 	local New = {}
-	for k,v in pairs(Old) do
+	for k, v in pairs(Old) do
 		New[k] = v
 	end
 	return New
 end
 
 local function Peasant(Person)
-		if(Person.Age < ToMonth("Years", 13)) then
-			return "Child"
-		else if(Person.Male == true) then
-			return "Peasant"
-		end
-		return "Woman"
+	if(Person.Age < ToMonth("Years", 13)) then
+		return "Child"
+	else if(Person.Male == true) then
+		return "Peasant"
 	end
+	end
+		return "Woman"
 end
 
 function Farmer(Size)
@@ -33,9 +33,9 @@ function Farmer(Size)
 		CreateGood("Rye", Rye.PerAcre * 5),
 		CreateGood("Barley", Barley.PerAcre * 5),
 		CreateGood("Oats", Oats.PerAcre * 5),
-		CreateGood("Scratch Plow", 1)
+		--CreateGood("Scratch Plow", 1)
 	}
-	Table.Buildings = {CreateBuilding(10, 10, "Dirt", "Planks", "Hay", "Human")}
+	Table.Buildings = {CreateBuilding(10, 10, "Dirt", "Board", "Hay", "Human")}
 	Table.Animals = {}
 	Table.AI = Peasant
 	return Table
@@ -59,5 +59,6 @@ function Lumberjack(Size)
 	local Table = Farmer(Size)
 	
 	table.insert(Table, {"Axe", 1})
+	Table.AI = Peasant
 	return Table;
 end

@@ -28,7 +28,7 @@ lua_State* g_LuaState = NULL;
 
 static const luaL_Reg g_LuaFuncs[] = {
 		{"CreateConstraintBounds", LuaConstraintBnds},
-		{"Crops", LuaCrop},
+		{"Crop", LuaCrop},
 		{"Good", LuaGoodBase},
 		{"Food", LuaFoodBase},
 		{"Animal", LuaPopulation},

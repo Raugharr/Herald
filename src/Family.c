@@ -139,6 +139,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 
 	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
 		if(_FamilyTypes[i]->Percent * 10000 > _FamType + _Percent) {
+			Log(ELOG_INFO, "Creating Family type: %s", _FamilyTypes[i]->LuaFunc);
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
 			lua_pushinteger(_State, FamilySize(_Family));
 			if(LuaCallFunc(_State, 1, 1, 0) == 0)
@@ -191,22 +192,29 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			}
 			lua_pop(_State, 1);
 			lua_getfield(_State, -1, "AI");
-			luaL_checktype(_State, -1, LUA_TFUNCTION);
-			lua_pop(_State, 1);
-			for(j = 0; j < _Family->NumChildren + 2; ++i) {
+			if(lua_type(_State, -1) != LUA_TFUNCTION)
+				luaL_error(_State, "Lua function expected, got %s", lua_typename(_State, lua_type(_State, -1)));
+			//lua_pop(_State, 1);
+			for(j = 0; j < _Family->NumChildren + 2; ++j) {
 				if(_Family->People[j] == NULL)
 					continue;
-				lua_getfield(_State, -1, "AI");
-				lua_getglobal(_State, "Person");
+				//lua_getfield(_State, -1, "AI");
+				//lua_getglobal(_State, "Person");
+				lua_pushvalue(_State, -1);
 				lua_pushlightuserdata(_State, _Family->People[j]);
+				LuaPushPerson(_State, -1);
+				lua_remove(_State, -2);
 				if(LuaCallFunc(_State, 1, 1, 0) == 0)
 					return;
-				_Cmp.Name = luaL_checkstring(_State, -1);
+				if(lua_isstring(_State, -1) == 0)
+					luaL_error(_State, "string expected, got %s.", lua_typename(_State, lua_type(_State, -1)));
+				_Cmp.Name = lua_tostring(_State, -1);
 				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
-					Log(ELOG_WARNING, "%s is not a behavior", lua_tostring(_State, -1));
+					Log(ELOG_WARNING, "%s is not a behavior", _Cmp.Name);
 					return;
 				}
 				_Family->People[j]->Behavior = _Behavior->Behavior;
+				lua_pop(_State, 1);
 			}
 			lua_pop(_State, 2);
 			break;

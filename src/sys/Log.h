@@ -8,20 +8,33 @@
 
 #include "stdarg.h"
 
+#define LOG_MAXSIZE (512)
+#define LOG_LUAMSG "Function %s contains error (%s) on line %i"
+
 typedef struct lua_State lua_State;
 
-enum {
-	ELOG_INFO = 0,
-	ELOG_DEBUG,
-	ELOG_WARNING,
-	ELOG_ERROR
+struct LogFile {
+	int Level;
+	int File;
+	int Size;
+	int Indents;
+	char Buffer[LOG_MAXSIZE];
 };
 
-void SetFilter(int _Level);
+extern struct LogFile g_Log;
+
+enum {
+	ELOG_INFO = 1,
+	ELOG_DEBUG = 2,
+	ELOG_WARNING = 4,
+	ELOG_ERROR = 8,
+	ELOG_ALL = 15
+};
+
 int LogSetFile(const char* _File);
 void LogCloseFile();
 
 void Log(int _Category, const char* _Text, ...);
-void LogLua(lua_State* _State, int _Category, const char* _Text, ...);
+int LogLua(lua_State* _State);
 #endif
 

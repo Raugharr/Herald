@@ -140,10 +140,13 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
 		if(_FamilyTypes[i]->Percent * 10000 > _FamType + _Percent) {
 			Log(ELOG_INFO, "Creating Family type: %s", _FamilyTypes[i]->LuaFunc);
+			++g_Log.Indents;
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
 			lua_pushinteger(_State, FamilySize(_Family));
-			if(LuaCallFunc(_State, 1, 1, 0) == 0)
+			if(LuaCallFunc(_State, 1, 1, 0) == 0) {
+				--g_Log.Indents;
 				return;
+			}
 			lua_getfield(_State, -1, "Goods");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
@@ -204,12 +207,15 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				lua_pushlightuserdata(_State, _Family->People[j]);
 				LuaPushPerson(_State, -1);
 				lua_remove(_State, -2);
-				if(LuaCallFunc(_State, 1, 1, 0) == 0)
+				if(LuaCallFunc(_State, 1, 1, 0) == 0) {
+					--g_Log.Indents;
 					return;
+				}
 				if(lua_isstring(_State, -1) == 0)
 					luaL_error(_State, "string expected, got %s.", lua_typename(_State, lua_type(_State, -1)));
 				_Cmp.Name = lua_tostring(_State, -1);
 				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
+					--g_Log.Indents;
 					Log(ELOG_WARNING, "%s is not a behavior", _Cmp.Name);
 					return;
 				}
@@ -217,11 +223,13 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				lua_pop(_State, 1);
 			}
 			lua_pop(_State, 2);
+			--g_Log.Indents;
 			break;
 		}
 		_Percent += _FamilyTypes[i]->Percent * 10000;
 	}
 	return;
 	LuaError:
+	--g_Log.Indents;
 	luaL_error(_State, "In function %s the %s table does not contain a valid element.", _FamilyTypes[i]->LuaFunc, _Error);
 }

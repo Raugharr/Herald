@@ -44,16 +44,12 @@ int Tick() {
 	return 1;
 }
 
-int LuaAtPanic(lua_State* _State) {
-	Log(ELOG_ERROR, lua_tostring(_State, -1));
-	return 0;
-}
-
 int main(int argc, char* args[]) {
 	g_AIHash = CreateHash(32);
+	g_Log.Level = ELOG_ALL;
 	LogSetFile("Log.txt");
 	g_LuaState = luaL_newstate();
-	lua_atpanic(g_LuaState, LuaAtPanic);
+	lua_atpanic(g_LuaState, LogLua);
 	luaL_openlibs(g_LuaState);
 	RegisterLuaFuncs(g_LuaState);
 	atexit(LogCloseFile);

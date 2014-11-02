@@ -271,6 +271,7 @@ void WorldInit(int _Area) {
 	struct LnkLst_Node* _Itr = NULL;
 
 	Log(ELOG_INFO, "Creating World.");
+	++g_Log.Indents;
 	g_World = CreateArray(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
@@ -355,6 +356,7 @@ void WorldInit(int _Area) {
 	DestroyLinkedList(_PopList);
 	DestroyLinkedList(_OccupationList);
 	chdir("..");
+	--g_Log.Indents;
 }
 
 void WorldQuit() {

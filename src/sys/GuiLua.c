@@ -405,6 +405,10 @@ int LuaSetMenu(lua_State* _State) {
 	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
+	if(lua_gettop(_State) == 1)
+		lua_pushnil(_State);
+	else
+		luaL_checktype(_State, 2, LUA_TTABLE);
 	lua_getglobal(_State, _Name);
 	if(lua_type(_State, -1) == LUA_TNIL)
 		luaL_error(_State, "Menu %s not not exist", _Name);
@@ -500,7 +504,8 @@ int LuaSetMenu(lua_State* _State) {
 		return luaL_error(_State, "%s is not a function.", _Name);
 	lua_pushinteger(_State, SDL_WIDTH);
 	lua_pushinteger(_State, SDL_HEIGHT);
-	if(LuaCallFunc(_State, 2, 1, 0) == 0)
+	lua_pushvalue(_State, 2);
+	if(LuaCallFunc(_State, 3, 1, 0) == 0)
 		luaL_error(_State, "%s.Init function call failed", _Name);
 	if(lua_type(_State, -1) != LUA_TBOOLEAN)
 		luaL_error(_State, "%s.Init function did not return a boolean", _Name);
@@ -893,6 +898,7 @@ int LuaTableSetCellWidth(lua_State* _State) {
 	struct Table* _Table = LuaCheckTable(_State, 1);
 
 	_Table->CellMax.w = luaL_checkinteger(_State, 2);
+	_Table->Rect.w = _Table->CellMax.w * _Table->Rows;
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -901,6 +907,7 @@ int LuaTableSetCellHeight(lua_State* _State) {
 	struct Table* _Table = LuaCheckTable(_State, 1);
 
 	_Table->CellMax.h = luaL_checkinteger(_State, 2);
+	_Table->Rect.h = _Table->CellMax.h * _Table->Columns;
 	lua_pushvalue(_State, 1);
 	return 1;
 }

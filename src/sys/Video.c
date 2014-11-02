@@ -69,8 +69,8 @@ struct GUIFocus* IncrFocus(struct GUIFocus* _Focus, int _Incr) {
 	int _LastIndex = 0;
 
 	if((_Focus->Index += _Incr) >= _Parent->ChildrenSz) {
+		new_stack:
 		if(_Parent->Parent != NULL) {
-			new_stack:
 			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
@@ -98,8 +98,8 @@ struct GUIFocus* DecrFocus(struct GUIFocus* _Focus, int _Decr) {
 	int _LastIndex = 0;
 
 	if((_Focus->Index -= _Decr) < 0) {
+		new_stack:
 		if(_Parent->Parent != NULL) {
-			new_stack:
 			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
@@ -111,7 +111,7 @@ struct GUIFocus* DecrFocus(struct GUIFocus* _Focus, int _Decr) {
 			_Focus->Index = _Parent->ChildCt - 1;
 	}
 	_LastIndex = _Focus->Index;
-	while(_Focus->Index >= 0 && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
+	while(_Focus->Index > 0 && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
 		--_Focus->Index;
 	if(_Focus->Index >= _Parent->ChildrenSz) {
 		_Focus->Index = _LastIndex;

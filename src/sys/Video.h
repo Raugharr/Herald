@@ -138,8 +138,8 @@ struct Table {
 	int ChildrenSz;
 	int ChildCt;
 	int Spacing;
-	struct Margin Margins;
 	int FocusChange;
+	struct Margin Margins;
 	int Rows;
 	int Columns;
 	struct Area CellMax; /* max area of a cell. */

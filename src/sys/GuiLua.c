@@ -50,7 +50,8 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"Width", LuaWidgetGetWidth},
 		{"Height", LuaWidgetGetHeight},
 		{"Parent", LuaWidgetGetParent},
-		{"Children", LuaWidgetGetChildren},
+		{"CanFocus", LuaWidgetCanFocus},
+		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
 		{NULL, NULL}
 };
@@ -62,6 +63,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"Margins", LuaContainerGetMargins},
 		{"CreateTextBox", LuaCreateTextBox},
 		{"CreateTable", LuaCreateTable},
+		{"Children", LuaContainerGetChildren},
 		{NULL, NULL}
 };
 
@@ -73,6 +75,8 @@ static const luaL_Reg g_LuaFuncsTextBox[] = {
 static const luaL_Reg g_LuaFuncsTable[] = {
 		{"GetCellIndex", LuaTableGetCellIndex},
 		{"GetFont", LuaTableGetFont},
+		{"GetRows", LuaTableGetRows},
+		{"GetColumns", LuaTableGetColumns},
 		{"SetCellWidth", LuaTableSetCellWidth},
 		{"SetCellHeight", LuaTableSetCellHeight},
 		{NULL, NULL}
@@ -708,7 +712,7 @@ int LuaScreenWidth(lua_State* _State) {
 }
 
 int LuaScreenHeight(lua_State* _State) {
-	lua_pushinteger(_State, SDL_Height);
+	lua_pushinteger(_State, SDL_HEIGHT);
 	return 1;
 }
 
@@ -807,20 +811,19 @@ int LuaWidgetGetParent(lua_State* _State) {
 	return 1;
 }
 
-int LuaWidgetGetChildren(lua_State* _State) {
-	struct Container* _Container = LuaCheckContainer(_State, 1);
-	int i;
+int LuaWidgetCanFocus(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 
-	lua_getglobal(_State, "GUI");
-	lua_pushstring(_State, "Widgets");
-	lua_newtable(_State);
-	for(i = 0; _Container->Children[i] != NULL; ++i) {
-		lua_rawgeti(_State, -2, _Container->Children[i]->LuaRef);
-		lua_rawseti(_State, -2, i);
-	}
-	lua_insert(_State, -2);
-	lua_pop(_State, 2);
+	lua_pushboolean(_State, _Widget->CanFocus);
 	return 1;
+}
+
+int LuaWidgetSetFocus(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
+
+	luaL_checktype(_State, 2, LUA_TBOOLEAN);
+	_Widget->CanFocus = lua_toboolean(_State, 2);
+	return 0;
 }
 
 int LuaContainerGetChild(lua_State* _State) {
@@ -855,6 +858,22 @@ int LuaContainerGetChildCt(lua_State* _State) {
 	struct Container* _Container = LuaCheckContainer(_State, 1);
 
 	lua_pushinteger(_State, _Container->ChildCt);
+	return 1;
+}
+
+int LuaContainerGetChildren(lua_State* _State) {
+	struct Container* _Container = LuaCheckContainer(_State, 1);
+	int i;
+
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Widgets");
+	lua_newtable(_State);
+	for(i = 0; _Container->Children[i] != NULL; ++i) {
+		lua_rawgeti(_State, -2, _Container->Children[i]->LuaRef);
+		lua_rawseti(_State, -2, i);
+	}
+	lua_insert(_State, -2);
+	lua_pop(_State, 2);
 	return 1;
 }
 
@@ -903,6 +922,20 @@ int LuaTableGetFont(lua_State* _State) {
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Table->Font);
 	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaTableGetRows(lua_State* _State) {
+	struct Table* _Table = LuaCheckTable(_State, 1);
+
+	lua_pushinteger(_State, _Table->Rows);
+	return 1;
+}
+
+int LuaTableGetColumns(lua_State* _State) {
+	struct Table* _Table = LuaCheckTable(_State, 1);
+
+	lua_pushinteger(_State, _Table->Columns);
 	return 1;
 }
 

@@ -50,7 +50,8 @@ int LuaWidgetGetY(lua_State* _State);
 int LuaWidgetGetWidth(lua_State* _State);
 int LuaWidgetGetHeight(lua_State* _State);
 int LuaWidgetGetParent(lua_State* _State);
-int LuaWidgetGetChildren(lua_State* _State);
+int LuaWidgetCanFocus(lua_State* _State);
+int LuaWidgetSetFocus(lua_State* _State);
 
 /**
  * Container functions
@@ -59,6 +60,7 @@ int LuaWidgetGetChildren(lua_State* _State);
 int LuaContainerGetChild(lua_State* _State);
 int LuaContainerSetChild(lua_State* _State);
 int LuaContainerGetChildCt(lua_State* _State);
+int LuaContainerGetChildren(lua_State* _State);
 int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
 
@@ -74,6 +76,8 @@ int LuaTextBoxSetText(lua_State* _State);
 
 int LuaTableGetCellIndex(lua_State* _State);
 int LuaTableGetFont(lua_State* _State);
+int LuaTableGetRows(lua_State* _State);
+int LuaTableGetColumns(lua_State* _State);
 int LuaTableSetCellWidth(lua_State* _State);
 int LuaTableSetCellHeight(lua_State* _State);
 

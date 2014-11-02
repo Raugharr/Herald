@@ -77,7 +77,8 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 
 		while(_Size-- > 0) {
 			int _Child = CHILDREN + _Family->NumChildren;
-			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Fuzify(g_AgeDistr, Random(0, 9999)), Random(1, 2), 1500, 0, 0);
+
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(0, DaysToDate(DateToDays(_Wife->Age) - DateToDays(_AgeGroups[TEENAGER]->Min))), Random(1, 2), 1500, 0, 0);
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}

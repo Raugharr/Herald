@@ -24,16 +24,13 @@
 #include <assert.h>
 #include <lua/lauxlib.h>
 
-struct Constraint** g_AgeDistr = NULL;
 static struct Array* g_FirstNames = NULL;
 
 void Family_Init(struct Array* _Array) {
-	g_AgeDistr = CreateConstrntBnds(19, 0, 737, 1464, 2157, 2867, 3632, 4489, 5368, 6162, 6870, 7472, 7885, 8317, 8744, 9150, 9471, 9717, 9875, 9999);
 	g_FirstNames = _Array;
 }
 
 void Family_Quit() {
-	DestroyConstrntBnds(g_AgeDistr);
 	DestroyArray(g_FirstNames);
 }
 

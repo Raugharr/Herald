@@ -244,7 +244,7 @@ DATE DateToDays(int _Date) {
 	int _Months = MONTH(_Date);
 	int _Result = 0;
 
-	_Total = _Years + (_Years / 4);
+	_Total = _Years * YEAR_DAYS;
 	_Result = _Months / 2;
 	_Total += (_Result + 1) * 31;
 	_Total += _Result * 30;
@@ -257,6 +257,22 @@ DATE DateToDays(int _Date) {
 	if(_Months >= 8)
 		++_Total;
 	return _Total;
+}
+
+DATE DaysToDate(int _Days) {
+	int _Years = 0;
+	int _Months = 0;
+
+	while(_Days >= YEAR_DAYS) {
+		_Days -= YEAR_DAYS;
+		++_Years;
+	}
+
+	while(_Days >= MONTH_DAYS) {
+		_Days -= MONTH_DAYS;
+		++_Months;
+	}
+	return (_Years << 9) | (_Months << 5) | (_Days);
 }
 
 void NextDay(int* _Date) {

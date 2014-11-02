@@ -10,6 +10,8 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
+#define YEAR_DAYS (365)
+#define MONTH_DAYS (30)
 #define TO_YEARS(_Months) ((_Months) * 12)
 #define TO_MONTHS(_Days) ((int)((_Days) / 30))
 #define TO_DAYS(_Months) ((_Months) * 30)
@@ -83,6 +85,7 @@ void CreateObject(struct Object* _Obj, int _X, int _Y);
 DATE MonthToInt(const char* _Month);
 DATE DaysBetween(int _DateOne, int _DateTwo);
 DATE DateToDays(int _Date);
+DATE DaysToDate(int _Days);
 void NextDay(int* _Date);
 
 #endif

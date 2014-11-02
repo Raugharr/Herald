@@ -80,12 +80,12 @@ void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const 
 void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int _Left, int _Right) {
 	int i = _Left;
 	int j = _Right;
-	const void* _Node = *(const void**)(_Table + sizeof(int*) * (_Left));
+	const void* _Node = NULL;
 	const void** _Swap = NULL;
 
 	if(_Left >= _Right)
 		return;
-
+	_Node = *(const void**)(_Table + sizeof(int*) * (_Left));
 	do {
 		while(_Callback(*((const void**)(_Table + sizeof(int*) * j)), _Node) >= 0 && i < j)
 			--j;

@@ -27,6 +27,8 @@ int LuaSetFocusColor(lua_State* _State);
 int LuaSetUnfocusColor(lua_State* _State);
 int LuaOnKey(lua_State* _State);
 int LuaCloseMenu(lua_State* _State);
+int LuaScreenWidth(lua_State* _State);
+int LuaScreenHeight(lua_State* _State);
 
 /**
  * Check functions

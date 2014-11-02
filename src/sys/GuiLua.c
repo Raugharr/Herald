@@ -38,6 +38,8 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"SetFocusColor", LuaSetFocusColor},
 		{"SetUnfocusColor", LuaSetUnfocusColor},
 		{"CloseMenu", LuaCloseMenu},
+		{"ScreenWidth", LuaScreenWidth},
+		{"ScreenHeight", LuaScreenHeight},
 		{NULL, NULL}
 };
 
@@ -698,6 +700,16 @@ int LuaCloseMenu(lua_State* _State) {
 	lua_rawset(_State, -3);
 	lua_pop(_State, 1);
 	return 0;
+}
+
+int LuaScreenWidth(lua_State* _State) {
+	lua_pushinteger(_State, SDL_WIDTH);
+	return 1;
+}
+
+int LuaScreenHeight(lua_State* _State) {
+	lua_pushinteger(_State, SDL_Height);
+	return 1;
 }
 
 struct Widget* LuaCheckWidget(lua_State* _State, int _Index) {

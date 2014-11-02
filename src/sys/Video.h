@@ -119,6 +119,7 @@ struct Container {
 	int ChildrenSz;
 	int ChildCt;
 	int Spacing;
+	int FocusChange;
 	struct Margin Margins;
 };
 
@@ -138,6 +139,7 @@ struct Table {
 	int ChildCt;
 	int Spacing;
 	struct Margin Margins;
+	int FocusChange;
 	int Rows;
 	int Columns;
 	struct Area CellMax; /* max area of a cell. */
@@ -147,8 +149,8 @@ struct Table {
 int VideoInit(void);
 void VideoQuit(void);
 int NextGUIId(void);
-struct GUIFocus* IncrFocus(struct GUIFocus* _Focus);
-struct GUIFocus* DecrFocus(struct GUIFocus* _Focus);
+struct GUIFocus* IncrFocus(struct GUIFocus* _Focus, int _Incr);
+struct GUIFocus* DecrFocus(struct GUIFocus* _Focus, int _Decr);
 void Events(void);
 void Draw(void);
 

@@ -63,19 +63,19 @@ void VideoQuit(void) {
 
 int NextGUIId(void) {return g_GUIId++;}
 
-struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
+struct GUIFocus* IncrFocus(struct GUIFocus* _Focus, int _Incr) {
 	const struct Container* _Parent = _Focus->Parent;
 	struct GUIFocus* _Temp = NULL;
 	int _LastIndex = 0;
 
-	if(++_Focus->Index >= _Parent->ChildrenSz) {
+	if((_Focus->Index += _Incr) >= _Parent->ChildrenSz) {
 		if(_Parent->Parent != NULL) {
 			new_stack:
 			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
-			if(++_Focus->Index >= _Parent->ChildCt)
+			if((_Focus->Index += _Incr) >= _Parent->ChildCt)
 				_Focus->Index = 0;
 			free(_Temp);
 		} else
@@ -92,19 +92,19 @@ struct GUIFocus* IncrFocus(struct GUIFocus* _Focus) {
 	return _Focus;
 }
 
-struct GUIFocus* DecrFocus(struct GUIFocus* _Focus) {
+struct GUIFocus* DecrFocus(struct GUIFocus* _Focus, int _Decr) {
 	const struct Container* _Parent = _Focus->Parent;
 	struct GUIFocus* _Temp = NULL;
 	int _LastIndex = 0;
 
-	if(--_Focus->Index < 0) {
+	if((_Focus->Index -= _Decr) < 0) {
 		if(_Parent->Parent != NULL) {
 			new_stack:
 			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
-			if(--_Focus->Index < 0)
+			if((_Focus->Index -= _Decr) < 0)
 				_Focus->Index = _Parent->ChildrenSz - 1;
 			free(_Temp);
 		} else
@@ -127,13 +127,14 @@ void Events(void) {
 
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP) {
+			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 			if(_Event.key.keysym.sym == SDLK_w || _Event.key.keysym.sym == SDLK_UP) {
-				g_Focus->Parent->Children[g_Focus->Index]->OnUnfocus(g_Focus->Parent->Children[g_Focus->Index]);
-				g_Focus = DecrFocus(g_Focus);
+				_Widget->OnUnfocus(_Widget);
+				g_Focus = DecrFocus(g_Focus, _Widget->Parent->FocusChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			} else if(_Event.key.keysym.sym == SDLK_s || _Event.key.keysym.sym == SDLK_DOWN) {
-				g_Focus->Parent->Children[g_Focus->Index]->OnUnfocus(g_Focus->Parent->Children[g_Focus->Index]);
-				g_Focus = IncrFocus(g_Focus);
+				_Widget->OnUnfocus(_Widget);
+				g_Focus = IncrFocus(g_Focus, _Widget->Parent->FocusChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
 		for(i = 0; i < g_GUIEvents->Size; ++i)
@@ -220,6 +221,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 			_Parent->ChildrenSz *= 2;
 		}
 		_Parent->Children[_Parent->ChildCt++] = _Widget;
+		_Widget->Parent = _Parent;
 		_Parent->NewChild(_Parent, _Widget);
 	} else
 		_Widget->Parent = NULL;
@@ -255,6 +257,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Margins.Left = _Margin->Left;
 	_Widget->Margins.Right = _Margin->Right;
 	_Widget->Margins.Bottom = _Margin->Bottom;
+	_Widget->FocusChange = 1;
 }
 
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
@@ -272,6 +275,7 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
 	_Widget->Font = _Font;
+	_Widget->FocusChange = _Rows;
 	++_Font->RefCt;
 	for(i = 0; i < _Size; ++i)
 		_Widget->Children[i] = NULL;
@@ -330,7 +334,6 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 	int _X = _Parent->Margins.Left;
 	int _Y = _Parent->Margins.Top;
 
-	_Child->Parent = _Parent;
 	for(i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
@@ -385,15 +388,21 @@ void DestroyTable(struct Table* _Table) {
 }
 
 int ContainerOnDraw(struct Container* _Container) {
+	struct Widget* _Widget = NULL;
 	int i;
 	int _Ret = 0;
 
 	if(_Container->Children == NULL)
 		return 1;
 	for(i = 0; i < _Container->ChildCt; ++i) {
-		_Ret = _Container->Children[i]->OnDraw(_Container->Children[i]);
-		if(_Ret == 0)
-			return 0;
+		_Widget = _Container->Children[i];
+		if(_Widget->Rect.x >= _Container->Rect.x && _Widget->Rect.y >= _Container->Rect.y
+				&& _Widget->Rect.x + _Widget->Rect.w <= _Container->Rect.x + _Container->Rect.w
+				&& _Widget->Rect.y + _Widget->Rect.h <= _Container->Rect.y + _Container->Rect.h) {
+			_Ret = _Widget->OnDraw(_Widget);
+			if(_Ret == 0)
+				return 0;
+		}
 	}
 	return 1;
 }

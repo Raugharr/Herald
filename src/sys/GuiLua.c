@@ -50,7 +50,7 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"Width", LuaWidgetGetWidth},
 		{"Height", LuaWidgetGetHeight},
 		{"Parent", LuaWidgetGetParent},
-		{"CanFocus", LuaWidgetCanFocus},
+		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
 		{NULL, NULL}
@@ -539,12 +539,10 @@ int LuaSetMenu(lua_State* _State) {
 		lua_pop(_State, 5);
 	}
 	g_Focus->Parent = GetScreen(_State);
-	g_Focus->Index = 0;
-	if(g_Focus->Parent->Children[0] != NULL) {
-		g_Focus->Id = g_Focus->Parent->Children[0]->Id;
-		g_Focus->Parent->Children[0]->OnFocus(g_Focus->Parent->Children[0]);
-	} else {
-		g_Focus->Parent->Children[0]->Id = -1;
+	g_Focus->Index = FirstFocusable(g_Focus->Parent);
+	if(g_Focus->Index != -1) {
+		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
+		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
 	lua_pop(_State, 2);
 	g_GUIOk = 1;
@@ -811,7 +809,7 @@ int LuaWidgetGetParent(lua_State* _State) {
 	return 1;
 }
 
-int LuaWidgetCanFocus(lua_State* _State) {
+int LuaWidgetGetFocus(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 
 	lua_pushboolean(_State, _Widget->CanFocus);

@@ -50,7 +50,7 @@ int LuaWidgetGetY(lua_State* _State);
 int LuaWidgetGetWidth(lua_State* _State);
 int LuaWidgetGetHeight(lua_State* _State);
 int LuaWidgetGetParent(lua_State* _State);
-int LuaWidgetCanFocus(lua_State* _State);
+int LuaWidgetGetFocus(lua_State* _State);
 int LuaWidgetSetFocus(lua_State* _State);
 
 /**

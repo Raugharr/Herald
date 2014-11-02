@@ -63,57 +63,49 @@ void VideoQuit(void) {
 
 int NextGUIId(void) {return g_GUIId++;}
 
-struct GUIFocus* IncrFocus(struct GUIFocus* _Focus, int _Incr) {
+struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos) {
 	const struct Container* _Parent = _Focus->Parent;
 	struct GUIFocus* _Temp = NULL;
-	int _LastIndex = 0;
+	int _LastIndex = _Focus->Index;
 
-	if((_Focus->Index += _Incr) >= _Parent->ChildrenSz) {
+	change: /* Decrement the index until the index is invalid. */
+	while(_Change > 0) {
+		_Focus->Index += _Pos;
+		if((_Focus->Index < 0 || _Focus->Index >= _Parent->ChildCt))
+			break;
+		if((_Focus->Index >= 0  && _Focus->Index < _Parent->ChildCt) && _Parent->Children[_Focus->Index]->CanFocus != 0)
+			--_Change;
+	}
+	/* If the index is invalid focus the parent's next child
+	 * if it exists else set index to the last widget. */
+	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildCt) {
 		new_stack:
 		if(_Parent->Parent != NULL) {
 			_Temp = _Focus;
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
-			if((_Focus->Index += _Incr) >= _Parent->ChildCt)
+			_Change = _Focus->Parent->FocusChange;
+			free(_Temp);
+			goto change;
+		} else {
+			if(_Pos < 0)
+				_Focus->Index = _Parent->ChildCt - 1;
+			else
 				_Focus->Index = 0;
-			free(_Temp);
-		} else
-			_Focus->Index = 0;
+			if(_Parent->Children[_Focus->Index]->CanFocus != 0)
+			--_Change;
+		}
 	}
+	/* Index is now valid decrement the remaining indexes. */
+	if(_Change > 0)
+		goto change;
+	/* Ensure the valid index we have is a valid widget. */
 	_LastIndex = _Focus->Index;
-	while(_Focus->Index < _Parent->ChildrenSz && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
-		++_Focus->Index;
-	if(_Focus->Index >= _Parent->ChildrenSz) {
-		_Focus->Index = _LastIndex;
-		goto new_stack;
-	}
-	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
-	return _Focus;
-}
-
-struct GUIFocus* DecrFocus(struct GUIFocus* _Focus, int _Decr) {
-	const struct Container* _Parent = _Focus->Parent;
-	struct GUIFocus* _Temp = NULL;
-	int _LastIndex = 0;
-
-	if((_Focus->Index -= _Decr) < 0) {
-		new_stack:
-		if(_Parent->Parent != NULL) {
-			_Temp = _Focus;
-
-			_Focus = _Focus->Prev;
-			_Parent = _Focus->Parent;
-			if((_Focus->Index -= _Decr) < 0)
-				_Focus->Index = _Parent->ChildrenSz - 1;
-			free(_Temp);
-		} else
-			_Focus->Index = _Parent->ChildCt - 1;
-	}
-	_LastIndex = _Focus->Index;
-	while(_Focus->Index > 0 && (_Parent->Children[_Focus->Index] == NULL ||(_Parent->Children[_Focus->Index]->CanFocus == 0)))
-		--_Focus->Index;
-	if(_Focus->Index >= _Parent->ChildrenSz) {
+	while((_Focus->Index >= 0 && _Focus->Index < _Parent->ChildrenSz) && (_Parent->Children[_Focus->Index] == NULL || (_Parent->Children[_Focus->Index]->CanFocus == 0)))
+		_Focus->Index += _Pos;
+	/* Index is invalid go back up and repair index. */
+	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz) {
 		_Focus->Index = _LastIndex;
 		goto new_stack;
 	}
@@ -130,11 +122,11 @@ void Events(void) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 			if(_Event.key.keysym.sym == SDLK_w || _Event.key.keysym.sym == SDLK_UP) {
 				_Widget->OnUnfocus(_Widget);
-				g_Focus = DecrFocus(g_Focus, _Widget->Parent->FocusChange);
+				g_Focus = ChangeFocus(g_Focus, -_Widget->Parent->FocusChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			} else if(_Event.key.keysym.sym == SDLK_s || _Event.key.keysym.sym == SDLK_DOWN) {
 				_Widget->OnUnfocus(_Widget);
-				g_Focus = IncrFocus(g_Focus, _Widget->Parent->FocusChange);
+				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->FocusChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
 		for(i = 0; i < g_GUIEvents->Size; ++i)
@@ -408,15 +400,17 @@ int ContainerOnDraw(struct Container* _Container) {
 }
 
 int ContainerOnFocus(struct Container* _Container) {
-	if(_Container->Children[0] != NULL) {
+	int _FocusIndex = FirstFocusable(_Container);
+
+	if(_FocusIndex != -1) {
 		struct GUIFocus* _Focus = NULL;
 
-		if(_Container->Children[0]->OnFocus(_Container->Children[0]) == 0)
+		if(_Container->Children[_FocusIndex]->OnFocus(_Container->Children[_FocusIndex]) == 0)
 			return 0;
 		_Focus = malloc(sizeof(struct GUIFocus));
 		_Focus->Parent = _Container;
-		_Focus->Index = 0;
-		_Focus->Id = _Container->Children[0]->Id;
+		_Focus->Index = _FocusIndex;
+		_Focus->Id = _Container->Children[_FocusIndex]->Id;
 		_Focus->Prev = g_Focus;
 		g_Focus = _Focus;
 	}
@@ -555,6 +549,18 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	end:
 	if(SDL_MUSTLOCK(_Surface))
 		SDL_UnlockSurface(_Surface);
+}
+
+int FirstFocusable(const struct Container* _Parent) {
+	int i;
+
+	for(i = 0; i < _Parent->ChildrenSz; ++i) {
+		if(_Parent->Children[i] == NULL)
+			continue;
+		if(_Parent->Children[i]->CanFocus != 0)
+			return i;
+	}
+	return -1;
 }
 
 /*SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2) {

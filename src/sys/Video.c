@@ -71,14 +71,15 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 	change: /* Decrement the index until the index is invalid. */
 	while(_Change > 0) {
 		_Focus->Index += _Pos;
-		if((_Focus->Index < 0 || _Focus->Index >= _Parent->ChildCt))
+		if((_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz))
 			break;
-		if((_Focus->Index >= 0  && _Focus->Index < _Parent->ChildCt) && _Parent->Children[_Focus->Index]->CanFocus != 0)
+		if((_Focus->Index >= 0  && _Focus->Index < _Parent->ChildrenSz) &&
+				_Parent->Children[_Focus->Index] != NULL &&_Parent->Children[_Focus->Index]->CanFocus != 0)
 			--_Change;
 	}
 	/* If the index is invalid focus the parent's next child
 	 * if it exists else set index to the last widget. */
-	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildCt) {
+	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz) {
 		new_stack:
 		if(_Parent->Parent != NULL) {
 			_Temp = _Focus;
@@ -90,11 +91,11 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 			goto change;
 		} else {
 			if(_Pos < 0)
-				_Focus->Index = _Parent->ChildCt - 1;
+				_Focus->Index = _Parent->ChildrenSz - 1;
 			else
 				_Focus->Index = 0;
-			if(_Parent->Children[_Focus->Index]->CanFocus != 0)
-			--_Change;
+			if(_Parent->Children[_Focus->Index] != NULL && _Parent->Children[_Focus->Index]->CanFocus != 0)
+				--_Change;
 		}
 	}
 	/* Index is now valid decrement the remaining indexes. */
@@ -244,6 +245,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyContainer;
 	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
 	_Widget->NewChild = NULL;
+	_Widget->RemChild = StaticRemChild;
 	_Widget->Spacing = _Spacing;
 	_Widget->Margins.Top = _Margin->Top;
 	_Widget->Margins.Left = _Margin->Left;
@@ -264,6 +266,7 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
 	_Widget->NewChild = TableNewChild;
+	_Widget->RemChild = DynamicRemChild;
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
 	_Widget->Font = _Font;
@@ -437,6 +440,34 @@ void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
 	ContainerPosChild(_Parent, _Child);
 	_Child->Rect.y = _Parent->Rect.y;
+}
+
+void StaticRemChild(struct Container* _Parent, struct Widget* _Child) {
+	int i;
+
+	for(i = 0; i < _Parent->ChildrenSz; ++i) {
+		if(_Parent->Children[i] == _Child) {
+			_Parent->Children[i] = NULL;
+			--_Parent->ChildCt;
+			break;
+		}
+	}
+}
+
+void DynamicRemChild(struct Container* _Parent, struct Widget* _Child) {
+	int i;
+
+	for(i = 0; i < _Parent->ChildrenSz; ++i) {
+		if(_Parent->Children[i] == _Child) {
+			_Parent->Children[i] = NULL;
+			--_Parent->ChildCt;
+		for(i = i + 1; i < _Parent->ChildrenSz; ++i) {
+			_Parent->Children[i - 1] = _Parent->Children[i];
+		}
+		_Parent->Children[i] = NULL;
+		break;
+		}
+	}
 }
 
 int TextBoxOnDraw(struct Widget* _Widget) {

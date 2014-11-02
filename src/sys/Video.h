@@ -80,7 +80,7 @@ struct Area {
 
 struct Widget {
 	int Id;
-	const struct Container* Parent;
+	struct Container* Parent;
 	SDL_Rect Rect;
 	int LuaRef;
 	int CanFocus;
@@ -92,7 +92,7 @@ struct Widget {
 
 struct TextBox {
 	int Id;
-	const struct Container* Parent;
+	struct Container* Parent;
 	SDL_Rect Rect;
 	int LuaRef;
 	int CanFocus;
@@ -107,7 +107,7 @@ struct TextBox {
 
 struct Container {
 	int Id;
-	const struct Container* Parent;
+	struct Container* Parent;
 	SDL_Rect Rect;
 	int LuaRef;
 	int CanFocus;
@@ -116,6 +116,7 @@ struct Container {
 	int (*OnUnfocus)(struct Widget*);
 	void (*OnDestroy)(struct Widget*);
 	void (*NewChild)(struct Container*, struct Widget*);
+	void (*RemChild)(struct Container*, struct Widget*);
 	struct Widget** Children;
 	int ChildrenSz;
 	int ChildCt;
@@ -126,7 +127,7 @@ struct Container {
 
 struct Table {
 	int Id;
-	const struct Container* Parent;
+	struct Container* Parent;
 	SDL_Rect Rect;
 	int LuaRef;
 	int CanFocus;
@@ -135,6 +136,7 @@ struct Table {
 	int (*OnUnfocus)(struct Widget*);
 	void (*OnDestroy)(struct Widget*);
 	void (*NewChild)(struct Container*, struct Widget*);
+	void (*RemChild)(struct Container*, struct Widget*);
 	struct Widget** Children;
 	int ChildrenSz;
 	int ChildCt;
@@ -189,6 +191,15 @@ int ContainerOnUnfocus(struct Container* _Container);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
+
+/*
+ * Remove the child from the parent's children leaving a gap in the array.
+ */
+void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
+/*
+ * Remove the child and slide all children above to fill the hole in the array.
+ */
+void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
 int TextBoxOnDraw(struct Widget* _Widget);
 int TextBoxOnFocus(struct Widget* _Widget);

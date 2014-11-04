@@ -53,7 +53,7 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
-		//{"Destroy", LuaWidgetDestroy},
+		{"Destroy", LuaWidgetDestroy},
 		{NULL, NULL}
 };
 

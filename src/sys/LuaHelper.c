@@ -43,13 +43,46 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsFamily[] = {
+		{"GetId", LuaFamilyGetId},
+		{"LuaFamilyChildrenCt", LuaFamilyChildrenCt},
+		{"GetName", LuaFamilyGetName},
+		{"LuaFamilyGetPeople", LuaFamilyGetPeople},
+		{"GetField", LuaFamilyGetField},
+		{"GetBuildings", LuaFamilyGetBuildings},
+		{"GetGoods", LuaFamilyGetGoods},
+		{"GetAnimals", LuaFamilyGetAnimals},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsField[] = {
+		{"GetId", LuaFieldGetId},
+		{"GetCrop", LuaFieldGetCrop},
+		{"GetYield", LuaFieldGetYield},
+		{"GetAcres", LuaFieldGetAcres},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsArray[] = {
+		{"Create", LuaArrayCreate},
+		{NULL, NULL}
+};
+
 void RegisterLuaFuncs(lua_State* _State) {
 	int i;
 
 	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
 		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
+	RegisterIterator(_State);
+	RegisterFamily(_State);
+	RegisterField(_State);
+	RegisterArray(_State);
+	RegisterArrayItr(_State);
+}
+
+int RegisterIterator(lua_State* _State) {
 	if(luaL_newmetatable(_State, "Iterator") == 0)
-		return;
+			return 0;
 	lua_pushliteral(_State, "__index");
 	lua_pushvalue(_State, -2);
 	lua_rawset(_State, -3);
@@ -66,10 +99,321 @@ void RegisterLuaFuncs(lua_State* _State) {
 	lua_pushcfunction(_State, NULL);
 	lua_rawset(_State, -3);
 
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Iterator");
+	lua_rawset(_State, -3);
+
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "Iterator");
+	return 1;
+}
+
+int RegisterArrayItr(lua_State* _State) {
+	if(luaL_newmetatable(_State, "ArrayIterator") == 0)
+		return 0;
+
+	lua_pushstring(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Itr");
+	lua_pushcfunction(_State, LuaArrayItr);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Next");
+	lua_pushcfunction(_State, LuaArrayItrNext);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Prev");
+	lua_pushcfunction(_State, LuaArrayItrPrev);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__classtype"); /* Not to be confused with __class. Takes a string that is equal to a metatable containing a class. */
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Iterator");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__baseclass");
+	lua_getglobal(_State, "Iterator");
+	lua_rawset(_State, -3);
+	lua_setglobal(_State, "ArrayIterator");
+	return 1;
+}
+
+int RegisterFamily(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Family") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Family");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsFamily, 0);
+	lua_setglobal(_State, "Family");
+	return 1;
+}
+
+int RegisterField(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Field") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Field");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsField, 0);
+	lua_setglobal(_State, "Field");
+	return 1;
+}
+
+int RegisterArray(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Array") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Array");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsArray, 0);
+	lua_setglobal(_State, "Array");
+	return 1;
+}
+
+int LuaFamilyGetId(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushinteger(_State, _Family->Id);
+	return 1;
+}
+
+int LuaFamilyChildrenCt(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushinteger(_State, _Family->NumChildren);
+	return 1;
+}
+
+int LuaFamilyGetName(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushstring(_State, _Family->Name);
+	return 1;
+}
+
+int LuaFamilyGetPeople(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+		int i;
+
+		lua_createtable(_State, 10, 0);
+		for(i = 0; i < FAMILY_PEOPLESZ; ++i) {
+			lua_pushlightuserdata(_State, _Family->People[i]);
+			lua_rawseti(_State, -2, i + 1);
+		}
+		return 1;
+}
+
+int LuaFamilyGetField(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Field");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Family->Field);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaFamilyGetBuildings(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Array");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Family->Buildings);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaFamilyGetGoods(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "ArrayIterator");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Family->Goods);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "Good");
+	lua_rawset(_State, -3);
+	return 1;
+}
+int LuaFamilyGetAnimals(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Array");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Family->Animals);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaFieldGetId(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	lua_pushinteger(_State, _Field->Id);
+	return 1;
+}
+
+int LuaFieldGetCrop(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	if(_Field == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	lua_pushstring(_State, _Field->Crop->Name);
+	LuaCrop(_State);
+	return 1;
+}
+
+int LuaFieldGetYield(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	lua_pushnumber(_State, _Field->YieldTotal);
+	return 1;
+}
+
+int LuaFieldGetAcres(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	lua_pushinteger(_State, _Field->Acres);
+	return 1;
+}
+
+int LuaArrayCreate(lua_State* _State) {
+	int _Size = luaL_checkinteger(_State, 1);
+	struct Array* _Array = CreateArray(_Size);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Array");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Array);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaArrayItr_Aux(lua_State* _State) {
+	struct Array* _Array = LuaCheckClass(_State, lua_upvalueindex(1), "Iterator");
+	int _Index = lua_tointeger(_State, lua_upvalueindex(2));
+	int _Change = lua_tointeger(_State, lua_upvalueindex(3));
+	int i;
+
+	for(i = _Index; i < _Array->TblSize; i += _Change) {
+			if(_Array->Table[_Index] == NULL)
+				_Index += _Change;
+	}
+
+	if(_Index < 0 || _Index >= _Array->TblSize) {
+		lua_pushnil(_State);
+		lua_pushvalue(_State, 1);
+		lua_pushnil(_State);
+		return 3;
+	}
+	lua_pushvalue(_State, lua_upvalueindex(1));
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, -2);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, lua_tostring(_State, -2));
+	lua_setmetatable(_State, -2);
+	lua_remove(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Array->Table[_Index]);
+	lua_rawset(_State, -3);
+	lua_pushinteger(_State, _Index + _Change);
+	lua_replace(_State, lua_upvalueindex(2));
+	return 1;
+}
+
+int LuaArrayItrNext(lua_State* _State) {
+	LuaTestClass(_State, 1, "Iterator");
+	lua_pushinteger(_State, 0);
+	lua_pushinteger(_State, 1);
+	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
+	return 1;
+}
+
+int LuaArrayItrPrev(lua_State* _State) {
+	LuaTestClass(_State, 1, "Iterator");
+	lua_pushinteger(_State, 0);
+	lua_pushinteger(_State, -1);
+	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
+	return 1;
+}
+
+int LuaArrayItr(lua_State* _State) {
+	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
+	return 1;
+}
+
+struct Family* LuaCheckFamily(lua_State* _State, int _Index) {
+	struct Family* _Family = NULL;
+
+	if((_Family = LuaTestClass(_State, _Index, "Family")) == NULL)
+		return (struct Family*) LuaCheckClass(_State, _Index, "Family");
+	return _Family;
+}
+
+struct Field* LuaCheckField(lua_State* _State, int _Index) {
+	struct Field* _Field = NULL;
+
+	if((_Field = LuaTestClass(_State, _Index, "Field")) == NULL)
+		return (struct Field*) LuaCheckClass(_State, _Index, "Field");
+	return _Field;
 }
 
 int LuaConstraint(lua_State* _State) {
@@ -304,7 +648,12 @@ int LuaPushPerson(lua_State* _State, int _Index) {
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "Family");
-	lua_pushstring(_State, _Person->Family->Name);
+	lua_newtable(_State);
+	lua_getglobal(_State, "Family");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Person->Family);
+	lua_rawset(_State, -3);
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "Parent");

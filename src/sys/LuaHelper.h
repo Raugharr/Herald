@@ -13,7 +13,7 @@ struct LinkedList;
 struct Constraint;
 typedef struct lua_State lua_State;
 
-#define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (lua_gettop(_State) + (_Index) + 1))
+#define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 
 #define ConstraintToLua(_State, _Constraint)			\
 	lua_createtable((_State), 0, 2);					\
@@ -29,6 +29,34 @@ typedef struct lua_State lua_State;
 extern lua_State* g_LuaState;
 
 void RegisterLuaFuncs(lua_State* _State);
+int RegisterIterator(lua_State* _State);
+int RegisterArrayItr(lua_State* _State);
+int RegisterFamily(lua_State* _State);
+int RegisterField(lua_State* _State);
+int RegisterArray(lua_State* _State);
+
+int LuaFamilyGetId(lua_State* _State);
+int LuaFamilyChildrenCt(lua_State* _State);
+int LuaFamilyGetName(lua_State* _State);
+int LuaFamilyGetPeople(lua_State* _State);
+int LuaFamilyGetField(lua_State* _State);
+int LuaFamilyGetBuildings(lua_State* _State);
+int LuaFamilyGetGoods(lua_State* _State);
+int LuaFamilyGetAnimals(lua_State* _State);
+
+int LuaFieldGetId(lua_State* _State);
+int LuaFieldGetCrop(lua_State* _State);
+int LuaFieldGetYield(lua_State* _State);
+int LuaFieldGetAcres(lua_State* _State);
+
+int LuaArrayCreate(lua_State* _State);
+int LuaArrayItrNext(lua_State* _State);
+int LuaArrayItrPrev(lua_State* _State);
+
+int LuaArrayItr(lua_State* _State);
+
+struct Family* LuaCheckFamily(lua_State* _State, int _Index);
+struct Field* LuaCheckField(lua_State* _State, int _Index);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.

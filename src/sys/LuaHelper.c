@@ -43,6 +43,13 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsGood[] = {
+		{"GetId", LuaGoodGetId},
+		{"GetQuantity", LuaGoodGetQuantity},
+		{"GetBase", LuaGoodGetBase},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsFamily[] = {
 		{"GetId", LuaFamilyGetId},
 		{"LuaFamilyChildrenCt", LuaFamilyChildrenCt},
@@ -74,6 +81,7 @@ void RegisterLuaFuncs(lua_State* _State) {
 	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
 		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
 	RegisterIterator(_State);
+	RegisterGood(_State);
 	RegisterFamily(_State);
 	RegisterField(_State);
 	RegisterArray(_State);
@@ -153,6 +161,25 @@ int RegisterArrayItr(lua_State* _State) {
 	return 1;
 }
 
+int RegisterGood(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Good") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Good");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsGood, 0);
+	lua_setglobal(_State, "Good");
+	return 1;
+}
+
 int RegisterFamily(lua_State* _State) {
 	if(luaL_newmetatable(_State, "Family") == 0)
 		return 0;
@@ -207,6 +234,29 @@ int RegisterArray(lua_State* _State) {
 	lua_rawset(_State, -3);
 	luaL_setfuncs(_State, g_LuaFuncsArray, 0);
 	lua_setglobal(_State, "Array");
+	return 1;
+}
+
+int LuaGoodGetId(lua_State* _State) {
+	struct Good* _Good = LuaCheckGood(_State, 1);
+
+	lua_pushinteger(_State, _Good->Id);
+	return 1;
+}
+
+int LuaGoodGetQuantity(lua_State* _State) {
+	struct Good* _Good = LuaCheckGood(_State, 1);
+
+	lua_pushinteger(_State, _Good->Quantity);
+	return 1;
+}
+
+int LuaGoodGetBase(lua_State* _State) {
+	struct Good* _Good = LuaCheckGood(_State, 1);
+
+	lua_pushstring(_State, _Good->Base->Name);
+	LuaCrop(_State);
+	lua_remove(_State, -2);
 	return 1;
 }
 
@@ -352,8 +402,9 @@ int LuaArrayItr_Aux(lua_State* _State) {
 	int i;
 
 	for(i = _Index; i < _Array->TblSize; i += _Change) {
-			if(_Array->Table[_Index] == NULL)
-				_Index += _Change;
+		if(_Array->Table[_Index] != NULL)
+			break;
+		_Index += _Change;
 	}
 
 	if(_Index < 0 || _Index >= _Array->TblSize) {
@@ -398,6 +449,14 @@ int LuaArrayItrPrev(lua_State* _State) {
 int LuaArrayItr(lua_State* _State) {
 	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
 	return 1;
+}
+
+struct Good* LuaCheckGood(lua_State* _State, int _Index) {
+	struct Good* _Good = NULL;
+
+	if((_Good = LuaTestClass(_State, _Index, "Good")) == NULL)
+		return (struct Good*) LuaCheckClass(_State, _Index, "Good");
+	return _Good;
 }
 
 struct Family* LuaCheckFamily(lua_State* _State, int _Index) {

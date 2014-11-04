@@ -31,9 +31,14 @@ extern lua_State* g_LuaState;
 void RegisterLuaFuncs(lua_State* _State);
 int RegisterIterator(lua_State* _State);
 int RegisterArrayItr(lua_State* _State);
+int RegisterGood(lua_State* _State);
 int RegisterFamily(lua_State* _State);
 int RegisterField(lua_State* _State);
 int RegisterArray(lua_State* _State);
+
+int LuaGoodGetId(lua_State* _State);
+int LuaGoodGetQuantity(lua_State* _State);
+int LuaGoodGetBase(lua_State* _State);
 
 int LuaFamilyGetId(lua_State* _State);
 int LuaFamilyChildrenCt(lua_State* _State);
@@ -55,6 +60,7 @@ int LuaArrayItrPrev(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);
 
+struct Good* LuaCheckGood(lua_State* _State, int _Index);
 struct Family* LuaCheckFamily(lua_State* _State, int _Index);
 struct Field* LuaCheckField(lua_State* _State, int _Index);
 /**

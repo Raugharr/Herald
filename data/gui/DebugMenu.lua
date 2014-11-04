@@ -1,9 +1,10 @@
 DebugMenu = { }
 
-function DebugMenu.Init(Width, Height)
+function DebugMenu.Init(Width, Height, Data)
 	local Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
-	local DTable = Screen:CreateTable(4, 9, 0, {0, 0, 0, 0})
+	local Columns = 16
+	local DTable = Screen:CreateTable(4, Columns, 0, {0, 0, 0, 0})
 	local PersonData = nil
 	local PersonInfo = ""
 	
@@ -14,18 +15,21 @@ function DebugMenu.Init(Width, Height)
 		function() 
 			GUI.SetMenu("MainMenu")
 		end)
-	DTable:CreateTextBox("First Name")
-	DTable:CreateTextBox("Last Name")
-	DTable:CreateTextBox("Age")
-	DTable:CreateTextBox("Nutrition")
+	DTable:CreateTextBox("First Name"):SetFocus(false)
+	DTable:CreateTextBox("Last Name"):SetFocus(false)
+	DTable:CreateTextBox("Age"):SetFocus(false)
+	DTable:CreateTextBox("Nutrition"):SetFocus(false)
 	i = 0
 	for PersonData in Persons:Next() do
-		if i > 8 then break end
+		if i > Columns then break end
 		i = i + 1
 		PersonInfo = Person(PersonData)
-		DTable:CreateTextBox(PersonInfo.Name)
-		DTable:CreateTextBox(PersonInfo.Family)
-		DTable:CreateTextBox(IntToDate(PersonInfo.Age))
+		DTable:CreateTextBox(PersonInfo.Name):OnKey("Enter", "Released",
+		function()
+			GUI.SetMenu("ViewPersonMenu", PersonInfo)
+		end)
+		DTable:CreateTextBox(PersonInfo.Family:GetName())
+		DTable:CreateTextBox(PrintYears(PersonInfo.Age))
 		DTable:CreateTextBox(PersonInfo.Nutrition)
 	end
 	return true

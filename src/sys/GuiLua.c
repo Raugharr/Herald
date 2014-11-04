@@ -53,6 +53,7 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
+		//{"Destroy", LuaWidgetDestroy},
 		{NULL, NULL}
 };
 
@@ -821,6 +822,17 @@ int LuaWidgetSetFocus(lua_State* _State) {
 
 	luaL_checktype(_State, 2, LUA_TBOOLEAN);
 	_Widget->CanFocus = lua_toboolean(_State, 2);
+	return 0;
+}
+
+int LuaWidgetDestroy(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
+
+	lua_pushstring(_State, "__self");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	_Widget->Parent->RemChild(_Widget->Parent, _Widget);
+	DestroyWidget(_Widget);
 	return 0;
 }
 

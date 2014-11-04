@@ -52,6 +52,7 @@ int LuaWidgetGetHeight(lua_State* _State);
 int LuaWidgetGetParent(lua_State* _State);
 int LuaWidgetGetFocus(lua_State* _State);
 int LuaWidgetSetFocus(lua_State* _State);
+int LuaWidgetDestroy(lua_State* _State);
 
 /**
  * Container functions

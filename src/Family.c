@@ -45,7 +45,7 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 
 	_Family->Name = _Name;
 	_Family->Id = NextId();
-	memset(_Family->People, 0, sizeof(struct Person*) * (CHILDREN_SIZE + 2));
+	memset(_Family->People, 0, sizeof(struct Person*) * (FAMILY_PEOPLESZ));
 	_Family->People[HUSBAND] = _Husband;
 	_Husband->Family = _Family;
 	_Family->People[WIFE] = _Wife;
@@ -63,7 +63,7 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y) {
 	struct Family* _Family = NULL;
 
-	if(_Size > CHILDREN_SIZE + 2)
+	if(_Size > FAMILY_PEOPLESZ)
 		return NULL;
 
 	if(_Size >= 2) {
@@ -109,7 +109,7 @@ int FamilySize(struct Family* _Family) {
 	int _Size = 0;
 	int i;
 
-	for(i = 0; i < CHILDREN_SIZE + 2; ++i) {
+	for(i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(_Family->People[i] == NULL)
 			continue;
 		++_Size;
@@ -136,7 +136,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	void* _Obj = NULL;
 
 	for(i = 0; _FamilyTypes[i] != NULL; ++i) {
-		if(_FamilyTypes[i]->Percent * 10000 > _FamType + _Percent) {
+		if(_FamilyTypes[i]->Percent * 10000 > _FamType) {
 			Log(ELOG_INFO, "Creating Family type: %s", _FamilyTypes[i]->LuaFunc);
 			++g_Log.Indents;
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
@@ -224,7 +224,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			--g_Log.Indents;
 			break;
 		}
-		_Percent += _FamilyTypes[i]->Percent * 10000;
+		_FamType -= _FamilyTypes[i]->Percent * 10000;
 	}
 	return;
 	LuaError:

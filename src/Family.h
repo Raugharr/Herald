@@ -7,6 +7,7 @@
 #define __FAMILY_H
 
 #define CHILDREN_SIZE (8)
+#define FAMILY_PEOPLESZ (CHILDREN_SIZE + 2)
 
 #define HUSBAND (0)
 #define WIFE (1)
@@ -23,7 +24,7 @@ struct Family {
 	int Id;
 	int NumChildren;
 	const char* Name;
-	struct Person* People[CHILDREN_SIZE + 2];
+	struct Person* People[FAMILY_PEOPLESZ];
 	struct Field* Field;
 	struct Array* Buildings;
 	struct Array* Goods;

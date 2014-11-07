@@ -35,6 +35,7 @@ function Farmer(Size)
 		CreateGood("Oats", Oats.PerAcre * 5),
 		--CreateGood("Scratch Plow", 1)
 	}
+	Table.Field = {{"Wheat", 10}, {"Rye", 10}, {"Barley", 5}, {"Oats", 5}}
 	Table.Buildings = {CreateBuilding(10, 10, "Dirt", "Board", "Hay", "Human")}
 	Table.Animals = {}
 	Table.AI = Peasant
@@ -49,6 +50,7 @@ function Herder(Size)
 	local PigCt = Size * 2
 	
 	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt))}
+	Table.Field = {}
 	Table.Buildings = {CreateBuilding(12, 12, "Dirt", "Board", "Hay", "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}
 	Table.AI = Peasant			

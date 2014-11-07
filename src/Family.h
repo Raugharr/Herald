@@ -25,7 +25,7 @@ struct Family {
 	int NumChildren;
 	const char* Name;
 	struct Person* People[FAMILY_PEOPLESZ];
-	struct Field* Field;
+	struct Array* Fields;
 	struct Array* Buildings;
 	struct Array* Goods;
 	struct Array* Animals;

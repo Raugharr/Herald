@@ -53,10 +53,10 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	_Family->NumChildren = 0;
 	for(i = 0; i < _ChildrenSize; ++i)
 		_Family->People[CHILDREN + i] = _Children[i];
-	_Family->Field = NULL;
+	_Family->Fields = CreateArray(0);
 	_Family->Buildings = CreateArray(2);
-	_Family->Goods = CreateArray(4);
-	_Family->Animals = CreateArray(4);
+	_Family->Goods = CreateArray(16);
+	_Family->Animals = CreateArray(0);
 	return _Family;
 }
 
@@ -98,7 +98,7 @@ void DestroyFamily(struct Family* _Family) {
 		}
 		--_Max;
 	}
-	DestroyField(_Family->Field);
+	DestroyArray(_Family->Fields);
 	DestroyArray(_Family->Buildings);
 	DestroyArray(_Family->Goods);
 	//DestroyArray(_Family->Animals);
@@ -127,7 +127,6 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	int j;
 	int _FamType = Random(0, 9999);
 	int _Quantity = 0;
-	int _Percent = 0;
 	const char* _Name = NULL;
 	const struct Population* _Population = NULL;
 	const struct LuaBehavior* _Behavior = NULL;
@@ -154,6 +153,16 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				((struct Good*)_Obj)->Y = _Y;
 				ArrayInsertSort_S(_Family->Goods, _Obj, GoodCmp);
 				lua_pop(_State, 1);
+			}
+			lua_pop(_State, 1);
+
+			lua_getfield(_State, -1, "Field");
+			lua_pushnil(_State);
+			while(lua_next(_State, -2) != 0) {
+				lua_rawgeti(_State, -1, 1);
+				lua_rawgeti(_State, -2, 2);
+				ArrayInsert_S(_Family->Fields, CreateField(HashSearch(&g_Crops, lua_tostring(_State, -2)), lua_tointeger(_State, -1)));
+				lua_pop(_State, 3);
 			}
 			lua_pop(_State, 1);
 

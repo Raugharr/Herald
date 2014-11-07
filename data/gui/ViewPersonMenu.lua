@@ -10,8 +10,6 @@ function ViewPersonMenu.Init(Width, Height, Person)
 	Menu:CreateTextBox("Skills")
 	Menu:CreateTextBox("Agriculture"):OnKey("Enter", "Released",
 		function()
-			local Field = Person.Family:GetField()
-			
 			if(Display ~= nil) then
 				Display:Destroy()
 			end
@@ -22,9 +20,11 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display:CreateTextBox("Name"):SetFocus(false)
 			Display:CreateTextBox("Yield"):SetFocus(false)
 			Display:CreateTextBox("Acres"):SetFocus(false)
-			Display:CreateTextBox(Field:GetCrop().Name)
-			Display:CreateTextBox(Field:GetYield())
-			Display:CreateTextBox(Field:GetAcres())
+			for Field in Person.Family:GetFields():Next() do	
+				Display:CreateTextBox(Field:GetCrop().Name)
+				Display:CreateTextBox(Field:GetYield())
+				Display:CreateTextBox(Field:GetAcres())
+			end
 		end)
 	Menu:CreateTextBox("Goods"):OnKey("Enter", "Released",
 		function()

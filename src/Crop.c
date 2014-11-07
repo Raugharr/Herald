@@ -109,10 +109,12 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime);
 }
 
-struct Field* CreateField(const struct Crop* _Crop, int _Acres) {
+struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) {
 	struct Field* _Field = (struct Field*) malloc(sizeof(struct Field));
 
 	_Field->Id = NextId();
+	_Field->X = _X;
+	_Field->Y = _Y;
 	_Field->Crop = _Crop;
 	_Field->YieldTotal = 0;
 	_Field->Acres = _Acres;

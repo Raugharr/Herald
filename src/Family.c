@@ -161,7 +161,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			while(lua_next(_State, -2) != 0) {
 				lua_rawgeti(_State, -1, 1);
 				lua_rawgeti(_State, -2, 2);
-				ArrayInsert_S(_Family->Fields, CreateField(HashSearch(&g_Crops, lua_tostring(_State, -2)), lua_tointeger(_State, -1)));
+				ArrayInsert_S(_Family->Fields, CreateField(_X, _Y, HashSearch(&g_Crops, lua_tostring(_State, -2)), lua_tointeger(_State, -1)));
 				lua_pop(_State, 3);
 			}
 			lua_pop(_State, 1);

@@ -55,7 +55,7 @@ static const luaL_Reg g_LuaFuncsFamily[] = {
 		{"LuaFamilyChildrenCt", LuaFamilyChildrenCt},
 		{"GetName", LuaFamilyGetName},
 		{"LuaFamilyGetPeople", LuaFamilyGetPeople},
-		{"GetField", LuaFamilyGetField},
+		{"GetFields", LuaFamilyGetFields},
 		{"GetBuildings", LuaFamilyGetBuildings},
 		{"GetGoods", LuaFamilyGetGoods},
 		{"GetAnimals", LuaFamilyGetAnimals},
@@ -293,15 +293,19 @@ int LuaFamilyGetPeople(lua_State* _State) {
 		return 1;
 }
 
-int LuaFamilyGetField(lua_State* _State) {
+int LuaFamilyGetFields(lua_State* _State) {
 	struct Family* _Family = LuaCheckFamily(_State, 1);
 
 	lua_newtable(_State);
-	lua_getglobal(_State, "Field");
+	lua_getglobal(_State, "ArrayIterator");
 	lua_setmetatable(_State, -2);
 
 	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Family->Field);
+	lua_pushlightuserdata(_State, _Family->Fields);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "Field");
 	lua_rawset(_State, -3);
 	return 1;
 }

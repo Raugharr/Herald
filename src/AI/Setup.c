@@ -38,7 +38,7 @@ int PopulationInputReqCmp(const void* _One, const void* _Two) {
 }
 
 int PAIHasField(struct Person* _Person, struct HashTable* _Table) {
-	return _Person->Family->Field != NULL;
+	return _Person->Family->Fields->Table != NULL;
 }
 
 int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
@@ -60,33 +60,37 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 
 int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 	struct Family* _Family = _Person->Family;
-	struct Field* _Field = _Family->Field;
+	struct Field* _Field = NULL;;
 	struct Array* _Array = NULL;
 	int i;
-
-	if(_Field == NULL)
-		return 0;
-	if(_Field->Status == EFALLOW) {
-		_Array = _Family->Goods;
-		for(i = 0; i < _Array->Size; ++i) {
-			if(strcmp(((struct GoodBase*)_Array->Table[i])->Name, _Field->Crop->Name) == 0) {
-				FieldPlant(_Field, _Array->Table[i]);
-				break;
-			}
-		}
-	} else if(_Field->Status == EHARVESTING) {
-		struct GoodBase* _CropSeed = NULL;
-		struct Good* _Good = NULL;
-
-		if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
+	int j;
+	
+	for(i = 0; i < _Family->Fields->Size; ++i) {
+		_Field = ((struct Field*)_Family->Fields->Table[i]);
+		if(_Field == NULL)
 			return 0;
-		_Good->Base = CopyGoodBase(_CropSeed);
-		if(_Good == NULL) {
-			ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
+		if(_Field->Status == EFALLOW) {
+			_Array = _Family->Goods;
+			for(j = 0; i < _Array->Size; ++j) {
+				if(strcmp(((struct GoodBase*)_Array->Table[j])->Name, _Field->Crop->Name) == 0) {
+					FieldPlant(_Field, _Array->Table[j]);
+					break;
+				}
+			}
+		} else if(_Field->Status == EHARVESTING) {
+			struct GoodBase* _CropSeed = NULL;
+			struct Good* _Good = NULL;
+
+			if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
+				return 0;
+			_Good->Base = CopyGoodBase(_CropSeed);
+			if(_Good == NULL) {
+				ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
+			}
+			FieldHarvest(_Field, _Good);
+		} else {
+			FieldWork(_Field, PersonWorkMult(_Person));
 		}
-		FieldHarvest(_Field, _Good);
-	} else {
-		FieldWork(_Field, PersonWorkMult(_Person));
 	}
 	return 1;
 }

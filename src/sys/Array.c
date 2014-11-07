@@ -11,7 +11,7 @@
 struct Array* CreateArray(int _Size) {
 	struct Array* _Array = (struct Array*) malloc(sizeof(struct Array));
 
-	_Array->Table = calloc(_Size, sizeof(void*));
+	_Array->Table = (_Size == 0) ? (NULL) : (calloc(_Size, sizeof(void*)));
 	_Array->TblSize = _Size;
 	_Array->Size = 0;
 	return _Array;
@@ -46,8 +46,16 @@ void ArrayInsert_S(struct Array* _Array, void* _Data) {
 }
 
 void ArrayResize(struct Array* _Array) {
-	int _Size = _Array->TblSize * 2;
-	void* _Temp = realloc(_Array->Table, _Size * sizeof(void*));
+	int _Size = 0;
+	void* _Temp = NULL;
+	
+	if(_Array->Table == NULL) {
+		_Size = 8;	
+		_Temp = calloc(_Size, sizeof(void*));
+	} else {
+		_Size = _Array->TblSize * 2;
+		_Temp = realloc(_Array->Table, _Size * sizeof(void*));
+	}
 
 	if(_Temp == NULL)
 		return;

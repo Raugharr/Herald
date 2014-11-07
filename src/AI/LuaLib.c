@@ -108,23 +108,23 @@ int LuaAISetHook(lua_State* _State) {
 	int _Size = 0;
 
 	if(!lua_islightuserdata(_State, 1)) {
-		LUA_BADARG(1, "Must be a behavior tree.");
+		luaL_error(_State, "arg #1 must be a behavior tree.");
 		return 0;
 	}
 	if(!lua_islightuserdata(_State, 2)) {
-		LUA_BADARG(2, "Must be a hook.");
+		luaL_error(_State, "arg #2 must be a hook.");
 		return 0;
 	}
 	if(!lua_istable(_State, 3)) {
-		LUA_BADARG(3, "Must be a table.");
+		luaL_error(_State, "arg #3 must be a table.");
 		return 0;
 	}
 	if(!lua_istable(_State, 4)) {
-		LUA_BADARG(4, "Must be a table.");
+		luaL_error(_State, "arg #4 must be a table.");
 		return 0;
 	}
 	if(lua_rawlen(_State, 3) != lua_rawlen(_State, 4))
-		LogLua(_State, ELOG_WARNING, "Argument 3 and 4 do not have the same length.");
+		luaL_error(_State, "Argument 3 and 4 do not have the same length.");
 	_Size = lua_rawlen(_State, 3);
 	_Hook = (struct AIHook*) malloc(sizeof(struct AIHook));
 	_Hook->Bhv = (struct Behavior*) lua_touserdata(_State, 1);
@@ -135,7 +135,7 @@ int LuaAISetHook(lua_State* _State) {
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_islightuserdata(_State, -1) == 0) {
-			LUA_BADARG(3, "Argument #3 has an element which is not a behavior.");
+			luaL_error(_State, "Argument #3 has an element which is not a behavior.");
 			goto argthree;
 		}
 		_Hook->Condition->Children[i++] = lua_touserdata(_State, -1);
@@ -148,7 +148,7 @@ int LuaAISetHook(lua_State* _State) {
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_islightuserdata(_State, -1) == 0) {
-			LUA_BADARG(3, "Argument #4 has an element which is not a behavior tree.");
+			luaL_error(_State, "Argument #4 has an element which is not a behavior tree.");
 			goto argfour;
 		}
 		_Hook->BhvPaths[i++] = lua_touserdata(_State, -1);

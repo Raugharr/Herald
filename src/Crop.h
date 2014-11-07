@@ -45,7 +45,7 @@ struct Crop* CopyCrop(const struct Crop* _Crop);
 void DestroyCrop(struct Crop* _Crop);
 struct Crop* CropLoad(lua_State* _State, int _Index);
 
-struct Field* CreateField();
+struct Field* CreateField(const struct Crop* _Crop, int _Acres);
 void DestroyField(struct Field* _Field);
 //Sets all the Fields data about a specific field to default values.
 void FieldReset(struct Field* _Field);

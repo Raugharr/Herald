@@ -284,8 +284,8 @@ int LuaGoodGetBase(lua_State* _State) {
 	struct Good* _Good = LuaCheckGood(_State, 1);
 
 	lua_pushstring(_State, _Good->Base->Name);
-	LuaCrop(_State);
 	lua_remove(_State, -2);
+	LuaCrop(_State);
 	return 1;
 }
 
@@ -400,8 +400,8 @@ int LuaFieldGetCrop(lua_State* _State) {
 		return 1;
 	}
 	lua_pushstring(_State, _Field->Crop->Name);
-	LuaCrop(_State);
 	lua_remove(_State, -2);
+	LuaCrop(_State);
 	return 1;
 }
 
@@ -455,8 +455,8 @@ int LuaAnimalGetBase(lua_State* _State) {
 		return 1;
 	}
 	lua_pushstring(_State, _Animal->PopType->Name);
-	LuaPopulation(_State);
 	lua_remove(_State, -2);
+	LuaPopulation(_State);
 	return 1;
 }
 
@@ -495,6 +495,8 @@ int LuaArrayItr_Aux(lua_State* _State) {
 	lua_pushvalue(_State, lua_upvalueindex(1));
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TSTRING)
+		luaL_error(_State, "Iterator does not have a __classtype.");
 
 	lua_newtable(_State);
 	lua_getglobal(_State, lua_tostring(_State, -2));
@@ -619,7 +621,7 @@ int LuaGoodBase(lua_State* _State) {
 	const char* _Name = NULL;
 	int i;
 
-	_Name = luaL_checklstring(_State, -1, NULL);
+	_Name = luaL_checklstring(_State, 1, NULL);
 	if((_Good = HashSearch(&g_Goods, _Name)) == NULL) {
 		luaL_error(_State, "%s is not a valid GoodBase.", _Name);
 		return 0;
@@ -658,7 +660,8 @@ int LuaFoodBase(lua_State* _State) {
 
 	if(LuaGoodBase(_State) == 0)
 		return 0;
-	_Good = HashSearch(&g_Goods, _Name);
+	if((_Good = HashSearch(&g_Goods, _Name)) == NULL)
+		luaL_error(_State, "%s is not a valid FoodBase.");
 	lua_pushstring(_State, "Nutrition");
 	lua_pushinteger(_State, _Good->Nutrition);
 	lua_rawget(_State, -3);
@@ -669,11 +672,9 @@ int LuaCrop(lua_State* _State) {
 	const char* _Name = NULL;
 	const struct Crop* _Crop = NULL;
 
-	_Name = luaL_checklstring(_State, -1, NULL);
-	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL) {
+	_Name = luaL_checklstring(_State, 1, NULL);
+	if((_Crop = HashSearch(&g_Crops, _Name)) == NULL)
 		luaL_error(_State, "%s is not a valid crop.", _Name);
-		return 0;
-	}
 	lua_createtable(_State, 0, 7);
 
 	lua_pushstring(_State, "Id");
@@ -1087,6 +1088,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 }
 
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
+	int _Pop = 4;
 	lua_getglobal(_State, _Class);
 	if(lua_getmetatable(_State, _Index) == 0) {
 		lua_pop(_State, 1);
@@ -1098,11 +1100,11 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	}
 	lua_pop(_State, 2);
 	lua_pushvalue(_State, _Index);
-	top:
 	if(lua_getmetatable(_State, -1) == 0) {
 		lua_pop(_State, 1);
 		goto end;
 	}
+	top:
 	lua_pushliteral(_State, "__baseclass");
 	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) == LUA_TTABLE) {
@@ -1110,9 +1112,10 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	if(!lua_rawequal(_State, -1, -2)) {
 			lua_copy(_State, -2, -4);
 			lua_pop(_State, 3);
+			_Pop = 3;
 			goto top;
 		}
-		lua_pop(_State, 4);
+		lua_pop(_State, _Pop);
 		return LuaToClass(_State, _Index);
 	}
 	end:

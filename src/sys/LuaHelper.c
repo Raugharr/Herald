@@ -31,7 +31,7 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"Crop", LuaCrop},
 		{"Good", LuaGoodBase},
 		{"Food", LuaFoodBase},
-		{"Animal", LuaPopulation},
+		{"GetAnimal", LuaPopulation},
 		{"Person", LuaPerson},
 		{"ToMonth", LuaMonth},
 		{"PrintDate", LuaPrintDate},
@@ -70,6 +70,15 @@ static const luaL_Reg g_LuaFuncsField[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsAnimal[] = {
+		{"GetId", LuaAnimalGetId},
+		{"IsMale", LuaAnimalIsMale},
+		{"GetNutrition", LuaAnimalGetNutrition},
+		{"GetAge", LuaAnimalGetAge},
+		{"GetBase", LuaAnimalGetBase},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsArray[] = {
 		{"Create", LuaArrayCreate},
 		{NULL, NULL}
@@ -84,6 +93,7 @@ void RegisterLuaFuncs(lua_State* _State) {
 	RegisterGood(_State);
 	RegisterFamily(_State);
 	RegisterField(_State);
+	RegisterAnimal(_State);
 	RegisterArray(_State);
 	RegisterArrayItr(_State);
 }
@@ -218,6 +228,25 @@ int RegisterField(lua_State* _State) {
 	return 1;
 }
 
+int RegisterAnimal(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Animal") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Animal");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsAnimal, 0);
+	lua_setglobal(_State, "Animal");
+	return 1;
+}
+
 int RegisterArray(lua_State* _State) {
 	if(luaL_newmetatable(_State, "Array") == 0)
 		return 0;
@@ -343,11 +372,15 @@ int LuaFamilyGetAnimals(lua_State* _State) {
 	struct Family* _Family = LuaCheckFamily(_State, 1);
 
 	lua_newtable(_State);
-	lua_getglobal(_State, "Array");
+	lua_getglobal(_State, "ArrayIterator");
 	lua_setmetatable(_State, -2);
 
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Family->Animals);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "Animal");
 	lua_rawset(_State, -3);
 	return 1;
 }
@@ -368,6 +401,7 @@ int LuaFieldGetCrop(lua_State* _State) {
 	}
 	lua_pushstring(_State, _Field->Crop->Name);
 	LuaCrop(_State);
+	lua_remove(_State, -2);
 	return 1;
 }
 
@@ -382,6 +416,47 @@ int LuaFieldGetAcres(lua_State* _State) {
 	struct Field* _Field = LuaCheckField(_State, 1);
 
 	lua_pushinteger(_State, _Field->Acres);
+	return 1;
+}
+
+int LuaAnimalGetId(lua_State* _State) {
+	struct Animal* _Animal = LuaCheckAnimal(_State, 1);
+
+	lua_pushinteger(_State, _Animal->Id);
+	return 1;
+}
+
+int LuaAnimalIsMale(lua_State* _State) {
+	struct Animal* _Animal = LuaCheckAnimal(_State, 1);
+
+	lua_pushboolean(_State, (_Animal->Gender == EMALE));
+	return 1;
+}
+
+int LuaAnimalGetNutrition(lua_State* _State) {
+	struct Animal* _Animal = LuaCheckAnimal(_State, 1);
+
+	lua_pushinteger(_State, _Animal->Nutrition);
+	return 1;
+}
+
+int LuaAnimalGetAge(lua_State* _State) {
+	struct Animal* _Animal = LuaCheckAnimal(_State, 1);
+
+	lua_pushinteger(_State, _Animal->Age);
+	return 1;
+}
+
+int LuaAnimalGetBase(lua_State* _State) {
+	struct Animal* _Animal = LuaCheckAnimal(_State, 1);
+
+	if(_Animal == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	lua_pushstring(_State, _Animal->PopType->Name);
+	LuaPopulation(_State);
+	lua_remove(_State, -2);
 	return 1;
 }
 
@@ -477,6 +552,14 @@ struct Field* LuaCheckField(lua_State* _State, int _Index) {
 	if((_Field = LuaTestClass(_State, _Index, "Field")) == NULL)
 		return (struct Field*) LuaCheckClass(_State, _Index, "Field");
 	return _Field;
+}
+
+struct Animal* LuaCheckAnimal(lua_State* _State, int _Index) {
+	struct Animal* _Animal = NULL;
+
+	if((_Animal = LuaTestClass(_State, _Index, "Animal")) == NULL)
+		return (struct Animal*) LuaCheckClass(_State, _Index, "Animal");
+	return _Animal;
 }
 
 int LuaConstraint(lua_State* _State) {

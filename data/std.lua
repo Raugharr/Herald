@@ -44,8 +44,8 @@ end
 
 function Herder(Size)
 	local Table = {}
-	local Goat = Animal("Goat")
-	local Pig = Animal("Pig")
+	local Goat = GetAnimal("Goat")
+	local Pig = GetAnimal("Pig")
 	local GoatCt = Size
 	local PigCt = Size * 2
 	

@@ -57,6 +57,7 @@ void StackPush(struct Stack* _Stack, void* _Data) {
 	_Node->Data = _Data;
 	_Node->Prev = _Stack->Top;
 	_Stack->Top = _Node;
+	++_Stack->Size;
 }
 
 void* StackPop(struct Stack* _Stack) {
@@ -68,6 +69,7 @@ void* StackPop(struct Stack* _Stack) {
 	_Temp = _Stack->Top;
 	_Data = _Temp->Data;
 	_Stack->Top = _Temp->Prev;
+	--_Stack->Size;
 	free(_Temp);
 	return _Data;
 }

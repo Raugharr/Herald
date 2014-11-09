@@ -46,19 +46,21 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			if(Display ~= nil) then
 				Display:Destroy()
 			end
-			Display = Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
+			Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
 			Display:SetCellWidth(Display:GetFont():FontWidth() * 8)
 			Display:SetCellHeight(Display:GetFont():FontHeight())
 			Display:CreateTextBox("Name"):SetFocus(false)
 			Display:CreateTextBox("Nutrition"):SetFocus(false)
+			Display:CreateTextBox("Age"):SetFocus(false)
 			for An in Person.Family:GetAnimals():Next() do
 				Display:CreateTextBox(An:GetBase().Name)
 				Display:CreateTextBox(An:GetNutrition())
+				Display:CreateTextBox(PrintYears(An:GetAge()))
 			end
 		end)
 	Menu:CreateTextBox("Back"):OnKey("Enter", "Released",
 		function()
-			GUI.Close()
+			GUI.PopMenu()
 		end)
 	
 	return false

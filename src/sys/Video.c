@@ -25,9 +25,11 @@ struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 SDL_Surface* g_Surface = NULL;
 struct Font* g_GUIFonts = NULL;
+struct Stack g_GUIStack = {NULL, 0};
 
 int VideoInit(void) {
 	Log(ELOG_INFO, "Setting up video.");
+	++g_Log.Indents;
 	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
 		goto error;
 	if((g_Window = SDL_CreateWindow(SDL_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SDL_WIDTH, SDL_HEIGHT, SDL_WINDOW_SHOWN)) == NULL)
@@ -39,9 +41,11 @@ int VideoInit(void) {
 	g_Surface = SDL_GetWindowSurface(g_Window);
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
+	--g_Log.Indents;
 	return 1;
 	error:
 	g_GUIOk = 0;
+	--g_Log.Indents;
 	return 0;
 }
 

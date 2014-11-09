@@ -6,6 +6,8 @@
 #ifndef __VIDEO_H
 #define __VIDEO_H
 
+#include "Stack.h"
+
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
@@ -65,6 +67,7 @@ extern struct GUIFocus* g_Focus;
 extern struct GUIEvents* g_GUIEvents;
 extern struct GUIDef g_GUIDefs;
 extern struct Font* g_GUIFonts;
+extern struct Stack g_GUIStack;
 
 struct Margin {
 	int Top;

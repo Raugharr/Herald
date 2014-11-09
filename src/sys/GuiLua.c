@@ -37,7 +37,8 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"SetMenu", LuaSetMenu},
 		{"SetFocusColor", LuaSetFocusColor},
 		{"SetUnfocusColor", LuaSetUnfocusColor},
-		{"CloseMenu", LuaCloseMenu},
+		//{"CloseMenu", LuaCloseMenu},
+		{"PopMenu", LuaPopMenu},
 		{"ScreenWidth", LuaScreenWidth},
 		{"ScreenHeight", LuaScreenHeight},
 		{NULL, NULL}
@@ -409,6 +410,7 @@ int LuaDefaultFont(lua_State* _State) {
 
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
+	char* _NameCopy = NULL;
 	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
@@ -545,6 +547,9 @@ int LuaSetMenu(lua_State* _State) {
 		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
 		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
+	_NameCopy = calloc(strlen(_Name + 1), sizeof(char));
+	strcpy(_NameCopy, _Name);
+	StackPush(&g_GUIStack, _NameCopy);  
 	lua_pop(_State, 2);
 	g_GUIOk = 1;
 	return 0;
@@ -702,6 +707,13 @@ int LuaCloseMenu(lua_State* _State) {
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
 	lua_pop(_State, 1);
+	return 0;
+}
+
+int LuaPopMenu(lua_State* _State) {
+	free(StackPop(&g_GUIStack));
+	lua_pushstring(_State, (char*)StackTop(&g_GUIStack));
+	LuaSetMenu(_State);
 	return 0;
 }
 

@@ -16,7 +16,7 @@ function MainMenu.Init(Width, Height, Data)
 		end)
 	MainMenu.Screen:CreateTextBox("Exit"):OnKey("Enter", "Released", 
 		function() 
-			GUI.CloseMenu()
+			GUI.PopMenu()
 		end)	
 	return false
 end

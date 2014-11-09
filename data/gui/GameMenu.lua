@@ -10,9 +10,9 @@ function GameMenu.Init(Width, Height)
 	Menu:CreateTextBox("Advance Month")
 	Menu:CreateTextBox("Back"):OnKey("Enter", "Released",
 		function() 
-			GUI.SetMenu("MainMenu") 
+			GUI.PopMenu() 
 		end)
 		
-	DateCont:CreateTextBox(IntToMonth(World.GetDate()))
+	DateCont:CreateTextBox(PrintDate(World.GetDate()))
 	return true
 end

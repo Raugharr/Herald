@@ -13,7 +13,7 @@ function DebugMenu.Init(Width, Height, Data)
 	DTable:SetCellHeight(DTable:GetFont():FontHeight())
 	Screen:CreateTextBox("Back"):OnKey("Enter", "Released", 
 		function() 
-			GUI.SetMenu("MainMenu")
+			GUI.PopMenu()
 		end)
 	DTable:CreateTextBox("First Name"):SetFocus(false)
 	DTable:CreateTextBox("Last Name"):SetFocus(false)

@@ -6,6 +6,10 @@
 #ifndef __STACK_H
 #define __STACK_H
 
+#ifndef NULL
+	#define NULL ((void*)0)
+#endif
+
 struct StackNode {
 	struct StackNode* Prev;
 	void* Data;
@@ -25,6 +29,6 @@ void* StackPop(struct Stack* _Stack);
 void* StackGet(struct Stack* _Stack, int _Index);
 int StackNodeLen(const struct StackNode* _Node);
 struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat);
-static inline void* StackTop(struct Stack* _Stack) {return _Stack->Top->Data;}
+static inline void* StackTop(struct Stack* _Stack) {return (_Stack->Top == NULL) ? (NULL) : (_Stack->Top->Data);}
 
 #endif

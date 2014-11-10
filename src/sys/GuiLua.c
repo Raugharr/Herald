@@ -547,7 +547,7 @@ int LuaSetMenu(lua_State* _State) {
 		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
 		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
-	_NameCopy = calloc(strlen(_Name + 1), sizeof(char));
+	_NameCopy = calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_NameCopy, _Name);
 	StackPush(&g_GUIStack, _NameCopy);  
 	lua_pop(_State, 2);
@@ -711,8 +711,14 @@ int LuaCloseMenu(lua_State* _State) {
 }
 
 int LuaPopMenu(lua_State* _State) {
+	char* _String = NULL;
+
 	free(StackPop(&g_GUIStack));
-	lua_pushstring(_State, (char*)StackTop(&g_GUIStack));
+	if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
+		g_GUIOk = 0;
+		return 0;
+	}
+	lua_pushstring(_State, _String);
 	LuaSetMenu(_State);
 	return 0;
 }

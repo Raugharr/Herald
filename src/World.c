@@ -42,8 +42,10 @@ struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
 struct KDTree g_ObjPos;
+struct Person* g_Player = NULL;
 
 static const luaL_Reg g_LuaWorldFuncs[] = {
+		{"GetPlayer", LuaWorldGetPlayer},
 		{"GetDate", LuaWorldGetDate},
 		{"GetPersons", LuaWorldGetPersons},
 		{NULL, NULL}
@@ -150,6 +152,7 @@ int PopulateWorld() {
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
 	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_World->TblSize - 1),  Random(0, g_World->TblSize - 1));
+	g_Player = PickPlayer();
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:
@@ -214,6 +217,17 @@ int LuaPersonItrPrev(lua_State* _State) {
 	return 1;
 }
 
+struct Person* PickPlayer() {
+	struct Person* _Person = g_PersonList;
+
+	while(_Person != NULL) {
+		if(_Person->Gender == EMALE && _Person->Age > (15 * YEAR_DAYS))
+			break;
+		_Person = _Person->Next;
+	}
+	return _Person;
+}
+
 int LuaRegisterPersonItr(lua_State* _State) {
 	if(luaL_newmetatable(_State, "PersonIterator") == 0)
 		return 0;
@@ -242,6 +256,11 @@ int LuaRegisterPersonItr(lua_State* _State) {
 	lua_getglobal(_State, "Iterator");
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "PersonIterator");
+	return 1;
+}
+
+int LuaWorldGetPlayer(lua_State* _State) {
+	lua_pushlightuserdata(_State, g_Player);
 	return 1;
 }
 

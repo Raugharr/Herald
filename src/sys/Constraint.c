@@ -91,8 +91,9 @@ struct Constraint** CreateConstrntVaBnds(int _Size, va_list _List) {
 	int _CurrMin = -1;
 	int _CurrMax = -1;
 	int i;
-	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size + 1));
+	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size));
 
+	--_Size;
 	_CurrMin = va_arg(_List, int);
 	_CurrMax = va_arg(_List, int);
 	for(i = 0; i < _Size; ++i) {

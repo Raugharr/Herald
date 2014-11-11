@@ -411,6 +411,18 @@ int LuaDefaultFont(lua_State* _State) {
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 	char* _NameCopy = NULL;
+	int _Ret = 0;
+
+	_Ret = LuaSetMenu_Aux(_State);
+	_NameCopy = calloc(strlen(_Name) + 1, sizeof(char));
+	strcpy(_NameCopy, _Name);
+	StackPush(&g_GUIStack, _NameCopy);
+	return _Ret;
+}
+
+int LuaSetMenu_Aux(lua_State* _State) {
+	const char* _Name = luaL_checkstring(_State, 1);
+	char* _NameCopy = NULL;
 	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
@@ -547,9 +559,6 @@ int LuaSetMenu(lua_State* _State) {
 		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
 		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
-	_NameCopy = calloc(strlen(_Name) + 1, sizeof(char));
-	strcpy(_NameCopy, _Name);
-	StackPush(&g_GUIStack, _NameCopy);  
 	lua_pop(_State, 2);
 	g_GUIOk = 1;
 	return 0;
@@ -719,7 +728,7 @@ int LuaPopMenu(lua_State* _State) {
 		return 0;
 	}
 	lua_pushstring(_State, _String);
-	LuaSetMenu(_State);
+	LuaSetMenu_Aux(_State);
 	return 0;
 }
 

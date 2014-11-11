@@ -108,6 +108,7 @@ int LuaPushPerson(lua_State* _State, int _Index);
  */
 int LuaPerson(lua_State* _State);
 
+int LuaYears(lua_State* _State);
 int LuaMonth(lua_State* _State);
 int LuaPrintDate(lua_State* _State);
 int LuaPrintYears(lua_State* _State);

@@ -33,6 +33,7 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"Food", LuaFoodBase},
 		{"GetAnimal", LuaPopulation},
 		{"Person", LuaPerson},
+		{"ToYears", LuaYears},
 		{"ToMonth", LuaMonth},
 		{"PrintDate", LuaPrintDate},
 		{"PrintYears", LuaPrintYears},
@@ -816,6 +817,11 @@ int LuaPerson(lua_State* _State) {
 	return 1;
 }
 
+int LuaYears(lua_State* _State) {
+	lua_pushinteger(_State, luaL_checkinteger(_State, 1) * YEAR_DAYS);
+	return 1;
+}
+
 int LuaMonth(lua_State* _State) {
 	const char* _Type = NULL;
 
@@ -1028,7 +1034,7 @@ int LuaCreateAnimal(lua_State* _State) {
 	_Name = luaL_checkstring(_State, 1);
 	if((_Population = HashSearch(&g_Populations, _Name)) == NULL)
 		return luaL_error(_State, "Cannot find Population %s.", _Name);
-	lua_pushlightuserdata(_State, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), -1, -1));
+	lua_pushlightuserdata(_State, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), 1500, -1, -1));
 	return 1;
 }
 

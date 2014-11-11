@@ -197,7 +197,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 					continue;
 				}
 				for(j = 0; j < _Quantity; ++j)
-					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), _X, _Y), AnimalCmp);
+					ArrayInsertSort_S(_Family->Animals, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), 1500, _X, _Y), AnimalCmp);
 				lua_pop(_State, 3);
 			}
 			lua_pop(_State, 1);

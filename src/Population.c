@@ -200,6 +200,10 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		}
 		lua_pop(_State, 1);
 	}
+	if(_Young > _Old || _Old > _Death || _Death < 0) {
+		Log(ELOG_WARNING, "%s age limits are invalid.", _Name);
+		goto fail;
+	}
 	_Ages = CreateConstrntBnds(4, 0, _Young, _Old, _Death);
 	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio);
 	_Eats = calloc(_List->Size, sizeof(struct FoodBase*));
@@ -225,7 +229,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	return NULL;
 }
 
-struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _X, int _Y) {
+struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _Nutrition, int _X, int _Y) {
 	struct Animal* _Animal = (struct Animal*) malloc(sizeof(struct Animal));
 
 	CreateObject((struct Object*)_Animal, _X, _Y);
@@ -233,6 +237,7 @@ struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _X, int
 		_Animal->Gender = EMALE;
 	} else
 		_Animal->Gender = EFEMALE;
+	_Animal->Nutrition = _Nutrition;
 	_Animal->Age = _Age;
 	_Animal->PopType = _Pop;
 	return _Animal;

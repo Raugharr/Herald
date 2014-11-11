@@ -18,7 +18,7 @@ struct HashTable;
 struct Population {
 	int Id;
 	char* Name;
-	int Nutrition;
+	int Nutrition; //How much is eaten per day.
 	int Meat; //In pounds.
 	int Milk; //Fluid ounces.
 	double MaleRatio;
@@ -52,7 +52,7 @@ void DestroyPopulation(struct Population* _Population);
 
 struct Population* PopulationLoad(lua_State* _State, int _Index);
 
-struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _X, int _Y);
+struct Animal* CreateAnimal(const struct Population* _Pop, int _Age,  int _Nutrition, int _X, int _Y);
 int AnimalCmp(const void* _One, const void* _Two);
 void DestroyAnimal(struct Animal* _Animal);
 void AnimalFeed(struct Animal* _Animal);

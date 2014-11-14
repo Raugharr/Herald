@@ -44,7 +44,7 @@ struct GUIEvents {
 
 struct Font {
 	TTF_Font* Font;
-	char* Name;
+	char* Name; //Replace with TTF_FontFaceStyleName.
 	int Size;
 	struct Font* Next;
 	struct Font* Prev;

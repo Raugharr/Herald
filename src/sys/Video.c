@@ -491,7 +491,7 @@ int TextBoxOnUnfocus(struct Widget* _Widget) {
 
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text) {
 	if(((struct TextBox*)_Widget)->Text != NULL)
-		SDL_FreeSurface(_Text);
+		SDL_FreeSurface(((struct TextBox*)_Widget)->Text);
 	((struct TextBox*)_Widget)->Text = _Text;
 	return 1;
 }

@@ -66,6 +66,7 @@ int LuaContainerGetChildCt(lua_State* _State);
 int LuaContainerGetChildren(lua_State* _State);
 int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
+int LuaContainerParagraph(lua_State* _State);
 
 /**
  * TextBox functions

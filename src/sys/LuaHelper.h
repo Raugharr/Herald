@@ -47,8 +47,11 @@ int LuaFamilyGetName(lua_State* _State);
 int LuaFamilyGetPeople(lua_State* _State);
 int LuaFamilyGetFields(lua_State* _State);
 int LuaFamilyGetBuildings(lua_State* _State);
+int LuaFamilyGetBulidingCt(lua_State* _State);
 int LuaFamilyGetGoods(lua_State* _State);
+int LuaFamilyGetGoodCt(lua_State* _State);
 int LuaFamilyGetAnimals(lua_State* _State);
+int LuaFamilyGetAnimalCt(lua_State* _State);
 
 int LuaFieldGetId(lua_State* _State);
 int LuaFieldGetCrop(lua_State* _State);

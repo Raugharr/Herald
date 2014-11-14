@@ -58,8 +58,11 @@ static const luaL_Reg g_LuaFuncsFamily[] = {
 		{"LuaFamilyGetPeople", LuaFamilyGetPeople},
 		{"GetFields", LuaFamilyGetFields},
 		{"GetBuildings", LuaFamilyGetBuildings},
+		{"GetBuildingCt", LuaFamilyGetBulidingCt},
 		{"GetGoods", LuaFamilyGetGoods},
+		{"GetGoodCt", LuaFamilyGetGoodCt},
 		{"GetAnimals", LuaFamilyGetAnimals},
+		{"GetAnimalCt", LuaFamilyGetAnimalCt},
 		{NULL, NULL}
 };
 
@@ -353,6 +356,13 @@ int LuaFamilyGetBuildings(lua_State* _State) {
 	return 1;
 }
 
+int LuaFamilyGetBulidingCt(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushinteger(_State, _Family->Buildings->Size);
+	return 1;
+}
+
 int LuaFamilyGetGoods(lua_State* _State) {
 	struct Family* _Family = LuaCheckFamily(_State, 1);
 
@@ -369,6 +379,14 @@ int LuaFamilyGetGoods(lua_State* _State) {
 	lua_rawset(_State, -3);
 	return 1;
 }
+
+int LuaFamilyGetGoodCt(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushinteger(_State, _Family->Goods->Size);
+	return 1;
+}
+
 int LuaFamilyGetAnimals(lua_State* _State) {
 	struct Family* _Family = LuaCheckFamily(_State, 1);
 
@@ -383,6 +401,13 @@ int LuaFamilyGetAnimals(lua_State* _State) {
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "Animal");
 	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaFamilyGetAnimalCt(lua_State* _State) {
+	struct Family* _Family = LuaCheckFamily(_State, 1);
+
+	lua_pushinteger(_State, _Family->Animals->Size);
 	return 1;
 }
 

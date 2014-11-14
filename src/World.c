@@ -48,6 +48,7 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
 		{"GetDate", LuaWorldGetDate},
 		{"GetPersons", LuaWorldGetPersons},
+		{"Tick", LuaWorldTick},
 		{NULL, NULL}
 };
 
@@ -278,6 +279,11 @@ int LuaWorldGetPersons(lua_State* _State) {
 int LuaWorldGetDate(lua_State* _State) {
 	lua_pushinteger(_State, g_Date);
 	return 1;
+}
+
+int LuaWorldTick(lua_State* _State) {
+	World_Tick();
+	return 0;
 }
 
 void WorldInit(int _Area) {

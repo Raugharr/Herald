@@ -939,6 +939,8 @@ int LuaContainerParagraph(lua_State* _State) {
 	const char* _String = luaL_checkstring(_State, 3);
 	const char* _Temp = _String;
 	int _CharWidth = 0;
+	int _WordSz = 0;
+	int _WordWidth = 0;
 	struct TextBox* _TextBox = NULL;
 	SDL_Rect _Rect = {0, 0, TTF_FontFaceIsFixedWidth(_Font->Font), 0};
 	SDL_Rect _PRect = {0, 0, 0, 0};
@@ -953,14 +955,24 @@ int LuaContainerParagraph(lua_State* _State) {
 	_NewContainer->NewChild = VertConNewChild;
 	_NewContainer->CanFocus = 0;
 	while(*_Temp != '\0') {
-		while(*_Temp != '\0') {
+		do {
+			if((*_Temp) == ' ') {
+				_Ct += _WordSz;
+				_Rect.w += _WordWidth;
+				_WordSz = 0;
+				_WordWidth = 0;
+			}
 			TTF_GlyphMetrics(_Font->Font, *_Temp, NULL, NULL, NULL, NULL, &_CharWidth);
-			if(_Rect.w + _CharWidth > _Parent->Rect.w)
+			_WordWidth += _CharWidth;
+			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Rect.w) {
+				_Temp -= _WordSz;
+				_WordSz = 0;
+				_WordWidth = 0;
 				break;
+			}
+			++_WordSz;
 			++_Temp;
-			_Rect.w += _CharWidth;
-			++_Ct;
-		}
+		} while((*_Temp) != '\0');
 		char _Buffer[_Ct + 1];
 		strncpy(_Buffer, _String, _Ct);
 		_Buffer[_Ct + 1] = '\0';

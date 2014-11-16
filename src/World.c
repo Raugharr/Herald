@@ -43,6 +43,7 @@ struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
 struct KDTree g_ObjPos;
 struct Person* g_Player = NULL;
+struct HashTable* g_AIHash = NULL;
 
 static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
@@ -297,6 +298,7 @@ void WorldInit(int _Area) {
 
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
+	g_AIHash = CreateHash(32);
 	g_World = CreateArray(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
@@ -392,9 +394,24 @@ void WorldQuit() {
 	Family_Quit();
 	DestroyRBTree(g_GoodDeps);
 	DestroyArray(g_AnFoodDep);
+	DestroyHash(g_AIHash);
 }
 
 int World_Tick() {
+	struct Person* _Person = g_PersonList;
+	int _Ct = 0;
+	int _Size = 0;
+
+	ATImerUpdate(&g_ATimer);
+	while(_Person != NULL) {
+		if(_Person->Age < TO_YEARS(13))
+			_Ct++;
+		else
+			++_Size;
+		HashClear(g_AIHash);
+		BHVRun(_Person->Behavior, _Person, g_AIHash);
+		_Person = _Person->Next;
+	}
 	NextDay(&g_Date);
 	return 1;
 }

@@ -361,12 +361,14 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
 	struct GoodDep* _Dep = NULL;
 	struct InputReq** _Outputs = (struct InputReq**)calloc(_TblSize, sizeof(struct InputReq*));
 	const struct GoodBase* _Output = NULL;
+	struct Good* _Good = NULL;
 
 	memset(_Outputs, 0, sizeof(struct InputReq*) * _TblSize);
 	for(i = 0; i < _TblSize; ++i) {
-		if((_Categories & ((struct Good*)_Tbl[i])->Base->Category) != ((struct Good*)_Tbl[i])->Base->Category)
+		_Good = (struct Good*)_Tbl[i];
+		if((_Categories &_Good->Base->Category) != _Good->Base->Category && _Good->Quantity > 0)
 			continue;
-		_Dep = RBSearch(g_GoodDeps, ((struct Good*)_Tbl[i])->Base);
+		_Dep = RBSearch(g_GoodDeps, _Good->Base);
 		for(j = 0; j < _Dep->DepTbl->Size; ++j) {
 			_Output = ((struct GoodDep*)_Dep->DepTbl->Table[j])->Good;
 			if((_Amount = GoodCanMake(_Output, _Goods)) != 0) {
@@ -376,7 +378,6 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
 				_Temp->Quantity = _Amount;
 				_Outputs[_OutputSize++] = _Temp;
 			}
-
 		}
 	}
 
@@ -394,7 +395,7 @@ int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
 	struct Good* _Temp = NULL;
 	
 	for(i = 0; i < _Good->IGSize; ++i) {
-		if((_Temp = BinarySearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp)) == NULL
+		if((_Temp = LinearSearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp)) == NULL
 				|| (_Temp->Quantity < _Good->InputGoods[i]->Quantity))
 			return 0;
 		_Quantity = _Temp->Quantity / _Good->InputGoods[i]->Quantity;

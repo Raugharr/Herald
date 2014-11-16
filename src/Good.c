@@ -179,7 +179,7 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 				lua_pop(_State, 1);
 				if(lua_next(_State, -2) == 0)
 					goto fail;
-				if(AddInteger(_State, -1, &_Req->Quantity) == -1) {
+				if(AddNumber(_State, -1, &_Req->Quantity) == -1) {
 					goto fail;
 				}
 				LnkLst_PushBack(_List, _Req);

@@ -47,7 +47,7 @@ enum {
 
 struct InputReq {
 	void* Req;
-	int Quantity;
+	double Quantity;
 };
 
 struct Object {

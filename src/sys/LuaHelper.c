@@ -289,7 +289,7 @@ int LuaGoodGetBase(lua_State* _State) {
 
 	lua_pushstring(_State, _Good->Base->Name);
 	lua_remove(_State, -2);
-	LuaCrop(_State);
+	LuaGoodBase(_State);
 	return 1;
 }
 
@@ -656,27 +656,27 @@ int LuaGoodBase(lua_State* _State) {
 
 	lua_pushstring(_State, "Id");
 	lua_pushinteger(_State, _Good->Id);
-	lua_rawget(_State, -3);
+	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "Name");
 	lua_pushstring(_State, _Good->Name);
-	lua_rawget(_State, -3);
+	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "Category");
 	lua_pushinteger(_State, _Good->Category);
-	lua_rawget(_State, -3);
+	lua_rawset(_State, -3);
 
-	lua_pushstring(_State, "InputGoods");
 	lua_createtable(_State, _Good->IGSize, 0);
+	lua_pushstring(_State, "InputGoods");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -4);
 	for(i = 0; i < _Good->IGSize; ++i) {
-		lua_pushinteger(_State, i);
-		lua_createtable(_State, 0, 2);
-
-		lua_pushstring(_State, "Req");
+		lua_pushinteger(_State, i + 1);
 		lua_pushstring(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req)->Name);
 		lua_rawset(_State, -3);
 	}
-	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
+	//lua_rawset(_State, -3);
 	return 1;
 }
 

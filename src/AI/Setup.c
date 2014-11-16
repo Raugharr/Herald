@@ -313,7 +313,6 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	int _Size;
 	int i;
 	int j;
-	int k;
 	struct Family* _Family = _Person->Family;
 	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
 	struct Array* _GoodsArray = NULL;
@@ -328,20 +327,14 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	for(i = 0; i < _Size; ++i) {
 		_Food = ((struct FoodBase*)_Foods[i]->Req);
 		for(j = 0; j < _Food->IGSize; ++j) {
-			_Good = BinarySearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
+			_Good = LinearSearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
 			_Good->Quantity -= _Foods[i]->Quantity * _Food->InputGoods[j]->Quantity;
 			_GoodsArray = _Family->Goods;
-			for(k = 0; k < _GoodsArray->Size; ++k) {
-				if((_FamFood = ((struct Food*)_GoodsArray->Table[k]))->Base == _Food) {
-					_FamFood->Quantity += _Foods[i]->Quantity;
-					goto found_good;
-				}
+			if((_FamFood = LinearSearch(_Food, _GoodsArray->Table, _GoodsArray->Size, GoodCmp)) == NULL) {
+				_FamFood =  CreateFood(_Food, _Person->X, _Person->Y);
+				ArrayInsert_S(_GoodsArray, _FamFood);
 			}
-			_FamFood =  CreateFood(_Food, _Person->X, _Person->Y);
-			_FamFood->Quantity = _Foods[i]->Quantity;
-			ArrayInsert_S(_GoodsArray, _FamFood);
-			found_good:
-			continue;
+			_FamFood->Quantity += _Foods[i]->Quantity;
 		}
 		DestroyInputReq(_Foods[i]);
 	}

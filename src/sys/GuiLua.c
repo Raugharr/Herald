@@ -968,11 +968,17 @@ int LuaContainerParagraph(lua_State* _State) {
 				_Temp -= _WordSz;
 				_WordSz = 0;
 				_WordWidth = 0;
+				goto create_buffer;
 				break;
 			}
 			++_WordSz;
 			++_Temp;
 		} while((*_Temp) != '\0');
+		create_buffer:
+		_Ct += _WordSz;
+		_Rect.w += _WordWidth;
+		_WordSz = 0;
+		_WordWidth = 0;
 		char _Buffer[_Ct + 1];
 		strncpy(_Buffer, _String, _Ct);
 		_Buffer[_Ct + 1] = '\0';

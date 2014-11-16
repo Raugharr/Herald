@@ -313,9 +313,12 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	int _Size;
 	int i;
 	int j;
+	int k;
 	struct Family* _Family = _Person->Family;
 	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
+	struct Array* _GoodsArray = NULL;
 	struct FoodBase* _Food = NULL;
+	struct Food* _FamFood = NULL;
 	struct Good* _Good = NULL;
 	
 	if(_Foods == NULL)
@@ -327,6 +330,18 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 		for(j = 0; j < _Food->IGSize; ++j) {
 			_Good = BinarySearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
 			_Good->Quantity -= _Foods[i]->Quantity;
+			_GoodsArray = _Family->Goods;
+			for(k = 0; k < _GoodsArray->Size; ++k) {
+				if((_FamFood = ((struct Food*)_GoodsArray->Table[k]))->Base == _Food) {
+					_FamFood->Quantity += _Foods[i]->Quantity;
+					goto found_good;
+				}
+			}
+			_FamFood =  CreateFood(_Food, _Person->X, _Person->Y);
+			_FamFood->Quantity = _Foods[i]->Quantity;
+			ArrayInsert_S(_GoodsArray, _FamFood);
+			found_good:
+			continue;
 		}
 		DestroyInputReq(_Foods[i]);
 	}

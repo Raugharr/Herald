@@ -289,6 +289,7 @@ struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 	
 	CreateObject((struct Object*)_Food, _X, _Y);
 	_Food->Base = _Base;
+	_Food->Quantity = 0;
 	_Food->Parts = FOOD_MAXPARTS;
 	return _Food;
 }
@@ -393,8 +394,8 @@ int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
 	struct Good* _Temp = NULL;
 	
 	for(i = 0; i < _Good->IGSize; ++i) {
-		_Temp = BinarySearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
-		if(_Temp->Quantity < _Good->InputGoods[i]->Quantity)
+		if((_Temp = BinarySearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp)) == NULL
+				|| (_Temp->Quantity < _Good->InputGoods[i]->Quantity))
 			return 0;
 		_Quantity = _Temp->Quantity / _Good->InputGoods[i]->Quantity;
 		if(_Quantity < _Max)

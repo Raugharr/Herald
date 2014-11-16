@@ -121,6 +121,8 @@ struct GoodDep* CreateGoodDep(const struct GoodBase* _Good);
 void DestroyGoodDep(struct GoodDep* _GoodDep);
 /**
  * @Brief Simple wrapper that adds the correct ICallback and SCallback to RBTRee.
+ * Creates an RBTree* that contains struct GoodDep* containing a struct GoodBase* and
+ * a table of all GoodBases that need the good.
  * The returned RBTree* can be deleted with DestroyRBTree as normal.
  */
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);

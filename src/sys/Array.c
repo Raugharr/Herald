@@ -137,13 +137,24 @@ void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(c
 
 	while(_Max >= _Min) {
 		_Mid = _Min + ((_Max - _Min) / 2);
-		_Result = _Callback(_Data, *(int**)(_Table + sizeof(void*) * _Mid));
+		_Result = _Callback(_Data, *(void**)(_Table + sizeof(void*) * _Mid));
 		if(_Result < 0)
 			_Max = _Mid - 1;
 		else if(_Result > 0)
 			_Min = _Mid + 1;
 		else
-			return *(int**)(_Table + sizeof(void*) * _Mid);
+			return *(void**)(_Table + sizeof(void*) * _Mid);
+	}
+	return NULL;
+}
+
+void* LinearSearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*)) {
+	int i;
+
+	for(i = 0; i < _Size; ++i) {
+		if(_Callback(_Data, *(void**)_Table) == 0)
+			return *(void**)_Table;
+		_Table = (void**)(_Table + sizeof(void*));
 	}
 	return NULL;
 }

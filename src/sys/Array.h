@@ -27,4 +27,5 @@ void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const 
 void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int _Left, int _Right);
 int ArrayLen(const void* _Table);
 void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*));
+void* LinearSearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*));
 #endif

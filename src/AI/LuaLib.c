@@ -34,9 +34,9 @@ int LuaBhvComp(lua_State* _State) {
 	_Key = luaL_checkstring(_State, 1);
 	_Len = lua_rawlen(_State, 2);
 	if(!strcmp(_Key, "Sequence")) {
-		_Bhv = CreateBehavior(NULL, NULL, _Len, BhvSelector);
-	} else if(!strcmp(_Key, "Selector")) {
 		_Bhv = CreateBehavior(NULL, NULL, _Len, BhvSequence);
+	} else if(!strcmp(_Key, "Selector")) {
+		_Bhv = CreateBehavior(NULL, NULL, _Len, BhvSelector);
 	} else
 		return luaL_argerror(_State, 1, "Must be either \"Sequence\" or \"Selector\".");
 	lua_pushnil(_State);

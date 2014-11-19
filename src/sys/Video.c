@@ -71,15 +71,16 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 	const struct Container* _Parent = _Focus->Parent;
 	struct GUIFocus* _Temp = NULL;
 	int _LastIndex = _Focus->Index;
+	int _Ct = 0;
 
 	change: /* Decrement the index until the index is invalid. */
-	while(_Change > 0) {
+	while(_Ct < _Change) {
 		_Focus->Index += _Pos;
 		if((_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz))
 			break;
 		if((_Focus->Index >= 0  && _Focus->Index < _Parent->ChildrenSz) &&
 				_Parent->Children[_Focus->Index] != NULL &&_Parent->Children[_Focus->Index]->CanFocus != 0)
-			--_Change;
+			++_Ct;
 	}
 	/* If the index is invalid focus the parent's next child
 	 * if it exists else set index to the last widget. */
@@ -90,20 +91,21 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
-			_Change = _Focus->Parent->FocusChange;
-			free(_Temp);
+			_Ct = 0;//_Focus->Parent->FocusChange;
+			//free(_Temp);
 			goto change;
 		} else {
+			loop_focus:
 			if(_Pos < 0)
 				_Focus->Index = _Parent->ChildrenSz - 1;
 			else
 				_Focus->Index = 0;
 			if(_Parent->Children[_Focus->Index] != NULL && _Parent->Children[_Focus->Index]->CanFocus != 0)
-				--_Change;
+				++_Ct;
 		}
 	}
 	/* Index is now valid decrement the remaining indexes. */
-	if(_Change > 0)
+	if(_Ct < _Change)
 		goto change;
 	/* Ensure the valid index we have is a valid widget. */
 	_LastIndex = _Focus->Index;
@@ -115,6 +117,15 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 		goto new_stack;
 	}
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
+	if(_Temp != NULL) {
+		if(_Focus->Parent == _Temp->Parent->Parent) {
+			_Focus = _Temp;
+			_Parent = _Focus->Parent;
+			_Temp = NULL;
+			goto loop_focus;
+		} else
+			free(_Temp);
+	}
 	return _Focus;
 }
 

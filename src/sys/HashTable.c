@@ -59,13 +59,12 @@ struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key)
 		return NULL;
 	i = _Index;
 	while(_Node != NULL && strcmp(_Node->Key, _Key) != 0 ) {
+		++i;
 		if(i >= _Hash->TblSize)
 			i = 0;
 		_Node = _Hash->Table[i];
-		++i;
 		if(i == _Index)
 			return NULL;
-
 	}
 	if(_Node == NULL)
 		return NULL;

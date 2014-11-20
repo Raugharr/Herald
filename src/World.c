@@ -262,7 +262,12 @@ int LuaRegisterPersonItr(lua_State* _State) {
 }
 
 int LuaWorldGetPlayer(lua_State* _State) {
+	lua_newtable(_State);
+	lua_getglobal(_State, "Person");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, g_Player);
+	lua_rawset(_State, -3);
 	return 1;
 }
 
@@ -354,7 +359,6 @@ void WorldInit(int _Area) {
 	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
 	g_Occupations.TblSize = ((_OccupationList->Size + 1) * 5) / 4;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
-	HashInsert(&g_Occupations, "Farmer", CreateOccupationSpecial("Farmer", EFARMER));
 	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
 	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList);
@@ -399,15 +403,9 @@ void WorldQuit() {
 
 int World_Tick() {
 	struct Person* _Person = g_PersonList;
-	int _Ct = 0;
-	int _Size = 0;
 
 	ATImerUpdate(&g_ATimer);
 	while(_Person != NULL) {
-		if(_Person->Age < TO_YEARS(13))
-			_Ct++;
-		else
-			++_Size;
 		HashClear(g_AIHash);
 		BHVRun(_Person->Behavior, _Person, g_AIHash);
 		_Person = _Person->Next;

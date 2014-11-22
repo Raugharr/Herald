@@ -155,7 +155,7 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	return NULL;
 }
 
-int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
+int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 	const char* _Name = NULL;
 	int _Top = lua_gettop(_State);
 	int i;
@@ -165,14 +165,21 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 
 	if(_Good == NULL)
 		return 0;
+	if(HashSearch(&g_Crops, _Good->Name) != NULL || _Good->InputGoods != NULL || _Good->IGSize > 0)
+		return 1;
 
-	lua_getfield(_State, -1, "InputGoods");
+	lua_getglobal(_State, "Goods");
+	lua_pushstring(_State, _Good->Name);
+	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
+	lua_pushstring(_State, "InputGoods");
+	lua_rawget(_State, -2);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		lua_pushnil(_State);
 		if(lua_next(_State, -2) == 0)
 			goto fail;
-		if(lua_isstring(_State, -2) == 1) {
+		if(lua_isstring(_State, -1) == 1) {
 			_Req = CreateInputReq();
 			_Name = lua_tostring(_State, -1);
 			if((_Req->Req = HashSearch(&g_Goods, _Name)) != NULL) {
@@ -188,7 +195,8 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 				goto fail;
 			}
 			lua_pop(_State, 2);
-		}
+		} else
+			lua_pop(_State, 2);
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
@@ -211,11 +219,14 @@ int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good) {
 			_Nutrition = lua_tointeger(_State, -1);
 			lua_pop(_State, 1);
 		} else {
-			for(i = 0; i < _List->Size; ++i)
+			for(i = 0; i < _List->Size; ++i) {
+				GoodLoadInput(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req));
 				_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
+			}
 		}
 		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
 	}
+	lua_pop(_State, 1);
 	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp);
 	DestroyLinkedList(_List);
 	return 1;

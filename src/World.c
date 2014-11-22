@@ -288,6 +288,7 @@ int LuaWorldTick(lua_State* _State) {
 }
 
 void WorldInit(int _Area) {
+	int i;
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -326,25 +327,21 @@ void WorldInit(int _Area) {
 		goto GoodLoadEnd;
 	}
 	LuaLoadFile(g_LuaState, "goods.lua");
-	_Itr = _GoodList->Front;
 	lua_getglobal(g_LuaState, "Goods");
-	lua_pushnil(g_LuaState);
-	while(lua_next(g_LuaState, -2) != 0 && _Itr != NULL) {
-		if(!lua_istable(g_LuaState, -1)) {
-			lua_pop(g_LuaState, 1);
-			continue;
-		}
-		lua_getfield(g_LuaState, -1, "Name");
-		if(lua_isstring(g_LuaState, -1) && !strcmp(lua_tostring(g_LuaState, -1), ((struct GoodBase*)_Itr->Data)->Name)) {
-			lua_pop(g_LuaState, 1);
-			GoodLoadInput(g_LuaState, -1, _Itr->Data);
-		} else {
-			lua_pop(g_LuaState, 1);
-		}
+	i = 1;
+	_Itr = _GoodList->Front;
+	while(_Itr != NULL) {
+		lua_pushstring(g_LuaState, ((struct GoodBase*)_Itr->Data)->Name);
+		lua_rawgeti(g_LuaState, -2, i++);
+		lua_rawset(g_LuaState, -3);
 		_Itr = _Itr->Next;
-		lua_pop(g_LuaState, 1);
 	}
 	lua_pop(g_LuaState, 1);
+	_Itr = _GoodList->Front;
+	while(_Itr != NULL) {
+		GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data));
+		_Itr = _Itr->Next;
+	}
 	GoodLoadEnd:
 	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
 	g_Populations.TblSize = (_PopList->Size * 5) / 4;

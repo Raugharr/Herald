@@ -116,7 +116,7 @@ void DestroyFood(struct Food* _Food);
  * @Return Good* if the table is valid.
  */
 struct GoodBase* GoodLoad(lua_State* _State, int _Index);
-int GoodLoadInput(lua_State* _State, int _Index, struct GoodBase* _Good);
+int GoodLoadInput(lua_State* _State, struct GoodBase* _Good);
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good);
 void DestroyGoodDep(struct GoodDep* _GoodDep);
 /**

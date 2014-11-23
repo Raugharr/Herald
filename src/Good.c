@@ -321,6 +321,7 @@ struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {
 			RBInsert(_Prereq, _Dep);
 		_Itr = HashNextCons(_GoodList, _Itr);
 	}
+	HashDeleteItrCons(_Itr);
 	return _Prereq;
 }
 

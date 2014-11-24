@@ -2,8 +2,8 @@ Populations = {
 	{
 		Name = "Sheep",
 		Nutrition = 18,
-		MatureAge = {1, 7},
-		DeathAge = 12,
+		MatureAge = {ToYears(1), ToYears(7)},
+		DeathAge = ToYears(12),
 		MaleRatio = 0.2,
 		Eats = {"Hay", "Straw"},
 		Milk = 68, --Fluid ounces.
@@ -13,8 +13,8 @@ Populations = {
 	{
 		Name = "Ox",
 		Nutrition = 90,
-		MatureAge = {1, 15},
-		DeathAge = 20,
+		MatureAge = {ToYears(1), ToYears(15)},
+		DeathAge = ToYears(20),
 		MaleRatio = 0.2,
 		Eats = {"Hay", "Straw"},
 		Milk = 120,
@@ -24,8 +24,8 @@ Populations = {
 	{
 		Name = "Pig",
 		Nutrition = 18,
-		MatureAge = {1, 4},
-		DeathAge = 16,
+		MatureAge = {ToYears(1), ToYears(4)},
+		DeathAge = ToYears(16),
 		MaleRatio = 0.25,
 		Eats = {"Barley", "Oats"},
 		Milk = 10,
@@ -35,8 +35,8 @@ Populations = {
 	{
 		Name = "Chicken",
 		Nutrition = 2,
-		MatureAge = {1, 3},
-		DeathAge = 5,
+		MatureAge = {ToYears(1), ToYears(3)},
+		DeathAge = ToYears(5),
 		MaleRatio = 0.05,
 		Eats = {"Barley", "Oats"},
 		Milk = 0,
@@ -46,8 +46,8 @@ Populations = {
 	{
 		Name = "Goat",
 		Nutrition = 10,
-		MatureAge = {1, 6},
-		DeathAge = 10,
+		MatureAge = {ToYears(1), ToYears(6)},
+		DeathAge = ToYears(10),
 		MaleRatio = 0.2,
 		Eats = {"Barley", "Oats", "Hay", "Straw"},
 		Milk = 12,

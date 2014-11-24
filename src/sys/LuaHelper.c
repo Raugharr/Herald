@@ -44,6 +44,19 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsPerson[] = {
+		{"GetId", LuaPersonGetId},
+		{"GetX", LuaPersonGetX},
+		{"GetY", LuaPersonGetY},
+		{"GetGender", LuaPersonGetGender},
+		{"GetNutrition", LuaPersonGetNutrition},
+		{"GetAge", LuaPersonGetAge},
+		{"GetName", LuaPersonGetName},
+		{"GetFamily", LuaPersonGetFamily},
+		{"GetParentFamily", LuaPersonGetParentFamily},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsGood[] = {
 		{"GetId", LuaGoodGetId},
 		{"GetQuantity", LuaGoodGetQuantity},
@@ -93,13 +106,16 @@ void RegisterLuaFuncs(lua_State* _State) {
 
 	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
 		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
-	RegisterIterator(_State);
-	RegisterGood(_State);
-	RegisterFamily(_State);
-	RegisterField(_State);
-	RegisterAnimal(_State);
-	RegisterArray(_State);
-	RegisterArrayItr(_State);
+	if(
+	RegisterIterator(_State) == 0 ||
+	RegisterPerson(_State) == 0  ||
+	RegisterGood(_State) == 0  ||
+	RegisterFamily(_State) == 0  ||
+	RegisterField(_State) == 0  ||
+	RegisterAnimal(_State) == 0  ||
+	RegisterArray(_State) == 0  ||
+	RegisterArrayItr(_State) == 0 )
+		luaL_error(_State, "Loading Lua functions has failed.");
 }
 
 int RegisterIterator(lua_State* _State) {
@@ -172,6 +188,25 @@ int RegisterArrayItr(lua_State* _State) {
 	lua_getglobal(_State, "Iterator");
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "ArrayIterator");
+	return 1;
+}
+
+int RegisterPerson(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Person") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Person");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsPerson, 0);
+	lua_setglobal(_State, "Person");
 	return 1;
 }
 
@@ -267,6 +302,81 @@ int RegisterArray(lua_State* _State) {
 	lua_rawset(_State, -3);
 	luaL_setfuncs(_State, g_LuaFuncsArray, 0);
 	lua_setglobal(_State, "Array");
+	return 1;
+}
+
+int LuaPersonGetId(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->Id);
+	return 1;
+}
+
+int LuaPersonGetX(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->X);
+	return 1;
+}
+
+int LuaPersonGetY(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->Y);
+	return 1;
+}
+
+int LuaPersonGetGender(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->Gender);
+	return 1;
+}
+
+int LuaPersonGetNutrition(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->Nutrition);
+	return 1;
+}
+
+int LuaPersonGetAge(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushinteger(_State, _Person->Age);
+	return 1;
+}
+
+int LuaPersonGetName(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_pushstring(_State, _Person->Name);
+	return 1;
+}
+
+int LuaPersonGetFamily(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Family");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Person->Family);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaPersonGetParentFamily(lua_State* _State) {
+	struct Person* _Person = LuaCheckPerson(_State, 1);
+
+	lua_newtable(_State);
+	lua_getglobal(_State, "Family");
+	lua_setmetatable(_State, -2);
+
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Person->Parent);
+	lua_rawset(_State, -3);
 	return 1;
 }
 
@@ -558,6 +668,14 @@ int LuaArrayItr(lua_State* _State) {
 	return 1;
 }
 
+struct Person* LuaCheckPerson(lua_State* _State, int _Index) {
+	struct Person* _Person = NULL;
+
+	if((_Person = LuaTestClass(_State, _Index, "Person")) == NULL)
+		return (struct Person*) LuaCheckClass(_State, _Index, "Person");
+	return _Person;
+}
+
 struct Good* LuaCheckGood(lua_State* _State, int _Index) {
 	struct Good* _Good = NULL;
 
@@ -837,8 +955,14 @@ int LuaPushPerson(lua_State* _State, int _Index) {
 
 int LuaPerson(lua_State* _State) {
 	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
-	LuaPushPerson(_State, 1);
 
+	lua_newtable(_State);
+	lua_getglobal(_State, "Person");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, lua_touserdata(_State, 1));
+	lua_rawset(_State, -3);
+	//LuaPushPerson(_State, 1);
 	return 1;
 }
 

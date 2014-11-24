@@ -2,7 +2,7 @@ Goods = {
 	{Name = "Axe", Category = "Tool", Function = "Logging", InputGoods = {}},
 	{Name = "Board", Category = "Material", InputGoods = {}},
 	{Name = "Bread Loaf", Category = "Food", InputGoods = {{"Flour", 12}}},
-	{Name = "Flour", Category = "Ingredient", InputGoods = {{"Wheat", 1}}},
+	{Name = "Flour", Category = "Ingredient", InputGoods = {{"Wheat", 1.4285714}}},
 	{Name = "Iron", Category = "Material", InputGoods = {}},
 	{Name = "Hay", Category = "Food", InputGoods = {}, Nutrition = 5},
 	{Name = "Log", Category = "Material", InputGoods = {}},
@@ -15,5 +15,6 @@ Goods = {
 	{Name = "Wool", Category = "Other", InputGoods = {}},
 	{Name = "Wool Tunic", Category = "Clothing", InputGoods = {{"Wool", 12}}},
 	{Name = "Wool Trousers", Category = "Clothing", InputGoods = {{"Wool", 12}}},
-	{Name = "Dirt", Category = "Material", InputGoods = {}}
+	{Name = "Dirt", Category = "Material", InputGoods = {}},
+	{Name = "Wood", Category = "Material", InputGoods = {}}
 }

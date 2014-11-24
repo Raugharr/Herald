@@ -4,9 +4,9 @@ function ViewPersonMenu.Init(Width, Height, Person)
 	local Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	local Menu = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0}, Screen)
 	Display = nil
-	local String = Person.Name .. " is of the family " .. Person.Family:GetName() .. "."
+	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	
-	Menu:CreateTextBox(String):SetFocus(false)
+	Menu:Paragraph(GUI.GetFont("Elementary_Gothic_Bookhand.ttf", 12), String)
 	Menu:CreateTextBox("Skills")
 	Menu:CreateTextBox("Agriculture"):OnKey("Enter", "Released",
 		function()
@@ -20,7 +20,7 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display:CreateTextBox("Name"):SetFocus(false)
 			Display:CreateTextBox("Yield"):SetFocus(false)
 			Display:CreateTextBox("Acres"):SetFocus(false)
-			for Field in Person.Family:GetFields():Next() do	
+			for Field in Person:GetFamily():GetFields():Next() do	
 				Display:CreateTextBox(Field:GetCrop().Name)
 				Display:CreateTextBox(Field:GetYield())
 				Display:CreateTextBox(Field:GetAcres())
@@ -36,7 +36,7 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display:SetCellHeight(Display:GetFont():FontHeight())
 			Display:CreateTextBox("Name"):SetFocus(false)
 			Display:CreateTextBox("Quantity"):SetFocus(false)
-			for Good in Person.Family:GetGoods():Next() do
+			for Good in Person:GetFamily():GetGoods():Next() do
 				Display:CreateTextBox(Good:GetBase().Name)
 				Display:CreateTextBox(Good:GetQuantity())
 			end
@@ -52,7 +52,7 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display:CreateTextBox("Name"):SetFocus(false)
 			Display:CreateTextBox("Nutrition"):SetFocus(false)
 			Display:CreateTextBox("Age"):SetFocus(false)
-			for An in Person.Family:GetAnimals():Next() do
+			for An in Person:GetFamily():GetAnimals():Next() do
 				Display:CreateTextBox(An:GetBase().Name)
 				Display:CreateTextBox(An:GetNutrition())
 				Display:CreateTextBox(PrintYears(An:GetAge()))

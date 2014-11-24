@@ -221,7 +221,7 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 		} else {
 			for(i = 0; i < _List->Size; ++i) {
 				GoodLoadInput(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req));
-				_Nutrition += GoodNutVal((struct GoodBase*)_Good->InputGoods[i]->Req);
+				_Nutrition += GoodNutVal((struct GoodBase*)_Good);
 			}
 		}
 		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
@@ -356,9 +356,9 @@ int GoodNutVal(struct GoodBase* _Base) {
 				Log(ELOG_WARNING, "Crop %s not found.", ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name);
 				continue;
 			}
-			_Nut += _Crop->NutVal * _Base->InputGoods[i]->Quantity;
+			_Nut += _Crop->NutVal / OUNCE * _Base->InputGoods[i]->Quantity;
 		} else
-			_Nut += GoodNutVal((struct GoodBase*)_Base->InputGoods[i]->Req);
+			_Nut += ((struct FoodBase*)_Base->InputGoods[i]->Req)->Nutrition * _Base->InputGoods[i]->Quantity;
 	}
 	return _Nut;
 }

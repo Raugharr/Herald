@@ -284,7 +284,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 		_Food = (struct Food*)_Tbl[i];
 		if(_Food->Base->Category != EFOOD)
 			continue;
-		while(_Nut < _NutReq && _Food->Quantity > 0) {
+		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts == 0) {
 			if(_Food->Base->Nutrition > _NutReq) {
 				int _Div = _NutReq - _Nut;
 				
@@ -296,10 +296,14 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 					_Food->Parts -= _Div;
 				_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Div + 1);
 			} else {
-				if(_Food->Parts != FOOD_MAXPARTS) {
-					--_Food->Quantity;
+				if(_Food->Parts != FOOD_MAXPARTS)
 					_Food->Parts = FOOD_MAXPARTS;
+				if(_Food->Quantity == 0) {
 					_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Food->Parts);
+					_Food->Parts = 0;
+				} else {
+					_Nut += _Food->Base->Nutrition;
+					--_Food->Quantity;
 				}
 			}
 		}

@@ -1001,7 +1001,6 @@ int LuaContainerParagraph(lua_State* _State) {
 int LuaTextBoxSetText(lua_State* _State) {
 	struct TextBox* _TextBox = LuaCheckTextBox(_State, 1);
 	const char* _Text = luaL_checkstring(_State, 2);
-	//SDL_Surface* _Surface = LuaCheckSurface(_State, 2);
 
 	_TextBox->SetText((struct Widget*)_TextBox, ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus)));
 	return 0;

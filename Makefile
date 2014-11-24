@@ -4,9 +4,9 @@ SRC=src/
 
 DEBUG ?=1
 ifeq ($(DEBUG), 1)
-export CFLAGS := -DDEBUG -ggdb
+	export CFLAGS := -DDEBUG -ggdb
 else
-export CFLAGS := -DNDEBUG
+	export CFLAGS := -DNDEBUG
 endif
 
 all:

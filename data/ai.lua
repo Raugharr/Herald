@@ -1,4 +1,4 @@
-AI.Init = function()
+function AI.Init()
 	local Peasant = AI.CompNode("Sequence", {
 					AI.CompNode("Sequence", {
 							AI.PrimNode("HasField"),

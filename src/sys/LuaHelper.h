@@ -31,11 +31,22 @@ extern lua_State* g_LuaState;
 void RegisterLuaFuncs(lua_State* _State);
 int RegisterIterator(lua_State* _State);
 int RegisterArrayItr(lua_State* _State);
+int RegisterPerson(lua_State* _State);
 int RegisterGood(lua_State* _State);
 int RegisterFamily(lua_State* _State);
 int RegisterField(lua_State* _State);
 int RegisterAnimal(lua_State* _State);
 int RegisterArray(lua_State* _State);
+
+int LuaPersonGetId(lua_State* _State);
+int LuaPersonGetX(lua_State* _State);
+int LuaPersonGetY(lua_State* _State);
+int LuaPersonGetGender(lua_State* _State);
+int LuaPersonGetNutrition(lua_State* _State);
+int LuaPersonGetAge(lua_State* _State);
+int LuaPersonGetName(lua_State* _State);
+int LuaPersonGetFamily(lua_State* _State);
+int LuaPersonGetParentFamily(lua_State* _State);
 
 int LuaGoodGetId(lua_State* _State);
 int LuaGoodGetQuantity(lua_State* _State);
@@ -70,6 +81,7 @@ int LuaArrayItrPrev(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);
 
+struct Person* LuaCheckPerson(lua_State* _State, int _Index);
 struct Good* LuaCheckGood(lua_State* _State, int _Index);
 struct Family* LuaCheckFamily(lua_State* _State, int _Index);
 struct Field* LuaCheckField(lua_State* _State, int _Index);

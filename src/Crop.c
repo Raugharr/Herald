@@ -165,7 +165,7 @@ void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
 	if(_Field->Status != EHARVESTING)
 		return;
 	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);
-	_Seeds->Quantity = TOPOUND(_Field->Acres * _Field->Crop->PerAcre / WORKMULT);
+	_Seeds->Quantity = TO_POUND(_Field->Acres * _Field->Crop->PerAcre / WORKMULT);
 }
 
 int FieldUpdate(struct Field* _Field) {

@@ -405,6 +405,7 @@ int World_Tick() {
 	while(_Person != NULL) {
 		HashClear(g_AIHash);
 		BHVRun(_Person->Behavior, _Person, g_AIHash);
+		PAIEat(_Person, g_AIHash);
 		_Person = _Person->Next;
 	}
 	NextDay(&g_Date);

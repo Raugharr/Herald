@@ -72,7 +72,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 		if(_Field->Status == EFALLOW) {
 			_Array = _Family->Goods;
 			for(j = 0; i < _Array->Size; ++j) {
-				if(strcmp(((struct GoodBase*)_Array->Table[j])->Name, _Field->Crop->Name) == 0) {
+				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
 					FieldPlant(_Field, _Array->Table[j]);
 					break;
 				}
@@ -278,28 +278,27 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 	struct Food* _Food;
 	int _Nut = 0;
 	int _NutReq = NUTRITION_LOSS;
+	int _Div = 0;
 	int i;
 	
 	for(i = 0; i < _Size; ++i) {
 		_Food = (struct Food*)_Tbl[i];
 		if(_Food->Base->Category != EFOOD)
 			continue;
-		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts == 0) {
+		_Div = _Food->Base->Nutrition / FOOD_MAXPARTS;
+		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts != 0) {
 			if(_Food->Base->Nutrition > _NutReq) {
-				int _Div = _NutReq - _Nut;
-				
-				if(_Div > _Food->Parts) {
-					_Div = _Food->Parts;
-					--_Food->Quantity;
-					_Food->Parts = FOOD_MAXPARTS;
-				} else
-					_Food->Parts -= _Div;
-				_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Div + 1);
+				--_Food->Parts;
+				if(_Food->Parts <= 0) {
+					if(_Food->Quantity > 0) {
+						--_Food->Quantity;
+						_Food->Parts = FOOD_MAXPARTS;
+					}
+				}
+				_Nut += _Div;
 			} else {
-				if(_Food->Parts != FOOD_MAXPARTS)
-					_Food->Parts = FOOD_MAXPARTS;
 				if(_Food->Quantity == 0) {
-					_Nut += _Food->Base->Nutrition / (FOOD_MAXPARTS - _Food->Parts);
+					_Nut += _Food->Base->Nutrition  * (_Food->Parts / FOOD_MAXPARTS);
 					_Food->Parts = 0;
 				} else {
 					_Nut += _Food->Base->Nutrition;

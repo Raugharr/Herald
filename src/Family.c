@@ -204,12 +204,9 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "AI");
 			if(lua_type(_State, -1) != LUA_TFUNCTION)
 				luaL_error(_State, "Lua function expected, got %s", lua_typename(_State, lua_type(_State, -1)));
-			//lua_pop(_State, 1);
 			for(j = 0; j < _Family->NumChildren + 2; ++j) {
 				if(_Family->People[j] == NULL)
 					continue;
-				//lua_getfield(_State, -1, "AI");
-				//lua_getglobal(_State, "Person");
 				lua_pushvalue(_State, -1);
 				lua_pushlightuserdata(_State, _Family->People[j]);
 				LuaPushPerson(_State, -1);

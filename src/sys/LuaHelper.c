@@ -964,60 +964,22 @@ int LuaPopulation(lua_State* _State) {
 }
 
 int LuaPushPerson(lua_State* _State, int _Index) {
-	struct Person* _Person = NULL;
+	int _Pos = LuaAbsPos(_State, _Index);
 
-	_Person = lua_touserdata(_State, _Index);
-	lua_createtable(_State, 0, 10);
-
-	lua_pushstring(_State, "X");
-	lua_pushinteger(_State, _Person->X);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Y");
-	lua_pushinteger(_State, _Person->Y);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Male");
-	lua_pushboolean(_State, (_Person->Gender == EMALE) ? (1) : (0));
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Nutrition");
-	lua_pushinteger(_State, _Person->Nutrition);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Age");
-	lua_pushinteger(_State, _Person->Age);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Name");
-	lua_pushstring(_State, _Person->Name);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Family");
-	lua_newtable(_State);
-	lua_getglobal(_State, "Family");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Person->Family);
-	lua_rawset(_State, -3);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Parent");
-	lua_pushstring(_State, (_Person->Parent != NULL) ? (_Person->Parent->Name) : ("NULL"));
-	lua_rawset(_State, -3);
-	return 1;
-}
-
-int LuaPerson(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TLIGHTUSERDATA);
+	if(lua_type(_State, _Pos) != LUA_TLIGHTUSERDATA)
+		luaL_error(_State, LUA_TYPERROR(_State, 1, "Person", "LuaPushPerson"));
 
 	lua_newtable(_State);
 	lua_getglobal(_State, "Person");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, lua_touserdata(_State, 1));
+	lua_pushlightuserdata(_State, lua_touserdata(_State, _Pos));
 	lua_rawset(_State, -3);
-	//LuaPushPerson(_State, 1);
+	return 1;
+}
+
+int LuaPerson(lua_State* _State) {
+	LuaPushPerson(_State, 1);
 	return 1;
 }
 

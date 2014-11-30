@@ -68,12 +68,18 @@ int LuaFieldGetId(lua_State* _State);
 int LuaFieldGetCrop(lua_State* _State);
 int LuaFieldGetYield(lua_State* _State);
 int LuaFieldGetAcres(lua_State* _State);
+int LuaFieldGetStatus(lua_State* _State);
+int LuaFieldGetStatusTime(lua_State* _State);
 
 int LuaAnimalGetId(lua_State* _State);
 int LuaAnimalIsMale(lua_State* _State);
 int LuaAnimalGetNutrition(lua_State* _State);
 int LuaAnimalGetAge(lua_State* _State);
 int LuaAnimalGetBase(lua_State* _State);
+
+int LuaBuildingGetId(lua_State* _State);
+int LuaBuildingGetWidth(lua_State* _State);
+int LuaBuildingGetLength(lua_State* _State);
 
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
@@ -86,6 +92,7 @@ struct Good* LuaCheckGood(lua_State* _State, int _Index);
 struct Family* LuaCheckFamily(lua_State* _State, int _Index);
 struct Field* LuaCheckField(lua_State* _State, int _Index);
 struct Animal* LuaCheckAnimal(lua_State* _State, int _Index);
+struct Building* LuaCheckBuilding(lua_State* _State, int _Index);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.

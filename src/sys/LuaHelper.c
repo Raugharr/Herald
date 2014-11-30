@@ -84,6 +84,8 @@ static const luaL_Reg g_LuaFuncsField[] = {
 		{"GetCrop", LuaFieldGetCrop},
 		{"GetYield", LuaFieldGetYield},
 		{"GetAcres", LuaFieldGetAcres},
+		{"GetStatus", LuaFieldGetStatus},
+		{"GetStatusTime", LuaFieldGetStatusTime},
 		{NULL, NULL}
 };
 
@@ -96,6 +98,12 @@ static const luaL_Reg g_LuaFuncsAnimal[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsBuilding[] = {
+		{"GetId", LuaBuildingGetId},
+		{"GetWidth", LuaBuildingGetWidth},
+		{"GetLength", LuaBuildingGetLength},
+		{NULL, NULL}
+};
 static const luaL_Reg g_LuaFuncsArray[] = {
 		{"Create", LuaArrayCreate},
 		{NULL, NULL}
@@ -457,11 +465,15 @@ int LuaFamilyGetBuildings(lua_State* _State) {
 	struct Family* _Family = LuaCheckFamily(_State, 1);
 
 	lua_newtable(_State);
-	lua_getglobal(_State, "Array");
+	lua_getglobal(_State, "ArrayIterator");
 	lua_setmetatable(_State, -2);
 
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Family->Buildings);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "Building");
 	lua_rawset(_State, -3);
 	return 1;
 }
@@ -544,7 +556,7 @@ int LuaFieldGetCrop(lua_State* _State) {
 int LuaFieldGetYield(lua_State* _State) {
 	struct Field* _Field = LuaCheckField(_State, 1);
 
-	lua_pushnumber(_State, _Field->YieldTotal);
+	lua_pushinteger(_State, _Field->YieldTotal);
 	return 1;
 }
 
@@ -552,6 +564,20 @@ int LuaFieldGetAcres(lua_State* _State) {
 	struct Field* _Field = LuaCheckField(_State, 1);
 
 	lua_pushinteger(_State, _Field->Acres);
+	return 1;
+}
+
+int LuaFieldGetStatus(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	lua_pushinteger(_State, _Field->Status);
+	return 1;
+}
+
+int LuaFieldGetStatusTime(lua_State* _State) {
+	struct Field* _Field = LuaCheckField(_State, 1);
+
+	lua_pushinteger(_State, _Field->StatusTime);
 	return 1;
 }
 
@@ -593,6 +619,27 @@ int LuaAnimalGetBase(lua_State* _State) {
 	lua_pushstring(_State, _Animal->PopType->Name);
 	lua_remove(_State, -2);
 	LuaPopulation(_State);
+	return 1;
+}
+
+int LuaBuildingGetId(lua_State* _State) {
+	struct Building* _Building = LuaCheckBuilding(_State, 1);
+
+	lua_pushinteger(_State, _Building->Id);
+	return 1;
+}
+
+int LuaBuildingGetWidth(lua_State* _State) {
+	struct Building* _Building = LuaCheckBuilding(_State, 1);
+
+	lua_pushinteger(_State, _Building->Id);
+	return 1;
+}
+
+int LuaBuildingGetLength(lua_State* _State) {
+	struct Building* _Building = LuaCheckBuilding(_State, 1);
+
+	lua_pushinteger(_State, _Building->Id);
 	return 1;
 }
 
@@ -706,6 +753,14 @@ struct Animal* LuaCheckAnimal(lua_State* _State, int _Index) {
 	if((_Animal = LuaTestClass(_State, _Index, "Animal")) == NULL)
 		return (struct Animal*) LuaCheckClass(_State, _Index, "Animal");
 	return _Animal;
+}
+
+struct Building* LuaCheckBuilding(lua_State* _State, int _Index) {
+	struct Building* _Building = NULL;
+
+	if((_Building = LuaTestClass(_State, _Index, "Building")) == NULL)
+		return (struct Building*) LuaCheckClass(_State, _Index, "Building");
+	return _Building;
 }
 
 int LuaConstraint(lua_State* _State) {

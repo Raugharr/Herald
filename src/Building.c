@@ -6,6 +6,9 @@
 #include "Building.h"
 
 #include "Herald.h"
+#include "Good.h"
+#include "Person.h"
+#include "Family.h"
 #include "sys/Random.h"
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
@@ -62,6 +65,8 @@ struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const str
 
 	_Building->Id = NextId();
 	_Building->ResidentType = _ResType;
+	_Building->Width = _Width;
+	_Building->Length = _Length;
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
@@ -147,6 +152,44 @@ struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {
 	_Mat->BuildCost = _Cost;
 	_Mat->MatCost = _GPF;
 	return _Mat;
+}
+
+struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType) {
+	struct BuildMat* _HighMat = NULL;
+	struct HashItrCons* _Itr = HashCreateItrCons(&g_BuildMats);
+	double _Ratio = 0;
+	double _HighRatio = 0;
+	int i;
+
+	while(_Itr != NULL) {
+		for(i = 0; i < _Goods->Size; ++i) {
+			if(((struct BuildMat*)_Itr->Node->Pair)->Type != _MatType)
+				continue;
+			if(((struct Good*)_Goods->Table[i])->Base->Id == ((struct BuildMat*)_Itr->Node->Pair)->Good->Id) {
+				_Ratio = ((struct Good*)_Goods->Table[i])->Quantity / ((struct BuildMat*)_Itr->Node->Pair)->MatCost;
+				if(_Ratio > _HighRatio) {
+					_HighRatio = _Ratio;
+					_HighMat = ((struct BuildMat*)_Itr->Node->Pair);
+				}
+			}
+		}
+		_Itr = HashNextCons(&g_BuildMats, _Itr);
+	}
+	HashDeleteItrCons(_Itr);
+	return _HighMat;
+}
+
+struct Building* BuildingPlan(const struct Person* _Person, int _Type) {
+	struct Array* _Goods = _Person->Family->Goods;
+	struct Building* _Building = NULL;
+	int _Width = 10;
+	int _Length = 10;
+	int _ResType = 0;
+
+	if(_Type == EBT_HOME)
+		_ResType = (ERES_HUMAN | ERES_ANIMAL);
+	_Building = CreateBuilding(_ResType, _Width, _Length, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF));
+	return _Building;
 }
 
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {

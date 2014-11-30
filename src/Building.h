@@ -22,6 +22,11 @@ enum {
 	BMAT_ROOF = 3
 };
 
+enum {
+	EBT_HOME,
+	EBT_GRANARY
+};
+
 struct Building {
 	int Id;
 	int ResidentType;
@@ -62,7 +67,8 @@ struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const str
 struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
 
-struct Building* BuildingPlan(const struct Array* _Goods);
+struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
+struct Building* BuildingPlan(const struct Person* _Person, int _Type);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 
 #endif

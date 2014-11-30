@@ -14,6 +14,7 @@
 #include "Good.h"
 #include "Population.h"
 #include "sys/Array.h"
+#include "sys/Event.h"
 #include "sys/Constraint.h"
 #include "sys/HashTable.h"
 #include "sys/KDTree.h"
@@ -400,14 +401,32 @@ void WorldQuit() {
 
 int World_Tick() {
 	struct Person* _Person = g_PersonList;
+	struct Event* _Event = NULL;
+	int _Ticks = 30;
+	int i;
 
-	ATImerUpdate(&g_ATimer);
-	while(_Person != NULL) {
-		HashClear(g_AIHash);
-		BHVRun(_Person->Behavior, _Person, g_AIHash);
-		PAIEat(_Person, g_AIHash);
-		_Person = _Person->Next;
-	}
-	NextDay(&g_Date);
+	do{
+		ATImerUpdate(&g_ATimer);
+		while(_Person != NULL) {
+			HashClear(g_AIHash);
+			BHVRun(_Person->Behavior, _Person, g_AIHash);
+			PAIEat(_Person, g_AIHash);
+			_Person = _Person->Next;
+		}
+		while((_Event = HandleEvents()) != NULL) {
+			if(_Event->Type == EVENT_FARMING) {
+				struct Array* _Field = g_Player->Family->Fields;
+				for(i = 0; i < _Field->Size; ++i)
+					if(((struct Field*)_Field->Table[i]) == ((struct EventFarming*)_Event)->Field) {
+						_Ticks = 0;
+						goto escape_events;
+					}
+			}
+		}
+		escape_events:
+		NextDay(&g_Date);
+		_Person = g_PersonList;
+		--_Ticks;
+	} while(_Ticks > 0);
 	return 1;
 }

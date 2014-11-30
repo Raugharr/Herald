@@ -11,20 +11,22 @@
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
 #include "sys/Log.h"
+#include "sys/Event.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-#define NextStatus(__Crop)											\
-{																	\
-	if(__Crop->Status == EHARVESTING) {								\
-		__Crop->Status = EFALLOW;									\
-	} else {														\
-		++__Crop->Status;											\
-		__Crop->StatusTime = _Field->Acres * WORKMULT;				\
-	}																\
+#define NextStatus(_Crop)															\
+{																					\
+	if(_Crop->Status == EHARVESTING) {												\
+		_Crop->Status = EFALLOW;													\
+	} else {																		\
+		EventPush(CreateEventFarming(_Crop->X, _Crop->Y, _Crop->Status, _Crop));	\
+		++_Crop->Status;															\
+		_Crop->StatusTime = _Field->Acres * WORKMULT;								\
+	}																				\
 }
 
 struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
@@ -119,6 +121,7 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) 
 	_Field->YieldTotal = 0;
 	_Field->Acres = _Acres;
 	_Field->Status = EFALLOW;
+	_Field->StatusTime = 0;
 	return _Field;
 }
 
@@ -149,7 +152,7 @@ void FieldWork(struct Field* _Field, int _Total) {
 
 	switch(_Field->Status) {
 		case EGROWING:
-			_Field->YieldTotal += _Val / _Field->Crop->GrowDays;
+			_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowDays;
 			break;
 		case EFALLOW:
 			return;

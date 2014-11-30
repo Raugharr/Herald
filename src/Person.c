@@ -62,18 +62,6 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	struct Person* _Person = NULL;
 	struct LuaBehavior* _Bhv = NULL;
 
-	lua_getglobal(g_LuaState, "AI");
-	lua_getfield(g_LuaState, -1, "SetAI");
-	LuaCallFunc(g_LuaState, 0, 1, 0);
-	if(lua_isstring(g_LuaState, -1) == 0) {
-		Log(ELOG_WARNING, "AI.SetAI did not return a string.");
-		return NULL;
-	}
-	if((_Bhv = BinarySearch(lua_tostring(g_LuaState, -1), g_BhvList.Table, g_BhvList.TblSize, luaStrLuaBhvCmp)) == NULL) {
-		Log(ELOG_WARNING, "AI.SetAI did not return a valid Behavior.");
-		return NULL;
-	}
-
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 	_Person->Name = _Name;
 	CreateObject((struct Object*)_Person, _X, _Y);
@@ -91,9 +79,8 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 		g_PersonList->Prev = _Person;
 	}
 	_Person->Prev = NULL;
-	_Person->Behavior = _Bhv->Behavior;
+	_Person->Behavior = NULL;
 	g_PersonList = _Person;
-	lua_pop(g_LuaState, 2);
 	return _Person;
 }
 

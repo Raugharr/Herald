@@ -83,9 +83,10 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			_Key = lua_tostring(_State, -2);
 		else
 			continue;
-		if(!strcmp("PoundsPerAcre", _Key))
+		if(!strcmp("PoundsPerAcre", _Key)) {
 			_Return = AddInteger(_State, -1, &_PerAcre);
-		else if(!strcmp("Type", _Key)) {
+			_PerAcre *= OUNCE;
+		} else if(!strcmp("Type", _Key)) {
 			if(lua_isstring(_State, -1)) {
 				_Return = AddString(_State, -1, &_TypeStr);
 				if(!strcmp("Grass", _TypeStr))
@@ -120,6 +121,7 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) 
 	_Field->Crop = _Crop;
 	_Field->YieldTotal = 0;
 	_Field->Acres = _Acres;
+	_Field->UnusedAcres = 0;
 	_Field->Status = EFALLOW;
 	_Field->StatusTime = 0;
 	return _Field;
@@ -136,11 +138,24 @@ void FieldReset(struct Field* _Crop) {
 }
 
 int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
+	if(_Field->Crop == NULL) {
+		FieldReset(_Field);
+		return 0;
+	}
 	if(_Field->Status != EFALLOW)
 		return 0;
 
-	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Base->Name, _Field->Crop->Name) != 0)
-		return 0;
+	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Base->Name, _Field->Crop->Name) != 0) {
+		int _Quantity = _Seeds->Quantity;
+		int _Acres = 0;
+
+		while(_Quantity > _Field->Crop->PerAcre) {
+			_Quantity -= _Field->Crop->PerAcre;
+			++_Acres;
+		}
+		_Field->UnusedAcres += _Field->Acres - _Acres;
+		_Field->Acres = _Acres;
+	}
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
 	_Field->Status = EPLOWING;
 	_Field->StatusTime = _Field->Acres * WORKMULT;

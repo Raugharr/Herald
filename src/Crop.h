@@ -25,7 +25,7 @@ struct Crop {
 	int Id;
 	char* Name;
 	int Type;
-	int PerAcre;//How many pounds of seeds it takes to fill an acre.
+	int PerAcre;//How many ounces of seeds it takes to fill an acre.
 	int NutVal; //Nutritional Value per pound.
 	int GrowDays;
 	double YieldMult; //How many pounds of seed to expect from one pound.
@@ -38,6 +38,7 @@ struct Field {
 	const struct Crop* Crop;
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
 	int Acres;
+	int UnusedAcres;
 	int Status;
 	int StatusTime; //How much more time it will take to reach the next status.
 };

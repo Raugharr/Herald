@@ -370,7 +370,6 @@ void AIInit(lua_State* _State) {
 	struct LuaBehavior* _Bhv = NULL;
 
 	g_BhvActionsSz = LuaActionLen(g_BhvActions);
-	//qsort(g_BhvActions, g_BhvActionsSz, sizeof(struct LuaBhvAction), LuaBaCmp);
 	luaL_newlibtable(_State, g_LuaAIFuncs);
 	luaL_setfuncs(_State, g_LuaAIFuncs, 0);
 	lua_setglobal(_State, "AI");

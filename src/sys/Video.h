@@ -217,5 +217,6 @@ int KeyEventCmp(const void* _One, const void* _Two);
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
 int FirstFocusable(const struct Container* _Parent);
+int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
 //SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

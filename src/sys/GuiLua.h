@@ -47,7 +47,9 @@ struct Font* LuaCheckFont(lua_State* _State, int _Index);
  */
 
 int LuaWidgetId(lua_State* _State);
+int LuaWidgetSetX(lua_State* _State);
 int LuaWidgetGetX(lua_State* _State);
+int LuaWidgetSetY(lua_State* _State);
 int LuaWidgetGetY(lua_State* _State);
 int LuaWidgetGetWidth(lua_State* _State);
 int LuaWidgetGetHeight(lua_State* _State);
@@ -67,6 +69,7 @@ int LuaContainerGetChildren(lua_State* _State);
 int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
 int LuaContainerParagraph(lua_State* _State);
+int LuaContainerHorizontalCenter(lua_State* _State);
 
 /**
  * TextBox functions

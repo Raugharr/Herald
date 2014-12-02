@@ -609,6 +609,10 @@ int FirstFocusable(const struct Container* _Parent) {
 	return -1;
 }
 
+int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
+	return ((_Parent->Rect.x + _Parent ->Rect.w) / 2) - ((_Widget->Rect.x + _Widget ->Rect.w) / 2);
+}
+
 /*SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2) {
 	int _DeltaX = _X2 - _X1;
 	int _DeltaY = _Y2 - _Y1;

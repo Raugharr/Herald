@@ -8,6 +8,7 @@
 #include "Video.h"
 #include "LuaHelper.h"
 #include "Array.h"
+#include "Log.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
@@ -46,8 +47,10 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 
 static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"Id", LuaWidgetId},
-		{"X", LuaWidgetGetX},
-		{"Y", LuaWidgetGetY},
+		{"SetX", LuaWidgetSetX},
+		{"GetX", LuaWidgetGetX},
+		{"SetY", LuaWidgetSetY},
+		{"GetY", LuaWidgetGetY},
 		{"Width", LuaWidgetGetWidth},
 		{"Height", LuaWidgetGetHeight},
 		{"Parent", LuaWidgetGetParent},
@@ -67,6 +70,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"CreateTable", LuaCreateTable},
 		{"Children", LuaContainerGetChildren},
 		{"Paragraph", LuaContainerParagraph},
+		{"GetHorizontalCenter", LuaContainerHorizontalCenter},
 		{NULL, NULL}
 };
 
@@ -330,7 +334,13 @@ struct Container* LuaContainer(lua_State* _State) {
 	lua_newtable(_State);
 	_Container = CreateContainer();
 	if(lua_gettop(_State) > 7) {
-		ConstructContainer(_Container, LuaCheckClass(_State, 7, "Container"), &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
+		struct Container* _Parent = LuaCheckClass(_State, 7, "Container");
+		if(_Parent == NULL) {
+			lua_pushstring(_State, "Container passed invalid parent.");
+			LogLua(_State);
+			return 0;
+		}
+		ConstructContainer(_Container, _Parent, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	} else
 		ConstructContainer(_Container, NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	lua_getglobal(_State, "Container");
@@ -797,11 +807,25 @@ int LuaWidgetId(lua_State* _State) {
 	return 1;
 }
 
+int LuaWidgetSetX(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
+
+	_Widget->Rect.x = luaL_checkinteger(_State, 2);
+	return 0;
+}
+
 int LuaWidgetGetX(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 
 	lua_pushinteger(_State, _Widget->Rect.y);
 	return 1;
+}
+
+int LuaWidgetSetY(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckWidget(_State, 1);
+
+	_Widget->Rect.y = luaL_checkinteger(_State, 2);
+	return 0;
 }
 
 int LuaWidgetGetY(lua_State* _State) {
@@ -929,6 +953,11 @@ int LuaContainerGetMargins(lua_State* _State) {
 	lua_rawseti(_State, -1, _Container->Margins.Left);
 	lua_rawseti(_State, -1, _Container->Margins.Right);
 	lua_rawseti(_State, -1, _Container->Margins.Bottom);
+	return 1;
+}
+
+int LuaContainerHorizontalCenter(lua_State* _State) {
+	lua_pushinteger(_State, GetHorizontalCenter(LuaCheckContainer(_State, 1), LuaCheckWidget(_State, 2)));
 	return 1;
 }
 

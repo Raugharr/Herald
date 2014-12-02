@@ -22,7 +22,7 @@ void DestroyQueue(struct Queue* _Queue) {
 	free(_Queue);
 }
 
-void Queue_Push(struct Queue* _Queue, void* _Data) {
+void QueuePush(struct Queue* _Queue, void* _Data) {
 	int _Pos = _Queue->Start + _Queue->Size;
 	
 	if(_Pos > _Queue->TblSize)
@@ -31,7 +31,7 @@ void Queue_Push(struct Queue* _Queue, void* _Data) {
 	++_Queue->Size;
 }
 
-void* Queue_Pop(struct Queue* _Queue) {
+void* QueuePop(struct Queue* _Queue) {
 	void* _Ret = NULL;
 
 	if(_Queue->Size == 0)

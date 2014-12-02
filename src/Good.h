@@ -8,7 +8,8 @@
 
 #include "sys/LinkedList.h"
 
-#define TOPOUND(__Quantity) (__Quantity * 16);
+#define OUNCE (16)
+#define TO_POUND(_Quantity) (_Quantity * OUNCE);
 #define FOOD_MAXPARTS (10)
 
 typedef struct lua_State lua_State;

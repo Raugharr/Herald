@@ -293,6 +293,20 @@ int LuaWorldTick(lua_State* _State) {
 	return 0;
 }
 
+void GenerateTiles(int _Size) {
+	int i;
+	int j;
+	FILE* _File = NULL;
+	struct Tile _TileBuffer[MILE_FEET];
+
+	for(i = 0; i < MILE_FEET; ++i)
+		_TileBuffer[i].Terrain = TERRAIN_GRASS;
+	_File = fopen("map", "wb+");
+	for(i = 0; i < _Size; ++i);
+		fwrite(_TileBuffer, sizeof(struct Tile), MILE_FEET, _File);
+	fclose(_File);
+}
+
 void WorldInit(int _Area) {
 	int i;
 	struct Array* _Array = NULL;
@@ -307,13 +321,14 @@ void WorldInit(int _Area) {
 	++g_Log.Indents;
 	g_AIHash = CreateHash(32);
 	g_World = CreateArray(_Area * _Area);
+	GenerateTiles(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
 	LuaRegisterPersonItr(g_LuaState);
 	chdir(DATAFLD);
 	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
-	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 10000);
+	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 1000000);
 	Family_Init(_Array);
 	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
 	g_Goods.TblSize = (_GoodList->Size * 5) / 4;

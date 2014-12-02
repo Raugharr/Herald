@@ -22,6 +22,10 @@ extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
 extern struct Person* g_Player;
 
+enum {
+	TERRAIN_GRASS
+};
+
 struct FamilyType {
 	double Percent;
 	char* LuaFunc;
@@ -30,6 +34,10 @@ struct FamilyType {
 //Each tile represents a mile of the world.
 struct WorldTile {
 	int Temperature;
+};
+
+struct Tile {
+	int Terrain;
 };
 
 struct Person* PickPlayer();

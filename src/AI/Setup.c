@@ -71,25 +71,39 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 			return 0;
 		if(_Field->Status == EFALLOW) {
 			_Array = _Family->Goods;
-			for(j = 0; i < _Array->Size; ++j) {
+			for(j = 0; j < _Array->Size; ++j) {
 				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
 					FieldPlant(_Field, _Array->Table[j]);
 					break;
 				}
 			}
-		} else if(_Field->Status == EHARVESTING) {
-			struct GoodBase* _CropSeed = NULL;
-			struct Good* _Good = NULL;
-
-			if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
-				return 0;
-			_Good->Base = CopyGoodBase(_CropSeed);
-			if(_Good == NULL) {
-				ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
-			}
-			FieldHarvest(_Field, _Good);
 		} else {
-			FieldWork(_Field, PersonWorkMult(_Person));
+			int _Type = 0;
+			struct Good* _Tool = NULL;
+
+			if(_Field->Status == EPLOWING)
+				_Type = ETOOL_PLOW;
+			else if(_Field->Status == EHARVESTING)
+				_Type = ETOOL_REAP;
+			_Array = _Family->Goods;
+			for(j = 0; j < _Array->Size; ++j)
+				if(((struct Good*)_Array->Table[j])->Base->Category == ETOOL && (((struct ToolBase*)((struct Good*)_Array->Table[j])->Base)->Function & _Type) == _Type) {
+					_Tool = _Array->Table[j];
+					break;
+				}
+			FieldWork(_Field, PersonWorkMult(_Person), _Tool);
+			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0) {
+				struct GoodBase* _CropSeed = NULL;
+				struct Good* _Good = NULL;
+
+				if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
+					return 0;
+				_Good->Base = CopyGoodBase(_CropSeed);
+				if(_Good == NULL) {
+					ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
+				}
+				FieldHarvest(_Field, _Good);
+			}
 		}
 	}
 	return 1;

@@ -157,26 +157,37 @@ int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
 		_Field->Acres = _Acres;
 	}
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
+	EventPush(CreateEventFarming(_Field->X, _Field->Y, _Field->Status, _Field));
 	_Field->Status = EPLOWING;
 	_Field->StatusTime = _Field->Acres * WORKMULT;
 	return 1;
 }
 
-void FieldWork(struct Field* _Field, int _Total) {
+void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool) {
 	int _Val = _Total;
 
+	if(_Tool == NULL)
+		return;
 	switch(_Field->Status) {
-		case EGROWING:
-			_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowDays;
-			break;
 		case EFALLOW:
 			return;
+		case EPLOWING:
+			if((((struct ToolBase*)_Tool->Base)->Function & ETOOL_PLOW) != ETOOL_PLOW)
+				return;
+			break;
+		case EGROWING:
+			_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowDays;
+			return;
+		case EHARVESTING:
+			if((((struct ToolBase*)_Tool->Base)->Function & ETOOL_PLOW) != ETOOL_REAP)
+				return;
+			break;
 		default:
-			_Field->StatusTime -= _Total;
-			if(_Field->StatusTime <= 0)
-				NextStatus(_Field);
 			break;
 	}
+	_Field->StatusTime -= _Total;
+	if(_Field->StatusTime <= 0)
+		NextStatus(_Field);
 }
 
 void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
@@ -184,6 +195,7 @@ void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
 		return;
 	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);
 	_Seeds->Quantity = TO_POUND(_Field->Acres * _Field->Crop->PerAcre / WORKMULT);
+	FieldReset(_Field);
 }
 
 int FieldUpdate(struct Field* _Field) {

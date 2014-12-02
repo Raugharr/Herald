@@ -53,7 +53,7 @@ void DestroyField(struct Field* _Field);
 //Sets all the Fields data about a specific field to default values.
 void FieldReset(struct Field* _Field);
 int FieldPlant(struct Field* _Field, struct Good* _Seeds);
-void FieldWork(struct Field* _Field, int _Total);
+void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool);
 void FieldHarvest(struct Field* _Field, struct Good* _Seeds);
 int FieldUpdate(struct Field* _Field);
 

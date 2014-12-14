@@ -32,6 +32,7 @@ struct Animal {
 	int Id;
 	int X;
 	int Y;
+	int(*Think)(struct Object*);
 	int Gender;
 	int Nutrition;
 	DATE Age;

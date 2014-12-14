@@ -10,6 +10,7 @@ typedef struct lua_State lua_State;
 struct GoodBase;
 struct HashTable;
 struct Array;
+struct Object;
 
 enum {
 	ERES_HUMAN = (1 << 0),
@@ -29,6 +30,9 @@ enum {
 
 struct Building {
 	int Id;
+	int X;
+	int Y;
+	int(*Think)(struct Object*);
 	int ResidentType;
 	int Width;
 	int Length;

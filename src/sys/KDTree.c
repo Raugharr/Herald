@@ -187,8 +187,9 @@ struct KDNode* KDBalance_Aux(struct KDNode** _Array, int _Axis, int _Size) {
 }
 
 void KDBalance(struct KDTree* _Tree) {
-	struct KDNode** _Array = KDToArray(_Tree->Root, KDX, _Tree->Size);
+	struct KDNode* _Array[_Tree->Size];
 
+	KDToArray(_Array, _Tree->Root, KDX, _Tree->Size);
 	_Tree->Root = KDBalance_Aux(_Array, KDX, _Tree->Size);
 	_Tree->Root->Parent = NULL;
 	free(_Array);
@@ -207,9 +208,8 @@ const struct KDNode** KDToArray_Aux(const struct KDNode* _Node, int _Axis, int* 
 	return _Array;
 }
 
-struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int _Size) {
+struct KDNode** KDToArray(struct KDNode** _List, const struct KDNode* _Node, int _Axis, int _Size) {
 	int _Count = 0;
-	struct KDNode** _List = (struct KDNode**) calloc(_Size, sizeof(struct KDNode*));
 
 	KDToArray_Aux(_Node, _Axis, &_Count, _Size, (const struct KDNode**)_List);
 	return _List;
@@ -246,4 +246,22 @@ int KDHeightNode(struct KDNode* _Node) {
 	_Left = KDHeightNode(_Node->Left);
 	_Right = KDHeightNode(_Node->Right);
 	return ((_Left > _Right) ? (_Left) : (_Right)) + 1;
+}
+
+struct KDNode* KDNextNode(struct KDNode* _Node) {
+	if(_Node->Left != NULL)
+		return _Node->Left;
+	else
+		right:
+		if(_Node->Right != NULL)
+			return _Node->Right;
+	else
+		while(_Node->Parent != NULL) {
+			if(_Node == _Node->Parent->Left) {
+				_Node = _Node->Parent;
+				goto right;
+			}
+			_Node = _Node->Parent;
+		}
+	return NULL;
 }

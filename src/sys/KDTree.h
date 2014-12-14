@@ -36,8 +36,10 @@ struct KDNode* KDSearchNode(const struct KDTree* _Tree, int _Data[2]);
 void* KDSearch(const struct KDTree* _Tree, int _Data[2]);
 
 void KDBalance(struct KDTree* _Tree);
-struct KDNode** KDToArray(const struct KDNode* _Node, int _Axis, int _Size);
+struct KDNode** KDToArray(struct KDNode** _List, const struct KDNode* _Node, int _Axis, int _Size);
 
 struct LinkedList* KDRange_Aux(struct KDNode* _Node, int _Axis, int _Pos[2], int _Area[2], struct LinkedList* _List);
 int KDHeightNode(struct KDNode* _Node);
+
+struct KDNode* KDNextNode(struct KDNode* _Node);
 #endif

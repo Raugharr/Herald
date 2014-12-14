@@ -11,9 +11,18 @@
 #define OUNCE (16)
 #define TO_POUND(_Quantity) (_Quantity * OUNCE);
 #define FOOD_MAXPARTS (10)
+#define CheckGoodTbl(_GoodTbl, _GoodName, _Good, _X, _Y)																						\
+{																																				\
+	struct GoodBase* _GoodBase = HashSearch(&g_Goods, (_GoodName));																				\
+	if(((_Good) = LinearSearch(_GoodBase, (_GoodTbl)->Table, (_GoodTbl)->Size, (int(*)(const void*, const void*))GoodBaseGoodCmp)) == NULL) {	\
+		(_Good) = CreateGood(_GoodBase, (_X), (_Y));																							\
+		ArrayInsertSort((_GoodTbl), _Good, GoodCmp);																							\
+	}																																			\
+}
 
 typedef struct lua_State lua_State;
 struct HashTable;
+struct Object;
 
 enum {
 	EFOOD = (1 << 0),
@@ -45,6 +54,7 @@ struct Good {
 	int Id;
 	int X;
 	int Y;
+	int(*Think)(struct Object*);
 	const struct GoodBase* Base;
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
@@ -71,6 +81,7 @@ struct Food {
 	int Id;
 	int X;
 	int Y;
+	int(*Think)(struct Object*);
 	const struct FoodBase* Base;
 	int Quantity;
 	int Parts;
@@ -101,6 +112,7 @@ int GoodCmp(const void* _One, const void* _Two);
 void DestroyGood(struct Good* _Good);
 
 int GoodGBaseCmp(const struct Good* _One, const struct GoodBase* _Two);
+int GoodBaseGoodCmp(const struct GoodBase* _One, const struct Good* _Two);
 
 struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function);
 void DestroyToolBase(struct ToolBase* _Tool);
@@ -111,6 +123,7 @@ void DestroyFoodBase(struct FoodBase* _Food);
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y);
 void DestroyFood(struct Food* _Food);
 
+int GoodThink(struct Good* _Good);
 /**
  * @Brief Reads a table from _Index from _State that contains data about a Good.
  * @Return NULL if the table is invalid.

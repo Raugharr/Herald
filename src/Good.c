@@ -76,6 +76,10 @@ int GoodInpGdCmp(const void* _One, const void* _Two) {
 	return ((struct GoodBase*)((struct InputReq*)_One)->Req)->Id - ((struct GoodBase*)((struct InputReq*)_Two)->Req)->Id;
 }
 
+int GoodThink(struct Good* _Good) {
+	return 1;
+}
+
 struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	struct GoodBase* _Good = NULL;
 	const char* _Name = NULL;
@@ -255,7 +259,7 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
-	CreateObject((struct Object*)_Good, _X, _Y);
+	CreateObject((struct Object*)_Good, _X, _Y, (int(*)(struct Object*))GoodThink);
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
 	return _Good;
@@ -271,6 +275,10 @@ void DestroyGood(struct Good* _Good) {
 
 int GoodGBaseCmp(const struct Good* _One, const struct GoodBase* _Two) {
 	return _One->Base->Id - _Two->Id;
+}
+
+int GoodBaseGoodCmp(const struct GoodBase* _One, const struct Good* _Two) {
+	return _One->Id - _Two->Base->Id;
 }
 
 struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function) {
@@ -298,7 +306,7 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
-	CreateObject((struct Object*)_Food, _X, _Y);
+	CreateObject((struct Object*)_Food, _X, _Y, (int(*)(struct Object*))GoodThink);
 	_Food->Base = _Base;
 	_Food->Quantity = 0;
 	_Food->Parts = FOOD_MAXPARTS;

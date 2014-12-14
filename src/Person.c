@@ -9,6 +9,7 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Good.h"
+#include "sys/LinkedList.h"
 #include "sys/LuaHelper.h"
 #include "sys/RBTree.h"
 #include "sys/Constraint.h"
@@ -60,11 +61,10 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y) {
 	struct Person* _Person = NULL;
-	struct LuaBehavior* _Bhv = NULL;
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 	_Person->Name = _Name;
-	CreateObject((struct Object*)_Person, _X, _Y);
+	CreateObject((struct Object*)_Person, _X, _Y, (int(*)(struct Object*))PersonThink);
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
 	_Person->Nutrition = _Nutrition;
@@ -72,27 +72,14 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Parent = NULL;
 	_Person->Occupation = NULL;
 
-	if(g_PersonList == NULL)
-		_Person->Next = NULL;
-	else {
-		_Person->Next = g_PersonList;
-		g_PersonList->Prev = _Person;
-	}
-	_Person->Prev = NULL;
+	ILL_CREATE(g_PersonList, _Person);
 	_Person->Behavior = NULL;
 	g_PersonList = _Person;
 	return _Person;
 }
 
 void DestroyPerson(struct Person* _Person) {
-	if(g_PersonList == _Person) {
-		g_PersonList = _Person->Next;
-	} else {
-		if(_Person->Prev != NULL)
-		_Person->Prev->Next = _Person->Next;
-		if(_Person->Next != NULL)
-			_Person->Next->Prev = _Person->Prev;
-	}
+	ILL_DESTROY(g_PersonList, _Person);
 	MemPool_Free(g_PersonPool, _Person);
 }
 
@@ -104,7 +91,7 @@ struct Person* CreateChild(struct Family* _Family) {
 	return _Child;
 }
 
-int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
+int PersonThink(struct Person* _Person) {
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_PREGANCY) == NULL
@@ -113,7 +100,7 @@ int PersonUpdate(struct Person* _Person, struct HashTable* _Table) {
 				&& Random(0, 999) < 20)
 			ATimerInsert(&g_ATimer, CreatePregancy(_Person));
 	}
-	_Person->Nutrition = NUTRITION_LOSS;
+	_Person->Nutrition -= NUTRITION_LOSS;
 	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
 		PersonDeath(_Person);
 		return 1;
@@ -140,7 +127,7 @@ void PersonDeath(struct Person* _Person) {
 			break;
 		}
 	DestroyPerson(_Person);
-	//Event_Push(CreateEventDeath(_Person));
+	EventPush(CreateEventDeath(_Person));
 }
 
 int PersonWorkMult(struct Person* _Person) {

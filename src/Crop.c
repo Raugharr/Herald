@@ -11,6 +11,7 @@
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
 #include "sys/Log.h"
+#include "sys/Array.h"
 #include "sys/Event.h"
 
 #include <stdlib.h>
@@ -105,6 +106,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 		}
 		lua_pop(_State, 1);
 		if(!(_Return > 0)) {
+			lua_pop(_State, 1);
 			Log(ELOG_WARNING, "%s is not a crop parameter.", _Key);
 			return NULL;
 		}
@@ -115,9 +117,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) {
 	struct Field* _Field = (struct Field*) malloc(sizeof(struct Field));
 
-	_Field->Id = NextId();
-	_Field->X = _X;
-	_Field->Y = _Y;
+	CreateObject((struct Object*)_Field, _X, _Y, (int(*)(struct Object*))FieldUpdate);
 	_Field->Crop = _Crop;
 	_Field->YieldTotal = 0;
 	_Field->Acres = _Acres;
@@ -138,24 +138,16 @@ void FieldReset(struct Field* _Crop) {
 }
 
 int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
+	int _Total = _Field->Acres + _Field->UnusedAcres;
+
 	if(_Field->Crop == NULL) {
 		FieldReset(_Field);
 		return 0;
 	}
 	if(_Field->Status != EFALLOW)
 		return 0;
-
-	if(_Seeds->Quantity < _Field->Crop->PerAcre * _Field->Acres || strcmp(_Seeds->Base->Name, _Field->Crop->Name) != 0) {
-		int _Quantity = _Seeds->Quantity;
-		int _Acres = 0;
-
-		while(_Quantity > _Field->Crop->PerAcre) {
-			_Quantity -= _Field->Crop->PerAcre;
-			++_Acres;
-		}
-		_Field->UnusedAcres += _Field->Acres - _Acres;
-		_Field->Acres = _Acres;
-	}
+	_Field->Acres = FieldAcreage(_Field, _Seeds);
+	_Field->UnusedAcres = _Total - _Field->Acres;
 	_Seeds->Quantity -= _Field->Crop->PerAcre * _Field->Acres;
 	EventPush(CreateEventFarming(_Field->X, _Field->Y, _Field->Status, _Field));
 	_Field->Status = EPLOWING;
@@ -190,11 +182,21 @@ void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool) {
 		NextStatus(_Field);
 }
 
-void FieldHarvest(struct Field* _Field, struct Good* _Seeds) {
+void FieldHarvest(struct Field* _Field, struct Array* _Goods) {
+	struct Good* _Seeds = NULL;
+	int _Quantity = _Field->Acres * _Field->Crop->PerAcre;
+
 	if(_Field->Status != EHARVESTING)
 		return;
+	CheckGoodTbl(_Goods, _Field->Crop->Name, _Seeds, _Field->X, _Field->Y);
+	if(_Field->Crop->Type == EGRASS) {
+		struct Good* _Straw = NULL;
+
+		CheckGoodTbl(_Goods, "Straw", _Straw, _Field->X, _Field->Y);
+		_Straw->Quantity += _Quantity * 4;
+	}
 	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);
-	_Seeds->Quantity = TO_POUND(_Field->Acres * _Field->Crop->PerAcre / WORKMULT);
+	_Seeds->Quantity += _Quantity;
 	FieldReset(_Field);
 }
 
@@ -205,4 +207,16 @@ int FieldUpdate(struct Field* _Field) {
 		return 0;
 	}
 	return 1;
+}
+
+int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds) {
+	int _Quantity = _Seeds->Quantity;
+	int _Acres = 0;
+	int _TotalAcres = _Field->Acres + _Field->UnusedAcres;
+
+	while(_Quantity > _Field->Crop->PerAcre) {
+		_Quantity -= _Field->Crop->PerAcre;
+		++_Acres;
+	}
+	return (_Acres > _TotalAcres) ? (_TotalAcres) : (_Acres);
 }

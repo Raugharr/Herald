@@ -6,8 +6,13 @@
 #ifndef __CROP_H
 #define __CROP_H
 
+#define CROP_LOWTEMP(_Temp) (_Temp & 0xFFFF)
+#define CROP_HIGHTEMP(_Temp) (_Temp >> 16)
+
 typedef struct lua_State lua_State;
 struct Good;
+struct Array;
+struct Object;
 
 enum {
 	EFALLOW,
@@ -29,12 +34,14 @@ struct Crop {
 	int NutVal; //Nutritional Value per pound.
 	int GrowDays;
 	double YieldMult; //How many pounds of seed to expect from one pound.
+	int Temperature;
 };
 
 struct Field {
 	int Id;
 	int X;
 	int Y;
+	int(*Think)(struct Object*);
 	const struct Crop* Crop;
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
 	int Acres;
@@ -54,7 +61,11 @@ void DestroyField(struct Field* _Field);
 void FieldReset(struct Field* _Field);
 int FieldPlant(struct Field* _Field, struct Good* _Seeds);
 void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool);
-void FieldHarvest(struct Field* _Field, struct Good* _Seeds);
+void FieldHarvest(struct Field* _Field, struct Array* _Goods);
 int FieldUpdate(struct Field* _Field);
+/*
+ * Returns how many acres the field can support given the amount of seeds.
+ */
+int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds);
 
 #endif

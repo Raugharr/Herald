@@ -6,6 +6,25 @@
 #ifndef __LINKEDLIST_H
 #define __LINKEDLIST_H
 
+#define ILL_CREATE(_Global, _Var)			\
+	if(_Global == NULL)						\
+		_Var->Next = NULL;					\
+	else {									\
+		_Var->Next = _Global;				\
+		_Global->Prev = _Var;				\
+	}										\
+	_Var->Prev = NULL;
+
+#define ILL_DESTROY(_Global, _Var)			\
+	if(_Global == _Var) {					\
+		_Global = _Var->Next;				\
+	} else {								\
+		if(_Var->Prev != NULL)				\
+			_Var->Prev->Next = _Var->Next;	\
+		if(_Var->Next != NULL)				\
+			_Var->Next->Prev = _Var->Prev;	\
+	}										\
+
 struct LnkLst_Node {
 	void* Data;
 	struct LnkLst_Node* Next;

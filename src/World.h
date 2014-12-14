@@ -21,6 +21,8 @@ extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
 extern struct Person* g_Player;
+extern int g_TemperatureList[];
+extern int g_Temperature;
 
 enum {
 	TERRAIN_GRASS

@@ -45,6 +45,8 @@ struct RBTree g_Families;
 struct KDTree g_ObjPos;
 struct Person* g_Player = NULL;
 struct HashTable* g_AIHash = NULL;
+int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
+int g_Temperature = 0;
 
 static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
@@ -295,7 +297,6 @@ int LuaWorldTick(lua_State* _State) {
 
 void GenerateTiles(int _Size) {
 	int i;
-	int j;
 	FILE* _File = NULL;
 	struct Tile _TileBuffer[MILE_FEET];
 
@@ -417,10 +418,11 @@ void WorldQuit() {
 int World_Tick() {
 	struct Person* _Person = g_PersonList;
 	struct Event* _Event = NULL;
+	struct KDNode* _Itr = NULL;
 	int _Ticks = 30;
 	int i;
 
-	do{
+	do {
 		ATImerUpdate(&g_ATimer);
 		while(_Person != NULL) {
 			HashClear(g_AIHash);
@@ -439,6 +441,14 @@ int World_Tick() {
 			}
 		}
 		escape_events:
+		_Itr = g_ObjPos.Root;
+		while(_Itr != NULL) {
+			struct Array* _Array = ((struct Array*)_Itr->Data);
+
+			for(i = 0; i < _Array->Size; ++i)
+				((struct Object*)_Array->Table[i])->Think((struct Object*)_Array->Table[i]);
+			_Itr = KDNextNode(_Itr);
+		}
 		NextDay(&g_Date);
 		_Person = g_PersonList;
 		--_Ticks;

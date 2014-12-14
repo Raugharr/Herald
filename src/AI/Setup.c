@@ -92,18 +92,8 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 					break;
 				}
 			FieldWork(_Field, PersonWorkMult(_Person), _Tool);
-			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0) {
-				struct GoodBase* _CropSeed = NULL;
-				struct Good* _Good = NULL;
-
-				if((_CropSeed = HashSearch(&g_Goods, _Field->Crop->Name)) == 0)
-					return 0;
-				_Good->Base = CopyGoodBase(_CropSeed);
-				if(_Good == NULL) {
-					ArrayInsertSort(_Family->Goods, _Good, GoodCmp);
-				}
-				FieldHarvest(_Field, _Good);
-			}
+			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0)
+				FieldHarvest(_Field, _Family->Goods);
 		}
 	}
 	return 1;
@@ -323,6 +313,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 	}
 	if(_Nut == 0)
 		Log(ELOG_WARNING, "%i has no food to eat.", _Person->Id);
+	_Person->Nutrition += _Nut;
 	return 1;
 }
 

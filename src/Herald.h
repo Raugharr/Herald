@@ -10,6 +10,7 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
+#define MILE_FEET (5280)
 #define YEAR_DAYS (365)
 #define MONTH_DAYS (30)
 #define TO_YEARS(_Months) ((_Months) * 12)
@@ -54,6 +55,7 @@ struct Object {
 	int Id;
 	int X;
 	int Y;
+	int(*Think)(struct Object*);
 };
 
 extern struct HashTable g_Crops;
@@ -80,7 +82,8 @@ int ObjCmp(const void* _One, const void* _Two);
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
-void CreateObject(struct Object* _Obj, int _X, int _Y);
+void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*));
+int ObjNoThink(struct Object* _Obj);
 
 DATE MonthToInt(const char* _Month);
 DATE DaysBetween(int _DateOne, int _DateTwo);

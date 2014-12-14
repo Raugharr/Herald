@@ -195,26 +195,30 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	return _Return;
 }
 
-void CreateObject(struct Object* _Obj, int _X, int _Y) {
+void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*)) {
 	struct Array* _Table = NULL;
 	int _Pos[2];
 
 	_Obj->Id = NextId();
 	_Obj->X = _X;
 	_Obj->Y = _Y;
+	_Obj->Think = _Think;
 
 	_Pos[0] = _X;
 	_Pos[1] = _Y;
 	if((_Table = KDSearch(&g_ObjPos, _Pos)) == NULL) {
 		_Table = CreateArray(128);
-		ArrayInsert(_Table, _Obj);
 		KDInsert(&g_ObjPos, _Table, _X, _Y);
-	} else
-		ArrayInsertSort_S(_Table, _Obj, (int(*)(const void*, const void*)) IdISCallback);
+	}
+	ArrayInsertSort_S(_Table, _Obj, (int(*)(const void*, const void*)) IdISCallback);
 	if(g_ObjPos.Size >= g_ObjPosBal) {
 		g_ObjPosBal *= 2;
 		KDBalance(&g_ObjPos);
 	}
+}
+
+int ObjNoThink(struct Object* _Obj) {
+	return 1;
 }
 
 int NextId() {return g_Id++;}
@@ -281,26 +285,25 @@ void NextDay(int* _Date) {
 	int _Year = YEAR(*_Date);
 
 	if((_Month & 1) == 0 || _Month == 7) {
-		if(_Day == 31) {
-			_Day = 0;
-			++_Month;
-		}
+		if(_Day == 31)
+			goto new_month;
 	} else if(_Month == 1) {
-		if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29)) {
-			_Day = 0;
-			++_Month;
-		}
-	} else {
-		if(_Day == 30) {
-			_Day = 0;
-			++_Month;
-		}
-	}
+		if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29))
+			goto new_month;
+	} else if(_Day == 30)
+		goto new_month;
 	++_Day;
 	if(_Month >= 12) {
 		++_Year;
 		_Month = 0;
 	}
+	end:
 	*_Date = TO_DATE(_Year, _Month, _Day);
+	return;
+	new_month:
+	_Day = 0;
+	++_Month;
+	g_Temperature = g_TemperatureList[_Month];
+	goto end;
 }
 

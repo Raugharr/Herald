@@ -6,8 +6,7 @@
 #ifndef __CROP_H
 #define __CROP_H
 
-#define CROP_LOWTEMP(_Temp) (_Temp & 0xFFFF)
-#define CROP_HIGHTEMP(_Temp) (_Temp >> 16)
+#define GROWDEG_MAX (88)
 
 typedef struct lua_State lua_State;
 struct Good;
@@ -32,9 +31,10 @@ struct Crop {
 	int Type;
 	int PerAcre;//How many ounces of seeds it takes to fill an acre.
 	int NutVal; //Nutritional Value per pound.
-	int GrowDays;
+	int GrowingDegree;
+	int GrowingBase; //The minimum temperature it must be for this crop to grow.
 	double YieldMult; //How many pounds of seed to expect from one pound.
-	int Temperature;
+	int SurviveWinter;
 };
 
 struct Field {
@@ -50,7 +50,7 @@ struct Field {
 	int StatusTime; //How much more time it will take to reach the next status.
 };
 
-struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays);
+struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter);
 struct Crop* CopyCrop(const struct Crop* _Crop);
 void DestroyCrop(struct Crop* _Crop);
 struct Crop* CropLoad(lua_State* _State, int _Index);
@@ -67,5 +67,6 @@ int FieldUpdate(struct Field* _Field);
  * Returns how many acres the field can support given the amount of seeds.
  */
 int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds);
+int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp);
 
 #endif

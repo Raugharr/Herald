@@ -30,7 +30,7 @@
 	}																				\
 }
 
-struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowDays) {
+struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter) {
 	struct Crop* _Crop = (struct Crop*) malloc(sizeof(struct Crop));
 	struct GoodBase* _Good = NULL;
 
@@ -41,7 +41,9 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	_Crop->PerAcre = _PerAcre;
 	_Crop->NutVal = _NutVal;
 	_Crop->YieldMult = _YieldMult;
-	_Crop->GrowDays = _GrowDays;
+	_Crop->GrowingDegree = _GrowingDegree;
+	_Crop->GrowingBase = _GrowingBase;
+	_Crop->SurviveWinter = _SurviveWinter;
 	if((_Good = HashSearch(&g_Goods, _Name)))
 		DestroyGoodBase(_Good);
 	HashInsert(&g_Goods, _Name, CreateFoodBase(_Name, ESEED, _NutVal));	
@@ -58,7 +60,7 @@ struct Crop* CopyCrop(const struct Crop* _Crop) {
 	_NewCrop->PerAcre = _Crop->PerAcre;
 	_NewCrop->NutVal = _Crop->NutVal;
 	_NewCrop->YieldMult = _Crop->YieldMult;
-	_NewCrop->GrowDays = _Crop->GrowDays;
+	_NewCrop->GrowingDegree = _Crop->GrowingDegree;
 	return _NewCrop;
 }
 
@@ -73,6 +75,8 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 	int _NutValue = 0;
 	int _GrowTime = 0;
 	int _Return = -2;
+	int _SurviveWinter = 0;
+	int _GrowBase = 0;
 	double _YieldMult = 0;
 	const char* _Name = NULL;
 	const char* _TypeStr = NULL;
@@ -104,6 +108,14 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 		else if(!strcmp("GrowTime", _Key)) {
 			_Return = AddInteger(_State, -1, &_GrowTime);
 		}
+		else if(!strcmp("GrowingBase", _Key)) {
+			_Return = AddInteger(_State, -1, &_GrowBase);
+		}
+		else if(!strcmp("SurviveWinter", _Key)) {
+			if(lua_type(_State, -1) != LUA_TBOOLEAN)
+				_Return = 0;
+			_SurviveWinter = lua_toboolean(_State, -1);
+		}
 		lua_pop(_State, 1);
 		if(!(_Return > 0)) {
 			lua_pop(_State, 1);
@@ -111,7 +123,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			return NULL;
 		}
 	}
-	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime);
+	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime, _GrowBase, _SurviveWinter);
 }
 
 struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) {
@@ -168,7 +180,7 @@ void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool) {
 				return;
 			break;
 		case EGROWING:
-			_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowDays;
+			_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowingDegree;
 			return;
 		case EHARVESTING:
 			if((((struct ToolBase*)_Tool->Base)->Function & ETOOL_PLOW) != ETOOL_REAP)
@@ -202,7 +214,10 @@ void FieldHarvest(struct Field* _Field, struct Array* _Goods) {
 
 int FieldUpdate(struct Field* _Field) {
 	if(_Field->Status == EGROWING) {
-		if(--_Field->StatusTime <= 0)
+		int _Temp = ((struct WorldTile*)g_World->Table[WorldGetTile(_Field->X, _Field->Y)])->Temperature;
+
+		_Field->StatusTime -= GrowingDegree(_Temp, _Temp, _Field->Crop->GrowingBase);
+		if(_Field->StatusTime <= 0)
 			return 1;
 		return 0;
 	}
@@ -219,4 +234,14 @@ int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds) {
 		++_Acres;
 	}
 	return (_Acres > _TotalAcres) ? (_TotalAcres) : (_Acres);
+}
+
+int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp) {
+	if(_MaxTemp > GROWDEG_MAX)
+		_MaxTemp = _MaxTemp - (_MaxTemp - GROWDEG_MAX);
+	if(_MinTemp < _BaseTemp)
+		_MinTemp = _MinTemp + (_MinTemp - _BaseTemp);
+	if(_MinTemp > _MaxTemp)
+		return 0;
+	return (_MaxTemp - _MinTemp) / 2;
 }

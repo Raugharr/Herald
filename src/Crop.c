@@ -19,6 +19,16 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
+int CropStatusGen(struct Field* _Field) {
+	return _Field->Acres * WORKMULT;
+}
+
+int CropStatusGrow(struct Field* _Field) {
+	return _Field->Crop->GrowingDegree;
+}
+
+int (*g_CropStatusFuncs[])(struct Field* _Field) = {CropStatusGen, CropStatusGen, CropStatusGen, CropStatusGrow, CropStatusGen};
+
 #define NextStatus(_Crop)															\
 {																					\
 	if(_Crop->Status == EHARVESTING) {												\
@@ -26,7 +36,7 @@
 	} else {																		\
 		EventPush(CreateEventFarming(_Crop->X, _Crop->Y, _Crop->Status, _Crop));	\
 		++_Crop->Status;															\
-		_Crop->StatusTime = _Field->Acres * WORKMULT;								\
+		_Crop->StatusTime = g_CropStatusFuncs(_Field);								\
 	}																				\
 }
 

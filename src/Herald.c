@@ -99,6 +99,10 @@ void DestroyInputReq(struct InputReq* _Mat) {
 	free(_Mat);
 }
 
+int InputReqQtyCmp(const void* _One, const void* _Two) {
+	return (int) ((struct InputReq*)_One)->Quantity - ((struct InputReq*)_Two)->Quantity;
+}
+
 struct Array* FileLoad(const char* _File, char _Delimiter) {
 	int _Pos = 0;
 	int _Size = 1;
@@ -303,7 +307,29 @@ void NextDay(int* _Date) {
 	new_month:
 	_Day = 0;
 	++_Month;
-	g_Temperature = g_TemperatureList[_Month];
 	goto end;
 }
 
+void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {
+	int _NewWidth = (_Width / _ScaleArea);
+	int _NewSize = _NewWidth * (_Height / _ScaleArea);
+	int x = 0;
+	int y = 0;
+	int i = 0;
+	int _Ct = 0;
+	int _Avg = 0;
+	int _AvgCt = _ScaleArea * _ScaleArea;
+	void* _NewImg = calloc(sizeof(int), _NewSize);
+
+	for(i = 0; i < _NewSize; ++i) {
+		for(x = 0; x < _ScaleArea; ++x)
+			for(y = 0; y < _ScaleArea; ++y)
+				_Avg += ((int*)_Image)[y * _ScaleArea + (_Ct * _ScaleArea + x)];
+		++_Ct;
+		if(_Ct > _NewWidth)
+			_Ct = 0;
+		((int*)_NewImg)[i] = _Avg / _AvgCt;
+		_Avg = 0;
+	}
+	return _NewImg;
+}

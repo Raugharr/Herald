@@ -10,6 +10,9 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
+#define ACRE_WIDTH (66)
+#define ACRE_LENGTH (660)
+#define ACRE_SQFEET (43560)
 #define MILE_FEET (5280)
 #define YEAR_DAYS (365)
 #define MONTH_DAYS (30)
@@ -76,6 +79,7 @@ void HeraldInit();
 void HeraldDestroy();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
+int InputReqQtyCmp(const void* _One, const void* _Two);
 int NextId();
 int ObjCmp(const void* _One, const void* _Two);
 
@@ -90,5 +94,7 @@ DATE DaysBetween(int _DateOne, int _DateTwo);
 DATE DateToDays(int _Date);
 DATE DaysToDate(int _Days);
 void NextDay(int* _Date);
+
+void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
 
 #endif

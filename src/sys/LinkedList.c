@@ -35,6 +35,38 @@ void DestroyLinkedList(struct LinkedList* _List) {
 	free(_List);
 }
 
+void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*)) {
+	struct LnkLst_Node* _Node = CreateNode(_Value);
+	struct LnkLst_Node* _Itr = NULL;
+
+	if(_List->Front == NULL) {
+		_List->Front = _Node;
+		_List->Back = _Node;
+		++_List->Size;
+		return;
+	}
+	if(_Callback(_Value, _List->Front->Data) > 0) {
+		_Node->Next = _List->Front;
+		_List->Front = _Node;
+		return;
+	}
+	_Itr = _List->Front;
+	do {
+		if(_Callback(_Value, _List->Front->Data) <= 0) {
+			_Node->Next = _Itr->Next;
+			_Itr->Next = _Node;
+			if(_Itr->Next == NULL)
+				_List->Back = _Node;
+			++_List->Size;
+			return;
+		}
+		_Itr = _Itr->Next;
+	}while(_Itr != NULL);
+	_List->Back->Next = _Node;
+	_List->Back = _Node;
+	++_List->Size;
+}
+
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
 	struct LnkLst_Node* _Node = CreateNode(_Value);
 
@@ -71,6 +103,17 @@ void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct L
 	_Prev->Next = _Node->Next;
 	free(_Node);
 	--_List->Size;
+}
+
+void* LnkLstSearch(struct LinkedList* _List, const void* _Data, int (*_Compare)(const void*, const void*)) {
+	struct LnkLst_Node* _Node = _List->Front;
+
+	while(_Node != NULL) {
+		if(_Compare(_Data, _Node->Data) == 0)
+			return _Node->Data;
+		_Node = _Node->Next;
+	}
+	return NULL;
 }
 
 void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {

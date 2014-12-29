@@ -360,9 +360,9 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops) {
 		_CurrField->Crop = _Data;
 		FieldSetAcres(_CurrField, _CurrField->Acres);
 		if(((struct InputReq*)_Itr->Data)->Quantity > 0 && ((struct InputReq*)_Itr->Data)->Quantity < _CurrField->Acres) {
-			/*_CurrField->Acres = _CurrField->Acres - ((struct InputReq*)_Itr->Data)->Quantity;
+			_CurrField->Acres = _CurrField->Acres - ((struct InputReq*)_Itr->Data)->Quantity;
 			_CurrField->Width = _CurrField->Width - (((struct InputReq*)_Itr->Data)->Quantity * ACRE_WIDTH);
-			ArrayInsert_S(_Fields, CreateField(_CurrField->X, _CurrField->Y + _CurrField->Width + 1, _Data, ((struct InputReq*)_Itr->Data)->Quantity));*/
+			ArrayInsert_S(_Fields, CreateField(_CurrField->X, _CurrField->Y + _CurrField->Width + 1, _Data, ((struct InputReq*)_Itr->Data)->Quantity));
 			_Itr = _Itr->Next;
 			if(_Itr == NULL)
 				break;

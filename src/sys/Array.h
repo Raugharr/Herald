@@ -21,6 +21,7 @@ struct Array* CopyArray(const struct Array* _Array);
 void DestroyArray(struct Array* _Array);
 int ArrayInsert(struct Array* _Array, void* _Data);
 void ArrayInsert_S(struct Array* _Array, void* _Data);
+void ArrayRemove(struct Array* _Array, int _Index);
 void ArrayResize(struct Array* _Array);
 
 void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*));

@@ -8,12 +8,16 @@
 #include "Good.h"
 #include "Herald.h"
 #include "World.h"
+#include "Family.h"
+#include "Person.h"
+#include "Population.h"
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
 #include "sys/Log.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
@@ -36,7 +40,7 @@ int (*g_CropStatusFuncs[])(struct Field* _Field) = {CropStatusGen, CropStatusGen
 	} else {																		\
 		EventPush(CreateEventFarming(_Crop->X, _Crop->Y, _Crop->Status, _Crop));	\
 		++_Crop->Status;															\
-		_Crop->StatusTime = g_CropStatusFuncs(_Field);								\
+		_Crop->StatusTime = g_CropStatusFuncs[_Crop->Status](_Field);				\
 	}																				\
 }
 
@@ -58,20 +62,6 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 		DestroyGoodBase(_Good);
 	HashInsert(&g_Goods, _Name, CreateFoodBase(_Name, ESEED, _NutVal));	
 	return _Crop;
-}
-
-struct Crop* CopyCrop(const struct Crop* _Crop) {
-	struct Crop* _NewCrop = (struct Crop*) malloc(sizeof(struct Crop));
-
-	_NewCrop->Id = NextId();
-	_NewCrop->Name = (char*) calloc(strlen(_Crop->Name) + 1, sizeof(char));
-	strcpy(_NewCrop->Name, _Crop->Name);
-	_NewCrop->Type = _Crop->Type;
-	_NewCrop->PerAcre = _Crop->PerAcre;
-	_NewCrop->NutVal = _Crop->NutVal;
-	_NewCrop->YieldMult = _Crop->YieldMult;
-	_NewCrop->GrowingDegree = _Crop->GrowingDegree;
-	return _NewCrop;
 }
 
 void DestroyCrop(struct Crop* _Crop) {
@@ -137,9 +127,12 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 }
 
 struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) {
-	struct Field* _Field = (struct Field*) malloc(sizeof(struct Field));
+	struct Field* _Field = NULL;
 
+	_Field = (struct Field*) malloc(sizeof(struct Field));
 	CreateObject((struct Object*)_Field, _X, _Y, (int(*)(struct Object*))FieldUpdate);
+	_Field->Width = _Acres * ACRE_WIDTH;
+	_Field->Length = _Acres * ACRE_LENGTH;
 	_Field->Crop = _Crop;
 	_Field->YieldTotal = 0;
 	_Field->Acres = _Acres;
@@ -149,8 +142,16 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) 
 	return _Field;
 }
 
+int FieldCmp(const void* _One, const void* _Two) {
+	return ((struct Field*)_One)->Id - ((struct Field*)_Two)->Id;
+}
+
 void DestroyField(struct Field* _Field) {
 	free(_Field);
+}
+
+int InputReqFieldCmp(const void* _One, const void* _Two) {
+	return FieldCmp(((struct InputReq*)_One)->Req, ((struct InputReq*)_Two)->Req);
 }
 
 void FieldReset(struct Field* _Crop) {
@@ -234,6 +235,22 @@ int FieldUpdate(struct Field* _Field) {
 	return 1;
 }
 
+void FieldSetAcres(struct Field* _Field, int _Acres) {
+	int _Div = _Acres / 2;
+
+	_Field->Acres = _Div;
+	_Field->UnusedAcres = _Div;
+	if((_Acres & 1) == 1)
+		++_Field->Acres;
+}
+
+void FieldRotateCrops(struct Field* _Field) {
+	int _Temp = _Field->Acres;
+
+	_Field->Acres = _Field->UnusedAcres;
+	_Field->UnusedAcres = _Temp;
+}
+
 int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds) {
 	int _Quantity = _Seeds->Quantity;
 	int _Acres = 0;
@@ -246,6 +263,15 @@ int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds) {
 	return (_Acres > _TotalAcres) ? (_TotalAcres) : (_Acres);
 }
 
+int FieldsGetAcreage(const struct Array* _Fields) {
+	int i = 0;
+	int _Acreage = 0;
+
+	for(i = 0; i < _Fields->Size; ++i)
+		_Acreage = ((struct Field*)_Fields->Table[i])->Acres + ((struct Field*)_Fields->Table[i])->UnusedAcres;
+	return _Acreage;
+}
+
 int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp) {
 	if(_MaxTemp > GROWDEG_MAX)
 		_MaxTemp = _MaxTemp - (_MaxTemp - GROWDEG_MAX);
@@ -254,4 +280,94 @@ int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp) {
 	if(_MinTemp > _MaxTemp)
 		return 0;
 	return (_MaxTemp - _MinTemp) / 2;
+}
+/*
+ * TODO: All fields that are adjacent to each other position wise should be put into one field.
+ */
+void SelectCrops(struct Family* _Family, struct Array* _Fields) {
+	int _TotalAcreage = FieldsGetAcreage(_Fields);
+	int _Acreage = 0;
+	int _Size = _Family->Animals->Size;
+	int _Ct = 0;
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	struct InputReq** _AnList = AnimalTypeCount(_Family->Animals, &_Size);
+	struct LinkedList* _Crops = CreateLinkedList();
+	struct LnkLst_Node* _Itr = NULL;
+	struct InputReq* _Pair = alloca(sizeof(struct InputReq) * (_Size + 1));
+
+	_Pair[_Ct].Req = HashSearch(&g_Crops, "Wheat");
+	_Pair[_Ct].Quantity = ceil(FamilyNutReq(_Family) / ((struct Crop*)_Pair[_Ct].Req)->NutVal / 2); //Divide by 2 because we will grow 2 sets of crops per year. Thus we only need to feed them for half of a year.
+	_Acreage += _Pair[_Ct].Quantity;
+	LnkLstInsertPriority(_Crops, &_Pair[_Ct++], InputReqQtyCmp);
+	if(_Size <= 0)
+		goto skip_anloop;
+	for(i = 0; i < g_AnFoodDep->Size; ++i) {
+		if(((struct AnimalDep*)g_AnFoodDep->Table[i])->Tbl[1] != NULL)
+			continue;
+		for(j = 0; j < _Size; ++j) {
+			//Pick a crop that is needed to feed the population then find out how many acres are needed.
+			for(k = 0; j < ((struct Population*)_AnList[j]->Req)->EatsSize; ++k)
+				if(((struct Population*)_AnList[j]->Req)->Eats[k]->Id == ((struct AnimalDep*)g_AnFoodDep->Table[i])->Tbl[0]->Id) {
+					struct FoodBase* _Eats = ((struct Population*)_AnList[j]->Req)->Eats[k];
+					struct Crop* _Crop = NULL;
+					struct InputReq* _PairSearch = NULL;
+
+					if(strcmp(_Eats->Name, "Straw") == 0)
+						_Crop = HashSearch(&g_Crops, "Rye");
+					else
+						_Crop = HashSearch(&g_Crops, _Eats->Name);
+					_Pair[_Ct].Req = _Crop;
+					_Pair[_Ct].Quantity =  ceil(((struct Population*)_AnList[j]->Req)->Nutrition * _AnList[j]->Quantity / _Crop->NutVal);
+					//Ensure there is only one entry for each Crop.
+					if((_PairSearch = (struct InputReq*)LnkLstSearch(_Crops, &_Pair[_Ct], NULL)) == NULL)
+						LnkLstInsertPriority(_Crops, &_Pair[_Ct++], InputReqQtyCmp);
+					else
+						_PairSearch->Quantity += _Pair[_Ct++].Quantity;
+					_Acreage += _Pair[_Ct].Quantity;
+				}
+		}
+	}
+	skip_anloop:
+	//If we don't have enough acres reduce all fields by a certain percentage.
+	if(_Acreage > _TotalAcreage) {
+		double _Ratio = (double)_TotalAcreage / _Acreage;
+
+		_Itr = _Crops->Front;
+		while(_Itr != NULL) {
+			((struct InputReq*)_Itr->Data)->Quantity = floor(((struct InputReq*)_Itr->Data)->Quantity * _Ratio);
+			_Itr = _Itr->Next;
+		}
+	}
+	PlanFieldCrops(_Fields, _Crops);
+	for(i = 0; i < _Size; ++i)
+		DestroyInputReq(_AnList[i]);
+	free(_AnList);
+	DestroyLinkedList(_Crops);
+}
+
+void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops) {
+	int i = 0;
+	struct LnkLst_Node* _Itr = _Crops->Front;
+	struct Crop* _Data = NULL;
+	struct Field* _CurrField = NULL;
+
+	_Data = (struct Crop*)((struct InputReq*)_Itr->Data)->Req;
+	for(i = 0; i < _Fields->Size; ++i) {
+		_CurrField = ((struct Field*)_Fields->Table[i]);
+
+		_CurrField->Crop = _Data;
+		FieldSetAcres(_CurrField, _CurrField->Acres);
+		if(((struct InputReq*)_Itr->Data)->Quantity > 0 && ((struct InputReq*)_Itr->Data)->Quantity < _CurrField->Acres) {
+			/*_CurrField->Acres = _CurrField->Acres - ((struct InputReq*)_Itr->Data)->Quantity;
+			_CurrField->Width = _CurrField->Width - (((struct InputReq*)_Itr->Data)->Quantity * ACRE_WIDTH);
+			ArrayInsert_S(_Fields, CreateField(_CurrField->X, _CurrField->Y + _CurrField->Width + 1, _Data, ((struct InputReq*)_Itr->Data)->Quantity));*/
+			_Itr = _Itr->Next;
+			if(_Itr == NULL)
+				break;
+			_Data = (struct Crop*)((struct InputReq*)_Itr->Data);
+		}
+		((struct InputReq*)_Itr->Data)->Quantity -= _CurrField->Acres;
+	}
 }

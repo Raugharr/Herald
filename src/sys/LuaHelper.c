@@ -897,7 +897,7 @@ int LuaCrop(lua_State* _State) {
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "GrowDays");
-	lua_pushinteger(_State, _Crop->GrowDays);
+	lua_pushinteger(_State, _Crop->GrowingDegree);
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "YieldMult");

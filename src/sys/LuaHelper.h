@@ -138,6 +138,7 @@ int LuaHook(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);
+//FIXME: _Callback's second parameter is not used.
 void LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return);
 //TODO: Rename Add* to Lua*.
 int AddInteger(lua_State* _State, int _Index, int* _Number);

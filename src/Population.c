@@ -21,7 +21,7 @@
 #include <lua/lua.h>
 
 int AnimalTypeCmp(const void* _One, const void* _Two) {
-	return ((struct Animal*)_One)->PopType->Id - ((struct Animal*)((struct InputReq*)_Two)->Req)->PopType->Id;
+	return ((struct Animal*)_One)->PopType->Id - ((struct Population*)((struct InputReq*)_Two)->Req)->Id;
 }
 
 int FoodArrayAnDepArray(const void* _One, const void* _Two) {
@@ -351,24 +351,26 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 
 struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
 	int i;
-	struct InputReq** _AnimalCt = calloc(_Animals->Size, sizeof(struct InputReq*));
+	struct InputReq** _AnimalTypes = (struct InputReq**)alloca(_Animals->Size * sizeof(struct InputReq*));
+	struct InputReq** _Return = NULL;
 	struct InputReq* _Req = NULL;
 	struct Animal* _Animal = NULL;
 
 	*_Size = 0;
-	memset(_AnimalCt, 0, sizeof(struct InputReq*));
+	memset(_AnimalTypes, 0, sizeof(struct InputReq*));
 	for(i = 0; i < _Animals->Size; ++i) {
 		_Animal = _Animals->Table[i];
-		if((_Req = BinarySearch(_Animal, _AnimalCt, _Animals->Size, AnimalTypeCmp)) == NULL) {
+		if((_Req = LinearSearch(_Animal, _AnimalTypes, *_Size, AnimalTypeCmp)) == NULL) {
 			_Req = CreateInputReq();
 			_Req->Req = _Animal->PopType;
 			_Req->Quantity = 1;
-			_AnimalCt[*_Size] = _Req;
-			InsertionSort(_AnimalCt, *_Size, AnimalTypeCmp);
+			_AnimalTypes[*_Size] = _Req;
+			InsertionSort(_AnimalTypes, *_Size, AnimalTypeCmp);
 			++(*_Size);
 		} else
 			++_Req->Quantity;
 	}
-	_AnimalCt = realloc(_AnimalCt, (*_Size) * sizeof(struct InputReq*));
-	return _AnimalCt;
+	_Return = calloc(_Animals->Size, sizeof(struct InputReq*));
+	memcpy(_Return, _AnimalTypes, sizeof(struct InputReq*) * _Animals->Size);
+	return _Return;
 }

@@ -41,11 +41,13 @@ struct LinkedList {
 	struct LnkLst_Node* Back;
 };
 
+struct LnkLst_Node* CreateLnkLstNode(void* _Data);
 struct LinkedList* CreateLinkedList();
 void DestroyLinkedList(struct LinkedList* _List);
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*));
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value);
-void LnkLst_PopFront(struct LinkedList* _List);
+void* LnkLst_PopFront(struct LinkedList* _List);
+void* LnkLstPopBack(struct LinkedList* _List);
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct LnkLst_Node* _Node);
 void* LnkLstSearch(struct LinkedList* _List, const void* _Data, int (*_Compare)(const void*, const void*));
 /*!

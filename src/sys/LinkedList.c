@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 
-struct LnkLst_Node* CreateNode(void* _Data) {
+struct LnkLst_Node* CreateLnkLstNode(void* _Data) {
 	struct LnkLst_Node* _Node = (struct LnkLst_Node*) malloc(sizeof(struct LnkLst_Node));
 
 	_Node->Data = _Data;
@@ -36,7 +36,7 @@ void DestroyLinkedList(struct LinkedList* _List) {
 }
 
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*)) {
-	struct LnkLst_Node* _Node = CreateNode(_Value);
+	struct LnkLst_Node* _Node = CreateLnkLstNode(_Value);
 	struct LnkLst_Node* _Itr = NULL;
 
 	if(_List->Front == NULL) {
@@ -68,7 +68,7 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 }
 
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
-	struct LnkLst_Node* _Node = CreateNode(_Value);
+	struct LnkLst_Node* _Node = CreateLnkLstNode(_Value);
 
 	_Node->Data = _Value;
 	_Node->Next = NULL;
@@ -89,14 +89,17 @@ void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
 	++_List->Size;
 }
 
-void LnkLst_PopFront(struct LinkedList* _List) {
+void* LnkLst_PopFront(struct LinkedList* _List) {
 	struct LnkLst_Node* _Node = _List->Front;
+	void* _Data = NULL;
 
 	if(_Node == NULL)
-		return;
+		return NULL;
+	_Data = _Node->Data;
 	_List->Front = _List->Front->Next;
 	free(_Node);
 	--_List->Size;
+	return _Data;
 }
 
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct LnkLst_Node* _Node) {

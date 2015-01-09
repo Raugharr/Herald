@@ -103,6 +103,10 @@ int InputReqQtyCmp(const void* _One, const void* _Two) {
 	return (int) ((struct InputReq*)_One)->Quantity - ((struct InputReq*)_Two)->Quantity;
 }
 
+int InputReqCropCmp(const void* _One, const void* _Two) {
+	return (int) ((struct Crop*)((struct InputReq*)_One)->Req)->Id - ((struct Crop*)((struct InputReq*)_Two)->Req)->Id;
+}
+
 struct Array* FileLoad(const char* _File, char _Delimiter) {
 	int _Pos = 0;
 	int _Size = 1;

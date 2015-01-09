@@ -80,6 +80,7 @@ void HeraldDestroy();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 int InputReqQtyCmp(const void* _One, const void* _Two);
+int InputReqCropCmp(const void* _One, const void* _Two);
 int NextId();
 int ObjCmp(const void* _One, const void* _Two);
 

@@ -92,5 +92,9 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields);
  * a struct Crop*.
  */
 void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops);
+/**
+ * Finds fields that are adjacent to each other and combines them.
+ */
+void FieldAbosrb(struct Array* _Fields);
 
 #endif

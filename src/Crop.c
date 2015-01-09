@@ -308,24 +308,24 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields) {
 			continue;
 		for(j = 0; j < _Size; ++j) {
 			//Pick a crop that is needed to feed the population then find out how many acres are needed.
-			for(k = 0; j < ((struct Population*)_AnList[j]->Req)->EatsSize; ++k)
+			for(k = 0; k < ((struct Population*)_AnList[j]->Req)->EatsSize; ++k)
 				if(((struct Population*)_AnList[j]->Req)->Eats[k]->Id == ((struct AnimalDep*)g_AnFoodDep->Table[i])->Tbl[0]->Id) {
 					struct FoodBase* _Eats = ((struct Population*)_AnList[j]->Req)->Eats[k];
 					struct Crop* _Crop = NULL;
 					struct InputReq* _PairSearch = NULL;
 
-					if(strcmp(_Eats->Name, "Straw") == 0)
-						_Crop = HashSearch(&g_Crops, "Rye");
+					if(strcmp(_Eats->Name, "Straw") == 0  || strcmp(_Eats->Name, "Hay") == 0)
+						continue;
 					else
 						_Crop = HashSearch(&g_Crops, _Eats->Name);
 					_Pair[_Ct].Req = _Crop;
 					_Pair[_Ct].Quantity =  ceil(((struct Population*)_AnList[j]->Req)->Nutrition * _AnList[j]->Quantity / _Crop->NutVal);
+					_Acreage += _Pair[_Ct].Quantity;
 					//Ensure there is only one entry for each Crop.
-					if((_PairSearch = (struct InputReq*)LnkLstSearch(_Crops, &_Pair[_Ct], NULL)) == NULL)
+					if((_PairSearch = (struct InputReq*)LnkLstSearch(_Crops, &_Pair[_Ct], InputReqCropCmp)) == NULL)
 						LnkLstInsertPriority(_Crops, &_Pair[_Ct++], InputReqQtyCmp);
 					else
-						_PairSearch->Quantity += _Pair[_Ct++].Quantity;
-					_Acreage += _Pair[_Ct].Quantity;
+						_PairSearch->Quantity += _Pair[_Ct].Quantity;
 				}
 		}
 	}
@@ -369,5 +369,24 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops) {
 			_Data = (struct Crop*)((struct InputReq*)_Itr->Data);
 		}
 		((struct InputReq*)_Itr->Data)->Quantity -= _CurrField->Acres;
+	}
+}
+
+void FieldAbosrb(struct Array* _Fields) {
+	int i = 0;
+	int j = 0;
+	struct Field* _Parent = NULL;
+
+	for(i = 0; i < _Fields->Size; ++i) {
+		_Parent = ((struct Field*)_Fields->Table[i]);
+		for(j = i + 1; j < _Fields->Size;) {
+			if(_Parent->X == ((struct Field*)_Fields->Table[j])->X && _Parent->Y == ((struct Field*)_Fields->Table[j])->Y - ((struct Field*)_Fields->Table[j])->Width - 1) {
+				_Parent->Width += ((struct Field*)_Fields->Table[j])->Width;
+				_Parent->Acres += ((struct Field*)_Fields->Table[j])->Acres;
+				_Parent->UnusedAcres += ((struct Field*)_Fields->Table[j])->UnusedAcres;
+				ArrayRemove(_Fields, j);
+			} else
+				++j;
+		}
 	}
 }

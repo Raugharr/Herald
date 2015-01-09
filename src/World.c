@@ -39,6 +39,7 @@
 
 int g_Date = 0;
 struct Array* g_World = NULL;
+int g_WorldSize = 0;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
@@ -226,11 +227,22 @@ struct Person* PickPlayer() {
 	struct Person* _Person = g_PersonList;
 
 	while(_Person != NULL) {
-		if(_Person->Gender == EMALE && _Person->Age > (15 * YEAR_DAYS))
+		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE)
 			break;
 		_Person = _Person->Next;
 	}
 	return _Person;
+}
+
+struct WorldTile* CreateWorldTile() {
+	struct WorldTile* _Tile = (struct WorldTile*) malloc(sizeof(struct WorldTile));
+
+	_Tile->Temperature = 0;
+	return _Tile;
+
+}
+void DestroyWorldTile(struct WorldTile* _Tile) {
+	free(_Tile);
 }
 
 int LuaRegisterPersonItr(lua_State* _State) {
@@ -310,6 +322,7 @@ void GenerateTiles(int _Size) {
 
 void WorldInit(int _Area) {
 	int i;
+	int _WorldSize = _Area * _Area;
 	struct Array* _Array = NULL;
 	struct LinkedList* _CropList = CreateLinkedList();
 	struct LinkedList* _GoodList = CreateLinkedList();
@@ -321,7 +334,10 @@ void WorldInit(int _Area) {
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
 	g_AIHash = CreateHash(32);
-	g_World = CreateArray(_Area * _Area);
+	g_WorldSize = _Area;
+	g_World = CreateArray(_WorldSize);
+	for(i = 0; i < _WorldSize; ++i)
+		g_World->Table[i] = CreateWorldTile();
 	GenerateTiles(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
@@ -405,6 +421,10 @@ void WorldInit(int _Area) {
 }
 
 void WorldQuit() {
+	int i = 0;
+
+	for(i = 0; i < g_World->TblSize; ++i)
+		DestroyWorldTile(g_World->Table[i]);
 	AIQuit();
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
 	DestroyArray(g_World);
@@ -420,6 +440,7 @@ int World_Tick() {
 	struct Event* _Event = NULL;
 	struct KDNode* _Itr = NULL;
 	int _Ticks = 30;
+	int _OldMonth = MONTH(g_Date);
 	int i;
 
 	do {
@@ -450,6 +471,11 @@ int World_Tick() {
 			_Itr = KDNextNode(_Itr);
 		}
 		NextDay(&g_Date);
+		if(MONTH(g_Date) != _OldMonth) {
+			for(i = 0; i < g_World->Size; ++i) {
+				((struct WorldTile*)g_World->Table[i])->Temperature = g_TemperatureList[MONTH(g_Date)];
+			}
+		}
 		_Person = g_PersonList;
 		--_Ticks;
 	} while(_Ticks > 0);

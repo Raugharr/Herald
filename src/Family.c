@@ -159,10 +159,8 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "Field");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				lua_rawgeti(_State, -1, 1);
-				lua_rawgeti(_State, -2, 2);
-				ArrayInsert_S(_Family->Fields, CreateField(_X, _Y, HashSearch(&g_Crops, lua_tostring(_State, -2)), lua_tointeger(_State, -1)));
-				lua_pop(_State, 3);
+				ArrayInsert_S(_Family->Fields, CreateField(_X, _Y, NULL, lua_tointeger(_State, -1)));
+				lua_pop(_State, 1);
 			}
 			lua_pop(_State, 1);
 
@@ -236,4 +234,19 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	LuaError:
 	--g_Log.Indents;
 	luaL_error(_State, "In function %s the %s table does not contain a valid element.", _FamilyTypes[i]->LuaFunc, _Error);
+}
+
+int FamilyNutReq(struct Family* _Family) {
+	int _Nutrition = 0;
+	int i;
+
+	for(i = 0; i < FAMILY_PEOPLESZ; ++i) {
+		if(_Family->People[i] == NULL)
+			continue;
+		if(DateToDays(_Family->People[i]->Age) > ADULT_AGE)
+			_Nutrition += NUTRITION_REQ;
+		else
+			_Nutrition += NUTRITON_CHLDREQ;
+	}
+	return _Nutrition;
 }

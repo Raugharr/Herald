@@ -1,7 +1,7 @@
 Goods = {
 	{Name = "Axe", Category = "Tool", Function = "Logging", InputGoods = {}},
 	{Name = "Board", Category = "Material", InputGoods = {}},
-	{Name = "Bread Loaf", Category = "Food", InputGoods = {{"Flour", 12}}},
+	{Name = "Bread Loaf", Category = "Food", InputGoods = {{"Flour", 4}}},
 	{Name = "Flour", Category = "Ingredient", InputGoods = {{"Wheat", 1.4285714}}},
 	{Name = "Iron", Category = "Material", InputGoods = {}},
 	{Name = "Hay", Category = "Food", InputGoods = {}, Nutrition = 5},

@@ -6,6 +6,9 @@
 #ifndef __MEMORYPOOL_H
 #define __MEMORYPOOL_H
 
+#define MemPoolAlloc(_MemPool) MemPool_Alloc(_MemPool)
+#define MemPoolFree(_MemPool, _Ptr) MemPool_Free(_MemPool, _Ptr)
+
 /**
  * TODO: We should assign a memory pool to all the important and frequently used objects such as:
  * Person, Family, Crop, Good, and Population. These objects should be placed in as many pages as required,

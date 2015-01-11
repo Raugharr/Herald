@@ -20,12 +20,32 @@
 #include "../sys/Stack.h"
 #include "../sys/LuaHelper.h"
 
+#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
 struct Array g_BhvList;
+struct LuaBhvAction g_BhvActions[] = {
+	{"BuildHouse", PAIBuildHouse},
+	{"CanFarm", PAICanFarm},
+	{"ConstructBuilding", PAIConstructBuild},
+	{"Eat", PAIEat},
+	{"FeedAnimals", PAIFeedAnimals},
+	{"HasAnimals", PAIHasAnimals},
+	{"HasField", PAIHasField},
+	{"HasHouse", PAIHasHouse},
+	{"HasPlow", PAIHasPlow},
+	{"HasReap", PAIHasReap},
+	{"HasShelter", PAIHasShelter},
+	{"IsMale", PAIIsMale},
+	{"MakeFood", PAIMakeFood},
+	{"MakeGood", PAIMakeGood},
+	{"Nothing", BHVNothing},
+	{"WorkField", PAIWorkField},
+	{NULL, NULL}
+};
 
 int g_BhvActionsSz = 0;
 
@@ -36,6 +56,7 @@ int LuaBaCmp(const void* _One, const void* _Two) {
 int PopulationInputReqCmp(const void* _One, const void* _Two) {
 	return ((struct Population*)_One)->Id - ((struct Population*)((struct InputReq*)_Two)->Req)->Id;
 }
+
 
 int PAIHasField(struct Person* _Person, struct HashTable* _Table) {
 	return _Person->Family->Fields->Table != NULL;
@@ -72,6 +93,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 		if(_Field->Status == EFALLOW) {
 			_Array = _Family->Goods;
 			for(j = 0; j < _Array->Size; ++j) {
+				SelectCrops(_Family, _Family->Fields);
 				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
 					FieldPlant(_Field, _Array->Table[j]);
 					break;
@@ -313,7 +335,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 	}
 	if(_Nut == 0)
 		Log(ELOG_WARNING, "%i has no food to eat.", _Person->Id);
-	_Person->Nutrition += _Nut;
+	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
 	return 1;
 }
 

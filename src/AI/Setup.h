@@ -33,6 +33,8 @@ struct LuaBhvAction {
 	BhvAction Action;
 };
 
+extern struct LuaBhvAction g_BhvActions[];
+
 int LuaBaCmp(const void* _One, const void* _Two);
 
 int PAIHasField(struct Person* _Person, struct HashTable* _Table);
@@ -57,25 +59,6 @@ int LuaActionLen(const struct LuaBhvAction* _Action);
 void AIInit(lua_State* _State);
 void AIQuit();
 
-static struct LuaBhvAction g_BhvActions[] = {
-	{"BuildHouse", PAIBuildHouse},
-	{"CanFarm", PAICanFarm},
-	{"ConstructBuilding", PAIConstructBuild},
-	{"Eat", PAIEat},
-	{"FeedAnimals", PAIFeedAnimals},
-	{"HasAnimals", PAIHasAnimals},
-	{"HasField", PAIHasField},
-	{"HasHouse", PAIHasHouse},
-	{"HasPlow", PAIHasPlow},
-	{"HasReap", PAIHasReap},
-	{"HasShelter", PAIHasShelter},
-	{"IsMale", PAIIsMale},
-	{"MakeFood", PAIMakeFood},
-	{"MakeGood", PAIMakeGood},
-	{"Nothing", BHVNothing},
-	{"WorkField", PAIWorkField},
-	{NULL, NULL}
-};
 extern int g_BhvActionsSz;
 
 #endif

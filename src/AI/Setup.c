@@ -334,7 +334,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 		}
 	}
 	if(_Nut == 0)
-		Log(ELOG_WARNING, "%i has no food to eat.", _Person->Id);
+		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
 	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
 	return 1;
 }
@@ -368,6 +368,8 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 		}
 		DestroyInputReq(_Foods[i]);
 	}
+	if(i == 0)
+		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_Date), _Person->Id);
 	free(_Foods);
 	return 1;
 }

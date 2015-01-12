@@ -24,15 +24,7 @@ struct LinkedList* CreateLinkedList() {
 	return _List;
 }
 void DestroyLinkedList(struct LinkedList* _List) {
-	struct LnkLst_Node* _Node = _List->Front;
-	struct LnkLst_Node* _Temp = NULL;
-
-	while(_Node != NULL) {
-		_Temp = _Node->Next;
-		free(_Node);
-		_Node = _Temp;
-	}
-	free(_List);
+	LnkLstClear(_List);
 }
 
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*)) {
@@ -65,6 +57,18 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 	_List->Back->Next = _Node;
 	_List->Back = _Node;
 	++_List->Size;
+}
+
+void LnkLstClear(struct LinkedList* _List) {
+	struct LnkLst_Node* _Node = _List->Front;
+	struct LnkLst_Node* _Temp = NULL;
+
+	while(_Node != NULL) {
+		_Temp = _Node->Next;
+		free(_Node);
+		_Node = _Temp;
+	}
+	free(_List);
 }
 
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {

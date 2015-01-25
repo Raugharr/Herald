@@ -1074,14 +1074,14 @@ int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 	return 0;
 }
 
-void LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return) {
+int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return) {
 	void* _CallRet = NULL;
 
 	if(LuaLoadFile(_State, _File) != LUA_OK)
-		return;
+		return 0;
 	lua_getglobal(_State, _Global);
 	if(!lua_istable(_State, -1))
-		return;
+		return 0;
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(!lua_istable(_State, -1)) {
@@ -1094,6 +1094,7 @@ void LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
+	return 1;
 }
 
 int AddInteger(lua_State* _State, int _Index, int* _Number) {

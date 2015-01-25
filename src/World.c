@@ -347,13 +347,15 @@ void WorldInit(int _Area) {
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 1000000);
 	Family_Init(_Array);
-	LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList);
+	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList) == 0)
+		goto end;
 	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
 	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	
-	LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList);
+	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList) == 0)
+		goto end;
 	g_Crops.TblSize = (_CropList->Size * 5) / 4;
 	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * _CropList->Size);
 	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
@@ -364,7 +366,8 @@ void WorldInit(int _Area) {
 		Log(ELOG_WARNING, "Failed to load goods.");
 		goto GoodLoadEnd;
 	}
-	LuaLoadFile(g_LuaState, "goods.lua");
+	if(LuaLoadFile(g_LuaState, "goods.lua") == 0)
+		goto end;
 	lua_getglobal(g_LuaState, "Goods");
 	i = 1;
 	_Itr = _GoodList->Front;
@@ -381,17 +384,20 @@ void WorldInit(int _Area) {
 		_Itr = _Itr->Next;
 	}
 	GoodLoadEnd:
-	LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList);
+	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
+		goto end;
 	g_Populations.TblSize = (_PopList->Size * 5) / 4;
 	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
 	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
-	LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList);
+	if(LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList) == 0)
+		goto end;
 	g_Occupations.TblSize = ((_OccupationList->Size + 1) * 5) / 4;
 	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
 	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
-	LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList);
+	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList) == 0)
+		goto end;
 	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
 	g_BuildMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuildMats.TblSize);
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));

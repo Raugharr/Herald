@@ -48,7 +48,6 @@ void EventHook(int _EventId, void (*_Callback)(struct Event*)) {
 }
 
 void EventRmHook(int _EventId, void(*_Callback)(struct Event*)) {
-	struct LnkLst_Node* _Last = NULL;
 	struct LnkLst_Node* _Node = NULL;
 	struct LinkedList* _List = NULL;
 
@@ -60,15 +59,13 @@ void EventRmHook(int _EventId, void(*_Callback)(struct Event*)) {
 		LnkLst_PopFront(_List);
 		return;
 	}
-	_Last = _Node;
 	_Node = _Node->Next;
 
 	while(_Node != NULL) {
 		if(*((void(*)(struct Event*))(_Node->Data)) == _Callback) {
-			LnkLst_Remove(_List, _Last, _Node);
+			LnkLst_Remove(_List, _Node);
 			return;
 		}
-		_Last = _Node;
 		_Node = _Node->Next;
 	}
 }

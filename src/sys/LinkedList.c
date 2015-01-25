@@ -12,6 +12,7 @@ struct LnkLst_Node* CreateLnkLstNode(void* _Data) {
 
 	_Node->Data = _Data;
 	_Node->Next = NULL;
+	_Node->Prev = NULL;
 	return _Node;
 }
 
@@ -24,6 +25,7 @@ struct LinkedList* CreateLinkedList() {
 	return _List;
 }
 void DestroyLinkedList(struct LinkedList* _List) {
+	free(_List);
 	LnkLstClear(_List);
 }
 
@@ -39,6 +41,7 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 	}
 	if(_Callback(_Value, _List->Front->Data) > 0) {
 		_Node->Next = _List->Front;
+		_Node->Prev = NULL;
 		_List->Front = _Node;
 		return;
 	}
@@ -46,6 +49,8 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 	do {
 		if(_Callback(_Value, _List->Front->Data) <= 0) {
 			_Node->Next = _Itr->Next;
+			_Node->Prev = _Itr;
+			_Node->Next->Prev = _Node;
 			_Itr->Next = _Node;
 			if(_Itr->Next == NULL)
 				_List->Back = _Node;
@@ -53,8 +58,9 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 			return;
 		}
 		_Itr = _Itr->Next;
-	}while(_Itr != NULL);
+	} while(_Itr != NULL);
 	_List->Back->Next = _Node;
+	_Node->Prev = _List->Back;
 	_List->Back = _Node;
 	++_List->Size;
 }
@@ -75,7 +81,6 @@ void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
 	struct LnkLst_Node* _Node = CreateLnkLstNode(_Value);
 
 	_Node->Data = _Value;
-	_Node->Next = NULL;
 	if(_List->Front == NULL) {
 		_List->Front = _Node;
 		_List->Back = _Node;
@@ -85,10 +90,12 @@ void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
 	if(_List->Front == _List->Back) {
 		_List->Back = _Node;
 		_List->Front->Next = _Node;
+		_Node->Prev = _List->Front;
 		++_List->Size;
 		return;
 	}
 	_List->Back->Next = _Node;
+	_Node->Prev = _List->Back;
 	_List->Back = _Node;
 	++_List->Size;
 }
@@ -101,13 +108,17 @@ void* LnkLst_PopFront(struct LinkedList* _List) {
 		return NULL;
 	_Data = _Node->Data;
 	_List->Front = _List->Front->Next;
+	_List->Front->Prev = NULL;
 	free(_Node);
 	--_List->Size;
 	return _Data;
 }
 
-void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Prev, struct LnkLst_Node* _Node) {
+void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
+	struct LnkLst_Node* _Prev = _Node->Prev;
+
 	_Prev->Next = _Node->Next;
+	_Prev->Next->Prev = _Prev;
 	free(_Node);
 	--_List->Size;
 }

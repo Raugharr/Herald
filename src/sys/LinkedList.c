@@ -25,8 +25,8 @@ struct LinkedList* CreateLinkedList() {
 	return _List;
 }
 void DestroyLinkedList(struct LinkedList* _List) {
-	free(_List);
 	LnkLstClear(_List);
+	free(_List);
 }
 
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*)) {
@@ -74,7 +74,6 @@ void LnkLstClear(struct LinkedList* _List) {
 		free(_Node);
 		_Node = _Temp;
 	}
-	free(_List);
 }
 
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {

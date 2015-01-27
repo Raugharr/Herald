@@ -10,20 +10,49 @@
 
 #include "World.h"
 
+#define PERSON_CLOTHMAX (16)
 #define EMALE (1)
 #define EFEMALE (2)
 #define AVKID (3)
-#define MAX_NUTRITION (4000)
+#define MAX_NUTRITION (5000)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 #define NUTRITION_LOSS (16)
+#define NUTRITION_REQ (3000)
+#define NUTRITON_CHLDREQ (NUTRITION_REQ / 2)
+#define ADULT_AGE (15 * YEAR_DAYS)
 
 struct HashTable;
 struct Object;
 
 extern struct MemoryPool* g_PersonPool;
 extern struct Person* g_PersonList;
+
+enum {
+	EBODY_HEAD,
+	EBODY_NECK,
+	EBODY_UCHEST,
+	EBODY_LCHEST,
+	EBODY_URARM,
+	EBODY_ULARM,
+	EBODY_LRARM,
+	EBODY_LLARM,
+	EBODY_RWRIST,
+	EBODY_LWRIST,
+	EBODY_RHAND,
+	EBODY_LHAND,
+	EBODY_PELVIS,
+	EBODY_URLEG,
+	EBODY_ULLEG,
+	EBODY_LRLEG,
+	EBODY_LLLEG,
+	EBODY_RANKLE,
+	EBODY_LANKLE,
+	EBODY_RFOOT,
+	EBODY_LFOOT,
+	EBODY_SIZE
+};
 
 struct Person {
 	int Id;
@@ -40,6 +69,7 @@ struct Person {
 	struct Person* Prev;
 	struct Occupation* Occupation;
 	struct Behavior* Behavior;
+	struct Good* Clothing[PERSON_CLOTHMAX];
 };
 
 struct Pregancy {
@@ -61,5 +91,11 @@ int PersonThink(struct Person* _Person);
 void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 int PersonWorkMult(struct Person* _Person);
+
+/*
+ * _Locations should be the size of g_PersonBodyStr.
+ */
+void BodyStrToBody(const char* _BodyStr, int* _Locations);
+void WearClothing(struct Person* _Person, struct Good* _Clothing);
 #endif
 

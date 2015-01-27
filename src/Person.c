@@ -26,6 +26,7 @@
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
+#include <assert.h>
 
 #define BIRTH_TIME (9)
 
@@ -101,10 +102,11 @@ int PersonThink(struct Person* _Person) {
 			ATimerInsert(&g_ATimer, CreatePregancy(_Person));
 	}
 	_Person->Nutrition -= NUTRITION_LOSS;
-	if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
+	/*if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
+		++g_Deaths;
 		PersonDeath(_Person);
 		return 1;
-	}
+	}*/
 	NextDay(&_Person->Age);
 	return 1;
 }
@@ -132,4 +134,102 @@ void PersonDeath(struct Person* _Person) {
 
 int PersonWorkMult(struct Person* _Person) {
 	return (_Person->Nutrition / 15);
+}
+
+void BodyStrToBody(const char* _BodyStr, int* _Locations) {
+	if(strcmp(_BodyStr, "Head") == 0)
+		_Locations[EBODY_HEAD] = 1;
+	else if(strcmp(_BodyStr, "Neck") == 0)
+		_Locations[EBODY_NECK] = 1;
+	else if(strcmp(_BodyStr, "Upper Chest") == 0)
+		_Locations[EBODY_UCHEST] = 1;
+	else if(strcmp(_BodyStr, "Upper Arms") == 0) {
+		_Locations[EBODY_URARM] = 1;
+		_Locations[EBODY_ULARM] = 1;
+	} else if(strcmp(_BodyStr, "Lower Arms") == 0) {
+		_Locations[EBODY_LRARM] = 1;
+		_Locations[EBODY_LLARM] = 1;
+	} else if(strcmp(_BodyStr, "Wrists") == 0) {
+		_Locations[EBODY_RWRIST] = 1;
+		_Locations[EBODY_LWRIST] = 1;
+	} else if(strcmp(_BodyStr, "Hands") == 0) {
+		_Locations[EBODY_RHAND] = 1;
+		_Locations[EBODY_LHAND] = 1;
+	} else if(strcmp(_BodyStr, "Lower Chest") == 0) {
+		_Locations[EBODY_LCHEST] = 1;
+	} else if(strcmp(_BodyStr, "Pelvis") == 0) {
+		_Locations[EBODY_PELVIS] = 1;
+	} else if(strcmp(_BodyStr, "Upper Legs") == 0) {
+		_Locations[EBODY_URLEG] = 1;
+		_Locations[EBODY_ULLEG] = 1;
+	} else if(strcmp(_BodyStr, "Lower Legs") == 0) {
+		_Locations[EBODY_LRLEG] = 1;
+		_Locations[EBODY_LLLEG] = 1;
+	} else if(strcmp(_BodyStr, "Ankles") == 0) {
+		_Locations[EBODY_RANKLE] = 1;
+		_Locations[EBODY_LANKLE] = 1;
+	}  else if(strcmp(_BodyStr, "Feet") == 0) {
+		_Locations[EBODY_RFOOT] = 1;
+		_Locations[EBODY_LFOOT] = 1;
+	}
+}
+
+void ClothingWear(struct Person* _Person, struct Good* _Clothing) {
+	int i = 0;
+	int j = 0;
+	int _Parent = PERSON_CLOTHMAX + 1;
+	struct Good* _ClothParent = NULL;
+
+	/*
+	 * Check if an open spot exists.
+	 */
+	for(i = 0; i < PERSON_CLOTHMAX; ++i)
+		if(_Person->Clothing[i] == NULL)
+			goto escape;
+	return;
+	escape:
+	/*
+	 * Find if there is a parent of this clothing.
+	 */
+	for(i = 0; i < PERSON_CLOTHMAX; ++i) {
+		if(_Person->Clothing[i] == NULL)
+			continue;
+		for(j = 0; j < EBODY_SIZE; ++j)
+			if(((struct ClothingBase*)_Clothing->Base)->Locations[j] != 0 && ((struct ClothingBase*)_Person->Clothing[i]->Base)->Locations[j] != 0) {
+				_Parent = j;
+				break;
+			}
+	}
+	for(i = _Parent - 1; i > 0; --i)
+		if(_Person->Clothing[i] == NULL) {
+			_Person->Clothing[i] = _Clothing;
+			goto end;
+		}
+	/*
+	 * _Clothing could not be placed at a index less than _Parent's index, move things around to make room.
+	 */
+	_ClothParent = _Person->Clothing[_Parent];
+	for(i = 1; i < PERSON_CLOTHMAX; ++i) {
+		if(_Person->Clothing[i - 1] == NULL) {
+			_Person->Clothing[i - 1] = _Person->Clothing[_Parent];
+			_Person->Clothing[_Parent] = _Clothing;
+			goto end;
+		}
+	}
+	assert(_Person->Clothing[PERSON_CLOTHMAX - 2] == NULL);
+	_Person->Clothing[PERSON_CLOTHMAX - 1] = _Clothing;
+	_Person->Clothing[PERSON_CLOTHMAX - 2] = _ClothParent;
+	end:
+	ObjectRmPos(_Clothing);
+}
+
+void ClothingRemove(struct Person* _Person, struct Good* _Clothing) {
+	int i = 0;
+	
+	for(i = 0; i < PERSON_CLOTHMAX; ++i)
+		if(_Person->Clothing[i] != NULL && GoodCmp(_Clothing, _Person->Clothing[i]) == 0) {
+			ObjectAdd
+			_Person->Clothing[i] = NULL;
+			return;	
+		}
 }

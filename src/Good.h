@@ -24,6 +24,8 @@ typedef struct lua_State lua_State;
 struct HashTable;
 struct Object;
 
+extern char* g_PersonBodyStr[];
+
 enum {
 	EFOOD = (1 << 0),
 	EINGREDIENT = (1 << 1),
@@ -87,6 +89,16 @@ struct Food {
 	int Parts;
 };
 
+struct ClothingBase {
+	int Id;
+	int X;
+	int Y;
+	int(*Think)(struct Object*);
+	const struct GoodBase* Base;
+	int Quantity; //!Described either as fluid ounces, ounces, or per item.
+	int* Locations;
+};
+
 /**
  * @Brief struct that contains a list of each Good that is required as well
  * as if the Good is obtainable.
@@ -123,6 +135,9 @@ void DestroyFoodBase(struct FoodBase* _Food);
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y);
 void DestroyFood(struct Food* _Food);
 
+struct ClothingBase* CreateClothingBase(const char* _Name, int _Category);
+void DestroyClothingBase(struct ClothingBase* _Clothing);
+
 int GoodThink(struct Good* _Good);
 /**
  * @Brief Reads a table from _Index from _State that contains data about a Good.
@@ -131,6 +146,8 @@ int GoodThink(struct Good* _Good);
  */
 struct GoodBase* GoodLoad(lua_State* _State, int _Index);
 int GoodLoadInput(lua_State* _State, struct GoodBase* _Good);
+void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct LinkedList* _List);
+void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations);
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good);
 void DestroyGoodDep(struct GoodDep* _GoodDep);
 /**

@@ -141,14 +141,19 @@ void BodyStrToBody(const char* _BodyStr, int* _Locations) {
 		_Locations[EBODY_HEAD] = 1;
 	else if(strcmp(_BodyStr, "Neck") == 0)
 		_Locations[EBODY_NECK] = 1;
-	else if(strcmp(_BodyStr, "Upper Chest") == 0)
+	else if(strcmp(_BodyStr, "Upper Chest") == 0) {
 		_Locations[EBODY_UCHEST] = 1;
-	else if(strcmp(_BodyStr, "Upper Arms") == 0) {
+		_Locations[EBODY_BUCHEST] = 1;
+	} else if(strcmp(_BodyStr, "Upper Arms") == 0) {
 		_Locations[EBODY_URARM] = 1;
+		_Locations[EBODY_BURARM] = 1;
 		_Locations[EBODY_ULARM] = 1;
+		_Locations[EBODY_BULARM] = 1;
 	} else if(strcmp(_BodyStr, "Lower Arms") == 0) {
 		_Locations[EBODY_LRARM] = 1;
+		_Locations[EBODY_BLRARM] = 1;
 		_Locations[EBODY_LLARM] = 1;
+		_Locations[EBODY_BLLARM] = 1;
 	} else if(strcmp(_BodyStr, "Wrists") == 0) {
 		_Locations[EBODY_RWRIST] = 1;
 		_Locations[EBODY_LWRIST] = 1;
@@ -157,14 +162,20 @@ void BodyStrToBody(const char* _BodyStr, int* _Locations) {
 		_Locations[EBODY_LHAND] = 1;
 	} else if(strcmp(_BodyStr, "Lower Chest") == 0) {
 		_Locations[EBODY_LCHEST] = 1;
+		_Locations[EBODY_BLCHEST] = 1;
 	} else if(strcmp(_BodyStr, "Pelvis") == 0) {
 		_Locations[EBODY_PELVIS] = 1;
+		_Locations[EBODY_BPELVIS] = 1;
 	} else if(strcmp(_BodyStr, "Upper Legs") == 0) {
 		_Locations[EBODY_URLEG] = 1;
+		_Locations[EBODY_BURLEG] = 1;
 		_Locations[EBODY_ULLEG] = 1;
+		_Locations[EBODY_BULLEG] = 1;
 	} else if(strcmp(_BodyStr, "Lower Legs") == 0) {
 		_Locations[EBODY_LRLEG] = 1;
+		_Locations[EBODY_BLRLEG] = 1;
 		_Locations[EBODY_LLLEG] = 1;
+		_Locations[EBODY_BLLLEG] = 1;
 	} else if(strcmp(_BodyStr, "Ankles") == 0) {
 		_Locations[EBODY_RANKLE] = 1;
 		_Locations[EBODY_LANKLE] = 1;
@@ -232,4 +243,30 @@ void ClothingRemove(struct Person* _Person, struct Good* _Clothing) {
 			_Person->Clothing[i] = NULL;
 			return;	
 		}
+}
+
+int BodyLocation(int* _Body, int _Location, int _Position) {
+	int _Int = 0;
+
+	if(_Position < EBODYPOS_NONE || _Position > EBODYPOS_BACK)
+		return -1;
+	if(_Location < EBODY_HEAD || _Location > EBODY_SIZE)
+		return -1;
+	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE) 
+		return -1;
+	_Int = _Location / 8;
+	return _Body[_Int] & (0xF << (4 * (_Location - (_Int * 8)) - 4));
+}
+
+void SetBodyLoctionHealth(int* _Body, int _Location, int _Position, int _Health) {
+	int _Int = 0;
+
+	if(_Position < EBODYPOS_NONE || _Position > EBODYPOS_BACK)
+		return;
+	if(_Location < EBODY_HEAD || _Location > EBODY_SIZE)
+		return;
+	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE) 
+		return;
+	_Int = _Location / 8;
+	_Body[_Int] = _Body[_Int] & ((_Health & 0xF) << (4 * (_Location - (_Int * 8)) - 4));
 }

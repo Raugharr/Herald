@@ -220,7 +220,7 @@ void ClothingWear(struct Person* _Person, struct Good* _Clothing) {
 	_Person->Clothing[PERSON_CLOTHMAX - 1] = _Clothing;
 	_Person->Clothing[PERSON_CLOTHMAX - 2] = _ClothParent;
 	end:
-	ObjectRmPos(_Clothing);
+	ObjectRmPos((struct Object*)_Clothing);
 }
 
 void ClothingRemove(struct Person* _Person, struct Good* _Clothing) {
@@ -228,7 +228,7 @@ void ClothingRemove(struct Person* _Person, struct Good* _Clothing) {
 	
 	for(i = 0; i < PERSON_CLOTHMAX; ++i)
 		if(_Person->Clothing[i] != NULL && GoodCmp(_Clothing, _Person->Clothing[i]) == 0) {
-			ObjectAdd
+			ObjectAddPos(_Person->X, _Person->Y, (struct Object*)_Clothing);
 			_Person->Clothing[i] = NULL;
 			return;	
 		}

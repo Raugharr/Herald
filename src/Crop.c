@@ -73,7 +73,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 	int _Type = 0;
 	int _PerAcre = 0;
 	int _NutValue = 0;
-	int _GrowTime = 0;
+	int _GrowingDegree = 0;
 	int _Return = -2;
 	int _SurviveWinter = 0;
 	int _GrowBase = 0;
@@ -105,8 +105,8 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			_Return = AddInteger(_State, -1, &_NutValue);
 		else if(!strcmp("Name", _Key))
 			_Return = AddString(_State, -1, &_Name);
-		else if(!strcmp("GrowTime", _Key)) {
-			_Return = AddInteger(_State, -1, &_GrowTime);
+		else if(!strcmp("GrowingDegree", _Key)) {
+			_Return = AddInteger(_State, -1, &_GrowingDegree);
 		}
 		else if(!strcmp("GrowingBase", _Key)) {
 			_Return = AddInteger(_State, -1, &_GrowBase);
@@ -123,7 +123,7 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 			return NULL;
 		}
 	}
-	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowTime, _GrowBase, _SurviveWinter);
+	return CreateCrop(_Name, _Type, _PerAcre, _NutValue, _YieldMult, _GrowingDegree, _GrowBase, _SurviveWinter);
 }
 
 struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) {

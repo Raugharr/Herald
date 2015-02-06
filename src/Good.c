@@ -272,7 +272,7 @@ void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct L
 }
 
 void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations) {
-	_Locations = calloc(ArrayLen(g_PersonBodyStr), sizeof(int));
+	_Locations = alloca(EBODY_SIZE * sizeof(int));
 
 	lua_pushstring(_State, "Locations");
 	lua_rawget(_State, -2);
@@ -368,9 +368,7 @@ void DestroyFood(struct Food* _Food) {
 }
 
 struct ClothingBase* CreateClothingBase(const char* _Name, int _Category) {
-	struct ClothingBase* _Clothing = (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
-
-	return _Clothing;
+	return (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
 }
 
 void DestroyClothingBase(struct ClothingBase* _Clothing) {

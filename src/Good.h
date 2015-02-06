@@ -91,11 +91,10 @@ struct Food {
 
 struct ClothingBase {
 	int Id;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
-	const struct GoodBase* Base;
-	int Quantity; //!Described either as fluid ounces, ounces, or per item.
+	char* Name;
+	int Category;
+	struct InputReq** InputGoods;
+	int IGSize;
 	int* Locations;
 };
 

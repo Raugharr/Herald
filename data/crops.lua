@@ -24,7 +24,6 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 144,
 		YieldPerSeed = 4.6,
-		SurviveWinter = true,
 		GrowingDegree = 1540,
 		GrowingBase = 42
 	},

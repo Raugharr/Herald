@@ -7,6 +7,7 @@
 
 #include "BehaviorTree.h"
 #include "LuaLib.h"
+#include "../Actor.h"
 #include "../Population.h"
 #include "../Building.h"
 #include "../Good.h"
@@ -113,7 +114,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 					_Tool = _Array->Table[j];
 					break;
 				}
-			FieldWork(_Field, PersonWorkMult(_Person), _Tool);
+			FieldWork(_Field, ActorWorkMult((struct Actor*)_Person), _Tool);
 			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0)
 				FieldHarvest(_Field, _Family->Goods);
 		}
@@ -275,7 +276,7 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 				//TODO: We can do better than this.
 				for(k = 0; k < _Family->Animals->Size; ++k) {
 					if(PopulationCmp(_Family->Animals->Table[k], _Req->Req) == 0)
-						AnimalFeed(_Family->Animals->Table[k]);
+						ActorFeed(_Family->Animals->Table[k], NUTRITION_LOSS);
 				}
 				_Food->Quantity -= _TotalNut;
 			} else {

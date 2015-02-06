@@ -17,6 +17,23 @@
 #include <string.h>
 #include <lua/lua.h>
 
+char* g_PersonBodyStr[] = {
+		"Head",
+		"Neck",
+		"Upper Chest",
+		"Lower Chest",
+		"Upper Arms",
+		"Lower Arms",
+		"Wrists",
+		"Hands",
+		"Pelvis",
+		"Upper Legs",
+		"Lower Legs",
+		"Ankles",
+		"Feet",
+		NULL
+};
+
 int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
 }
@@ -148,6 +165,11 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 		_Good = (struct GoodBase*) CreateToolBase(_Name, _Category, _Function);
 	} else if(_Category == EFOOD || _Category == EINGREDIENT || _Category == ESEED) {
 		_Good = (struct GoodBase*) CreateFoodBase(_Name, _Category, 0);
+	} else if(_Category == ECLOTHING) {
+		int* _Locations = NULL;
+
+		_Good = CreateClothingBase(_Name, _Category);
+		ClothingBaseLoad(_State, _Good, _Locations);
 	} else
 		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);
 	if(_Return > 0)
@@ -164,7 +186,7 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 	int _Top = lua_gettop(_State);
 	int i;
 	struct InputReq* _Req = NULL;
-	struct LinkedList* _List = CreateLinkedList();
+	struct LinkedList _List = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 
 	if(_Good == NULL)
@@ -193,7 +215,7 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 				if(AddNumber(_State, -1, &_Req->Quantity) == -1) {
 					goto fail;
 				}
-				LnkLst_PushBack(_List, _Req);
+				LnkLst_PushBack(&_List, _Req);
 			} else {
 				Log(ELOG_WARNING, "Good %s cannot add %s as an input good: %s does not exist.", _Name, _Good->Name, _Name);
 				goto fail;
@@ -204,43 +226,70 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
-	_Good->IGSize = _List->Size;
+	_Good->IGSize = _List.Size;
 	_Good->InputGoods = calloc(_Good->IGSize, sizeof(struct InputReq*));
-	_Itr = _List->Front;
-	for(i = 0; i < _List->Size; ++i) {
+	_Itr = _List.Front;
+	for(i = 0; i < _List.Size; ++i) {
 		_Good->InputGoods[i] = (struct InputReq*)_Itr->Data;
 		_Itr = _Itr->Next;
 	}
-	if(_Good->Category == EFOOD || _Good->Category == EINGREDIENT || _Good->Category == ESEED) {
-		int _Nutrition = 0;
-
-		if(_Good->IGSize == 0) {
-			lua_getfield(_State, -1, "Nutrition");
-			if(lua_tointeger(_State, -1) == 0) {
-				Log(ELOG_WARNING, "Warning: Good %s cannot be a food because it contains no InputGoods or a field named Nutrition containing an integer.");
-				goto fail;
-			}
-			_Nutrition = lua_tointeger(_State, -1);
-			lua_pop(_State, 1);
-		} else {
-			for(i = 0; i < _List->Size; ++i) {
-				GoodLoadInput(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req));
-				_Nutrition += GoodNutVal((struct GoodBase*)_Good);
-			}
-		}
-		((struct FoodBase*)_Good)->Nutrition = _Nutrition;
-	}
+	if(_Good->Category == EFOOD || _Good->Category == EINGREDIENT || _Good->Category == ESEED)
+		GoodLoadConsumableInput(_State, _Good, &_List);
 	lua_pop(_State, 1);
 	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp);
-	DestroyLinkedList(_List);
+	LnkLstClear(&_List);
 	return 1;
 	fail:
 	DestroyInputReq(_Req);
 	lua_settop(_State, _Top);
-	DestroyLinkedList(_List);
+	LnkLstClear(&_List);
 	HashDelete(&g_Goods, _Good->Name);
 	DestroyGoodBase(_Good);
 	return 0;
+}
+
+void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct LinkedList* _List) {
+	int i = 0;
+	int _Nutrition = 0;
+
+	if(_Good->IGSize == 0) {
+		lua_pushstring(_State, "Nutrition");
+		lua_rawget(_State, -2);
+		if(lua_tointeger(_State, -1) == 0) {
+			Log(ELOG_WARNING, "Warning: Good %s cannot be a food because it contains no InputGoods or a field named Nutrition containing an integer.", _Good->Name);
+			return;
+		}
+		_Nutrition = lua_tointeger(_State, -1);
+		lua_pop(_State, 1);
+	} else {
+		for(i = 0; i < _List->Size; ++i) {
+			GoodLoadInput(_State, ((struct GoodBase*)_Good->InputGoods[i]->Req));
+			_Nutrition += GoodNutVal((struct GoodBase*)_Good);
+		}
+	}
+	((struct FoodBase*)_Good)->Nutrition = _Nutrition;
+}
+
+void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations) {
+	_Locations = calloc(ArrayLen(g_PersonBodyStr), sizeof(int));
+
+	lua_pushstring(_State, "Locations");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		Log(ELOG_WARNING, "Warning: Good %s cannot be a wearable because it has an invalid Locations field.", _Good->Name);
+		return;
+	}
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_type(_State, -1) != LUA_TSTRING) {
+			Log(ELOG_WARNING, "Warning: Good %s contains an invalid Location.", _Good->Name);
+			goto endloop;
+		}
+		BodyStrToBody(lua_tostring(_State, -1), _Locations);
+		endloop:
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
 }
 
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good) {
@@ -315,6 +364,17 @@ struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 
 void DestroyFood(struct Food* _Food) {
 	free(_Food);
+}
+
+struct ClothingBase* CreateClothingBase(const char* _Name, int _Category) {
+	struct ClothingBase* _Clothing = (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
+
+	return _Clothing;
+}
+
+void DestroyClothingBase(struct ClothingBase* _Clothing) {
+	free(_Clothing->Locations);
+	free(_Clothing);
 }
 
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {

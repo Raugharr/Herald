@@ -12,9 +12,9 @@ function CopyTable(Old)
 end
 
 local function Peasant(Person)
-	if(Person.Age < ToMonth("Years", 13)) then
+	if(Person:GetAge() < ToMonth("Years", 13)) then
 		return "Child"
-	else if(Person.Male == true) then
+	else if(Person:GetGender() == 1) then
 		return "Peasant"
 	end
 	end
@@ -33,11 +33,11 @@ function Farmer(Size)
 		CreateGood("Rye", Rye.PerAcre * 5),
 		CreateGood("Barley", Barley.PerAcre * 5),
 		CreateGood("Oats", Oats.PerAcre * 5),
-		--CreateGood("Scratch Plow", 1)
+		CreateGood("Scratch Plow", 1)
 	}
-	Table.Field = {{"Wheat", 10}, {"Rye", 10}, {"Barley", 5}, {"Oats", 5}}
+	Table.Field = {16, 16}
 	Table.Buildings = {CreateBuilding(10, 10, "Dirt", "Board", "Hay", "Human")}
-	Table.Animals = {}
+	Table.Animals = {{"Chicken", Size * 2}}
 	Table.AI = Peasant
 	return Table
 end
@@ -50,7 +50,7 @@ function Herder(Size)
 	local PigCt = Size * 2
 	
 	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt))}
-	Table.Field = {}
+	Table.Field = {20}
 	Table.Buildings = {CreateBuilding(12, 12, "Dirt", "Board", "Hay", "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}
 	Table.AI = Peasant			

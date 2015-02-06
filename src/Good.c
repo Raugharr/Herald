@@ -5,6 +5,7 @@
 
 #include "Good.h"
 
+#include "Person.h"
 #include "Herald.h"
 #include "World.h"
 #include "Crop.h"

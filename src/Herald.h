@@ -88,6 +88,8 @@ struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*));
+void ObjectAddPos(int _X, int _Y, struct Object* _Obj);
+void ObjectRmPos(struct Object* _Obj);
 int ObjNoThink(struct Object* _Obj);
 
 DATE MonthToInt(const char* _Month);

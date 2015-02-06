@@ -24,6 +24,7 @@
 #include "sys/KDTree.h"
 #include "sys/Event.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -204,24 +205,46 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 }
 
 void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*)) {
-	struct Array* _Table = NULL;
-	int _Pos[2];
-
 	_Obj->Id = NextId();
 	_Obj->X = _X;
 	_Obj->Y = _Y;
 	_Obj->Think = _Think;
+	ObjectAddPos(_X, _Y, _Obj);
+}
 
+void ObjectAddPos(int _X, int _Y, struct Object* _Obj) {
+	struct LinkedList* _List = NULL;
+	int _Pos[2];
+	
 	_Pos[0] = _X;
 	_Pos[1] = _Y;
-	if((_Table = KDSearch(&g_ObjPos, _Pos)) == NULL) {
-		_Table = CreateArray(128);
-		KDInsert(&g_ObjPos, _Table, _X, _Y);
+	if((_List = KDSearch(&g_ObjPos, _Pos)) == NULL) {
+		_List = CreateLinkedList();
+		KDInsert(&g_ObjPos, _List, _X, _Y);
 	}
-	ArrayInsertSort_S(_Table, _Obj, (int(*)(const void*, const void*)) IdISCallback);
+	LnkLstPushBack(_List, _Obj);
 	if(g_ObjPos.Size >= g_ObjPosBal) {
 		g_ObjPosBal *= 2;
 		KDBalance(&g_ObjPos);
+	}
+}
+
+void ObjectRmPos(struct Object* _Obj) {
+	struct LinkedList* _List = NULL;
+	int _Pos[2];
+	struct LnkLst_Node* _Itr = NULL;
+
+	_Pos[0] = _Obj->X;
+	_Pos[1] = _Obj->Y;
+	_List = KDSearch(&g_ObjPos, _Pos);
+	assert(_List == NULL);
+	_Itr = _List->Front;
+	while(_Itr != NULL) {
+		if(ObjCmp(_Obj, _Itr->Data) == 0) {
+			LnkLst_Remove(_List, _Itr);
+			return;
+		}
+		_Itr = _Itr->Next;
 	}
 }
 

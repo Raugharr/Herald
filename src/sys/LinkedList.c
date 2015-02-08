@@ -113,6 +113,36 @@ void* LnkLst_PopFront(struct LinkedList* _List) {
 	return _Data;
 }
 
+void* LnkLstPopBack(struct LinkedList* _List) {
+	struct LnkLst_Node* _Node = _List->Back;
+	void* _Data = NULL;
+
+	if(_Node == NULL)
+		return NULL;
+	_Data = _Node->Data;
+	_List->Back = _Node->Prev;
+	_List->Back->Next = NULL;
+	free(_Node);
+	--_List->Size;
+	return _Data;
+}
+
+void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void* _Value) {
+	struct LnkLst_Node* _NewNode = CreateLnkLstNode(_Value);
+
+	if(_Node->Next == NULL) {
+		++_List->Size;
+		_Node->Next = _NewNode;
+		_NewNode->Prev = _Node;
+		return;
+	}
+	++_List->Size;
+	_Node->Next->Prev = _NewNode;
+	_NewNode->Next = _Node->Next;
+	_Node->Next = _NewNode;
+	_NewNode->Prev = _Node;
+}
+
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 	struct LnkLst_Node* _Prev = _Node->Prev;
 

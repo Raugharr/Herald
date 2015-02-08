@@ -50,6 +50,7 @@ void LnkLstClear(struct LinkedList* _List);
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value);
 void* LnkLst_PopFront(struct LinkedList* _List);
 void* LnkLstPopBack(struct LinkedList* _List);
+void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void* _Value);
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node);
 void* LnkLstSearch(struct LinkedList* _List, const void* _Data, int (*_Compare)(const void*, const void*));
 /*!

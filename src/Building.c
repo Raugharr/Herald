@@ -63,7 +63,7 @@ int ConstructionTime(const struct Building* _Building, int _Width, int _Height) 
 struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
-	CreateObject((struct Object*)_Building, 0, 0, ObjNoThink);
+	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);
 	_Building->ResidentType = _ResType;
 	_Building->Width = _Width;
 	_Building->Length = _Length;

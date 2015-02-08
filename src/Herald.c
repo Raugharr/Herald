@@ -204,8 +204,9 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	return _Return;
 }
 
-void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*)) {
+void CreateObject(struct Object* _Obj, int _Type, int _X, int _Y, int (*_Think)(struct Object*)) {
 	_Obj->Id = NextId();
+	_Obj->Type = _Type;
 	_Obj->X = _X;
 	_Obj->Y = _Y;
 	_Obj->Think = _Think;

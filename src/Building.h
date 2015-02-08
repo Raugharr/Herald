@@ -30,6 +30,7 @@ enum {
 
 struct Building {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);
@@ -71,6 +72,9 @@ struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const str
 struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
 
+/**
+ * Returns a BuildMat of type _MatType that exists in _Goods that is the most plentiful.
+ */
 struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
 struct Building* BuildingPlan(const struct Person* _Person, int _Type);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);

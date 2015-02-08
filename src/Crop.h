@@ -41,6 +41,7 @@ struct Crop {
 
 struct Field {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);

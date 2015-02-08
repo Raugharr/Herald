@@ -74,6 +74,7 @@ enum {
 
 struct Person {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);

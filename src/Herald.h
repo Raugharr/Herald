@@ -49,6 +49,14 @@ enum {
 	SENIOR
 };
 
+enum {
+	OBJECT_GOOD,
+	OBJECT_PERSON,
+	OBJECT_ANIMAL,
+	OBJECT_BUILDING,
+	OBJECT_CROP
+};
+
 struct InputReq {
 	void* Req;
 	double Quantity;
@@ -56,6 +64,7 @@ struct InputReq {
 
 struct Object {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);
@@ -87,7 +96,7 @@ int ObjCmp(const void* _One, const void* _Two);
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
-void CreateObject(struct Object* _Obj, int _X, int _Y, int (*_Think)(struct Object*));
+void CreateObject(struct Object* _Obj, int _Type, int _X, int _Y, int (*_Think)(struct Object*));
 void ObjectAddPos(int _X, int _Y, struct Object* _Obj);
 void ObjectRmPos(struct Object* _Obj);
 int ObjNoThink(struct Object* _Obj);

@@ -30,6 +30,7 @@ struct Population {
 
 struct Animal {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);

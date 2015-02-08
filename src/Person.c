@@ -65,7 +65,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
 	_Person->Name = _Name;
-	CreateObject((struct Object*)_Person, _X, _Y, (int(*)(struct Object*))PersonThink);
+	CreateObject((struct Object*)_Person, OBJECT_PERSON, _X, _Y, (int(*)(struct Object*))PersonThink);
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
 	_Person->Nutrition = _Nutrition;

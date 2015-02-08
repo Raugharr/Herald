@@ -130,7 +130,7 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres) 
 	struct Field* _Field = NULL;
 
 	_Field = (struct Field*) malloc(sizeof(struct Field));
-	CreateObject((struct Object*)_Field, _X, _Y, (int(*)(struct Object*))FieldUpdate);
+	CreateObject((struct Object*)_Field, OBJECT_CROP,_X, _Y, (int(*)(struct Object*))FieldUpdate);
 	_Field->Width = _Acres * ACRE_WIDTH;
 	_Field->Length = _Acres * ACRE_LENGTH;
 	_Field->Crop = _Crop;

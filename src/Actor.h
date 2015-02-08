@@ -19,7 +19,7 @@ struct Actor {
 	DATE Age;
 };
 
-void CtorActor(struct Actor* _Actor, int _X, int _Y, int(*_Think)(struct Object*), int _Gender, int _Nutrition, int _Age);
+void CtorActor(struct Actor* _Actor, int _Type, int _X, int _Y, int(*_Think)(struct Object*), int _Gender, int _Nutrition, int _Age);
 void DtorActor(struct Actor* _Actor);
 
 void ActorDeath(struct Actor* _Actor);

@@ -57,9 +57,6 @@ struct Population* PopulationLoad(lua_State* _State, int _Index);
 struct Animal* CreateAnimal(const struct Population* _Pop, int _Age,  int _Nutrition, int _X, int _Y);
 int AnimalCmp(const void* _One, const void* _Two);
 void DestroyAnimal(struct Animal* _Animal);
-void AnimalFeed(struct Animal* _Animal);
-void AnimalUpdate(struct Animal* _Animal);
-void AnimalDeath(struct Animal* _Animal);
 /*!
  * Returns a power set that contains all FoodBase*'s that are eaten by Population*'s in _Table.
  */

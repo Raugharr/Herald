@@ -5,6 +5,7 @@
 
 #include "Population.h"
 
+#include "Actor.h"
 #include "Person.h"
 #include "Good.h"
 #include "Herald.h"
@@ -231,14 +232,13 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 
 struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _Nutrition, int _X, int _Y) {
 	struct Animal* _Animal = (struct Animal*) malloc(sizeof(struct Animal));
+	int _Gender = 0;
 
-	CreateObject((struct Object*)_Animal, OBJECT_ANIMAL, _X, _Y, (int(*)(struct Object*))ObjNoThink);
 	if(Random(0, 999) < (int)(_Pop->MaleRatio * 1000 - 1)) {
-		_Animal->Gender = EMALE;
+		_Gender = EMALE;
 	} else
-		_Animal->Gender = EFEMALE;
-	_Animal->Nutrition = _Nutrition;
-	_Animal->Age = _Age;
+		_Gender = EFEMALE;
+	CtorActor(((struct Actor*)_Animal), OBJECT_ANIMAL,  _X, _Y, (int(*)(struct Object*))ActorThink, _Gender, _Nutrition, _Age);
 	_Animal->PopType = _Pop;
 	return _Animal;
 }
@@ -249,18 +249,6 @@ int AnimalCmp(const void* _One, const void* _Two) {
 
 void DestroyAnimal(struct Animal* _Animal) {
 	free(_Animal);
-}
-
-void AnimalFeed(struct Animal* _Animal) {
-
-}
-
-void AnimalUpdate(struct Animal* _Animal) {
-	NextDay(&_Animal->Age);
-}
-
-void AnimalDeath(struct Animal* _Animal) {
-
 }
 
 void AnimalDepAddAn(const struct AnimalDep* _Dep, const struct Array* _Tbl) {

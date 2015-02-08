@@ -272,7 +272,7 @@ void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct L
 }
 
 void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations) {
-	_Locations = calloc(ArrayLen(g_PersonBodyStr), sizeof(int));
+	_Locations = alloca(EBODY_SIZE * sizeof(int));
 
 	lua_pushstring(_State, "Locations");
 	lua_rawget(_State, -2);
@@ -309,7 +309,7 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y) {
 	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
 
-	CreateObject((struct Object*)_Good, _X, _Y, (int(*)(struct Object*))GoodThink);
+	CreateObject((struct Object*)_Good, OBJECT_GOOD, _X, _Y, (int(*)(struct Object*))GoodThink);
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
 	return _Good;
@@ -356,7 +356,7 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
-	CreateObject((struct Object*)_Food, _X, _Y, (int(*)(struct Object*))GoodThink);
+	CreateObject((struct Object*)_Food, OBJECT_GOOD, _X, _Y, (int(*)(struct Object*))GoodThink);
 	_Food->Base = _Base;
 	_Food->Quantity = 0;
 	_Food->Parts = FOOD_MAXPARTS;
@@ -368,9 +368,7 @@ void DestroyFood(struct Food* _Food) {
 }
 
 struct ClothingBase* CreateClothingBase(const char* _Name, int _Category) {
-	struct ClothingBase* _Clothing = (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
-
-	return _Clothing;
+	return (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
 }
 
 void DestroyClothingBase(struct ClothingBase* _Clothing) {

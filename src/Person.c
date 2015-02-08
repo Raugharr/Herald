@@ -5,6 +5,7 @@
 
 #include "Person.h"
 
+#include "Actor.h"
 #include "Herald.h"
 #include "Family.h"
 #include "Crop.h"
@@ -64,8 +65,8 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	struct Person* _Person = NULL;
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
+	CtorActor(_Person, OBJECT_PERSON, _X, _Y, PersonThink, _Gender, _Nutrition, _Age);
 	_Person->Name = _Name;
-	CreateObject((struct Object*)_Person, OBJECT_PERSON, _X, _Y, (int(*)(struct Object*))PersonThink);
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
 	_Person->Nutrition = _Nutrition;
@@ -101,13 +102,12 @@ int PersonThink(struct Person* _Person) {
 				&& Random(0, 999) < 20)
 			ATimerInsert(&g_ATimer, CreatePregancy(_Person));
 	}
-	_Person->Nutrition -= NUTRITION_LOSS;
+	ActorThink((struct Actor*) _Person);
 	/*if(Random(0, 999) < (MAX_NUTRITION - _Person->Nutrition) / 500) {
 		++g_Deaths;
 		PersonDeath(_Person);
 		return 1;
 	}*/
-	NextDay(&_Person->Age);
 	return 1;
 }
 
@@ -115,7 +115,6 @@ void PersonDeath(struct Person* _Person) {
 	int i;
 	struct Family* _Family = _Person->Family;
 
-	_Person->Nutrition = 0;
 	if(_Person->Gender == EFEMALE)
 		ATimerRmNode(&g_ATimer, _Person);
 	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
@@ -130,10 +129,6 @@ void PersonDeath(struct Person* _Person) {
 		}
 	DestroyPerson(_Person);
 	EventPush(CreateEventDeath(_Person));
-}
-
-int PersonWorkMult(struct Person* _Person) {
-	return (_Person->Nutrition / 15);
 }
 
 void BodyStrToBody(const char* _BodyStr, int* _Locations) {

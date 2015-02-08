@@ -13,8 +13,9 @@ Goods = {
 	{Name = "Stone Sickle", Category = "Tool", Function = "Reap", InputGoods = {}},
 	{Name = "Straw", Category = "Food", InputGoods = {}, Nutrition = 3},
 	{Name = "Wool", Category = "Other", InputGoods = {}},
-	{Name = "Wool Tunic", Category = "Clothing", InputGoods = {{"Wool", 12}}},
-	{Name = "Wool Trousers", Category = "Clothing", InputGoods = {{"Wool", 12}}},
+	{Name = "Wool Yarn", Category = "Material", InputGoods = {"Wool", 1}},
+	{Name = "Wool Tunic", Category = "Clothing", Locations = {"Upper Arms", "Upper Chest", "Lower Chest"}, InputGoods = {{"Wool Yarn", 57600}}},
+	{Name = "Wool Trousers", Category = "Clothing", Locations = {"Ankles", "Lower Legs", "Upper Legs", "Pelvis"}, InputGoods = {{"Wool Yarn", 57600}}},
 	{Name = "Dirt", Category = "Material", InputGoods = {}},
 	{Name = "Wood", Category = "Material", InputGoods = {}}
 }

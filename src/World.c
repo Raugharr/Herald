@@ -349,6 +349,7 @@ void WorldInit(int _Area) {
 	Family_Init(_Array);
 	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList) == 0)
 		goto end;
+	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
 	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
 	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
@@ -381,8 +382,11 @@ void WorldInit(int _Area) {
 	_Itr = _GoodList->Front;
 	while(_Itr != NULL) {
 		GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data));
+		GoodLoadOutput(g_LuaState, ((struct GoodBase*)_Itr->Data));
 		_Itr = _Itr->Next;
 	}
+	g_GoodOutputs = realloc(g_GoodOutputs, g_GoodOutputsSz + 1);
+	g_GoodOutputs[g_GoodOutputsSz + 1] = NULL;
 	GoodLoadEnd:
 	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
 		goto end;

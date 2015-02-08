@@ -23,8 +23,11 @@
 typedef struct lua_State lua_State;
 struct HashTable;
 struct Object;
+struct GoodOutput;
 
 extern char* g_PersonBodyStr[];
+extern struct GoodOutput** g_GoodOutputs;
+extern int g_GoodOutputsSz;
 
 enum {
 	EFOOD = (1 << 0),
@@ -50,6 +53,16 @@ struct GoodBase {
 	int Category;
 	struct InputReq** InputGoods;
 	int IGSize;
+};
+
+struct GoodMaker {
+	struct GoodBase* Maker;
+	int Time;	
+};
+
+struct GoodOutput {
+	struct GoodBase* Output;
+	struct GoodMaker** Makers;
 };
 
 struct Good {
@@ -107,6 +120,8 @@ struct GoodDep {
 	const struct GoodBase* Good;
 };
 
+int GoodOutputCmp(const void* _One, const void* _Two);
+
 int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two);
 int GoodBaseDepCmp(const struct GoodBase* _Good, const struct GoodDep* _Pair);
 int InputReqGoodCmp(const struct InputReq* _One, const struct Good* _Two);
@@ -145,6 +160,7 @@ int GoodThink(struct Good* _Good);
  */
 struct GoodBase* GoodLoad(lua_State* _State, int _Index);
 int GoodLoadInput(lua_State* _State, struct GoodBase* _Good);
+int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good);
 void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct LinkedList* _List);
 void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations);
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good);

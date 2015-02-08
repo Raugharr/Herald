@@ -34,6 +34,12 @@ char* g_PersonBodyStr[] = {
 		"Feet",
 		NULL
 };
+struct GoodOutput** g_GoodOutputs = NULL;
+int g_GoodOutputsSz = 0;
+
+int GoodOutputCmp(const void* _One, const void* _Two) {
+	return ((struct GoodOutput*)_One)->Output->Id - ((struct GoodOutput*)_Two)->Output->Id;
+}
 
 int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
@@ -169,7 +175,7 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	} else if(_Category == ECLOTHING) {
 		int* _Locations = NULL;
 
-		_Good = CreateClothingBase(_Name, _Category);
+		_Good = (struct GoodBase*) CreateClothingBase(_Name, _Category);
 		ClothingBaseLoad(_State, _Good, _Locations);
 	} else
 		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);
@@ -247,6 +253,71 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 	HashDelete(&g_Goods, _Good->Name);
 	DestroyGoodBase(_Good);
 	return 0;
+}
+
+int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
+	int _Time;
+	struct GoodMaker* _Maker = NULL;
+	struct GoodBase* _OutputGood = NULL;
+	struct GoodOutput* _Output = NULL;
+	struct LinkedList _List = {0, NULL, NULL};
+	struct LnkLst_Node* _Itr = NULL;
+
+	if(_Good == NULL)
+		return 0;
+	lua_getglobal(_State, "Goods");
+	lua_pushstring(_State, _Good->Name);
+	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
+	lua_pushstring(_State, "OutputGoods");
+	lua_rawget(_State, -2);
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_type(_State, -1) != LUA_TTABLE)
+			goto loop_end;
+		lua_pushinteger(_State, 1);
+		lua_rawget(_State, -2);
+		if(lua_type(_State, -1) != LUA_TSTRING) {
+			lua_pop(_State, 2);
+			continue;
+		}
+		if((_OutputGood = HashSearch(&g_Goods, lua_tostring(_State, -1))) == NULL) {
+			lua_pop(_State, 2);
+			return 0;
+		}
+		lua_pop(_State, 1);
+		lua_pushinteger(_State, 2);
+		lua_rawget(_State, -2);
+		if(lua_isnumber(_State, -1) == 0) {
+			lua_pop(_State, 2);
+			continue;
+		}
+		_Time = lua_tointeger(_State, -1);
+		_Output = (struct GoodOutput*) malloc(sizeof(struct GoodOutput));
+		_Output->Output = _OutputGood;
+		_Output->Makers = (struct GoodMaker**) calloc(2, sizeof(struct GoodMaker*));
+		_Maker = (struct GoodMaker*) malloc(sizeof(struct GoodMaker));
+		_Maker->Maker = _Good;
+		_Maker->Time = _Time;
+		_Output->Makers[0] = _Maker;
+		_Output->Makers[1] = NULL; 	
+		LnkLstPushBack(&_List, _Output);
+		loop_end:
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
+	_Itr = _List.Front;
+	while(_Itr != NULL) {
+		if((_Output = BinarySearch(_Itr->Data, g_GoodOutputs, g_GoodOutputsSz, GoodOutputCmp)) == NULL) {
+				g_GoodOutputs[g_GoodOutputsSz] = _Itr->Data;
+				++g_GoodOutputsSz;
+		}  else {
+			_Output->Makers = realloc(_Output->Makers, ArrayLen(_Output->Makers) + 1);
+			_Output->Makers[ArrayLen(_Output->Makers) - 2] = _Good;
+		}
+		_Itr = _Itr->Next;
+	}
+	return 1;
 }
 
 void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct LinkedList* _List) {

@@ -8,7 +8,7 @@
 
 #define LnkLstPopFront(_List) LnkLst_PopFront(_List)
 #define LnkLstPushBack(_List, _Node) LnkLst_PushBack(_List, _Node)
-#define LnkLstRemove(_List, _Prev, _Node) LnkLst_Remove(_List, _Prev, _Node)
+#define LnkLstRemove(_List, _Node) LnkLst_Remove(_List, _Node)
 #define LnkLstCatNode(_List, _Node) LnkLst_CatNode(List, _Node)
 
 #define ILL_CREATE(_Global, _Var)			\

@@ -7,6 +7,7 @@
 
 #include "BehaviorTree.h"
 #include "LuaLib.h"
+#include "AIHelper.h"
 #include "../Actor.h"
 #include "../Population.h"
 #include "../Building.h"
@@ -24,6 +25,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
@@ -32,7 +34,6 @@ struct LuaBhvAction g_BhvActions[] = {
 	{"BuildHouse", PAIBuildHouse},
 	{"CanFarm", PAICanFarm},
 	{"ConstructBuilding", PAIConstructBuild},
-	{"Eat", PAIEat},
 	{"FeedAnimals", PAIFeedAnimals},
 	{"HasAnimals", PAIHasAnimals},
 	{"HasField", PAIHasField},
@@ -300,43 +301,21 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 }
 
 int PAIEat(struct Person* _Person, struct HashTable* _Table) {
-	int _Size = _Person->Family->Goods->Size;
-	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
-	struct Food* _Food;
-	int _Nut = 0;
-	int _NutReq = NUTRITION_LOSS;
-	int _Div = 0;
-	int i;
-	
-	for(i = 0; i < _Size; ++i) {
-		_Food = (struct Food*)_Tbl[i];
-		if(_Food->Base->Category != EFOOD)
-			continue;
-		_Div = _Food->Base->Nutrition / FOOD_MAXPARTS;
-		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts != 0) {
-			if(_Food->Base->Nutrition > _NutReq) {
-				--_Food->Parts;
-				if(_Food->Parts <= 0) {
-					if(_Food->Quantity > 0) {
-						--_Food->Quantity;
-						_Food->Parts = FOOD_MAXPARTS;
-					}
-				}
-				_Nut += _Div;
-			} else {
-				if(_Food->Quantity == 0) {
-					_Nut += _Food->Base->Nutrition  * (_Food->Parts / FOOD_MAXPARTS);
-					_Food->Parts = 0;
-				} else {
-					_Nut += _Food->Base->Nutrition;
-					--_Food->Quantity;
-				}
+	struct Family* _Family = _Person->Family;
+	struct Food* _CloseFood = NULL;
+	int _BestDist = INT_MAX;
+	int _Distance = 0;
+	int i = 0;
+
+	for(i = 0; i < _Family->Goods->Size; ++i) {
+		if(((struct Good*)_Family->Goods->Table[i])->Base->Category == EFOOD) {
+			if((_Distance = Distance(_Person->X, _Person->Y, ((struct Good*)_Family->Goods->Table[i])->X, ((struct Good*)_Family->Goods->Table[i])->Y)) < _BestDist) {
+				_BestDist = _Distance;
+				_CloseFood = (struct Good*)_Family->Goods->Table[i];
 			}
 		}
 	}
-	if(_Nut == 0)
-		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
-	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
+	ActorAddJob(_Person->Id, ACTORJOB_EAT, _CloseFood, _CloseFood->X, _CloseFood->Y);
 	return 1;
 }
 

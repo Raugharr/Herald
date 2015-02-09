@@ -8,6 +8,11 @@
 #include "../sys/Queue.h"
 #include "../sys/MemoryPool.h"
 #include "../sys/LinkedList.h"
+#include "../sys/Array.h"
+#include "../sys/Log.h"
+#include "../Good.h"
+#include "../Person.h"
+#include "../Family.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +23,9 @@
 struct Queue g_PathQueue = {NULL, 0, 0, 0};
 struct MemoryPool* g_PathDataPool = NULL;
 struct MemoryPool* g_PathPool = NULL;
+struct ActorJobBase g_ActorJobBases[] = {
+		{ACTORJOB_EAT, ActorJobEat}
+		};
 
 struct PathData {
 	int (*Heuristic)(const void*, const void*);
@@ -158,4 +166,46 @@ void Pathfind(int _StartX, int _StartY, int _EndX, int _EndY, struct Path* _Path
 	_PData->EndY = _EndY;
 	_PData->Path = _Path;
 	QueuePush(&g_PathQueue, _PData);
+}
+
+void ActorJobEat(struct Actor* _Worker, void* _FoodPtr) {
+	struct Person* _Person = (struct Person*)_Worker;
+	int _Size = _Person->Family->Goods->Size;
+	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
+	struct Food* _Food = (struct Food*) _FoodPtr;
+	int _Nut = 0;
+	int _NutReq = NUTRITION_LOSS;
+	int _Div = 0;
+	int i;
+
+	for(i = 0; i < _Size; ++i) {
+		_Food = (struct Food*)_Tbl[i];
+		if(_Food->Base->Category != EFOOD)
+			continue;
+		_Div = _Food->Base->Nutrition / FOOD_MAXPARTS;
+		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts != 0) {
+			if(_Food->Base->Nutrition > _NutReq) {
+				--_Food->Parts;
+				if(_Food->Parts <= 0) {
+					if(_Food->Quantity > 0) {
+						--_Food->Quantity;
+						_Food->Parts = FOOD_MAXPARTS;
+					}
+				}
+				_Nut += _Div;
+			} else {
+				if(_Food->Quantity == 0) {
+					_Nut += _Food->Base->Nutrition  * (_Food->Parts / FOOD_MAXPARTS);
+					_Food->Parts = 0;
+				} else {
+					_Nut += _Food->Base->Nutrition;
+					--_Food->Quantity;
+				}
+			}
+		}
+	}
+	if(_Nut == 0)
+		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
+	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
+	return;
 }

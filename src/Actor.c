@@ -27,10 +27,10 @@ void DtorActor(struct Actor* _Actor) {
 }
 
 int ActorICallback(const void* _One, const void* _Two) {
-	return ObjCmp(_One, _Two);
+	return ObjCmp(((struct LnkLst_Node*)_One)->Data, ((struct LnkLst_Node*)_Two)->Data);
 }
 int ActorSCallback(const void* _One, const void* _Two) {
-	return ObjCmp(((struct ActorJob*)_One)->Owner, ((struct ActorJob*)_One)->Owner);
+	return ObjCmp(((struct Actor*)_One), ((struct ActorJob*)((struct LnkLst_Node*)_Two)->Data)->Owner);
 }
 
 void ActorDeath(struct Actor* _Actor) {
@@ -65,6 +65,7 @@ int ActorMove(struct Actor* _Actor, int _Direction) {
 		--_Actor->X;
 		break;
 	}
+	ObjectMove((struct Object*) _Actor, _Actor->X, _Actor->Y);
 	return 1;
 }
 

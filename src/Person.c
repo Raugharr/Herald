@@ -65,7 +65,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	struct Person* _Person = NULL;
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
-	CtorActor(_Person, OBJECT_PERSON, _X, _Y, PersonThink, _Gender, _Nutrition, _Age);
+	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (int(*)(struct Object*))PersonThink, _Gender, _Nutrition, _Age);
 	_Person->Name = _Name;
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;

@@ -9,6 +9,7 @@
 #include "Herald.h"
 
 #include "World.h"
+#include "Actor.h"
 
 #define PERSON_CLOTHMAX (16)
 #define EMALE (1)
@@ -80,6 +81,7 @@ struct Person {
 	int Gender;
 	int Nutrition;
 	DATE Age;
+	struct ActorJob* Action;
 	const char* Name;
 	struct Family* Family;
 	struct Family* Parent;

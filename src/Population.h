@@ -37,6 +37,7 @@ struct Animal {
 	int Gender;
 	int Nutrition;
 	DATE Age;
+	struct ActorJob* Action;
 	const struct Population* PopType;
 };
 

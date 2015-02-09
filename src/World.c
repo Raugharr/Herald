@@ -25,6 +25,7 @@
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
 #include "AI/Setup.h"
+#include "AI/AIHelper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -459,6 +460,8 @@ int World_Tick() {
 			HashClear(g_AIHash);
 			BHVRun(_Person->Behavior, _Person, g_AIHash);
 			PAIEat(_Person, g_AIHash);
+			while(ActorHasJob((struct Actor*)_Person) != 0)
+				ActorNextJob((struct Actor*)_Person);
 			_Person = _Person->Next;
 		}
 		while((_Event = HandleEvents()) != NULL) {

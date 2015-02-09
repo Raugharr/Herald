@@ -48,12 +48,14 @@ void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callbac
 	_Itr = _List->Front;
 	do {
 		if(_Callback(_Value, _List->Front->Data) <= 0) {
-			_Node->Next = _Itr->Next;
-			_Node->Prev = _Itr;
-			_Node->Next->Prev = _Node;
-			_Itr->Next = _Node;
 			if(_Itr->Next == NULL)
 				_List->Back = _Node;
+			else {
+				_Node->Next = _Itr->Next;
+				_Node->Next->Prev = _Node;
+			}
+			_Node->Prev = _Itr;
+			_Itr->Next = _Node;
 			++_List->Size;
 			return;
 		}

@@ -10,6 +10,8 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 
+#include <math.h>
+
 #define ACRE_WIDTH (66)
 #define ACRE_LENGTH (660)
 #define ACRE_SQFEET (43560)
@@ -34,6 +36,7 @@
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
 #define DATAFLD "data/"
 #define DATE int
+#define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))
 
 typedef struct lua_State lua_State;
 struct StackNode;
@@ -96,6 +99,7 @@ int ObjCmp(const void* _One, const void* _Two);
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
+
 void CreateObject(struct Object* _Obj, int _Type, int _X, int _Y, int (*_Think)(struct Object*));
 void ObjectAddPos(int _X, int _Y, struct Object* _Obj);
 void ObjectRmPos(struct Object* _Obj);

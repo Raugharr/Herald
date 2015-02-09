@@ -134,6 +134,10 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 						_Category = EMATERIAL;
 					else if(!strcmp("Clothing", _Temp))
 						_Category = ECLOTHING;
+					else if(!strcmp("Furniture", _Temp))
+						_Category = EFURNITURE;
+					else if(!strcmp("Good", _Temp))
+						_Category = EGOOD;
 					else if(!strcmp("Other", _Temp))
 						_Category = EOTHER;
 					else _Return = -1;
@@ -275,12 +279,10 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 	lua_remove(_State, -2);
 	lua_pushstring(_State, "OutputGoods");
 	lua_rawget(_State, -2);
-	int _Type = lua_type(_State, -1);
 	if(lua_type(_State, -1) == LUA_TNIL) {
 		lua_pop(_State, 2);
 		return 0;
-	}
-	lua_pushnil(_State);
+	}	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_type(_State, -1) != LUA_TTABLE)
 			goto loop_end;
@@ -301,6 +303,7 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 			lua_pop(_State, 2);
 			continue;
 		}
+		lua_pop(_State, 1);
 		_Time = lua_tointeger(_State, -1);
 		_Output = (struct GoodOutput*) malloc(sizeof(struct GoodOutput));
 		_Output->Output = _OutputGood;

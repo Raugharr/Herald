@@ -210,6 +210,10 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		lua_pushnil(_State);
+		if(lua_type(_State, -2) != LUA_TTABLE) {
+			Log(ELOG_WARNING, "Good %s's InputGoods contains a non table element.", _Good->Name);
+			goto fail;
+		}
 		if(lua_next(_State, -2) == 0)
 			goto fail;
 		if(lua_isstring(_State, -1) == 1) {
@@ -271,6 +275,11 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 	lua_remove(_State, -2);
 	lua_pushstring(_State, "OutputGoods");
 	lua_rawget(_State, -2);
+	int _Type = lua_type(_State, -1);
+	if(lua_type(_State, -1) == LUA_TNIL) {
+		lua_pop(_State, 2);
+		return 0;
+	}
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_type(_State, -1) != LUA_TTABLE)

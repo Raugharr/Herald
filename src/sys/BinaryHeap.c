@@ -10,7 +10,7 @@
 struct BinaryHeap* CreateBinaryHeap(int _Size, int (*_ICallback)(const void*, const void*)) {
 	struct BinaryHeap* _Heap = (struct BinaryHeap*) malloc(sizeof(struct BinaryHeap));
 
-	_Heap->Table = NULL;
+	_Heap->Table = calloc(_Size, sizeof(void*));
 	_Heap->TblSz = _Size;
 	_Heap->Size = 0;
 	_Heap->Compare = _ICallback;
@@ -48,6 +48,9 @@ void* BinaryHeapPop(struct BinaryHeap* _Heap) {
 	int _Index = 0;
 	int _Left = 0;
 	int _Right = 0;
+	int _LeftCmp = 0;
+	int _RightCmp = 0;
+	int _BestChild = 0;
 
 	_Heap->Table[0] = NULL;
 	if(_Heap->Size == 1) {
@@ -55,24 +58,30 @@ void* BinaryHeapPop(struct BinaryHeap* _Heap) {
 		return _Top;
 	}
 	_Heap->Table[0] = _Heap->Table[_Heap->Size - 1];
+	_Heap->Table[_Heap->Size - 1] = NULL;
+	--_Heap->Size;
 	while(1) {
 		_Left = BinaryHeapLeft(_Index);
-		if(_Heap->Compare(_Heap->Table[_Index], _Heap->Table[_Left]) < 0) {
-			_Temp = _Heap->Table[_Index];
-			_Heap->Table[_Index] = _Heap->Table[_Left];
-			_Heap->Table[_Left] = _Temp;
-			continue;
+		_Right = BinaryHeapRight(_Index);
+		if(BinaryHeapIsNode(_Left, _Heap) != 0) {
+			_LeftCmp = _Heap->Compare(_Heap->Table[_Index], _Heap->Table[_Left]);
+			if(BinaryHeapIsNode(_Right, _Heap) != 0) {
+				_RightCmp = _Heap->Compare(_Heap->Table[_Index], _Heap->Table[_Right]);
+				if(_LeftCmp < _RightCmp)
+					_BestChild = _Left;
+				else
+					_BestChild = _Right;
+			} else {
+				_BestChild = _Left;
+			}
+		} else {
+			break;
 		}
-		_Right = BinaryHeapLeft(_Index);
-		if(_Heap->Compare(_Heap->Table[_Index], _Heap->Table[_Right]) < 0) {
-			_Temp = _Heap->Table[_Index];
-			_Heap->Table[_Index] = _Heap->Table[_Right];
-			_Heap->Table[_Right] = _Temp;
-			continue;
-		}
-		break;
+		_Temp = _Heap->Table[_Index];
+		_Heap->Table[_Index] = _Heap->Table[_BestChild];
+		_Heap->Table[_BestChild] = _Temp;
+		_Index = _BestChild;
 	}
 
-	--_Heap->Size;
 	return _Top;
 }

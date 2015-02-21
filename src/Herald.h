@@ -39,7 +39,7 @@
 #define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))
 #define ObjectMove(_Obj, _X, _Y)		\
 	ObjectRmPos((_Obj));				\
-	ObjectAddPos((_Obj), (_X), (_Y))
+	ObjectAddPos((_X), (_Y), (_Obj))
 
 typedef struct lua_State lua_State;
 struct StackNode;

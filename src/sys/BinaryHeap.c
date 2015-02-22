@@ -18,7 +18,7 @@ struct BinaryHeap* CreateBinaryHeap(int _Size, int (*_ICallback)(const void*, co
 }
 
 void DestroyBinaryHeap(struct BinaryHeap* _Heap) {
-	BinaryHeapClear(_Heap);
+	free(_Heap->Table);
 	free(_Heap);
 }
 
@@ -71,9 +71,10 @@ void* BinaryHeapPop(struct BinaryHeap* _Heap) {
 					_BestChild = _Left;
 				else
 					_BestChild = _Right;
-			} else {
+			} else if(_LeftCmp < 0){
 				_BestChild = _Left;
-			}
+			} else
+				break;
 		} else {
 			break;
 		}

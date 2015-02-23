@@ -13,6 +13,7 @@
 #include "Good.h"
 #include "Occupation.h"
 #include "Population.h"
+#include "AI/AIHelper.h"
 #include "sys/Stack.h"
 #include "sys/RBTree.h"
 #include "sys/Random.h"
@@ -79,6 +80,7 @@ void HeraldInit() {
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	EventInit();
+	PathfindInit();
 }
 
 void HeraldDestroy() {
@@ -86,6 +88,7 @@ void HeraldDestroy() {
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);
 	EventQuit();
+	PathfindQuit();
 }
 
 struct InputReq* CreateInputReq() {

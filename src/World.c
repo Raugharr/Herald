@@ -13,6 +13,7 @@
 #include "Building.h"
 #include "Good.h"
 #include "Population.h"
+#include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
 #include "sys/Constraint.h"
@@ -46,6 +47,7 @@ struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
 struct KDTree g_ObjPos;
 struct Person* g_Player = NULL;
+struct TaskPool* g_TaskPool = NULL;
 struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
@@ -335,6 +337,7 @@ void WorldInit(int _Area) {
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
 	g_AIHash = CreateHash(32);
+	g_TaskPool = CreateTaskPool();
 	g_WorldSize = _Area;
 	g_World = CreateArray(_WorldSize);
 	for(i = 0; i < _WorldSize; ++i)
@@ -368,7 +371,7 @@ void WorldInit(int _Area) {
 		Log(ELOG_WARNING, "Failed to load goods.");
 		goto GoodLoadEnd;
 	}
-	if(LuaLoadFile(g_LuaState, "goods.lua") == 0)
+	if(LuaLoadFile(g_LuaState, "goods.lua") != LUA_OK)
 		goto end;
 	lua_getglobal(g_LuaState, "Goods");
 	i = 1;
@@ -438,6 +441,7 @@ void WorldQuit() {
 		DestroyWorldTile(g_World->Table[i]);
 	AIQuit();
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
+	DestroyTaskPool(g_TaskPool);
 	DestroyArray(g_World);
 	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();
@@ -477,11 +481,15 @@ int World_Tick() {
 		escape_events:
 		_Itr = g_ObjPos.Root;
 		while(_Itr != NULL) {
-			struct Array* _Array = ((struct Array*)_Itr->Data);
+			struct LinkedList* _List = ((struct Array*)_Itr->Data);
+			struct LnkLst_Node* _ListItr = _List->Front;
 
-			for(i = 0; i < _Array->Size; ++i)
-				((struct Object*)_Array->Table[i])->Think((struct Object*)_Array->Table[i]);
+			while(_ListItr != NULL) {
+				((struct Object*)_ListItr->Data)->Think((struct Object*)_ListItr->Data);
+				_ListItr = _ListItr->Next;
+			}
 			_Itr = KDNextNode(_Itr);
+
 		}
 		NextDay(&g_Date);
 		if(MONTH(g_Date) != _OldMonth) {

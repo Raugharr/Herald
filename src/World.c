@@ -355,14 +355,14 @@ void WorldInit(int _Area) {
 		goto end;
 	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
 	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
-	g_Goods.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Goods.TblSize);
+	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	
 	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList) == 0)
 		goto end;
 	g_Crops.TblSize = (_CropList->Size * 5) / 4;
-	g_Crops.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * _CropList->Size);
+	g_Crops.Table = (struct HashNode**) calloc(g_Crops.TblSize, sizeof(struct HashNode*));
 	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
 	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
 
@@ -395,19 +395,19 @@ void WorldInit(int _Area) {
 	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
 		goto end;
 	g_Populations.TblSize = (_PopList->Size * 5) / 4;
-	g_Populations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Populations.TblSize);
+	g_Populations.Table = (struct HashNode**) calloc(g_Populations.TblSize, sizeof(struct HashNode*));
 	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
 	if(LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList) == 0)
 		goto end;
 	g_Occupations.TblSize = ((_OccupationList->Size + 1) * 5) / 4;
-	g_Occupations.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_Occupations.TblSize);
+	g_Occupations.Table = (struct HashNode**) calloc(g_Occupations.TblSize, sizeof(struct HashNode*));
 	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
 	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList) == 0)
 		goto end;
 	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
-	g_BuildMats.Table = (struct HashNode**) malloc(sizeof(struct HashNode*) * g_BuildMats.TblSize);
+	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
 
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
@@ -454,6 +454,7 @@ int World_Tick() {
 	struct Person* _Person = g_PersonList;
 	struct Event* _Event = NULL;
 	struct KDNode* _Itr = NULL;
+	struct LinkedList _QueuedPeople = {0, NULL, NULL};
 	int _Ticks = 30;
 	int _OldMonth = MONTH(g_Date);
 	int i;
@@ -464,8 +465,10 @@ int World_Tick() {
 			HashClear(g_AIHash);
 			BHVRun(_Person->Behavior, _Person, g_AIHash);
 			PAIEat(_Person, g_AIHash);
-			while(ActorHasJob((struct Actor*)_Person) != 0)
-				ActorNextJob((struct Actor*)_Person);
+			//while(ActorHasJob((struct Actor*)_Person) != 0) {
+			//	if(ActorNextJob((struct Actor*)_Person) == 0)
+			//		LnkLstPushBack(&_QueuedPeople, _Person);
+			//}
 			_Person = _Person->Next;
 		}
 		while((_Event = HandleEvents()) != NULL) {
@@ -500,5 +503,6 @@ int World_Tick() {
 		_Person = g_PersonList;
 		--_Ticks;
 	} while(_Ticks > 0);
+	LnkLstClear(&_QueuedPeople);
 	return 1;
 }

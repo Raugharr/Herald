@@ -37,7 +37,9 @@ enum {
 	ETOOL = (1 << 4),
 	EMATERIAL = (1 << 5),
 	ECLOTHING = (1 << 6),
-	EOTHER = (1 << 7)
+	EFURNITURE = (1 << 7),
+	EGOOD = (1 << 8),
+	EOTHER = (1 << 9)
 };
 
 enum {

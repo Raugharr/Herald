@@ -14,9 +14,12 @@
 
 extern struct RBTree g_ActorJobs;
 
+struct Object;
+
 struct ActorJobBase {
 	int Id;
-	void(*Callback)(struct Actor*, void*);
+	int(*Callback)(struct Actor*, struct Object*, void*);
+	int(*TimeCalc)(struct Actor*, struct Object*, void*);
 };
 
 extern struct ActorJobBase g_ActorJobBases[];
@@ -24,9 +27,9 @@ extern struct ActorJobBase g_ActorJobBases[];
 struct ActorJob {
 	struct ActorJobBase* Job;
 	struct Actor* Owner;
+	struct Object* Object;
 	void* Extra;
-	int X;
-	int Y;
+	int TotalTime;
 };
 
 struct Actor {
@@ -55,7 +58,7 @@ int ActorMove(struct Actor* _Actor, int _Direction);
 
 void ActorNextJob(struct Actor* _Actor);
 int ActorHasJob(struct Actor* _Actor);
-void ActorAddJob(struct Actor* _Owner, int _JobId, void* _Extra, int _JobX, int _JobY);
+void ActorAddJob(int _JobId, struct Actor* _Owner, struct Object* _Object, void* _Extra);
 struct ActorJob* ActorPopJob(struct Actor* _Owner);
 
 #endif

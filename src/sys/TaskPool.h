@@ -12,7 +12,7 @@ typedef struct SDL_con SDL_con;
 typedef struct SDL_mutex SDL_mutex;
 
 struct Task {
-	void (*Callback)(void*, void*);
+	int (*Callback)(void*, void*);
 	void* DataOne;
 	void* DataTwo;
 	int StartTime;
@@ -37,6 +37,6 @@ struct TaskPool* CreateTaskPool();
 void DestroyTaskPool(struct TaskPool* _TaskPool);
 
 struct Task* TaskPoolNext(struct TaskPool* _Pool);
-void TaskPoolAdd(struct TaskPool* _Pool, int _StartTime, void (*_Callback)(void*, void*), void* _DataOne, void* _DataTwo);
+void TaskPoolAdd(struct TaskPool* _Pool, int _StartTime, int (*_Callback)(void*, void*), void* _DataOne, void* _DataTwo);
 
 #endif

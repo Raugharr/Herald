@@ -6,6 +6,7 @@
 #include "Actor.h"
 
 #include "AI/AIHelper.h"
+#include "AI/Pathfind.h"
 #include "sys/LinkedList.h"
 #include "sys/TaskPool.h"
 #include "World.h"
@@ -78,8 +79,9 @@ void ActorNextJob(struct Actor* _Actor) {
 	int _TileCt = 0;
 
 	if((_Job = ActorPopJob(_Actor)) != NULL) {
-		if(Distance(_Actor->X, _Actor->Y, _Job->X, _Job->Y) > 1) {
-			Pathfind(_Actor->X, _Actor->Y, _Job->X, _Job->Y, &_AIPath);
+		_Actor->Action = _Job;
+		if(Distance(_Actor->X, _Actor->Y, _Job->Object->X, _Job->Object->Y) > 1) {
+			Pathfind(_Actor->X, _Actor->Y,_Job->Object->X, _Job->Object->Y, &_AIPath);
 			_PathItr = &_AIPath;
 			while(_PathItr != NULL) {
 				for(_TileCt = _PathItr->Tiles; _TileCt > 0; --_TileCt)
@@ -93,7 +95,7 @@ void ActorNextJob(struct Actor* _Actor) {
 				_AIPath = *_PathItr;
 			}
 		} else
-			TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (void(*)(void*, void*))_Job->Job->Callback, _Job->Owner, _Job->Extra);
+			TaskPoolAdd(g_TaskPool, g_TaskPool->Time + _Job->TotalTime, (int(*)(void*, void*))_Job->Job->Callback, _Job->Owner, _Job->Object);
 			//_Job->Job->Callback(_Job->Owner, _Job->Extra);
 	}
 }
@@ -102,15 +104,15 @@ int ActorHasJob(struct Actor* _Actor) {
 	return RBSearch(&g_ActorJobs, _Actor) != NULL;
 }
 
-void ActorAddJob(struct Actor* _Owner, int _JobId, void* _Extra, int _JobX, int _JobY) {
+void ActorAddJob(int _JobId, struct Actor* _Owner, struct Object* _Object, void* _Extra) {
 	struct ActorJob* _Job = (struct ActorJob*) malloc(sizeof(struct ActorJob));
 	struct LnkLst_Node* _Node = NULL;
 
 	_Job->Job = &g_ActorJobBases[_JobId];
 	_Job->Owner = _Owner;
+	_Job->Object = _Object;
 	_Job->Extra = _Extra;
-	_Job->X = _JobX;
-	_Job->Y = _JobY;
+	_Job->TotalTime = _Job->Job->TimeCalc(_Owner, _Object, _Object);
 	if((_Node = RBSearch(&g_ActorJobs, _Owner)) == NULL) {
 		LnkLstPushBack(&g_ActorJobsList, _Job);
 		RBInsert(&g_ActorJobs, g_ActorJobsList.Back);

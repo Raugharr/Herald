@@ -18,14 +18,15 @@ int TaskCmp(const void* _One, const void* _Two) {
 int TaskPoolThread(struct TaskPool* _TaskPool) {
 	struct Task* _Task = NULL;
 
-	//SDL_LockMutex(_TaskPool->ThreadMutex);
 	while(_TaskPool->IsAlive) {
 		while((_Task = TaskPoolNext(_TaskPool)) == NULL)
 			SDL_Delay(10);
-		//	SDL_CondWaitTimeout(_TaskPool->ThreadCon, _TaskPool->ThreadMutex, 10);
-		_Task->Callback(_Task->DataOne, _Task->DataTwo);
+		//If the task is not completed continue it on the next tick.
+		if(_Task->Callback(_Task->DataOne, _Task->DataTwo) != 0) {
+			_Task->StartTime += 1;
+			BinaryHeapInsert(&_TaskPool->Schedule, _Task);
+		}
 	}
-	//SDL_UnlockMutex(_TaskPool->ThreadMutex);
 	return 1;
 }
 
@@ -73,7 +74,7 @@ struct Task* TaskPoolNext(struct TaskPool* _Pool) {
 	return _Task;
 }
 
-void TaskPoolAdd(struct TaskPool* _Pool, int _StartTime, void (*_Callback)(void*, void*), void* _DataOne, void* _DataTwo) {
+void TaskPoolAdd(struct TaskPool* _Pool, int _StartTime, int (*_Callback)(void*, void*), void* _DataOne, void* _DataTwo) {
 	struct Task* _Task = NULL;
 
 	SDL_LockMutex(_Pool->PoolMutex);

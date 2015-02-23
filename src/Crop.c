@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 

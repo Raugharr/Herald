@@ -14,6 +14,7 @@
 #include "Occupation.h"
 #include "Population.h"
 #include "AI/AIHelper.h"
+#include "AI/Pathfind.h"
 #include "sys/Stack.h"
 #include "sys/RBTree.h"
 #include "sys/Random.h"

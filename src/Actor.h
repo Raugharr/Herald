@@ -31,6 +31,7 @@ struct ActorJob {
 
 struct Actor {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);

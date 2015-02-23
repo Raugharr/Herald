@@ -7,6 +7,8 @@
 
 #include "AI/AIHelper.h"
 #include "sys/LinkedList.h"
+#include "sys/TaskPool.h"
+#include "World.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,14 +86,15 @@ void ActorNextJob(struct Actor* _Actor) {
 					ActorMove(_Actor, _PathItr->Direction);
 				_PathItr = _PathItr->Next;
 			}
-		}
-		_PathItr = &_AIPath;
-		while(_PathItr != NULL) {
-			_PathItr = _PathItr->Next;
-			DestroyPath(&_AIPath);
-			_AIPath = *_PathItr;
-		}
-		_Job->Job->Callback(_Job->Owner, _Job->Extra);
+			_PathItr = &_AIPath;
+			while(_PathItr != NULL) {
+				_PathItr = _PathItr->Next;
+				DestroyPath(&_AIPath);
+				_AIPath = *_PathItr;
+			}
+		} else
+			TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (void(*)(void*, void*))_Job->Job->Callback, _Job->Owner, _Job->Extra);
+			//_Job->Job->Callback(_Job->Owner, _Job->Extra);
 	}
 }
 

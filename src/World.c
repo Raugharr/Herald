@@ -481,7 +481,7 @@ int World_Tick() {
 		escape_events:
 		_Itr = g_ObjPos.Root;
 		while(_Itr != NULL) {
-			struct LinkedList* _List = ((struct Array*)_Itr->Data);
+			struct LinkedList* _List = ((struct LinkedList*)_Itr->Data);
 			struct LnkLst_Node* _ListItr = _List->Front;
 
 			while(_ListItr != NULL) {

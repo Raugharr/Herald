@@ -8,6 +8,7 @@
 struct Person;
 struct Actor;
 struct Object;
+struct ActorJobPair;
 
 enum {
 	ACTORJOB_EAT,
@@ -18,8 +19,8 @@ enum {
 
 int ActorJobTempTime(struct Actor* _Worker, struct Object* _NoObj, void* _NoVoid);
 
-int ActorJobEat(struct Actor* _Worker, struct Object* _FoodPtr, void* _None);
-int ActorJobPlant(struct Actor* _Worker, struct Object* _Field, void* _Seed);
-int ActorJobHarvest(struct Actor* _Worker, struct Object* _Field, void* _Goods);
+int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair);
+int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair);
+int ActorJobHarvest(struct Actor* _Worker, struct ActorJobPair* _Pair);
 
 #endif

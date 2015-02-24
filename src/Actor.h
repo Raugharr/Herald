@@ -11,14 +11,21 @@
 #include "AI/AIHelper.h"
 
 #define NUTRITION_LOSS (16)
+#define ActorPerformJob(_Actor) (TaskPoolAdd(g_TaskPool, g_TaskPool->Time + (_Actor)->Action->TotalTime, (int(*)(void*, void*))(_Actor)->Action->Job->Callback, (_Actor)->Action->Owner, &(_Actor)->Action->Pair))
 
 extern struct RBTree g_ActorJobs;
 
 struct Object;
+struct Path;
+
+struct ActorJobPair {
+	struct Object* Object;
+	void* Extra;
+};
 
 struct ActorJobBase {
 	int Id;
-	int(*Callback)(struct Actor*, struct Object*, void*);
+	int(*Callback)(struct Actor*, struct ActorJobPair*);
 	int(*TimeCalc)(struct Actor*, struct Object*, void*);
 };
 
@@ -27,8 +34,7 @@ extern struct ActorJobBase g_ActorJobBases[];
 struct ActorJob {
 	struct ActorJobBase* Job;
 	struct Actor* Owner;
-	struct Object* Object;
-	void* Extra;
+	struct ActorJobPair Pair;
 	int TotalTime;
 };
 
@@ -54,9 +60,10 @@ void ActorDeath(struct Actor* _Actor);
 void ActorThink(struct Actor* _Actor);
 void ActorFeed(struct Actor* _Actor, int _Amount);
 int ActorWorkMult(struct Actor* _Actor);
-int ActorMove(struct Actor* _Actor, int _Direction);
+void ActorMove(struct Actor* _Actor, struct Path* _Path);
+int ActorMoveDir(struct Actor* _Actor, int _Direction);
 
-void ActorNextJob(struct Actor* _Actor);
+int ActorNextJob(struct Actor* _Actor);
 int ActorHasJob(struct Actor* _Actor);
 void ActorAddJob(int _JobId, struct Actor* _Owner, struct Object* _Object, void* _Extra);
 struct ActorJob* ActorPopJob(struct Actor* _Owner);

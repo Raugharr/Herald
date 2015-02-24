@@ -5,9 +5,6 @@
 
 #include "AIHelper.h"
 
-#include "../sys/Queue.h"
-#include "../sys/MemoryPool.h"
-#include "../sys/LinkedList.h"
 #include "../sys/Array.h"
 #include "../sys/Log.h"
 #include "../Good.h"
@@ -28,7 +25,8 @@ int ActorJobTempTime(struct Actor* _Worker, struct Object* _NoObj, void* _NoVoid
 	return 0;
 }
 
-int ActorJobEat(struct Actor* _Worker, struct Object* _FoodPtr, void* _None) {
+int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair) {
+	struct Food* _FoodPtr = _Pair->Object;
 	struct Person* _Person = (struct Person*)_Worker;
 	int _Size = _Person->Family->Goods->Size;
 	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
@@ -67,15 +65,16 @@ int ActorJobEat(struct Actor* _Worker, struct Object* _FoodPtr, void* _None) {
 	if(_Nut == 0)
 		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
 	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
+	_Worker->Action = NULL;
+	return 0;
+}
+
+int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair) {
+	FieldPlant((struct Field*)_Pair->Object, _Pair->Extra);
 	return 1;
 }
 
-int ActorJobPlant(struct Actor* _Worker, struct Object* _Field, void* _Seed) {
-	FieldPlant((struct Field*)_Field, _Seed);
-	return 1;
-}
-
-int ActorJobHarvest(struct Actor* _Worker, struct Object* _Field, void* _Goods) {
-	FieldHarvest((struct Field*)_Field, (struct Array*)_Goods);
+int ActorJobHarvest(struct Actor* _Worker, struct ActorJobPair* _Pair) {
+	FieldHarvest((struct Field*)_Pair->Object, (struct Array*)_Pair->Extra);
 	return 1;
 }

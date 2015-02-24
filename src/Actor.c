@@ -53,7 +53,26 @@ int ActorWorkMult(struct Actor* _Actor) {
 	return (_Actor->Nutrition / 15);
 }
 
-int ActorMove(struct Actor* _Actor, int _Direction) {
+void ActorMove(struct Actor* _Actor, struct Path* _Path) {
+	struct Path* _PathItr = NULL;
+	int _TileCt = 0;
+
+	while(_Path->Next == NULL)
+		_PathItr = _Path;
+		while(_PathItr != NULL) {
+			for(_TileCt = _PathItr->Tiles; _TileCt > 0; --_TileCt)
+				ActorMoveDir(_Actor, _PathItr->Direction);
+			_PathItr = _PathItr->Next;
+		}
+		_PathItr = _Path;
+		while(_PathItr != NULL) {
+			_PathItr = _PathItr->Next;
+			DestroyPath(_Path);
+			_Path = _PathItr;
+		}
+}
+
+int ActorMoveDir(struct Actor* _Actor, int _Direction) {
 	switch(_Direction) {
 	case EDIR_NORTH:
 		++_Actor->Y;
@@ -72,32 +91,20 @@ int ActorMove(struct Actor* _Actor, int _Direction) {
 	return 1;
 }
 
-void ActorNextJob(struct Actor* _Actor) {
+int ActorNextJob(struct Actor* _Actor) {
 	struct ActorJob* _Job = NULL;
-	struct Path _AIPath;
-	struct Path* _PathItr = NULL;
-	int _TileCt = 0;
 
 	if((_Job = ActorPopJob(_Actor)) != NULL) {
 		_Actor->Action = _Job;
-		if(Distance(_Actor->X, _Actor->Y, _Job->Object->X, _Job->Object->Y) > 1) {
-			Pathfind(_Actor->X, _Actor->Y,_Job->Object->X, _Job->Object->Y, &_AIPath);
-			_PathItr = &_AIPath;
-			while(_PathItr != NULL) {
-				for(_TileCt = _PathItr->Tiles; _TileCt > 0; --_TileCt)
-					ActorMove(_Actor, _PathItr->Direction);
-				_PathItr = _PathItr->Next;
-			}
-			_PathItr = &_AIPath;
-			while(_PathItr != NULL) {
-				_PathItr = _PathItr->Next;
-				DestroyPath(&_AIPath);
-				_AIPath = *_PathItr;
-			}
-		} else
-			TaskPoolAdd(g_TaskPool, g_TaskPool->Time + _Job->TotalTime, (int(*)(void*, void*))_Job->Job->Callback, _Job->Owner, _Job->Object);
-			//_Job->Job->Callback(_Job->Owner, _Job->Extra);
+		if(Distance(_Actor->X, _Actor->Y, _Job->Pair.Object->X, _Job->Pair.Object->Y) > 1) {
+			//Pathfind(_Actor->X, _Actor->Y,_Job->Object->X, _Job->Object->Y);
+			return 0;
+		} else {
+			ActorPerformJob(_Actor);
+			return 1;
+		}
 	}
+	return 0;
 }
 
 int ActorHasJob(struct Actor* _Actor) {
@@ -110,8 +117,8 @@ void ActorAddJob(int _JobId, struct Actor* _Owner, struct Object* _Object, void*
 
 	_Job->Job = &g_ActorJobBases[_JobId];
 	_Job->Owner = _Owner;
-	_Job->Object = _Object;
-	_Job->Extra = _Extra;
+	_Job->Pair.Object = _Object;
+	_Job->Pair.Extra = _Extra;
 	_Job->TotalTime = _Job->Job->TimeCalc(_Owner, _Object, _Object);
 	if((_Node = RBSearch(&g_ActorJobs, _Owner)) == NULL) {
 		LnkLstPushBack(&g_ActorJobsList, _Job);

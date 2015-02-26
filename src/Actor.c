@@ -115,6 +115,10 @@ void ActorAddJob(int _JobId, struct Actor* _Owner, struct Object* _Object, void*
 	struct ActorJob* _Job = (struct ActorJob*) malloc(sizeof(struct ActorJob));
 	struct LnkLst_Node* _Node = NULL;
 
+	if(_JobId >= ACTORJOB_SIZE)
+		return;
+	if(_Owner == NULL || _Object == NULL)
+		return;
 	_Job->Job = &g_ActorJobBases[_JobId];
 	_Job->Owner = _Owner;
 	_Job->Pair.Object = _Object;

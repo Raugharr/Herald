@@ -163,10 +163,9 @@ int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct ToolBase*)_Good)->Function == ETOOL_PLOW)
 				return 1;
 	}
-	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
-		free(_Search->Pair);
+	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL)
 		_Search->Pair = AI_PLOW;
-	} else
+	else
 		HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
 	return 0;
 }
@@ -219,10 +218,9 @@ int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
 			if(((struct ToolBase*)_Good)->Function == ETOOL_REAP)
 				return 1;
 	}
-	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
-		free(_Search->Pair);
+	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL)
 		_Search->Pair = AI_REAP;
-	} else
+	else
 		HashInsert(_Table, AI_MAKEGOOD, AI_REAP);
 	return 0;
 }
@@ -315,7 +313,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 			}
 		}
 	}
-	ActorAddJob(_Person->Id, ACTORJOB_EAT, _CloseFood, NULL );
+	ActorAddJob(ACTORJOB_EAT, (struct Actor*)_Person, (struct Object*)_CloseFood, NULL);
 	return 1;
 }
 

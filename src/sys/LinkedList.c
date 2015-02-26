@@ -150,10 +150,12 @@ void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 
 	if(_List->Front == _Node)
 		_List->Front = _Node->Next;
-	else if(_List->Back == _Node) 
+	if(_List->Back == _Node) 
 		_List->Back = _Node->Prev;
-	_Prev->Next = _Node->Next;
-	_Prev->Next->Prev = _Prev;
+	if(_Prev != NULL) {
+		_Prev->Next = _Node->Next;
+		_Prev->Next->Prev = _Prev;
+	}
 	free(_Node);
 	--_List->Size;
 }

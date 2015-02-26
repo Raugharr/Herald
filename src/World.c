@@ -387,10 +387,11 @@ void WorldInit(int _Area) {
 	while(_Itr != NULL) {
 		GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data));
 		GoodLoadOutput(g_LuaState, ((struct GoodBase*)_Itr->Data));
+		Log(ELOG_INFO, "Good loaded %s.", ((struct GoodBase*)_Itr->Data)->Name);
 		_Itr = _Itr->Next;
 	}
-	g_GoodOutputs = realloc(g_GoodOutputs, g_GoodOutputsSz + 1);
-	g_GoodOutputs[g_GoodOutputsSz + 1] = NULL;
+	g_GoodOutputs = realloc(g_GoodOutputs, sizeof(struct GoodOutput*) * (g_GoodOutputsSz + 1));
+	g_GoodOutputs[g_GoodOutputsSz] = NULL;
 	GoodLoadEnd:
 	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
 		goto end;
@@ -460,15 +461,16 @@ int World_Tick() {
 	int i;
 
 	do {
-		ATImerUpdate(&g_ATimer);
+	ATImerUpdate(&g_ATimer);
 		while(_Person != NULL) {
 			HashClear(g_AIHash);
 			BHVRun(_Person->Behavior, _Person, g_AIHash);
 			PAIEat(_Person, g_AIHash);
-			//while(ActorHasJob((struct Actor*)_Person) != 0) {
-			//	if(ActorNextJob((struct Actor*)_Person) == 0)
-			//		LnkLstPushBack(&_QueuedPeople, _Person);
-			//}
+			while(ActorHasJob((struct Actor*)_Person) != 0) {
+				printf("Has Job");
+				if(ActorNextJob((struct Actor*)_Person) == 0)
+					LnkLstPushBack(&_QueuedPeople, _Person);
+			}
 			_Person = _Person->Next;
 		}
 		while((_Event = HandleEvents()) != NULL) {

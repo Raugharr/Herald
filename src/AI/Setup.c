@@ -315,7 +315,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 			}
 		}
 	}
-	ActorAddJob(_Person->Id, ACTORJOB_EAT, _CloseFood, _CloseFood->X, _CloseFood->Y);
+	ActorAddJob(_Person->Id, ACTORJOB_EAT, _CloseFood, NULL );
 	return 1;
 }
 

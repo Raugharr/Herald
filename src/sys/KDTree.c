@@ -192,7 +192,6 @@ void KDBalance(struct KDTree* _Tree) {
 	KDToArray(_Array, _Tree->Root, KDX, _Tree->Size);
 	_Tree->Root = KDBalance_Aux(_Array, KDX, _Tree->Size);
 	_Tree->Root->Parent = NULL;
-	free(_Array);
 }
 
 const struct KDNode** KDToArray_Aux(const struct KDNode* _Node, int _Axis, int* _Count, int _Size, const struct KDNode** _Array) {

@@ -133,6 +133,8 @@ void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void
 	struct LnkLst_Node* _NewNode = CreateLnkLstNode(_Value);
 
 	if(_Node->Next == NULL) {
+		if(_Node == _List->Back)
+			_List->Back = _NewNode;
 		++_List->Size;
 		_Node->Next = _NewNode;
 		_NewNode->Prev = _Node;

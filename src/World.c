@@ -467,7 +467,6 @@ int World_Tick() {
 			BHVRun(_Person->Behavior, _Person, g_AIHash);
 			PAIEat(_Person, g_AIHash);
 			while(ActorHasJob((struct Actor*)_Person) != 0) {
-				printf("Has Job");
 				if(ActorNextJob((struct Actor*)_Person) == 0)
 					LnkLstPushBack(&_QueuedPeople, _Person);
 			}

@@ -97,7 +97,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 			for(j = 0; j < _Array->Size; ++j) {
 				SelectCrops(_Family, _Family->Fields);
 				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
-					FieldPlant(_Field, _Array->Table[j]);
+					ActorAddJob(ACTORJOB_PLANT, (struct Actor*)_Person, (struct Object*)_Field, _Array->Table[j]);
 					break;
 				}
 			}
@@ -117,7 +117,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 				}
 			FieldWork(_Field, ActorWorkMult((struct Actor*)_Person), _Tool);
 			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0)
-				FieldHarvest(_Field, _Family->Goods);
+				ActorAddJob(ACTORJOB_HARVEST, (struct Actor*)_Person, (struct Object*)_Field, _Family->Goods);
 		}
 	}
 	return 1;
@@ -307,9 +307,9 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 
 	for(i = 0; i < _Family->Goods->Size; ++i) {
 		if(((struct Good*)_Family->Goods->Table[i])->Base->Category == EFOOD) {
-			if((_Distance = Distance(_Person->X, _Person->Y, ((struct Good*)_Family->Goods->Table[i])->X, ((struct Good*)_Family->Goods->Table[i])->Y)) < _BestDist) {
+			if((_Distance = Distance(_Person->X, _Person->Y, ((struct Food*)_Family->Goods->Table[i])->X, ((struct Food*)_Family->Goods->Table[i])->Y)) < _BestDist) {
 				_BestDist = _Distance;
-				_CloseFood = (struct Good*)_Family->Goods->Table[i];
+				_CloseFood = (struct Food*)_Family->Goods->Table[i];
 			}
 		}
 	}

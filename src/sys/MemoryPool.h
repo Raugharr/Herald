@@ -17,14 +17,16 @@
  * breaks this rule like a Person who is in a completely filled page buys a Good, a grouping of objects should
  * be placed into another page.
  */
+
+struct MemPoolNode {
+	struct MemPoolNode* Next;
+	struct MemPoolNode* Prev;
+};
+
 struct MemoryPool {
-	struct Node {
-		struct Node* Next;
-		struct Node* Prev;
-	};
-	struct Node* FreeBlocks;
-	struct Node* AllocatedBlocks;
-	struct Node* BlockPool;
+	struct MemPoolNode* FreeBlocks;
+	struct MemPoolNode* AllocatedBlocks;
+	struct MemPoolNode* BlockPool;
 	int BlockSize;
 	int NodeSize;
 #ifdef DEBUG

@@ -13,16 +13,16 @@
 
 struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 	struct MemoryPool* _MemPool = (struct MemoryPool*) malloc(sizeof(struct MemoryPool));
-	struct Node* _Node = NULL;
-	int _Offset = (sizeof(struct Node) + _SizeOf) / (sizeof(int) * 2);
-	struct Node* _Last = NULL;
+	struct MemPoolNode* _Node = NULL;
+	int _Offset = (sizeof(struct MemPoolNode) + _SizeOf) / (sizeof(int) * 2);
+	struct MemPoolNode* _Last = NULL;
 	int i;
-	_MemPool->BlockPool = (struct Node*) calloc(_Quantity, sizeof(struct Node) + _SizeOf);
+	_MemPool->BlockPool = (struct MemPoolNode*) calloc(_Quantity, sizeof(struct MemPoolNode) + _SizeOf);
 	_MemPool->FreeBlocks = _MemPool->BlockPool;
 	_MemPool->AllocatedBlocks = NULL;
-	_MemPool->NodeSize = (sizeof(struct Node) / (sizeof(int) * 2));
+	_MemPool->NodeSize = (sizeof(struct MemPoolNode) / (sizeof(int) * 2));
 #ifdef DEBUG
-	memset(_MemPool->BlockPool, 0, (sizeof(struct Node) + _SizeOf) * _Quantity);
+	memset(_MemPool->BlockPool, 0, (sizeof(struct MemPoolNode) + _SizeOf) * _Quantity);
 #endif
 	_MemPool->BlockSize = _SizeOf;
 	_Node = _MemPool->BlockPool;
@@ -32,7 +32,7 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 		_Node->Prev = _Node - _Offset;
 		_Node = _Node->Next;
 	}
-	_Last = ((struct Node*)(_MemPool->BlockPool + ((_Quantity - 1) * _Offset)));
+	_Last = ((struct MemPoolNode*)(_MemPool->BlockPool + ((_Quantity - 1) * _Offset)));
 	_Last->Next = NULL;
 	_Last->Prev = _Node;
 	_MemPool->BlockPool->Prev = NULL;
@@ -50,7 +50,7 @@ void DestroyMemoryPool(struct MemoryPool* _MemPool) {
 	free(_MemPool);
 }
 void* MemPool_Alloc(struct MemoryPool* _MemPool) {
-	struct Node* _Node = NULL;
+	struct MemPoolNode* _Node = NULL;
 
 	if(_MemPool->FreeBlocks == NULL)
 		return NULL;
@@ -62,13 +62,19 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 	_Node->Next = _MemPool->AllocatedBlocks;
 	_MemPool->AllocatedBlocks = _Node;
 #ifdef DEBUG
+	if(_MemPool->FreeBlocks < _MemPool->BlockPool && _MemPool->FreeBlocks >= (_MemPool->BlockPool + _MemPool->BlockSize * _MemPool->MaxSize))
+		return NULL;
 	--_MemPool->Size;
 #endif
 	return _Node + _MemPool->NodeSize;
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
-	struct Node* _Node = NULL;
+	struct MemPoolNode* _Node = NULL;
 
+#ifdef DEBUG
+	if(_Ptr < (void*)_MemPool->BlockPool && _Ptr >= (void*)(_MemPool->BlockPool + _MemPool->BlockSize * _MemPool->MaxSize))
+		return;
+#endif
 	if(_Ptr == NULL)
 		return;
 	_Node = _Ptr - _MemPool->NodeSize;

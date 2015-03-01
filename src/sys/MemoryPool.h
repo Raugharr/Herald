@@ -18,8 +18,14 @@
  * be placed into another page.
  */
 struct MemoryPool {
-	struct Node {struct Node* Next;}* Free;
-	int SizeOf;
+	struct Node {
+		struct Node* Next;
+		struct Node* Prev;
+	};
+	struct Node* FreeBlocks;
+	struct Node* AllocatedBlocks;
+	struct Node* BlockPool;
+	int BlockSize;
 	int NodeSize;
 #ifdef DEBUG
 	int MaxSize;

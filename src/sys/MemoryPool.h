@@ -20,6 +20,7 @@
 struct MemoryPool {
 	struct Node {struct Node* Next;}* Free;
 	int SizeOf;
+	int NodeSize;
 #ifdef DEBUG
 	int MaxSize;
 	int Size;

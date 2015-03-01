@@ -18,6 +18,7 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 	int i;
 
 	_MemPool->Free = (struct Node*) malloc((sizeof(struct Node) + _SizeOf) * _Quantity);
+	_MemPool->NodeSize = (sizeof(struct Node) / sizeof(int));
 #ifdef DEBUG
 	memset(_MemPool->Free, 0, (sizeof(struct Node) + _SizeOf) * _Quantity);
 #endif
@@ -52,20 +53,20 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 #ifdef DEBUG
 	--_MemPool->Size;
 #endif
-	return _Node + (sizeof(struct Node) / sizeof(int));
+	return _Node + _MemPool->NodeSize;
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
 	struct Node* _Node = NULL;
 
 	if(_Ptr == NULL)
 		return;
-	_Node = _Ptr - (sizeof(struct Node) / sizeof(int));
+	_Node = _Ptr - _MemPool->NodeSize;
 	if(_MemPool->Free == NULL) {
 		_MemPool->Free = _Node;
-		return;
+	} else
+		_Node->Next = _MemPool->Free; {
+		_MemPool->Free = _Node;
 	}
-	_Node->Next = _MemPool->Free;
-	_MemPool->Free = _Node;
 #ifdef DEBUG
 	++_MemPool->Size;
 #endif

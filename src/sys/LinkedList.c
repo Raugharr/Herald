@@ -150,11 +150,20 @@ void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 	struct LnkLst_Node* _Prev = _Node->Prev;
 
-	if(_List->Front == _Node)
+	if(_List->Size == 1) {
+		_List->Front = NULL;
+		_List->Back = NULL;
+		_List->Size = 0;
+		free(_Node);
+		return;
+	}
+	if(_List->Front == _Node) {
 		_List->Front = _Node->Next;
-	if(_List->Back == _Node) 
+		_List->Front->Prev = NULL;
+	} else if(_List->Back == _Node) {
 		_List->Back = _Node->Prev;
-	if(_Prev != NULL) {
+		_List->Back->Next = NULL;
+	} else if(_Prev != NULL) {
 		_Prev->Next = _Node->Next;
 		_Prev->Next->Prev = _Prev;
 	}

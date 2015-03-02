@@ -10,10 +10,10 @@ typedef struct lua_State lua_State;
 struct GoodBase;
 struct Constraint;
 
-enum {
-	ENONE = 0,
-	EFARMER
-};
+//enum {
+	//ENONE = 0,
+//	EFARMER
+//};
 
 struct Occupation {
 	int Id;

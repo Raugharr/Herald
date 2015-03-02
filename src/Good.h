@@ -69,6 +69,7 @@ struct GoodOutput {
 
 struct Good {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);
@@ -96,6 +97,7 @@ struct FoodBase {
 
 struct Food {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int(*Think)(struct Object*);

@@ -128,6 +128,7 @@ int PopulationFoodCmp(const void* _One, const void* _Two) {
 void DestroyPopulation(struct Population* _Population) {
 	int i;
 
+	DtorActor((struct Actor*)_Population);
 	free(_Population->Name);
 	DestroyConstrntBnds(_Population->Ages);
 	for(i = 0; _Population->Outputs[i] != NULL; ++i)

@@ -403,6 +403,7 @@ int GoodCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyGood(struct Good* _Good) {
+	ObjectRmPos(_Good);
 	free(_Good);
 }
 

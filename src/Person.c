@@ -81,6 +81,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 }
 
 void DestroyPerson(struct Person* _Person) {
+	DtorActor((struct Actor*)_Person);
 	ILL_DESTROY(g_PersonList, _Person);
 	MemPool_Free(g_PersonPool, _Person);
 }

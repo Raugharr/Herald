@@ -100,6 +100,7 @@ struct Building* CopyBuilding(const struct Building* _Building) {
 void DestroyBuilding(struct Building* _Building) {
 	int i;
 
+	ObjectRmPos((struct Object*)_Building);
 	for(i = 0; _Building->OutputGoods[i] != NULL; ++i)
 		free(_Building->OutputGoods[i]);
 	free(_Building->OutputGoods[i]);

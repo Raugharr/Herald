@@ -20,7 +20,6 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 	_MemPool->BlockPool = (struct MemPoolNode*) calloc(_Quantity, sizeof(struct MemPoolNode) + _SizeOf);
 	_MemPool->FreeBlocks = _MemPool->BlockPool;
 	_MemPool->AllocatedBlocks = NULL;
-	_MemPool->NodeSize = (sizeof(struct MemPoolNode) / (sizeof(int) * 2));
 #ifdef DEBUG
 	memset(_MemPool->BlockPool, 0, (sizeof(struct MemPoolNode) + _SizeOf) * _Quantity);
 #endif
@@ -66,7 +65,7 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 		return NULL;
 	--_MemPool->Size;
 #endif
-	return _Node + _MemPool->NodeSize;
+	return (void*)((char*)_Node + sizeof(struct MemPoolNode));
 }
 void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
 	struct MemPoolNode* _Node = NULL;
@@ -77,7 +76,7 @@ void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
 #endif
 	if(_Ptr == NULL)
 		return;
-	_Node = _Ptr - _MemPool->NodeSize;
+	_Node = _Ptr - sizeof(struct MemPoolNode);
 	if(_MemPool->FreeBlocks == NULL) {
 		_MemPool->FreeBlocks = _Node;
 		_Node->Next = NULL;

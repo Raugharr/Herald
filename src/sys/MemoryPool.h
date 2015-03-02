@@ -28,7 +28,6 @@ struct MemoryPool {
 	struct MemPoolNode* AllocatedBlocks;
 	struct MemPoolNode* BlockPool;
 	int BlockSize;
-	int NodeSize;
 #ifdef DEBUG
 	int MaxSize;
 	int Size;

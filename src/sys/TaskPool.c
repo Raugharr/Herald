@@ -20,11 +20,17 @@ int TaskPoolThread(struct TaskPool* _TaskPool) {
 
 	while(_TaskPool->IsAlive) {
 		while((_Task = TaskPoolNext(_TaskPool)) == NULL)
-			SDL_Delay(10);
+			SDL_Delay(5);
 		//If the task is not completed continue it on the next tick.
 		if(_Task->Callback(_Task->DataOne, _Task->DataTwo) != 0) {
 			_Task->StartTime += 1;
+			SDL_LockMutex(_TaskPool->PoolMutex);
 			BinaryHeapInsert(&_TaskPool->Schedule, _Task);
+			SDL_UnlockMutex(_TaskPool->PoolMutex);
+		} else {
+			SDL_LockMutex(_TaskPool->PoolMutex);
+			MemPoolFree(_TaskPool->TaskMemPool, _Task);
+			SDL_UnlockMutex(_TaskPool->PoolMutex);
 		}
 	}
 	return 1;
@@ -78,6 +84,9 @@ void TaskPoolAdd(struct TaskPool* _Pool, int _StartTime, int (*_Callback)(void*,
 	struct Task* _Task = NULL;
 
 	SDL_LockMutex(_Pool->PoolMutex);
+	while(_Pool->TaskMemPool->FreeBlocks == NULL) {
+		SDL_Delay(2);
+	}
 	_Task = MemPoolAlloc(_Pool->TaskMemPool);
 	_Task->StartTime = _StartTime;
 	_Task->Callback = _Callback;

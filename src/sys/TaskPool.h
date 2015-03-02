@@ -26,8 +26,6 @@ struct TaskPool {
 	int IsAlive;
 	int Time;
 	SDL_Thread** Threads;
-	//SDL_con* ThreadCon;
-	//SDL_mutex* ThreadMutex;
 	SDL_mutex* PoolMutex;
 };
 

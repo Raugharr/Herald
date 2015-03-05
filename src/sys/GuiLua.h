@@ -19,7 +19,7 @@ int LuaCreateTable(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
-int LuaContextList(lua_State* _State);
+int LuaContextItem(lua_State* _State);
 
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);

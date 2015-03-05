@@ -31,7 +31,7 @@
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
 		{"VerticalContainer", LuaVerticalContainer},
-		{"ContextList", LuaContextList},
+		{"ContextItem", LuaContextItem},
 		{"BackgroundColor", LuaBackgroundColor},
 		{"GetFont", LuaGetFont},
 		{"SetFont", LuaDefaultFont},
@@ -94,6 +94,16 @@ static const luaL_Reg g_LuaFuncsFont[] = {
 		{"FontWidth", LuaFontWidth},
 		{"FontHeight", LuaFontHeight},
 		{NULL, NULL}
+};
+
+static int(*g_LuaGUIFuncDecl[])(lua_State*) = {
+		LuaRegisterWidget,
+		LuaRegisterContainer,
+		LuaRegisterTextBox,
+		LuaRegisterTable,
+		LuaRegisterSurface,
+		LuaRegisterFont,
+		NULL
 };
 
 int LuaRegisterWidget(lua_State* _State) {
@@ -380,7 +390,7 @@ int LuaVerticalContainer(lua_State* _State) {
 	return 1;
 }
 
-int LuaContextList(lua_State* _State) {
+int LuaContextItem(lua_State* _State) {
 	struct ContextItem* _Container = NULL;
 	SDL_Rect _Rect = {luaL_checkint(_State, 1), luaL_checkint(_State, 2), luaL_checkint(_State, 3), luaL_checkint(_State, 4)};
 	struct Container* _Parent = LuaCheckClass(_State, 7, "Container");
@@ -402,9 +412,10 @@ int LuaContextList(lua_State* _State) {
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Container);
 	lua_rawset(_State, -3);
-	WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
+	WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, (void(*)(struct Widget*))ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
 	return 1;
 }
+
 
 int LuaBackgroundColor(lua_State* _State) {
 	g_GUIDefs.Background.r = luaL_checkint(_State, 1);
@@ -1135,16 +1146,15 @@ int LuaFontHeight(lua_State* _State) {
 }
 
 int InitGUILua(lua_State* _State) {
+	int i = 0;
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
 
-	if(LuaRegisterWidget(_State) == 0 ||
-			LuaRegisterContainer(_State) == 0 ||
-			LuaRegisterTextBox(_State) == 0 ||
-			LuaRegisterTable(_State) == 0 ||
-			LuaRegisterSurface(_State) == 0 ||
-			LuaRegisterFont(_State) == 0)
-		return 0;
+	while(g_LuaGUIFuncDecl[i] != NULL) {
+		if(g_LuaGUIFuncDecl[i](_State) == 0)
+			return 0;
+		++i;
+	}
 	luaL_newlib(_State, g_LuaFuncsGUI);
 	lua_setglobal(_State, "GUI");
 	if(LuaLoadFile(_State, "data/video.lua") != LUA_OK)

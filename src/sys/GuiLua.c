@@ -31,6 +31,7 @@
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
 		{"VerticalContainer", LuaVerticalContainer},
+		{"ContextList", LuaContextList},
 		{"BackgroundColor", LuaBackgroundColor},
 		{"GetFont", LuaGetFont},
 		{"SetFont", LuaDefaultFont},
@@ -379,6 +380,32 @@ int LuaVerticalContainer(lua_State* _State) {
 	return 1;
 }
 
+int LuaContextList(lua_State* _State) {
+	struct ContextItem* _Container = NULL;
+	SDL_Rect _Rect = {luaL_checkint(_State, 1), luaL_checkint(_State, 2), luaL_checkint(_State, 3), luaL_checkint(_State, 4)};
+	struct Container* _Parent = LuaCheckClass(_State, 7, "Container");
+	struct Margin _Margins;
+	int i = 0;
+
+	luaL_checktype(_State, 6, LUA_TTABLE);
+	lua_pushnil(_State);
+	while(lua_next(_State, 6) != 0 && i <= 4) {
+		((int*)&_Margins)[i] = lua_tointeger(_State, 1);
+		lua_pop(_State, 1);
+		++i;
+	}
+	lua_newtable(_State);
+	_Container = CreateContextItem();
+	ConstructContextItem(_Container, _Parent, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
+	lua_getglobal(_State, "Container");
+	lua_setmetatable(_State, -2);
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Container);
+	lua_rawset(_State, -3);
+	WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
+	return 1;
+}
+
 int LuaBackgroundColor(lua_State* _State) {
 	g_GUIDefs.Background.r = luaL_checkint(_State, 1);
 	g_GUIDefs.Background.g = luaL_checkint(_State, 2);
@@ -600,35 +627,36 @@ int LuaSetUnfocusColor(lua_State* _State) {
 	return 0;
 }
 
+int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*)) {
+	int _RefId = 0;
+
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "EventIds");
+	lua_rawget(_State, -2);
+	lua_pushlightuserdata(_State, _Callback);
+	_RefId = luaL_ref(_State, -2);
+	lua_pop(_State, 2);
+	return _RefId;
+}
+
 int LuaOnKey(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckWidget(_State, 1);
 	int _Key = SDLK_RETURN; //LuaStringToKey(_State, 2);
 	int _KeyState = LuaKeyState(_State, 3);
 	int _KeyMod = KMOD_NONE;
-	SDL_Event _Event;
-	struct WEvent _WEvent;
+	int _RefId = 0;
 
 	luaL_argcheck(_State, (lua_isfunction(_State, 4) == 1 || lua_iscfunction(_State, 4) == 1), 4, "Is not a function");
 	luaL_argcheck(_State, (_KeyState != -1), 3, "Is not a valid key state");
-	_Event.type = SDL_KEYUP;
-	_Event.key.state = _KeyState;
-	_Event.key.keysym.sym = _Key;
-	_Event.key.keysym.mod = _KeyMod;
 
-	if(g_GUIEvents->Size == g_GUIEvents->TblSz) {
-		g_GUIEvents->Events = realloc(g_GUIEvents->Events, sizeof(SDL_Event) * g_GUIEvents->TblSz * 2);
-		g_GUIEvents->TblSz *= 2;
-	}
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "EventIds");
 	lua_rawget(_State, -2);
 	lua_pushvalue(_State, 4);
-	_WEvent.Event = _Event;
-	_WEvent.WidgetId = _Widget->Id;
-	_WEvent.RefId = luaL_ref(_State, -2);
-	lua_rawseti(_State, -2, _WEvent.RefId);
-	lua_pop(_State, 1);
-	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;
+	_RefId = luaL_ref(_State, -2);
+	lua_rawseti(_State, -2, _RefId);
+	lua_pop(_State, 2);
+	WidgetOnEvent(_Widget, _RefId, _Key, _KeyState, _KeyMod);
 	return 0;
 }
 
@@ -1129,7 +1157,7 @@ int InitGUILua(lua_State* _State) {
 		if(LuaLoadFile(_State, _Dirent->d_name) != LUA_OK)
 			goto error;
 	}
-	chdir("../..");;
+	chdir("../..");
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Screen");
 	lua_pushnil(_State);
@@ -1155,6 +1183,7 @@ int InitGUILua(lua_State* _State) {
 	lua_pop(_State, 1);
 	return 1;
 	error:
+	chdir("../..");
 	lua_pop(_State, 1);
 	return 0;
 }
@@ -1210,12 +1239,17 @@ int LuaKeyState(lua_State* _State, int _Index) {
 	return -1;
 }
 
-void LuaCallEvent(lua_State* _State, int _EvntIndx) {
+void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback) {
+	int _Type = LUA_TNIL;
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "EventIds");
 	lua_rawget(_State, -2);
 	lua_rawgeti(_State, -1, _EvntIndx);
-	LuaCallFunc(_State, 0, 0, 0);
+	_Type = lua_type(_State, -1);
+	if(_Type == LUA_TFUNCTION)
+		LuaCallFunc(_State, 0, 0, 0);
+	else if(_Type == LUA_TLIGHTUSERDATA)
+		((void (*)(struct Widget*))lua_touserdata(_State, -1))(_Callback);
 	lua_pop(_State, 2);
 }
 

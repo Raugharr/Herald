@@ -5,6 +5,8 @@ typedef struct lua_State lua_State;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
 
+struct Widget;
+
 int LuaRegisterWidget(lua_State* _State);
 int LuaRegisterContainer(lua_State* _State);
 int LuaRegisterTextBox(lua_State* _State);
@@ -17,6 +19,7 @@ int LuaCreateTable(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
+int LuaContextList(lua_State* _State);
 
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
@@ -26,7 +29,14 @@ int LuaSetMenu_Aux(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);
 int LuaSetFocusColor(lua_State* _State);
 int LuaSetUnfocusColor(lua_State* _State);
+/*
+ * Returns the reference id needed for WidgetOnEvent.
+ * Only adds the callback to the list of callbacks, does not add it
+ * to the list of events iterated over when a widget event occurs.
+ */
+int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*));
 int LuaOnKey(lua_State* _State);
+//Please Comment.
 int LuaCloseMenu(lua_State* _State);
 int LuaPopMenu(lua_State* _State);
 int LuaScreenWidth(lua_State* _State);
@@ -99,7 +109,7 @@ int InitGUILua(lua_State* _State);
 int QuitGUILua(lua_State* _State);
 struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
-void LuaCallEvent(lua_State* _State, int _EvntIndx);
+void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback);
 /**
  * The table that contains the Widget must be on top of the stack.
  */

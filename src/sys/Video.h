@@ -152,6 +152,27 @@ struct Table {
 	struct Font* Font;
 };
 
+struct ContextItem {
+	int Id;
+	struct Container* Parent;
+	SDL_Rect Rect;
+	int LuaRef;
+	int CanFocus;
+	int (*OnDraw)(struct Widget*);
+	int (*OnFocus)(struct Widget*);
+	int (*OnUnfocus)(struct Widget*);
+	void (*OnDestroy)(struct Widget*);
+	void (*NewChild)(struct Container*, struct Widget*);
+	void (*RemChild)(struct Container*, struct Widget*);
+	struct Widget** Children;
+	int ChildrenSz;
+	int ChildCt;
+	int Spacing;
+	int FocusChange;
+	struct Margin Margins;
+	int ShowContexts;
+};
+
 int VideoInit(void);
 void VideoQuit(void);
 int NextGUIId(void);
@@ -162,6 +183,7 @@ void Draw(void);
 struct TextBox* CreateTextBox(void);
 struct Container* CreateContainer(void);
 struct Table* CreateTable(void);
+struct ContextItem* CreateContextItem(void);
 struct GUIEvents* CreateGUIEvents(void);
 struct GUIFocus* CreateGUIFocus(void);
 
@@ -171,11 +193,13 @@ struct GUIFocus* CreateGUIFocus(void);
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
 void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
 		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
+
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 /**
  * Deconstructors
@@ -194,6 +218,9 @@ int ContainerOnUnfocus(struct Container* _Container);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
+void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child);
+
+int ContextItemOnDraw(struct ContextItem* _Container);
 
 /*
  * Remove the child from the parent's children leaving a gap in the array.
@@ -213,6 +240,14 @@ void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 
 int SDLEventCmp(const void* _One, const void* _Two);
 int KeyEventCmp(const void* _One, const void* _Two);
+/*
+ * Base for LuaOnKey.
+ * Creates the SDL_Event and the WEvent but does not add the event function to
+ * GUI.EventIds which is needed in order for the callback to function.
+ */
+void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
+
+void ContextItemOnEnter(struct ContextItem* _Widget);
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);

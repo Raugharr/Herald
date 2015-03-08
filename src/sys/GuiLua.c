@@ -564,20 +564,28 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		return 0;
 	}
 	lua_pop(_State, 1);
-	if(lua_type(_State, -1) != LUA_TTABLE)
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		RestoreScreen(_State);
 		return luaL_error(_State, "%s is not a table.", _Name);
+	}
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, -2);
 	lua_remove(_State, -2);
-	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0)
+	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0) {
+		RestoreScreen(_State);
 		return luaL_error(_State, "%s is not a function.", _Name);
+	}
 	lua_pushinteger(_State, SDL_WIDTH);
 	lua_pushinteger(_State, SDL_HEIGHT);
 	lua_pushvalue(_State, 2);
-	if(LuaCallFunc(_State, 3, 1, 0) == 0)
-		luaL_error(_State, "%s.Init function call failed", _Name);
-	if(lua_type(_State, -1) != LUA_TBOOLEAN)
-		luaL_error(_State, "%s.Init function did not return a boolean", _Name);
+	if(LuaCallFunc(_State, 3, 1, 0) == 0) {
+		RestoreScreen(_State);
+		return luaL_error(_State, "%s.Init function call failed", _Name);
+	}
+	if(lua_type(_State, -1) != LUA_TBOOLEAN) {
+		RestoreScreen(_State);
+		return luaL_error(_State, "%s.Init function did not return a boolean", _Name);
+	}
 	if(lua_toboolean(_State, -1) > 0) {
 		int _Ref = 0;
 

@@ -14,6 +14,28 @@
 #define SDL_HEIGHT (768)
 #define SDL_WIDTH (1024)
 #define ChangeFocus(_Focus, _Change) ((_Change < 0) ? (ChangeFocus_Aux(_Focus, -_Change, -1)) : (ChangeFocus_Aux(_Focus, _Change, 1)))
+#define DECLARE_WIDGET					\
+	int Id;								\
+	struct Container* Parent;			\
+	SDL_Rect Rect;						\
+	int LuaRef;							\
+	int CanFocus;						\
+	int (*OnDraw)(struct Widget*);		\
+	int (*OnFocus)(struct Widget*);		\
+	int (*OnUnfocus)(struct Widget*);	\
+	void (*OnDestroy)(struct Widget*)	\
+
+#define DECLARE_CONTAINER											\
+	DECLARE_WIDGET;													\
+	void (*NewChild)(struct Container*, struct Widget*);			\
+	void (*RemChild)(struct Container*, struct Widget*);			\
+	int(*HorzFocChange)(const struct Container*);					\
+	struct Widget** Children;										\
+	int ChildrenSz;													\
+	int ChildCt;													\
+	int Spacing;													\
+	int VertFocChange;												\
+	struct Margin Margins											\
 
 typedef struct lua_State lua_State;
 typedef struct SDL_Window SDL_Window;
@@ -82,94 +104,29 @@ struct Area {
 };
 
 struct Widget {
-	int Id;
-	struct Container* Parent;
-	SDL_Rect Rect;
-	int LuaRef;
-	int CanFocus;
-	int (*OnDraw)(struct Widget*);
-	int (*OnFocus)(struct Widget*);
-	int (*OnUnfocus)(struct Widget*);
-	void (*OnDestroy)(struct Widget*);
+	DECLARE_WIDGET;
 };
 
 struct TextBox {
-	int Id;
-	struct Container* Parent;
-	SDL_Rect Rect;
-	int LuaRef;
-	int CanFocus;
-	int (*OnDraw)(struct Widget*);
-	int (*OnFocus)(struct Widget*);
-	int (*OnUnfocus)(struct Widget*);
-	void (*OnDestroy)(struct Widget*);
+	DECLARE_WIDGET;
 	int (*SetText)(struct Widget*, SDL_Surface*);
 	SDL_Surface* Text;
 	struct Font* Font;
 };
 
 struct Container {
-	int Id;
-	struct Container* Parent;
-	SDL_Rect Rect;
-	int LuaRef;
-	int CanFocus;
-	int (*OnDraw)(struct Widget*);
-	int (*OnFocus)(struct Widget*);
-	int (*OnUnfocus)(struct Widget*);
-	void (*OnDestroy)(struct Widget*);
-	void (*NewChild)(struct Container*, struct Widget*);
-	void (*RemChild)(struct Container*, struct Widget*);
-	struct Widget** Children;
-	int ChildrenSz;
-	int ChildCt;
-	int Spacing;
-	int FocusChange;
-	struct Margin Margins;
+	DECLARE_CONTAINER;
 };
 
 struct Table {
-	int Id;
-	struct Container* Parent;
-	SDL_Rect Rect;
-	int LuaRef;
-	int CanFocus;
-	int (*OnDraw)(struct Widget*);
-	int (*OnFocus)(struct Widget*);
-	int (*OnUnfocus)(struct Widget*);
-	void (*OnDestroy)(struct Widget*);
-	void (*NewChild)(struct Container*, struct Widget*);
-	void (*RemChild)(struct Container*, struct Widget*);
-	struct Widget** Children;
-	int ChildrenSz;
-	int ChildCt;
-	int Spacing;
-	int FocusChange;
-	struct Margin Margins;
+	DECLARE_CONTAINER;
 	int Rows;
 	int Columns;
 	struct Area CellMax; /* max area of a cell. */
-	struct Font* Font;
 };
 
 struct ContextItem {
-	int Id;
-	struct Container* Parent;
-	SDL_Rect Rect;
-	int LuaRef;
-	int CanFocus;
-	int (*OnDraw)(struct Widget*);
-	int (*OnFocus)(struct Widget*);
-	int (*OnUnfocus)(struct Widget*);
-	void (*OnDestroy)(struct Widget*);
-	void (*NewChild)(struct Container*, struct Widget*);
-	void (*RemChild)(struct Container*, struct Widget*);
-	struct Widget** Children;
-	int ChildrenSz;
-	int ChildCt;
-	int Spacing;
-	int FocusChange;
-	struct Margin Margins;
+	DECLARE_CONTAINER;
 	int ShowContexts;
 };
 
@@ -215,6 +172,7 @@ void DestroyFocus(struct GUIFocus* _Focus);
 int ContainerOnDraw(struct Container* _Container);
 int ContainerOnFocus(struct Container* _Container);
 int ContainerOnUnfocus(struct Container* _Container);
+int ContainerHorzFocChange(const struct Container* _Container);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
@@ -237,6 +195,7 @@ int TextBoxOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
 
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
+int TableHorzFocChange(const struct Container* _Container);
 
 int SDLEventCmp(const void* _One, const void* _Two);
 int KeyEventCmp(const void* _One, const void* _Two);
@@ -247,11 +206,14 @@ int KeyEventCmp(const void* _One, const void* _Two);
  */
 void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
 
-void ContextItemOnEnter(struct ContextItem* _Widget);
+int ContextItemOnFocus(struct ContextItem* _Widget);
+int ContextItemOnUnfocus(struct ContextItem* _Widget);
+int ContextHorzFocChange(const struct Container* _Container);
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
 int FirstFocusable(const struct Container* _Parent);
+int NextFocusable(const struct Container* _Parent, int _Index, int _Pos);
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
 //SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

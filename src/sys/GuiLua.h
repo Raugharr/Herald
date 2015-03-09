@@ -96,7 +96,6 @@ int LuaTextBoxSetText(lua_State* _State);
  */
 
 int LuaTableGetCellIndex(lua_State* _State);
-int LuaTableGetFont(lua_State* _State);
 int LuaTableGetRows(lua_State* _State);
 int LuaTableGetColumns(lua_State* _State);
 int LuaTableSetCellWidth(lua_State* _State);

@@ -82,7 +82,6 @@ static const luaL_Reg g_LuaFuncsTextBox[] = {
 
 static const luaL_Reg g_LuaFuncsTable[] = {
 		{"GetCellIndex", LuaTableGetCellIndex},
-		{"GetFont", LuaTableGetFont},
 		{"GetRows", LuaTableGetRows},
 		{"GetColumns", LuaTableGetColumns},
 		{"SetCellWidth", LuaTableSetCellWidth},
@@ -412,7 +411,7 @@ int LuaContextItem(lua_State* _State) {
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Container);
 	lua_rawset(_State, -3);
-	WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, (void(*)(struct Widget*))ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
+	//WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, (void(*)(struct Widget*))ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
 	return 1;
 }
 
@@ -1088,19 +1087,6 @@ int LuaTableGetCellIndex(lua_State* _State) {
 	int _Col = luaL_checkinteger(_State, 3);
 
 	lua_pushinteger(_State, _Row + _Col * _Table->Rows);
-	return 1;
-}
-
-int LuaTableGetFont(lua_State* _State) {
-	struct Table* _Table = LuaCheckTable(_State, 1);
-
-	lua_newtable(_State);
-	lua_getglobal(_State, "Font");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Table->Font);
-	lua_rawset(_State, -3);
 	return 1;
 }
 

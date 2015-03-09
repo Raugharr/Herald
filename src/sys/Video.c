@@ -70,7 +70,7 @@ int NextGUIId(void) {return g_GUIId++;}
 struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos) {
 	const struct Container* _Parent = _Focus->Parent;
 	struct GUIFocus* _Temp = NULL;
-	int _LastIndex = _Focus->Index;
+	int _LastIndex = 0;
 	int _Ct = 0;
 
 	change: /* Decrement the index until the index is invalid. */
@@ -91,8 +91,7 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 
 			_Focus = _Focus->Prev;
 			_Parent = _Focus->Parent;
-			_Ct = 0;//_Focus->Parent->FocusChange;
-			//free(_Temp);
+			//_Ct = 0;
 			goto change;
 		} else {
 			loop_focus:
@@ -118,7 +117,8 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 	}
 	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
 	if(_Temp != NULL) {
-		if(_Focus->Parent == _Temp->Parent->Parent) {
+		_Temp->Parent->OnUnfocus((struct Widget*)_Temp->Parent);
+		if(_Focus->Parent->Children[0]->Id == _Temp->Parent->Id || ((_Temp->Index > 0 && _Temp->Index < _Temp->Parent->ChildrenSz) && _Temp->Parent->Children[_Temp->Index] != NULL)){
 			_Focus = _Temp;
 			_Parent = _Focus->Parent;
 			_Temp = NULL;
@@ -139,11 +139,19 @@ void Events(void) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 			if(_Event.key.keysym.sym == SDLK_w || _Event.key.keysym.sym == SDLK_UP) {
 				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, -_Widget->Parent->FocusChange);
+				g_Focus = ChangeFocus(g_Focus, -_Widget->Parent->VertFocChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			} else if(_Event.key.keysym.sym == SDLK_s || _Event.key.keysym.sym == SDLK_DOWN) {
 				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->FocusChange);
+				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->VertFocChange);
+				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
+			} else if(_Event.key.keysym.sym == SDLK_a || _Event.key.keysym.sym == SDLK_LEFT) {
+				_Widget->OnUnfocus(_Widget);
+				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
+				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
+			} else if(_Event.key.keysym.sym == SDLK_d || _Event.key.keysym.sym == SDLK_RIGHT) {
+				_Widget->OnUnfocus(_Widget);
+				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
 			for(i = 0; i < g_GUIEvents->Size; ++i) {
@@ -154,7 +162,7 @@ void Events(void) {
 					goto event_check;
 				}
 				if(g_GUIEvents->Events[i].WidgetId == g_Focus->Parent->Id) {
-					_Callback = g_Focus->Parent;
+					_Callback = (struct Widget*)g_Focus->Parent;
 					goto event_check;
 				}
 				continue;
@@ -269,15 +277,19 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Margins.Left = _Margin->Left;
 	_Widget->Margins.Right = _Margin->Right;
 	_Widget->Margins.Bottom = _Margin->Bottom;
-	_Widget->FocusChange = 1;
+	_Widget->VertFocChange = 1;
+	_Widget->HorzFocChange = ContainerHorzFocChange;
 }
 
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
+	_Widget->OnFocus = (int(*)(struct Widget*))ContextItemOnFocus;
+	_Widget->OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;
 	_Widget->NewChild = ContextItemNewChild;
+	_Widget->VertFocChange = 0;
+	_Widget->HorzFocChange = ContextHorzFocChange;
 	_Widget->ShowContexts = 0;
-	_Widget->FocusChange = 0;
 }
 
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
@@ -288,6 +300,7 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 
 	_Rect->h = _THeight * _Columns;
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
+	_Widget->HorzFocChange = TableHorzFocChange;
 	_Widget->ChildrenSz = _Columns * _Rows;
 	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
 	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTable;
@@ -295,8 +308,7 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 	_Widget->RemChild = DynamicRemChild;
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
-	_Widget->Font = _Font;
-	_Widget->FocusChange = _Rows;
+	_Widget->VertFocChange = _Rows;
 	++_Font->RefCt;
 	for(i = 0; i < _Size; ++i)
 		_Widget->Children[i] = NULL;
@@ -403,7 +415,6 @@ void DestroyContainer(struct Container* _Container) {
 }
 
 void DestroyTable(struct Table* _Table) {
-	DestroyFont(_Table->Font);
 	DestroyContainer((struct Container*)_Table);
 }
 
@@ -446,15 +457,17 @@ int ContainerOnFocus(struct Container* _Container) {
 }
 
 int ContainerOnUnfocus(struct Container* _Container) {
-	if(g_Focus->Parent == _Container && _Container->Children[g_Focus->Index] != NULL) {
+	/*if(g_Focus->Parent == _Container && _Container->Children[g_Focus->Index] != NULL) {
 		struct GUIFocus* _Focus = g_Focus;
 
-		if(_Container->Children[g_Focus->Index]->OnUnfocus(_Container->Children[g_Focus->Index]) == 0)
-			return 0;
 		g_Focus = g_Focus->Prev;
 		free(_Focus);
-	}
+	}*/
 	return 1;
+}
+
+int ContainerHorzFocChange(const struct Container* _Container) {
+	return 0;
 }
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
@@ -476,12 +489,13 @@ void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child) {
 	ContainerPosChild(_Parent, _Child);
 	_Child->Rect.x = _Parent->Children[0]->Rect.w + _Parent->Spacing;
 	_Child->Rect.y = _Child->Rect.y - _Parent->Children[0]->Rect.h;
+	_Parent->VertFocChange = _Parent->ChildCt;
 }
 
 int ContextItemOnDraw(struct ContextItem* _Container) {
 	int i = 0;
 
-	if(_Container->ShowContexts == 1) {
+	if(_Container->ShowContexts != 0) {
 		for(i = 1; i < _Container->ChildCt; ++i)
 			_Container->Children[i]->OnDraw(_Container->Children[i]);
 	}
@@ -554,6 +568,10 @@ void TableNewChild(struct Container* _Parent, struct Widget* _Child) {
 	_Child->Rect.h = ((struct Table*)_Parent)->CellMax.h;
 }
 
+int TableHorzFocChange(const struct Container* _Container) {
+	return ((struct Table*)_Container)->Columns;
+}
+
 int SDLEventCmp(const void* _One, const void* _Two) {
 	if((((SDL_Event*)_One)->type == SDL_KEYDOWN || ((SDL_Event*)_Two)->type == SDL_KEYUP) &&
 			(((SDL_Event*)_Two)->type == SDL_KEYDOWN || ((SDL_Event*)_Two)->type == SDL_KEYUP))
@@ -591,8 +609,23 @@ void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, 
 	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;
 }
 
-void ContextItemOnEnter(struct ContextItem* _Widget) {
-	_Widget->ShowContexts = !_Widget->ShowContexts;
+int ContextItemOnFocus(struct ContextItem* _Widget) {
+	ContainerOnFocus((struct Container*)_Widget);
+	_Widget->ShowContexts = 1;
+	_Widget->VertFocChange = _Widget->ChildCt;
+	return 1;
+}
+
+int ContextItemOnUnfocus(struct ContextItem* _Widget) {
+	ContainerOnUnfocus((struct Container*)_Widget);
+	_Widget->ShowContexts = 0;
+	return 1;
+}
+
+int ContextHorzFocChange(const struct Container* _Container) {
+	//if(g_Focus->Id == _Container->Children[0]->Id)
+	//	return 1;
+	return 1;
 }
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
@@ -662,6 +695,16 @@ int FirstFocusable(const struct Container* _Parent) {
 			return i;
 	}
 	return -1;
+}
+
+int NextFocusable(const struct Container* _Parent, int _Index, int _Pos) {
+	if(_Index < 0)
+		_Index = 0;
+	else if(_Index >= _Parent->ChildrenSz)
+		_Index = _Parent->ChildrenSz - 1;
+	while((_Index >= 0 && _Index < _Parent->ChildrenSz) && (_Parent->Children[_Index] == NULL || (_Parent->Children[_Index]->CanFocus == 0)))
+		_Index -= _Pos;
+	return _Index;
 }
 
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {

@@ -2,10 +2,9 @@
 #define __TRIE_H
 
 struct TrieNode {
-	char Character;
 	void* Data;
 	struct TrieNode** Children;
-	int ChildrenSz;
+	int ChildrenCt;
 };
 
 struct Trie {
@@ -18,5 +17,5 @@ void DestroyTrie(struct Trie* _Trie);
 
 void TrieInsert(struct Trie* _Trie, const char* _Str, void* _Data);
 void* TrieSearch(struct Trie* _Trie, const char* _Str);
-
+void TrieDelete(struct Trie* _Trie, const char* _Str);
 #endif

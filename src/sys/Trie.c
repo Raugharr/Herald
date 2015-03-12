@@ -75,8 +75,9 @@ void* TrieSearch(struct Trie* _Trie, const char* _Str) {
 		for(i = 0; i < _Node->ChildrenSz; ++i) {
 			if(_Node->Children[i] == NULL)
 				return NULL;
-			if(_Node->Children[i]->Character == *_Str) {
+			if(_Node->Children[i]->Character == tolower(*_Str)) {
 				_Node = _Node->Children[i];
+				break;
 			}
 		}
 		++_Str;

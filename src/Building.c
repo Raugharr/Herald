@@ -23,7 +23,7 @@
 
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
-	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, _Building->Width, _Building->Length);
+	int _BuildTime = ConstructionTime(_Building, _Building->Width, _Building->Length);
 	int _Percent = _BuildTime / 10;
 
 	_Construct->Prev = NULL;
@@ -55,14 +55,13 @@ int ConstructUpdate(struct Construction* _Construct) {
 	return 0;
 }
 
-int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Width, int _Height) {
+int ConstructionTime(const struct Building* _Building, int _Width, int _Height) {
 	int _Area = _Width * _Height;
 
-	return (_Walls->BuildCost * _Area) + (_Floor->BuildCost * _Area) + (_Roof->BuildCost * _Area);
+	return (_Building->Walls->BuildCost * _Area ) + (_Building->Floor->BuildCost * _Area) + (_Building->Roof->BuildCost * _Area);
 }
 
-struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
-	int i = 0;
+struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);
@@ -72,11 +71,6 @@ struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const str
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
-	while(_Zones[i] != NULL) {
-		_Zones[i]->X = 0;
-		_Zones[i]->Y = 0;
-		++i;
-	}
 	return _Building;
 }
 
@@ -198,18 +192,8 @@ struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _Room
 		_Length = g_Zones[ZONE_ONERHOUSE].MinLength;
 		_ResType = (ERES_HUMAN | ERES_ANIMAL);
 	}
-	_Building = CreateBuilding(_ResType, _Width, _Length, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF), NULL);
+	_Building = CreateBuilding(_ResType, _Width, _Length, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF));
 	return _Building;
-}
-
-void BuildingPlanSize(const struct Zone** _Zones, int* _Width, int* _Length) {
-	int i = 0;
-
-	while(_Zones[i] != NULL) {
-		*_Width += _Zones[i]->Width + 2;
-		*_Length += _Zones[i]->Length;
-		++i;
-	}
 }
 
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {

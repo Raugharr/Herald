@@ -20,7 +20,7 @@ enum {
 };
 
 struct ZoneBase {
-	int Type;
+	int Id;
 	const char* Name;
 	int MinWidth;
 	int MinLength;
@@ -29,6 +29,7 @@ struct ZoneBase {
 
 struct Zone {
 	int Id;
+	int Type;
 	int X;
 	int Y;
 	int Width;
@@ -38,9 +39,5 @@ struct Zone {
 };
 
 extern struct ZoneBase g_Zones[];
-extern int g_ZoneCt;
-
-struct Zone* CreateZone(struct ZoneBase* _Base, int _Width, int _Length);
-int NextZoneId();
 
 #endif

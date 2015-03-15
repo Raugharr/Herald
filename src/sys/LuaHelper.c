@@ -19,12 +19,10 @@
 #include "../Population.h"
 #include "../Person.h"
 #include "../Family.h"
-#include "../Zone.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lauxlib.h>
-#include <malloc.h>
 
 lua_State* g_LuaState = NULL;
 
@@ -43,7 +41,6 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"CreateGood", LuaCreateGood},
 		{"CreateBuilding", LuaCreateBuilding},
 		{"CreateAnimal", LuaCreateAnimal},
-		{"GetBuildMat", LuaBuildMat},
 		{NULL, NULL}
 };
 
@@ -105,7 +102,6 @@ static const luaL_Reg g_LuaFuncsBuilding[] = {
 		{"GetId", LuaBuildingGetId},
 		{"GetWidth", LuaBuildingGetWidth},
 		{"GetLength", LuaBuildingGetLength},
-		{"ConstructionTime", LuaBuildingConstructionTime},
 		{NULL, NULL}
 };
 static const luaL_Reg g_LuaFuncsArray[] = {
@@ -113,32 +109,21 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 		{NULL, NULL}
 };
 
-static int(*g_LuaFuncsRegister[])(lua_State*) = {
-		RegisterIterator,
-		RegisterPerson,
-		RegisterGood,
-		RegisterFamily,
-		RegisterField,
-		RegisterAnimal,
-		RegisterBuilding,
-		RegisterArray,
-		RegisterArrayItr,
-		RegisterBuildMat,
-		NULL
-};
-
 void RegisterLuaFuncs(lua_State* _State) {
-	int i = 0;
+	int i;
 
 	for(i = 0; (g_LuaFuncs[i].name != NULL && g_LuaFuncs[i].func != NULL); ++i)
 		lua_register(_State, g_LuaFuncs[i].name, g_LuaFuncs[i].func);
-
-	i = 0;
-	while(g_LuaFuncsRegister[i] != NULL) {
-		if(g_LuaFuncsRegister[i](_State) == 0)
-			return (void) luaL_error(_State, "Loading Lua functions has failed.");
-		++i;
-	}
+	if(
+	RegisterIterator(_State) == 0 ||
+	RegisterPerson(_State) == 0  ||
+	RegisterGood(_State) == 0  ||
+	RegisterFamily(_State) == 0  ||
+	RegisterField(_State) == 0  ||
+	RegisterAnimal(_State) == 0  ||
+	RegisterArray(_State) == 0  ||
+	RegisterArrayItr(_State) == 0 )
+		luaL_error(_State, "Loading Lua functions has failed.");
 }
 
 int RegisterIterator(lua_State* _State) {
@@ -309,25 +294,6 @@ int RegisterAnimal(lua_State* _State) {
 	return 1;
 }
 
-int RegisterBuilding(lua_State* _State) {
-	if(luaL_newmetatable(_State, "Building") == 0)
-		return 0;
-	lua_pushliteral(_State, "__index");
-	lua_pushvalue(_State, -2);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "__class");
-	lua_pushstring(_State, "Building");
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "__newindex");
-	lua_pushnil(_State);
-	lua_rawset(_State, -3);
-	luaL_setfuncs(_State, g_LuaFuncsBuilding, 0);
-	lua_setglobal(_State, "Building");
-	return 1;
-}
-
 int RegisterArray(lua_State* _State) {
 	if(luaL_newmetatable(_State, "Array") == 0)
 		return 0;
@@ -344,25 +310,6 @@ int RegisterArray(lua_State* _State) {
 	lua_rawset(_State, -3);
 	luaL_setfuncs(_State, g_LuaFuncsArray, 0);
 	lua_setglobal(_State, "Array");
-	return 1;
-}
-
-int RegisterBuildMat(lua_State* _State) {
-	if(luaL_newmetatable(_State, "BuildMat") == 0)
-			return 0;
-	lua_pushliteral(_State, "__index");
-	lua_pushvalue(_State, -2);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "__class");
-	lua_pushstring(_State, "BuildMat");
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "__newindex");
-	lua_pushnil(_State);
-	lua_rawset(_State, -3);
-	luaL_setfuncs(_State, g_LuaFuncsArray, 0);
-	lua_setglobal(_State, "BuildMat");
 	return 1;
 }
 
@@ -696,17 +643,6 @@ int LuaBuildingGetLength(lua_State* _State) {
 	return 1;
 }
 
-int LuaBuildingConstructionTime(lua_State* _State) {
-	struct BuildMat* _Floor = LuaCheckBuildMat(_State, 1);
-	struct BuildMat* _Walls = LuaCheckBuildMat(_State, 2);
-	struct BuildMat* _Roof = LuaCheckBuildMat(_State, 3);
-	int _Width = luaL_checkinteger(_State, 4);
-	int _Height = luaL_checkinteger(_State, 5);
-
-	lua_pushinteger(_State, ConstructionTime(_Floor, _Walls, _Roof, _Width, _Height));
-	return 1;
-}
-
 int LuaArrayCreate(lua_State* _State) {
 	int _Size = luaL_checkinteger(_State, 1);
 	struct Array* _Array = CreateArray(_Size);
@@ -825,14 +761,6 @@ struct Building* LuaCheckBuilding(lua_State* _State, int _Index) {
 	if((_Building = LuaTestClass(_State, _Index, "Building")) == NULL)
 		return (struct Building*) LuaCheckClass(_State, _Index, "Building");
 	return _Building;
-}
-
-struct BuildMat* LuaCheckBuildMat(lua_State* _State, int _Index) {
-	struct BuildMat* _BuildMat = NULL;
-
-	if((_BuildMat = LuaTestClass(_State, _Index, "BuildMat")) == NULL)
-		return (struct BuildMat*) LuaCheckClass(_State, _Index, "BuildMat");
-	return _BuildMat;
 }
 
 int LuaConstraint(lua_State* _State) {
@@ -1055,27 +983,6 @@ int LuaPerson(lua_State* _State) {
 	return 1;
 }
 
-int LuaBuildMat(lua_State* _State) {
-	const char* _Name = NULL;
-	struct BuildMat* _BuildMat = NULL;
-
-	if(lua_isstring(_State, 1))
-		_Name = luaL_checkstring(_State, 1);
-	else {
-		luaL_error(_State, LUA_TYPERROR(_State, 1, "string", "BuildMat"));
-		return 0;
-	}
-	if((_BuildMat = HashSearch(&g_BuildMats, _Name)) == NULL)
-		return luaL_error(_State, "BuildMat not given a valid build mat.");
-	lua_newtable(_State);
-	lua_getglobal(_State, "BuildMat");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _BuildMat);
-	lua_rawset(_State, -3);
-	return 1;
-}
-
 int LuaYears(lua_State* _State) {
 	lua_pushinteger(_State, luaL_checkinteger(_State, 1) * YEAR_DAYS);
 	return 1;
@@ -1252,75 +1159,28 @@ int LuaCreateGood(lua_State* _State) {
 }
 
 int LuaCreateBuilding(lua_State* _State) {
-	int i = 0;
-	int _Ct = 0;
-	int _ResType = 0;
 	int _Width = 0;
 	int _Length = 0;
+	int _ResType = 0;
+	const char* _Floor = NULL;
+	const char* _Walls = NULL;
+	const char* _Roof = NULL;
 	const char* _Type = NULL;
-	const char* _Str = NULL;
-	struct ZoneBase* _ZoneBase = NULL;
-	struct Zone* _Zone = NULL;
-	struct Zone** _ZoneTbl = NULL;
 	struct BuildMat* _FloorMat = NULL;
 	struct BuildMat* _WallMat = NULL;
 	struct BuildMat* _RoofMat = NULL;
 
-	luaL_checktype(_State, 1, LUA_TTABLE);
-	lua_len(_State, 1);
-	_ZoneTbl = alloca((lua_tointeger(_State, -1) + 1) * sizeof(struct Zone*));
-	lua_pop(_State, 1);
-	lua_pushvalue(_State, 1);
-	lua_pushnil(_State);
-	while(lua_next(_State, -2) != 0) {
-		if(lua_type(_State, -1) != LUA_TTABLE)
-			goto loop_end;
-		lua_rawgeti(_State, -1, 1);
-		if(lua_type(_State, -1) != LUA_TSTRING) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		_Str = lua_tostring(_State, -1);
-		for(i = 0; i < g_ZoneCt; ++i) {
-			if(strcmp(_Str, g_Zones[i].Name) == 0) {
-				_ZoneBase = &g_Zones[i];
-				break;
-			}
-		}
-		lua_pop(_State, 1);
-		if(_ZoneBase == NULL)
-			goto loop_end;
-		lua_rawgeti(_State, -1, 2);
-		if(lua_type(_State, -1) != LUA_TNUMBER) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		_Width = lua_tointeger(_State, -1);
-		lua_pop(_State, 1);
-		lua_rawgeti(_State, -1, 3);
-		if(lua_type(_State, -1) != LUA_TNUMBER) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		_Length = lua_tointeger(_State, -1);
-		lua_pop(_State, 1);
-		_Zone = alloca(sizeof(struct Zone));
-		_Zone->Id = NextZoneId();
-		_Zone->X = 0;
-		_Zone->Y = 0;
-		_Zone->Width = _Width;
-		_Zone->Length = _Length;
-		_Zone->Owner = NULL;
-		_Zone->Base = _ZoneBase;
-		_ZoneTbl[_Ct++] = _Zone;
-		loop_end:
-		lua_pop(_State, 1);
-	}
-	_ZoneTbl[_Ct] = NULL;
-	lua_pop(_State, 1);
-	_FloorMat = LuaCheckBuildMat(_State, 2);
-	_WallMat = LuaCheckBuildMat(_State, 3);
-	_RoofMat = LuaCheckBuildMat(_State, 4);
+	_Width = luaL_optint(_State, 1, 10);
+	_Length = luaL_optint(_State, 2, 10);
+	_Floor = luaL_checkstring(_State, 3);
+	if((_FloorMat = HashSearch(&g_BuildMats, _Floor)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Floor);
+	_Walls = luaL_checkstring(_State, 4);
+	if((_WallMat = HashSearch(&g_BuildMats, _Walls)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Walls);
+	_Roof = luaL_checkstring(_State, 5);
+	if((_RoofMat = HashSearch(&g_BuildMats, _Roof)) == NULL)
+		return luaL_error(_State, "%s is not a BuildMat.", _Roof);
 	_Type = luaL_optstring(_State, 6, "Human");
 	if(strcmp(_Type, "Human") == 0)
 		_ResType = ERES_HUMAN;
@@ -1330,10 +1190,7 @@ int LuaCreateBuilding(lua_State* _State) {
 		_ResType = ERES_HUMAN | ERES_ANIMAL;
 	else
 		return luaL_error(_State, "%s is not a valid house type.", _Type);
-	_Width = 0;
-	_Length = 0;
-	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _Width, _Length, _WallMat, _FloorMat, _RoofMat, _ZoneTbl));
+	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _Width, _Length, _WallMat, _FloorMat, _RoofMat));
 	return 1;
 }
 

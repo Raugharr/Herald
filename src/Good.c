@@ -390,8 +390,11 @@ void DestroyGoodDep(struct GoodDep* _GoodDep) {
 }
 
 struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y) {
-	struct Good* _Good = (struct Good*) malloc(sizeof(struct Good));
+	struct Good* _Good = NULL;
 
+	if(_Base == NULL)
+		return NULL;
+	_Good = (struct Good*) malloc(sizeof(struct Good));
 	CreateObject((struct Object*)_Good, OBJECT_GOOD, _X, _Y, (int(*)(struct Object*))GoodThink);
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
@@ -566,4 +569,31 @@ int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
 			_Max = _Quantity;
 	}
 	return _Max;
+}
+
+struct Good* GoodMostAbundant(struct Array* _Goods, int _Category) {
+	struct Good* _Good = NULL;
+	struct Good* _BestGood = NULL;
+	int _BestQuantity = 0;
+	int i = 0;
+
+	for(i = 0; i < _Goods->Size; ++i) {
+		_Good = (struct Good*)_Goods->Table[i];
+		if(_Good->Base->Category == ESEED) {
+			_BestGood = _Good;
+			_BestQuantity = _Good->Quantity;
+			break;
+		}
+	}
+
+	for(; i < _Goods->Size; ++i) {
+		_Good = (struct Good*)_Goods->Table[i];
+		if(_Good->Base->Category == ESEED) {
+			if(_Good->Quantity > _BestQuantity) {
+				_BestGood = _Good;
+				_BestQuantity = _Good->Quantity;
+			}
+		}
+	}
+	return _BestGood;
 }

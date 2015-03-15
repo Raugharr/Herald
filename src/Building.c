@@ -9,6 +9,7 @@
 #include "Good.h"
 #include "Person.h"
 #include "Family.h"
+#include "Zone.h"
 #include "sys/Random.h"
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
@@ -180,15 +181,18 @@ struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType) {
 	return _HighMat;
 }
 
-struct Building* BuildingPlan(const struct Person* _Person, int _Type) {
+struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt) {
 	struct Array* _Goods = _Person->Family->Goods;
 	struct Building* _Building = NULL;
-	int _Width = 10;
-	int _Length = 10;
+	int _Width = 0;
+	int _Length = 0;
 	int _ResType = 0;
 
-	if(_Type == EBT_HOME)
+	if(_Type == EBT_HOME && _RoomCt == 1) {
+		_Width = g_Zones[ZONE_ONERHOUSE].MinWidth;
+		_Length = g_Zones[ZONE_ONERHOUSE].MinLength;
 		_ResType = (ERES_HUMAN | ERES_ANIMAL);
+	}
 	_Building = CreateBuilding(_ResType, _Width, _Length, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF));
 	return _Building;
 }

@@ -543,7 +543,7 @@ int LuaFieldGetId(lua_State* _State) {
 int LuaFieldGetCrop(lua_State* _State) {
 	struct Field* _Field = LuaCheckField(_State, 1);
 
-	if(_Field == NULL) {
+	if(_Field == NULL || _Field->Crop == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}

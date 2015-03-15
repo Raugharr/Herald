@@ -191,4 +191,5 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
  *  Returns 0 if none can be created.
  */
 int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods);
+struct Good* GoodMostAbundant(struct Array* _Goods, int _Category);
 #endif

@@ -76,7 +76,7 @@ void DestroyBuilding(struct Building* _Building);
  * Returns a BuildMat of type _MatType that exists in _Goods that is the most plentiful.
  */
 struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
-struct Building* BuildingPlan(const struct Person* _Person, int _Type);
+struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 
 #endif

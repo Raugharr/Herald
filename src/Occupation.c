@@ -19,7 +19,7 @@ struct Occupation* CreateOccupation(const char* _Name, struct GoodBase* _Output,
 
 	_Occupation->Id = NextId();
 	_Occupation->Name = _Name;
-	_Occupation->SpecialJob = ENONE;
+	_Occupation->SpecialJob = 0;
 	_Occupation->AgeConst = _AgeConst;
 	return 	_Occupation;
 }

@@ -83,19 +83,21 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 
 int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 	struct Family* _Family = _Person->Family;
-	struct Field* _Field = NULL;;
+	struct Field* _Field = NULL;
 	struct Array* _Array = NULL;
-	int i;
-	int j;
+	int _FieldSize = _Family->Fields->Size;
+	int i = 0;
+	int j = 0;
 	
 	for(i = 0; i < _Family->Fields->Size; ++i) {
 		_Field = ((struct Field*)_Family->Fields->Table[i]);
 		if(_Field == NULL)
 			return 0;
-		if(_Field->Status == EFALLOW) {
+		if(_Field->Status == ENONE) {
+			SelectCrops(_Family, _Family->Fields);
+		} else if(_Field->Status == EFALLOW) {
 			_Array = _Family->Goods;
 			for(j = 0; j < _Array->Size; ++j) {
-				SelectCrops(_Family, _Family->Fields);
 				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
 					ActorAddJob(ACTORJOB_PLANT, (struct Actor*)_Person, (struct Object*)_Field, _Array->Table[j]);
 					break;

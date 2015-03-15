@@ -6,6 +6,8 @@
 #ifndef __CROP_H
 #define __CROP_H
 
+#define CROP_ROTATIONS (2)
+#define FieldTotalAcres(_Field) ((_Field)->Acres + (_Field)->UnusedAcres)
 #define GROWDEG_MAX (88)
 
 typedef struct lua_State lua_State;
@@ -16,6 +18,7 @@ struct Array;
 struct Object;
 
 enum {
+	ENONE,
 	EFALLOW,
 	EPLOWING,
 	EPLANTING,

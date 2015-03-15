@@ -137,11 +137,14 @@ void Events(void) {
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
-			if(_Event.key.keysym.sym == SDLK_w || _Event.key.keysym.sym == SDLK_UP) {
+
+			if(_Event.key.type == SDL_KEYUP)
+				_Widget->OnKeyUp(_Widget, &_Event.key);
+			if(_Event.key.keysym.sym == SDLK_UP) {
 				_Widget->OnUnfocus(_Widget);
 				g_Focus = ChangeFocus(g_Focus, -_Widget->Parent->VertFocChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_s || _Event.key.keysym.sym == SDLK_DOWN) {
+			} else if(_Event.key.keysym.sym == SDLK_DOWN) {
 				_Widget->OnUnfocus(_Widget);
 				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->VertFocChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
@@ -240,6 +243,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->OnDraw = NULL;
 	_Widget->OnFocus = NULL;
 	_Widget->OnUnfocus = NULL;
+	_Widget->OnKeyUp = WidgetOnKeyUp;
 	_Widget->OnDestroy = NULL;
 	if(_Parent != NULL)
 		WidgetSetParent(_Parent, _Widget);
@@ -391,6 +395,10 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 	_Parent->Children[_Parent->ChildCt++] = _Child;
 	_Child->Parent = _Parent;
 	_Parent->NewChild(_Parent, _Child);
+}
+
+void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event) {
+
 }
 
 void DestroyWidget(struct Widget* _Widget) {

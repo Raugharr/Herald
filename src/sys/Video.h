@@ -14,16 +14,17 @@
 #define SDL_HEIGHT (768)
 #define SDL_WIDTH (1024)
 #define ChangeFocus(_Focus, _Change) ((_Change < 0) ? (ChangeFocus_Aux(_Focus, -_Change, -1)) : (ChangeFocus_Aux(_Focus, _Change, 1)))
-#define DECLARE_WIDGET					\
-	int Id;								\
-	struct Container* Parent;			\
-	SDL_Rect Rect;						\
-	int LuaRef;							\
-	int CanFocus;						\
-	int (*OnDraw)(struct Widget*);		\
-	int (*OnFocus)(struct Widget*);		\
-	int (*OnUnfocus)(struct Widget*);	\
-	void (*OnDestroy)(struct Widget*)	\
+#define DECLARE_WIDGET												\
+	int Id;															\
+	struct Container* Parent;										\
+	SDL_Rect Rect;													\
+	int LuaRef;														\
+	int CanFocus;													\
+	int (*OnDraw)(struct Widget*);									\
+	int (*OnFocus)(struct Widget*);									\
+	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);			\
+	int (*OnUnfocus)(struct Widget*);								\
+	void (*OnDestroy)(struct Widget*)								\
 
 #define DECLARE_CONTAINER											\
 	DECLARE_WIDGET;													\
@@ -42,6 +43,7 @@ typedef struct SDL_Window SDL_Window;
 typedef struct SDL_Renderer SDL_Renderer;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
+typedef struct SDL_KeyboardEvent SDL_KeyboardEvent;
 struct Widget;
 
 struct GUIFocus {
@@ -125,6 +127,7 @@ struct Table {
 	struct Area CellMax; /* max area of a cell. */
 };
 
+
 struct ContextItem {
 	DECLARE_CONTAINER;
 	int ShowContexts;
@@ -158,6 +161,7 @@ struct Font* CreateFont(const char* _Name, int _Size);
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
+void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
 /**
  * Deconstructors
  */

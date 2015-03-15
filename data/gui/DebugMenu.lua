@@ -11,26 +11,26 @@ function DebugMenu.Init(Width, Height, Data)
 	DebugMenu.Screen = Screen
 	DTable:SetCellWidth(DTable:GetFont():FontWidth() * 8)
 	DTable:SetCellHeight(DTable:GetFont():FontHeight())
-	Screen:CreateTextBox("Back"):OnKey("Enter", "Released", 
+	Screen:CreateLabel("Back"):OnKey("Enter", "Released", 
 		function() 
 			GUI.PopMenu()
 		end)
-	DTable:CreateTextBox("First Name"):SetFocus(false)
-	DTable:CreateTextBox("Last Name"):SetFocus(false)
-	DTable:CreateTextBox("Age"):SetFocus(false)
-	DTable:CreateTextBox("Nutrition"):SetFocus(false)
+	DTable:CreateLabel("First Name"):SetFocus(false)
+	DTable:CreateLabel("Last Name"):SetFocus(false)
+	DTable:CreateLabel("Age"):SetFocus(false)
+	DTable:CreateLabel("Nutrition"):SetFocus(false)
 	i = 0
 	for PersonData in Persons:Next() do
 		if i > Columns then break end
 		i = i + 1
 		PersonInfo = Person(PersonData)
-		DTable:CreateTextBox(PersonInfo.Name):OnKey("Enter", "Released",
+		DTable:CreateLabel(PersonInfo.Name):OnKey("Enter", "Released",
 		function()
 			GUI.SetMenu("ViewPersonMenu", PersonInfo)
 		end)
-		DTable:CreateTextBox(PersonInfo.Family:GetName())
-		DTable:CreateTextBox(PrintYears(PersonInfo.Age))
-		DTable:CreateTextBox(PersonInfo.Nutrition)
+		DTable:CreateLabel(PersonInfo.Family:GetName())
+		DTable:CreateLabel(PrintYears(PersonInfo.Age))
+		DTable:CreateLabel(PersonInfo.Nutrition)
 	end
 	return true
 end

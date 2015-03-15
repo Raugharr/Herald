@@ -67,7 +67,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"GetChildCt", LuaContainerGetChildCt},
 		{"Spacing", LuaContainerGetSpacing},
 		{"Margins", LuaContainerGetMargins},
-		{"CreateTextBox", LuaCreateTextBox},
+		{"CreateLabel", LuaCreateLabel},
 		{"CreateTable", LuaCreateTable},
 		{"Children", LuaContainerGetChildren},
 		{"Paragraph", LuaContainerParagraph},
@@ -75,8 +75,8 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaFuncsTextBox[] = {
-		{"SetText", LuaTextBoxSetText},
+static const luaL_Reg g_LuaFuncsLabel[] = {
+		{"SetText", LuaLabelSetText},
 		{NULL, NULL}
 };
 
@@ -98,7 +98,7 @@ static const luaL_Reg g_LuaFuncsFont[] = {
 static int(*g_LuaGUIFuncDecl[])(lua_State*) = {
 		LuaRegisterWidget,
 		LuaRegisterContainer,
-		LuaRegisterTextBox,
+		LuaRegisterLabel,
 		LuaRegisterTable,
 		LuaRegisterSurface,
 		LuaRegisterFont,
@@ -151,9 +151,9 @@ int LuaRegisterContainer(lua_State* _State) {
 	return 1;
 }
 
-int LuaRegisterTextBox(lua_State* _State) {
+int LuaRegisterLabel(lua_State* _State) {
 	lua_getglobal(_State, "Widget");
-	if(luaL_newmetatable(_State, "TextBox") == 0) {
+	if(luaL_newmetatable(_State, "Label") == 0) {
 		lua_pop(_State, 1);
 		return 0;
 	}
@@ -167,13 +167,13 @@ int LuaRegisterTextBox(lua_State* _State) {
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "__class");
-	lua_pushstring(_State, "TextBox");
+	lua_pushstring(_State, "Label");
 	lua_rawset(_State, -3);
 	lua_pushliteral(_State, "__baseclass");
 	lua_getglobal(_State, "Widget");
 	lua_rawset(_State, -3);
-	luaL_setfuncs(_State, g_LuaFuncsTextBox, 0);
-	lua_setglobal(_State, "TextBox");
+	luaL_setfuncs(_State, g_LuaFuncsLabel, 0);
+	lua_setglobal(_State, "Label");
 	return 1;
 }
 
@@ -258,8 +258,8 @@ TTF_Font* LuaCreateFont(lua_State* _State, const char* _Name, int _Size) {
 	return NULL;
 }
 
-int LuaCreateTextBox(lua_State* _State) {
-	struct TextBox* _TextBox = NULL;
+int LuaCreateLabel(lua_State* _State) {
+	struct Label* _Label = NULL;
 	struct Container* _Parent = LuaCheckContainer(_State, 1);
 	const char* _Text = luaL_checkstring(_State, 2);
 	SDL_Rect _Rect;
@@ -284,12 +284,12 @@ int LuaCreateTextBox(lua_State* _State) {
 	_Rect.w = _Surface->w;
 	_Rect.h = _Surface->h;
 	lua_newtable(_State);
-	_TextBox = CreateTextBox();
-	ConstructTextBox(_TextBox, _Parent, &_Rect, _State, _Surface, _Font);
-	lua_getglobal(_State, "TextBox");
+	_Label = CreateLabel();
+	ConstructLabel(_Label, _Parent, &_Rect, _State, _Surface, _Font);
+	lua_getglobal(_State, "Label");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _TextBox);
+	lua_pushlightuserdata(_State, _Label);
 	lua_rawset(_State, -3);
 	return 1;
 }
@@ -814,12 +814,12 @@ struct Container* LuaCheckContainer(lua_State* _State, int _Index) {
 	return _Container;
 }
 
-struct TextBox* LuaCheckTextBox(lua_State* _State, int _Index) {
-	struct TextBox* _TextBox = NULL;
+struct Label* LuaCheckLabel(lua_State* _State, int _Index) {
+	struct Label* _Label = NULL;
 
-	if((_TextBox = LuaTestClass(_State, _Index, "TextBox")) == NULL)
-		return (struct TextBox*) LuaCheckClass(_State, _Index, "TextBox");
-	return _TextBox;
+	if((_Label = LuaTestClass(_State, _Index, "Label")) == NULL)
+		return (struct Label*) LuaCheckClass(_State, _Index, "Label");
+	return _Label;
 }
 
 struct Table* LuaCheckTable(lua_State* _State, int _Index) {
@@ -1016,7 +1016,7 @@ int LuaContainerParagraph(lua_State* _State) {
 	int _CharWidth = 0;
 	int _WordSz = 0;
 	int _WordWidth = 0;
-	struct TextBox* _TextBox = NULL;
+	struct Label* _Label = NULL;
 	SDL_Rect _Rect = {0, 0, TTF_FontFaceIsFixedWidth(_Font->Font), 0};
 	SDL_Rect _PRect = {0, 0, 0, 0};
 	SDL_Surface* _Surface = NULL;
@@ -1057,14 +1057,14 @@ int LuaContainerParagraph(lua_State* _State) {
 		char _Buffer[_Ct + 1];
 		strncpy(_Buffer, _String, _Ct);
 		_Buffer[_Ct + 1] = '\0';
-		_TextBox = CreateTextBox();
+		_Label = CreateLabel();
 		_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GUIDefs.FontUnfocus);
 		_Rect.w = _Surface->w;
 		_Rect.h = _Surface->h;
 		_PRect.h += _Rect.h;
-		ConstructTextBox(_TextBox, _NewContainer, &_Rect, _State, ConvertSurface(_Surface), _Font);
+		ConstructLabel(_Label, _NewContainer, &_Rect, _State, ConvertSurface(_Surface), _Font);
 		_String = _Temp + 1;
-		_TextBox->CanFocus = 0;
+		_Label->CanFocus = 0;
 		_Rect.w = 0;
 		_Ct = 0;
 	}
@@ -1073,11 +1073,11 @@ int LuaContainerParagraph(lua_State* _State) {
 	return 0;
 }
 
-int LuaTextBoxSetText(lua_State* _State) {
-	struct TextBox* _TextBox = LuaCheckTextBox(_State, 1);
+int LuaLabelSetText(lua_State* _State) {
+	struct Label* _Label = LuaCheckLabel(_State, 1);
 	const char* _Text = luaL_checkstring(_State, 2);
 
-	_TextBox->SetText((struct Widget*)_TextBox, ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus)));
+	_Label->SetText((struct Widget*)_Label, ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus)));
 	return 0;
 }
 

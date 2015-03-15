@@ -7,8 +7,8 @@ function ViewPersonMenu.Init(Width, Height, Person)
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	
 	Menu:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
-	Menu:CreateTextBox("Skills")
-	Menu:CreateTextBox("Agriculture"):OnKey("Enter", "Released",
+	Menu:CreateLabel("Skills")
+	Menu:CreateLabel("Agriculture"):OnKey("Enter", "Released",
 		function()
 			if(Display ~= nil) then
 				Display:Destroy()
@@ -17,20 +17,20 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display:SetCellWidth(Display:GetFont():FontWidth() * 8)
 			Display:SetCellHeight(Display:GetFont():FontHeight())
 			
-			Display:CreateTextBox("Name"):SetFocus(false)
-			Display:CreateTextBox("Yield"):SetFocus(false)
-			Display:CreateTextBox("Acres"):SetFocus(false)
-			Display:CreateTextBox("Status"):SetFocus(false)
-			Display:CreateTextBox("StatusTime"):SetFocus(false)
+			Display:CreateLabel("Name"):SetFocus(false)
+			Display:CreateLabel("Yield"):SetFocus(false)
+			Display:CreateLabel("Acres"):SetFocus(false)
+			Display:CreateLabel("Status"):SetFocus(false)
+			Display:CreateLabel("StatusTime"):SetFocus(false)
 			for Field in Person:GetFamily():GetFields():Next() do	
-				Display:CreateTextBox(Field:GetCrop().Name)
-				Display:CreateTextBox(Field:GetYield())
-				Display:CreateTextBox(Field:GetAcres())
-				Display:CreateTextBox(Field:GetStatus())
-				Display:CreateTextBox(Field:GetStatusTime())
+				Display:CreateLabel(Field:GetCrop().Name)
+				Display:CreateLabel(Field:GetYield())
+				Display:CreateLabel(Field:GetAcres())
+				Display:CreateLabel(Field:GetStatus())
+				Display:CreateLabel(Field:GetStatusTime())
 			end
 		end)
-	Menu:CreateTextBox("Goods"):OnKey("Enter", "Released",
+	Menu:CreateLabel("Goods"):OnKey("Enter", "Released",
 		function()
 			if(Display ~= nil) then
 				Display:Destroy()
@@ -38,14 +38,14 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display = Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
 			Display:SetCellWidth(Display:GetFont():FontWidth() * 8)
 			Display:SetCellHeight(Display:GetFont():FontHeight())
-			Display:CreateTextBox("Name"):SetFocus(false)
-			Display:CreateTextBox("Quantity"):SetFocus(false)
+			Display:CreateLabel("Name"):SetFocus(false)
+			Display:CreateLabel("Quantity"):SetFocus(false)
 			for Good in Person:GetFamily():GetGoods():Next() do
-				Display:CreateTextBox(Good:GetBase().Name)
-				Display:CreateTextBox(Good:GetQuantity())
+				Display:CreateLabel(Good:GetBase().Name)
+				Display:CreateLabel(Good:GetQuantity())
 			end
 		end)
-	Menu:CreateTextBox("Animals"):OnKey("Enter", "Released",
+	Menu:CreateLabel("Animals"):OnKey("Enter", "Released",
 		function()
 			if(Display ~= nil) then
 				Display:Destroy()
@@ -53,16 +53,16 @@ function ViewPersonMenu.Init(Width, Height, Person)
 			Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
 			Display:SetCellWidth(Display:GetFont():FontWidth() * 8)
 			Display:SetCellHeight(Display:GetFont():FontHeight())
-			Display:CreateTextBox("Name"):SetFocus(false)
-			Display:CreateTextBox("Nutrition"):SetFocus(false)
-			Display:CreateTextBox("Age"):SetFocus(false)
+			Display:CreateLabel("Name"):SetFocus(false)
+			Display:CreateLabel("Nutrition"):SetFocus(false)
+			Display:CreateLabel("Age"):SetFocus(false)
 			for An in Person:GetFamily():GetAnimals():Next() do
-				Display:CreateTextBox(An:GetBase().Name)
-				Display:CreateTextBox(An:GetNutrition())
-				Display:CreateTextBox(PrintYears(An:GetAge()))
+				Display:CreateLabel(An:GetBase().Name)
+				Display:CreateLabel(An:GetNutrition())
+				Display:CreateLabel(PrintYears(An:GetAge()))
 			end
 		end)
-	Menu:CreateTextBox("Buildings"):OnKey("Enter", "Released",
+	Menu:CreateLabel("Buildings"):OnKey("Enter", "Released",
 	 function()
 		if(Display ~= nil) then
 			Display:Destroy()
@@ -70,10 +70,10 @@ function ViewPersonMenu.Init(Width, Height, Person)
 		Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
 		Display:SetCellWidth(Display:GetFont():FontWidth() * 8)
 		Display:SetCellHeight(Display:GetFont():FontHeight())
-		Display:CreateTextBox("Width"):SetFocus(false)
-		Display:CreateTextBox("Length"):SetFocus(false)
+		Display:CreateLabel("Width"):SetFocus(false)
+		Display:CreateLabel("Length"):SetFocus(false)
 	 end)
-	Menu:CreateTextBox("Back"):OnKey("Enter", "Released",
+	Menu:CreateLabel("Back"):OnKey("Enter", "Released",
 		function()
 			GUI.PopMenu()
 		end)

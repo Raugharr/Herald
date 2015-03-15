@@ -109,7 +109,7 @@ struct Widget {
 	DECLARE_WIDGET;
 };
 
-struct TextBox {
+struct Label {
 	DECLARE_WIDGET;
 	int (*SetText)(struct Widget*, SDL_Surface*);
 	SDL_Surface* Text;
@@ -140,7 +140,7 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 void Events(void);
 void Draw(void);
 
-struct TextBox* CreateTextBox(void);
+struct Label* CreateLabel(void);
 struct Container* CreateContainer(void);
 struct Table* CreateTable(void);
 struct ContextItem* CreateContextItem(void);
@@ -151,7 +151,7 @@ struct GUIFocus* CreateGUIFocus(void);
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
-void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font);
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
@@ -166,7 +166,7 @@ void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
  * Deconstructors
  */
 void DestroyWidget(struct Widget* _Widget);
-void DestroyTextBox(struct TextBox* _Text);
+void DestroyLabel(struct Label* _Text);
 void DestroyContainer(struct Container* _Container);
 void DestroyTable(struct Table* _Table);
 void DestroyFont(struct Font* _Font);
@@ -193,9 +193,9 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
  */
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
-int TextBoxOnDraw(struct Widget* _Widget);
-int TextBoxOnFocus(struct Widget* _Widget);
-int TextBoxOnUnfocus(struct Widget* _Widget);
+int LabelOnDraw(struct Widget* _Widget);
+int LabelOnFocus(struct Widget* _Widget);
+int LabelOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
 
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);

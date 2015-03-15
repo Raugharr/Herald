@@ -13,12 +13,12 @@ struct Widget;
 
 int LuaRegisterWidget(lua_State* _State);
 int LuaRegisterContainer(lua_State* _State);
-int LuaRegisterTextBox(lua_State* _State);
+int LuaRegisterLabel(lua_State* _State);
 int LuaRegisterTable(lua_State* _State);
 int LuaRegisterSurface(lua_State* _State);
 int LuaRegisterFont(lua_State* _State);
 
-int LuaCreateTextBox(lua_State* _State);
+int LuaCreateLabel(lua_State* _State);
 int LuaCreateTable(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
@@ -52,7 +52,7 @@ int LuaScreenHeight(lua_State* _State);
 
 struct Widget* LuaCheckWidget(lua_State* _State, int _Index);
 struct Container* LuaCheckContainer(lua_State* _State, int _Index);
-struct TextBox* LuaCheckTextBox(lua_State* _State, int _Index);
+struct Label* LuaCheckLabel(lua_State* _State, int _Index);
 SDL_Surface* LuaCheckSurface(lua_State* _State, int _Index);
 struct Font* LuaCheckFont(lua_State* _State, int _Index);
 
@@ -86,10 +86,10 @@ int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
 
 /**
- * TextBox functions
+ * Label functions
  */
 
-int LuaTextBoxSetText(lua_State* _State);
+int LuaLabelSetText(lua_State* _State);
 
 /**
  * Table functions

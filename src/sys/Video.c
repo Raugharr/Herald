@@ -187,20 +187,22 @@ void Draw(void) {
 
 	if(g_GUIOk == 0)
 		return;
+	SDL_RenderClear(g_Renderer);
 	_Screen = GetScreen(g_LuaState);
 	SDL_FillRect(g_Surface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
 	else
 		g_GUIOk = 0;
-	g_GUIOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
+	SDL_RenderPresent(g_Renderer);
+	//g_GUIOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
 	if(SDL_GetTicks() <= g_GUITimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_GUITimer);
 	g_GUITimer = SDL_GetTicks();
 }
 
-struct TextBox* CreateTextBox(void) {
-	return (struct TextBox*) malloc(sizeof(struct TextBox));
+struct Label* CreateLabel(void) {
+	return (struct Label*) malloc(sizeof(struct Label));
 }
 
 struct Container* CreateContainer(void) {
@@ -251,13 +253,13 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 		_Widget->Parent = NULL;
 }
 
-void ConstructTextBox(struct TextBox* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font) {
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
-	_Widget->OnDraw = TextBoxOnDraw;
-	_Widget->OnFocus = TextBoxOnFocus;
-	_Widget->OnUnfocus = TextBoxOnUnfocus;
-	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyTextBox;
-	_Widget->OnDraw = TextBoxOnDraw;
+	_Widget->OnDraw = LabelOnDraw;
+	_Widget->OnFocus = LabelOnFocus;
+	_Widget->OnUnfocus = LabelOnUnfocus;
+	_Widget->OnDestroy = (void(*)(struct Widget*))DestroyLabel;
+	_Widget->OnDraw = LabelOnDraw;
 	_Widget->SetText = WidgetSetText;
 	_Widget->Text = _Text;
 	_Widget->Font = _Font;
@@ -405,7 +407,7 @@ void DestroyWidget(struct Widget* _Widget) {
 	LuaWidgetUnref(g_LuaState, _Widget->LuaRef);
 }
 
-void DestroyTextBox(struct TextBox* _Text) {
+void DestroyLabel(struct Label* _Text) {
 	DestroyFont(_Text->Font);
 	SDL_FreeSurface(_Text->Text);
 	DestroyWidget((struct Widget*)_Text);
@@ -540,25 +542,25 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child) {
 	}
 }
 
-int TextBoxOnDraw(struct Widget* _Widget) {
-	if(SDL_BlitSurface(((struct TextBox*)_Widget)->Text, NULL, g_Surface, &_Widget->Rect) != 0)
+int LabelOnDraw(struct Widget* _Widget) {
+	if(SDL_BlitSurface(((struct Label*)_Widget)->Text, NULL, g_Surface, &_Widget->Rect) != 0)
 		return 0;
 	return 1;
 }
 
-int TextBoxOnFocus(struct Widget* _Widget) {
-	ChangeColor(((struct TextBox*)_Widget)->Text, &g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus);
+int LabelOnFocus(struct Widget* _Widget) {
+	ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus);
 	return 1;
 }
-int TextBoxOnUnfocus(struct Widget* _Widget) {
-	ChangeColor(((struct TextBox*)_Widget)->Text, &g_GUIDefs.FontFocus, &g_GUIDefs.FontUnfocus);
+int LabelOnUnfocus(struct Widget* _Widget) {
+	ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontFocus, &g_GUIDefs.FontUnfocus);
 	return 1;
 }
 
 int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text) {
-	if(((struct TextBox*)_Widget)->Text != NULL)
-		SDL_FreeSurface(((struct TextBox*)_Widget)->Text);
-	((struct TextBox*)_Widget)->Text = _Text;
+	if(((struct Label*)_Widget)->Text != NULL)
+		SDL_FreeSurface(((struct Label*)_Widget)->Text);
+	((struct Label*)_Widget)->Text = _Text;
 	return 1;
 }
 

@@ -1,6 +1,7 @@
 #include "Trie.h"
 
 #include "Array.h"
+#include "LinkedList.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +62,7 @@ void TrieInsert(struct Trie* _Trie, const char* _Str, void* _Data) {
 	_Node->Data = _Data;
 }
 
-void* TrieSearch(struct Trie* _Trie, const char* _Str) {
+struct TrieNode* TrieSearchNode(struct Trie* _Trie, const char* _Str) {
 	struct TrieNode* _Node = _Trie->Root;
 	int _Offset = 0;
 	char _Char = '\0';
@@ -70,13 +71,38 @@ void* TrieSearch(struct Trie* _Trie, const char* _Str) {
 		_Char = tolower(*_Str);
 		_Offset = _Char - TRIE_OFFSET;
 		if(_Node->Children[_Offset] == NULL)
-			return NULL;		
+			return NULL;
 		_Node = _Node->Children[_Offset];
 		++_Str;
 	}
 	if(*_Str == '\0')
-		return _Node->Data;
+		return _Node;
 	return NULL;
+}
+
+void* TrieSearch(struct Trie* _Trie, const char* _Str) {
+	struct TrieNode* _Node = TrieSearchNode(_Trie, _Str);
+
+	if(_Node != NULL)
+		return _Node->Data;
+	return _Node;
+}
+
+void TrieParSearch_Aux(struct Trie* _Trie, struct LinkedList* _List, struct TrieNode* _Node) {
+	int i = 0;
+
+	if(_Node->Data != NULL)
+		LnkLstPushBack(_List, _Node->Data);
+	for(i = 0; i < TRIE_ALPHEBET; ++i) {
+		if(_Node->Children[i] != NULL)
+			TrieParSearch_Aux(_Trie, _List, _Node->Children[i]);
+	}
+}
+
+void TrieParSearch(struct Trie* _Trie, struct LinkedList* _List, const char* _Str) {
+	struct TrieNode* _Node = TrieSearchNode(_Trie, _Str);
+
+	TrieParSearch_Aux(_Trie, _List, _Node);
 }
 
 int TrieDelete_Aux(struct TrieNode* _Node, const char* _Str) {
@@ -84,7 +110,7 @@ int TrieDelete_Aux(struct TrieNode* _Node, const char* _Str) {
 
 	if(_Node == NULL)
 		return 0;
-	if(*_Str == NULL)
+	if(*_Str == '\0')
 		return 1;
 	_Offset = tolower(*_Str) - TRIE_OFFSET;	
 	if(TrieDelete_Aux(_Node->Children[_Offset], _Str + 1) == 1) {

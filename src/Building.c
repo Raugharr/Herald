@@ -116,6 +116,15 @@ void DestroyBuilding(struct Building* _Building) {
 	free(_Building);
 }
 
+int BuildingArea(const struct Building* _Building) {
+	int _Area = 0;
+	int i = 0;
+
+	for(i = 0; i < _Building->ZoneSz; ++i)
+		_Area += _Building->Zones[i]->Width * _Building->Zones[i]->Length;
+	return _Area;
+}
+
 struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {
 	int _Return = 0;
 	int _Cost = 0;

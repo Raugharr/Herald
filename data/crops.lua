@@ -24,6 +24,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 144,
 		YieldPerSeed = 4.6,
+		NutritionalValue = 360,
 		GrowingDegree = 1540,
 		GrowingBase = 42
 	},

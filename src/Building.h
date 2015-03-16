@@ -43,6 +43,8 @@ struct Building {
 	const struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
+	struct Zone** Zones;
+	int ZoneSz;
 };
 
 struct Construction {
@@ -72,6 +74,8 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones);
 struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
+
+int BuildingArea(const struct Building* _Building);
 
 /**
  * Returns a BuildMat of type _MatType that exists in _Goods that is the most plentiful.

@@ -12,9 +12,8 @@ function TakeActionMenu.Init(Width, Height, Data)
 		function()
 			--CreateBuilding({{"One Room House", 10, 15}}, BuildMat("Dirt"), BuildMat("Wood"), BuildMat("Hay"))
 		end)
-	Screen:CreateLabel("Create Object"):OnKey("Enter", "Released",
-		function()
-		end)
+	local ObjList = GUI.CreateContextItem(0, 0, 200, 100, 0, {0, 0, 0, 0}, Screen)
+	ObjList:CreateLabel("Create Object")
 	Screen:CreateLabel("Exit"):OnKey("Enter", "Released",
 		function()
 			GUI.PopMenu()

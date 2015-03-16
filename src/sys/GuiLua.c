@@ -32,7 +32,7 @@
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
 		{"VerticalContainer", LuaVerticalContainer},
-		{"ContextItem", LuaContextItem},
+		{"CreateContextItem", LuaContextItem},
 		{"BackgroundColor", LuaBackgroundColor},
 		{"GetFont", LuaGetFont},
 		{"SetFont", LuaDefaultFont},
@@ -412,7 +412,6 @@ int LuaContextItem(lua_State* _State) {
 	lua_pushstring(_State, "__self");
 	lua_pushlightuserdata(_State, _Container);
 	lua_rawset(_State, -3);
-	//WidgetOnEvent((struct Widget*)_Container, LuaWidgetOnEvent(_State, (void(*)(struct Widget*))ContextItemOnEnter), SDLK_RETURN, KMOD_NONE, SDL_RELEASED);
 	return 1;
 }
 

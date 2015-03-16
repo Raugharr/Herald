@@ -50,8 +50,10 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 	struct GoodBase* _Good = NULL;
 
 	if(_Name == NULL || _PerAcre <= 0 || _NutVal <= 0 || _YieldMult <= 0
-			|| _GrowingDegree <= 0 || _GrowingBase <= 0)
+			|| _GrowingDegree <= 0 || _GrowingBase <= 0) {
+		Log(ELOG_WARNING, "Crop %s is missing a parameter.", _Name);
 		return NULL;
+	}
 	_Crop = (struct Crop*) malloc(sizeof(struct Crop));
 	_Crop->Id = NextId();
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));

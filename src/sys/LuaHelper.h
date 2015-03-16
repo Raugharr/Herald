@@ -36,7 +36,9 @@ int RegisterGood(lua_State* _State);
 int RegisterFamily(lua_State* _State);
 int RegisterField(lua_State* _State);
 int RegisterAnimal(lua_State* _State);
+int RegisterBuilding(lua_State* _State);
 int RegisterArray(lua_State* _State);
+int RegisterBuildMat(lua_State* _State);
 
 int LuaPersonGetId(lua_State* _State);
 int LuaPersonGetX(lua_State* _State);
@@ -80,6 +82,7 @@ int LuaAnimalGetBase(lua_State* _State);
 int LuaBuildingGetId(lua_State* _State);
 int LuaBuildingGetWidth(lua_State* _State);
 int LuaBuildingGetLength(lua_State* _State);
+int LuaBuildingConstructionTime(lua_State* _State);
 
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
@@ -93,6 +96,7 @@ struct Family* LuaCheckFamily(lua_State* _State, int _Index);
 struct Field* LuaCheckField(lua_State* _State, int _Index);
 struct Animal* LuaCheckAnimal(lua_State* _State, int _Index);
 struct Building* LuaCheckBuilding(lua_State* _State, int _Index);
+struct BuildMat* LuaCheckBuildMat(lua_State* _State, int _Index);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.
@@ -129,6 +133,7 @@ int LuaPushPerson(lua_State* _State, int _Index);
  * Requires one parameter that is a light user data that contains a pointer to a Person.
  */
 int LuaPerson(lua_State* _State);
+int LuaBuildMat(lua_State* _State);
 
 int LuaYears(lua_State* _State);
 int LuaMonth(lua_State* _State);

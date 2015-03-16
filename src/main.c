@@ -36,7 +36,7 @@ int main(int argc, char* args[]) {
 
 	//for(i = 0; i < 366; ++i)
 	//	Tick();
-	while(g_GUIOk != 0) {
+	while(g_VideoOk != 0) {
 		Events();
 		Draw();
 	}

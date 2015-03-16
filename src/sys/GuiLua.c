@@ -5,6 +5,7 @@
 
 #include "GuiLua.h"
 
+#include "Gui.h"
 #include "Video.h"
 #include "LuaHelper.h"
 #include "Array.h"
@@ -365,7 +366,7 @@ struct Container* LuaContainer(lua_State* _State) {
 		struct Container* _Screen = GetScreen(_State);
 
 		if(_Screen != NULL)
-			_Screen->OnDestroy((struct Widget*)_Screen);
+			_Screen->OnDestroy((struct Widget*)_Screen, _State);
 		lua_getglobal(_State, "GUI");
 		lua_pushstring(_State, "Screen");
 		lua_pushvalue(_State, -3);
@@ -558,7 +559,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 			lua_pop(_State, 2);
 		}
 		lua_pop(_State, 5);
-		g_GUIOk = 1;
+		g_VideoOk = 1;
 		g_GUIMenuChange = 1;
 		return 0;
 	}
@@ -615,7 +616,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
 	lua_pop(_State, 2);
-	g_GUIOk = 1;
+	g_VideoOk = 1;
 	return 0;
 }
 
@@ -748,10 +749,10 @@ int LuaCloseMenu(lua_State* _State) {
 		lua_pop(_State, 2);
 
 		if(_Len == 0)
-			g_GUIOk = 0;
+			g_VideoOk = 0;
 		goto no_destroy;
 	} else {
-		g_GUIOk = 0;
+		g_VideoOk = 0;
 		lua_pop(_State, 1);
 	}
 	destroy:
@@ -762,7 +763,7 @@ int LuaCloseMenu(lua_State* _State) {
 	}
 	lua_pop(_State, 1);
 	if(_Container != NULL)
-		_Container->OnDestroy((struct Widget*)_Container);
+		_Container->OnDestroy((struct Widget*)_Container, _State);
 	DestroyFocus(g_Focus);
 	DestroyGUIEvents(g_GUIEvents);
 	no_destroy:
@@ -780,7 +781,7 @@ int LuaPopMenu(lua_State* _State) {
 
 	free(StackPop(&g_GUIStack));
 	if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
-		g_GUIOk = 0;
+		g_VideoOk = 0;
 		return 0;
 	}
 	lua_pushstring(_State, _String);
@@ -929,7 +930,7 @@ int LuaWidgetDestroy(lua_State* _State) {
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
 	_Widget->Parent->RemChild(_Widget->Parent, _Widget);
-	DestroyWidget(_Widget);
+	_Widget->OnDestroy(_Widget, _State);
 	return 0;
 }
 
@@ -952,7 +953,7 @@ int LuaContainerSetChild(lua_State* _State) {
 
 	luaL_argcheck(_State, (_Index >= 0 && _Index < _Container->ChildrenSz), 2, "Index is out of bounds.");
 	if(_Container->Children[_Index] != NULL) {
-		_Container->Children[_Index]->OnDestroy(_Container->Children[_Index]);
+		_Container->Children[_Index]->OnDestroy(_Container->Children[_Index], _State);
 		_Container->Children[_Index] = _Child;
 	} else {
 		_Container->Children[_Index] = _Child;
@@ -1206,7 +1207,7 @@ int QuitGUILua(lua_State* _State) {
 		lua_pushstring(_State, "__screen");
 		lua_rawget(_State, -2);
 		_Container = LuaCheckContainer(_State, -1);
-		_Container->OnDestroy((struct Widget*)_Container);
+		_Container->OnDestroy((struct Widget*)_Container, _State);
 		lua_pushstring(_State, "__events");
 		lua_rawget(_State, -3);
 		_Events = (struct GUIEvents*) lua_touserdata(_State, -1);
@@ -1215,7 +1216,7 @@ int QuitGUILua(lua_State* _State) {
 	}
 	lua_pop(_State, 2);
 	if(_Screen != NULL)
-		_Screen->OnDestroy((struct Widget*)_Screen);
+		_Screen->OnDestroy((struct Widget*)_Screen, _State);
 	return 1;
 }
 

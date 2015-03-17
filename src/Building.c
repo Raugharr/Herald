@@ -23,7 +23,7 @@
 
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
-	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, _Building->Width, _Building->Length);
+	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, BuildingArea(_Building));
 	int _Percent = _BuildTime / 10;
 
 	_Construct->Prev = NULL;
@@ -55,20 +55,16 @@ int ConstructUpdate(struct Construction* _Construct) {
 	return 0;
 }
 
-int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Width, int _Height) {
-	int _Area = _Width * _Height;
-
+int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Area) {
 	return (_Walls->BuildCost * _Area) + (_Floor->BuildCost * _Area) + (_Roof->BuildCost * _Area);
 }
 
-struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
 	int i = 0;
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);
 	_Building->ResidentType = _ResType;
-	_Building->Width = _Width;
-	_Building->Length = _Length;
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
@@ -77,6 +73,10 @@ struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const str
 		_Zones[i]->Y = 0;
 		++i;
 	}
+	_Building->Zones = calloc(i, sizeof(struct Zone*));
+	for(i = 0; _Zones[i] != NULL; ++i)
+		_Building->Zones[i] = _Zones[i];
+	_Zones[i] = NULL;
 	return _Building;
 }
 
@@ -113,6 +113,9 @@ void DestroyBuilding(struct Building* _Building) {
 	for(i = 0; _Building->BuildMats[i] != NULL; ++i)
 		free(_Building->BuildMats[i]);
 	free(_Building->BuildMats[i]);
+	for(i = 0; _Building->Zones[i] != NULL; ++i)
+		DestroyZone(_Building->Zones[i]);
+	free(_Building->Zones);
 	free(_Building);
 }
 
@@ -120,7 +123,7 @@ int BuildingArea(const struct Building* _Building) {
 	int _Area = 0;
 	int i = 0;
 
-	for(i = 0; i < _Building->ZoneSz; ++i)
+	for(i = 0; _Building->Zones[i] != NULL; ++i)
 		_Area += _Building->Zones[i]->Width * _Building->Zones[i]->Length;
 	return _Area;
 }
@@ -198,16 +201,11 @@ struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType) {
 struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt) {
 	struct Array* _Goods = _Person->Family->Goods;
 	struct Building* _Building = NULL;
-	int _Width = 0;
-	int _Length = 0;
 	int _ResType = 0;
 
-	if(_Type == EBT_HOME && _RoomCt == 1) {
-		_Width = g_Zones[ZONE_ONERHOUSE].MinWidth;
-		_Length = g_Zones[ZONE_ONERHOUSE].MinLength;
+	if(_Type == EBT_HOME && _RoomCt == 1)
 		_ResType = (ERES_HUMAN | ERES_ANIMAL);
-	}
-	_Building = CreateBuilding(_ResType, _Width, _Length, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF), NULL);
+	_Building = CreateBuilding(_ResType, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF), NULL);
 	return _Building;
 }
 
@@ -278,4 +276,20 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 	else
 		_Node->Next = NULL;
 	return _First;
+}
+
+struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat) {
+	char* _Name = alloca(sizeof(char) * 64);
+	char* _RealName = NULL;
+	int _Size = 0;
+
+	if(_Mat->Type == BMAT_WALL)
+		_Size = snprintf(_Name, 64, "%s %s", _Mat->Good->Name, "Wall");
+	else if(_Mat->Type == BMAT_FLOOR)
+		_Size = snprintf(_Name, 64, "%s %s", _Mat->Good->Name, "Floor");
+	else if(_Mat->Type == BMAT_ROOF)
+		_Size = snprintf(_Name, 64, "%s %s", _Mat->Good->Name, "Roof");
+	_RealName = calloc(_Size + 1, sizeof(char));
+	strcpy(_RealName, _Name);
+	return InitGoodBase((struct GoodBase*) malloc(sizeof(struct GoodBase)), _Name, EOTHER);
 }

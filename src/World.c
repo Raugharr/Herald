@@ -353,10 +353,6 @@ void WorldInit(int _Area) {
 	Family_Init(_Array);
 	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList) == 0)
 		goto end;
-	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
-	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
-	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
-	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));;
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	
 	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList) == 0)
@@ -407,9 +403,18 @@ void WorldInit(int _Area) {
 
 	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList) == 0)
 		goto end;
+	_Itr = _BuildList->Front;
+	while(_Itr != NULL) {
+		BuildMatToGoodBase((struct BuildMat*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
 	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
+	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
+	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
+	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
+	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);

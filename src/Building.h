@@ -36,15 +36,12 @@ struct Building {
 	int Y;
 	int(*Think)(struct Object*);
 	int ResidentType;
-	int Width;
-	int Length;
 	const struct BuildMat* Walls;
 	const struct BuildMat* Floor;
 	const struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
 	struct Zone** Zones;
-	int ZoneSz;
 };
 
 struct Construction {
@@ -69,9 +66,9 @@ struct Construction* CopyConstruct(struct Construction* _Construct);
 void DestroyConstruct(struct Construction* _Construct);
 
 int ConstructUpdate(struct Construction* _Construct);
-int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Width, int _Height);
+int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Area);
 
-struct Building* CreateBuilding(int _ResType, int _Width, int _Length, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones);
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones);
 struct Building* CopyBuilding(const struct Building* _Building);
 void DestroyBuilding(struct Building* _Building);
 
@@ -84,5 +81,6 @@ struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
 struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt);
 void BuildingPlanSize(const struct Zone** _Zones, int* _Width, int* _Length);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
+struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat);
 
 #endif

@@ -31,4 +31,8 @@ struct Zone* CreateZone(struct ZoneBase* _Base, int _Width, int _Length) {
 	return _Zone;
 }
 
+void DestroyZone(struct ZoneBase* _Zone) {
+	free(_Zone);
+}
+
 int NextZoneId() {return ++g_ZoneId;}

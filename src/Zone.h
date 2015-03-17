@@ -41,6 +41,7 @@ extern struct ZoneBase g_Zones[];
 extern int g_ZoneCt;
 
 struct Zone* CreateZone(struct ZoneBase* _Base, int _Width, int _Length);
+void DestroyZone(struct ZoneBase* _Zone);
 int NextZoneId();
 
 #endif

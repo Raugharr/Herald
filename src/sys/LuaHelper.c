@@ -700,10 +700,9 @@ int LuaBuildingConstructionTime(lua_State* _State) {
 	struct BuildMat* _Floor = LuaCheckBuildMat(_State, 1);
 	struct BuildMat* _Walls = LuaCheckBuildMat(_State, 2);
 	struct BuildMat* _Roof = LuaCheckBuildMat(_State, 3);
-	int _Width = luaL_checkinteger(_State, 4);
-	int _Height = luaL_checkinteger(_State, 5);
+	int _Area = luaL_checkinteger(_State, 4);
 
-	lua_pushinteger(_State, ConstructionTime(_Floor, _Walls, _Roof, _Width, _Height));
+	lua_pushinteger(_State, ConstructionTime(_Floor, _Walls, _Roof, _Area));
 	return 1;
 }
 
@@ -1333,7 +1332,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Width = 0;
 	_Length = 0;
 	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _Width, _Length, _WallMat, _FloorMat, _RoofMat, _ZoneTbl));
+	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl));
 	return 1;
 }
 

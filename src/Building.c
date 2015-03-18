@@ -21,6 +21,12 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
+#define BUILD_WALL(_Start, _End, _X, _Y, _Itr _Mid)	\
+	for((_Itr) = (_Start); (_Itr) < (_End); ++(_Itr)) { 									\
+		if((_Itr) != (_Mid)) 															\	
+			CreateObject(malloc(sizeof(struct Object)), OBJECT_WALL, (_X), (_Y), ObjNoThink);			\
+	}
+
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
 	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, BuildingArea(_Building));
@@ -61,6 +67,10 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 
 struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
 	int i = 0;
+	int x = 0;
+	int y = 0;
+	int _MidX = 0;
+	int _MidY = 0;
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);
@@ -74,8 +84,24 @@ struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, con
 		++i;
 	}*/
 	_Building->Zones = calloc(i, sizeof(struct Zone*));
-	for(i = 0; _Zones[i] != NULL; ++i)
+	for(i = 0; _Zones[i] != NULL; ++i) {
 		_Building->Zones[i] = _Zones[i];
+		_MidX = (_Zones[i]->X + (_Zones[i]->X + _Zones[i]->Width)) / 2;
+	
+		x = _Zones[i]->X;
+		BUILD_WALL(_Zones[i]->Y - 1, _Zones[i]->Y + _Zones[i]->Length, x, y, y, _MidY);
+		x = _Zones[i]->X + _Zones[i]->Length;
+		BUILD_WALL(_Zones[i]->Y - 1, _Zones[i]->Y + _Zones[i]->Length, x, y, y, _MidY);
+		y = _Zones[i]->Y - 1;
+		BUILD_WALL(_Zones[i]->X, _Zones[i]->X + _Zones[i]->Width, x, y, x _MidX);
+		y = _Zones[i]->Y + _Zones[i]->Length + 1;
+		BUILD_WALL(_Zones[i]->X, _Zones[i]->X + _Zones[i]->Width, x, y, x, _MidX);
+		for(x = _Zones[i]->X; x < _Zones[i]->X + _Zones[i]->Width; ++x) {
+			for(y = _Zones[i]->Y; y < _Zones[i]->Y + _Zones[i]->Length; ++y) {
+				CreateObject(malloc(sizeof(struct Object)), OBJECT_FLOOR, x, y, ObjNoThink);
+			}
+		}
+	}
 	_Zones[i] = NULL;
 	return _Building;
 }

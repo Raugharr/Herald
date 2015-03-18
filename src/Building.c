@@ -68,11 +68,11 @@ struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, con
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
-	while(_Zones[i] != NULL) {
+	/*while(_Zones[i] != NULL) {
 		_Zones[i]->X = 0;
 		_Zones[i]->Y = 0;
 		++i;
-	}
+	}*/
 	_Building->Zones = calloc(i, sizeof(struct Zone*));
 	for(i = 0; _Zones[i] != NULL; ++i)
 		_Building->Zones[i] = _Zones[i];

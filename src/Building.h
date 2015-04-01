@@ -6,6 +6,32 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
+#define HORIZONTAL_WALLS(_StartX, _StartY, _Length)	\
+	{														\
+		int __y = _StartY;									\
+		BUILD_WALL((_StartY), (_StartY) + (_Length), (_StartX), __y, __y);											\
+	}
+
+#define VERTICAL_WALLS(_StartX, _StartY, _Length)	\
+	{														\
+		int __x = _StartY;									\
+		BUILD_WALL((_StartX), (_StartX) + (_Length), __x, (_StartY), __x);											\
+	}
+
+#define BUILD_WALL(_Start, _End, _X, _Y, _Itr)	\
+	for((_Itr) = (_Start); (_Itr) < (_End); ++(_Itr)) { 									\
+		CreateObject(malloc(sizeof(struct Object)), OBJECT_WALL, (_X), (_Y), ObjNoThink);			\
+	}
+#define BUILD_FLOOR(_StartX, _StartY, _Width, _Length)		\
+	{														\
+															\
+		int __x = 0;										\
+		int __y = 0;										\
+		for(__x = 0; __x < (_Width); ++__x)					\
+			for(__y = 0; __y < (_Length); ++__y)			\
+				CreateObject(malloc(sizeof(struct Object)), OBJECT_FLOOR, __x, __y, ObjNoThink); \
+	}
+
 typedef struct lua_State lua_State;
 struct GoodBase;
 struct HashTable;

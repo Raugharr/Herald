@@ -15,7 +15,7 @@ typedef struct lua_State lua_State;
 
 #define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
-	lua_createtable((_State));					\
+	lua_createtable((_State), 0, 1);			\
 	lua_getglobal((_State), (_Class));			\
 	if(lua_type((_State), -1) != LUA_TNIL) {	\
 		lua_setmetatable((_State), -2);				\
@@ -23,7 +23,7 @@ typedef struct lua_State lua_State;
 		lua_pushlightuserdata((_State), (_Ptr));	\
 		lua_rawset((_State), -3);					\
 	} else {										\
-		lua_pop((_State) 1);						\
+		lua_pop((_State), 1);						\
 		Log(ELOG_WARNING, "Lua class %s not not exist", (_Class));	\
 	}
 	

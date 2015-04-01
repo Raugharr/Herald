@@ -1326,7 +1326,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Width = 0;
 	_Length = 0;
 	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl);)
+	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl))
 	return 1;
 }
 

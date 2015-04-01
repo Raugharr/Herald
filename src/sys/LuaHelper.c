@@ -1039,13 +1039,7 @@ int LuaPushPerson(lua_State* _State, int _Index) {
 
 	if(lua_type(_State, _Pos) != LUA_TLIGHTUSERDATA)
 		luaL_error(_State, LUA_TYPERROR(_State, 1, "Person", "LuaPushPerson"));
-
-	lua_newtable(_State);
-	lua_getglobal(_State, "Person");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, lua_touserdata(_State, _Pos));
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Person", lua_touserdata(_State, _Pos));
 	return 1;
 }
 
@@ -1332,7 +1326,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Width = 0;
 	_Length = 0;
 	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	lua_pushlightuserdata(_State, CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl));
+	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl);)
 	return 1;
 }
 

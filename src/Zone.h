@@ -5,18 +5,13 @@
 #ifndef ZONE_H
 #define ZONE_H
 
+struct LinkedList;
+struct Zone;
+
 enum {
 	ZONE_FIELD,
 	ZONE_ONERHOUSE,
 	ZONE_STORAGE,
-};
-
-enum {
-	ZONE_TNONE = (1 << 0),
-	ZONE_TCROP = (1 << 1),
-	ZONE_TANYGOOD = (1 << 2),
-	ZONE_TBED = (1 << 3),
-	ZONE_TCOOKING = (1 << 4)
 };
 
 struct ZoneBase {
@@ -24,7 +19,7 @@ struct ZoneBase {
 	const char* Name;
 	int MinWidth;
 	int MinLength;
-	int Requirements;
+	int (*Requirements)(const struct Zone*, const struct LinkedList*);
 };
 
 struct Zone {

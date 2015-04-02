@@ -6,6 +6,7 @@
 #include "Zone.h"
 
 #include "Herald.h"
+#include "Good.h"
 #include "sys/LinkedList.h"
 
 #include <stdlib.h>
@@ -32,7 +33,7 @@ int ZoneOneHouseReq(const struct Zone* _Zone, const struct LinkedList* _List) {
 
 	while(_Itr->Next != NULL) {
 		if(((struct Object*)_Itr->Data)->Type == OBJECT_GOOD)
-			if(((struct Good*)_Itr->Data)->Base->Category == EGOOD_FURNITURE)
+			if(((struct Good*)_Itr->Data)->Base->Category == EFURNITURE)
 				_Bed = 1;
 		_Itr = _Itr->Next;
 	}
@@ -43,10 +44,33 @@ int ZoneNoReq(const struct Zone* _Zone, const struct LinkedList* _List) {
 	return 1;
 }
 
+int ZoneOneHousePlacement(const struct Zone* _Zone, const struct Object* _Obj, int* _X, int* _Y) {
+	struct Good* _Good = NULL;
+
+	if(_Obj->Type != OBJECT_GOOD)
+		return 0;
+	_Good = (struct Good*)_Obj;
+	if(_Good->Base->Category == EFURNITURE) {
+		*_X = _Zone->X;
+		*_Y = _Zone->Y;
+	}
+	return 1;
+}
+
+int ZoneStoragePlacement(const struct Zone* _Zone, const struct Object* _Obj, int* _X, int* _Y) {
+	*_X = _Zone->X;
+	*_Y = _Zone->Y;
+	return 1;
+}
+
+int ZoneNoPlacement(const struct Zone* _Zone, const struct Object* _Obj, int* _X, int* _Y) {
+	return 0;
+}
+
 struct ZoneBase g_Zones[] = {
-		{ZONE_FIELD, "Field", ACRE_WIDTH, ACRE_LENGTH, ZoneFieldReq},
-		{ZONE_ONERHOUSE, "One Room House", 8, 8, ZoneOneHouseReq},
-		{ZONE_STORAGE, "Storage", 6, 6, ZoneNoReq},
+		{ZONE_FIELD, "Field", ACRE_WIDTH, ACRE_LENGTH, ZoneFieldReq, ZoneNoPlacement},
+		{ZONE_ONERHOUSE, "One Room House", 8, 8, ZoneOneHouseReq, ZoneOneHousePlacement},
+		{ZONE_STORAGE, "Storage", 6, 6, ZoneNoReq, ZoneStoragePlacement},
 };
 
 int g_ZoneCt = 3;
@@ -65,7 +89,7 @@ struct Zone* CreateZone(struct ZoneBase* _Base, int _Width, int _Length) {
 	return _Zone;
 }
 
-void DestroyZone(struct ZoneBase* _Zone) {
+void DestroyZone(struct Zone* _Zone) {
 	free(_Zone);
 }
 

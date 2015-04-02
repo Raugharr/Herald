@@ -33,6 +33,9 @@ struct CityLocation {
 	struct CityPlanner Planner;
 };
 
+struct CityLocation* CreateCityLocation(int _X, int _Y, int _Width, int _Length, const char* _Name);
+void DestroyCityLocation(struct CityLocation* _Location);
+
 /*
  * TODO: Use a data structure to store the location of all buildings, then lookup
  * their location to determine if the new building is colliding with one already.

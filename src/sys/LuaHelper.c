@@ -20,6 +20,7 @@
 #include "../Person.h"
 #include "../Family.h"
 #include "../Zone.h"
+#include "../Location.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -1197,6 +1198,8 @@ int LuaCreateGood(lua_State* _State) {
 }
 
 int LuaCreateBuilding(lua_State* _State) {
+	int _X = 0;
+	int _Y = 0;
 	int i = 0;
 	int _Ct = 0;
 	int _ResType = 0;
@@ -1210,8 +1213,12 @@ int LuaCreateBuilding(lua_State* _State) {
 	struct BuildMat* _FloorMat = NULL;
 	struct BuildMat* _WallMat = NULL;
 	struct BuildMat* _RoofMat = NULL;
+	struct Location* _Location = NULL;
 
 	luaL_checktype(_State, 1, LUA_TTABLE);
+	_Location = lua_touserdata(_State, 5);
+	if(_Location->Type != ELOC_SETTLEMENT)
+		luaL_error(_State, "Location is not a settlement.");
 	lua_len(_State, 1);
 	_ZoneTbl = alloca((lua_tointeger(_State, -1) + 1) * sizeof(struct Zone*));
 	lua_pop(_State, 1);
@@ -1278,6 +1285,13 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Width = 0;
 	_Length = 0;
 	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
+	PlaceBuilding((struct CityLocation*) _Location, _Width, _Length, &_X, &_Y);
+	_ZoneTbl[0]->X = _X;
+	_ZoneTbl[0]->Y = _Y;
+	HORIZONTAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y - 1, _ZoneTbl[0]->Width);
+	HORIZONTAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y + _ZoneTbl[0]->Width + 1, _ZoneTbl[0]->Width);
+	VERTICAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y, _ZoneTbl[0]->Length);
+	VERTICAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y + _ZoneTbl[0]->Length, _ZoneTbl[0]->Length);
 	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl))
 	return 1;
 }

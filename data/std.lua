@@ -21,7 +21,7 @@ local function Peasant(Person)
 		return "Woman"
 end
 
-function Farmer(Size)
+function Farmer(Size, Location)
 	local Table = {}
 	local Wheat = Crop("Wheat")
 	local Rye = Crop("Rye")
@@ -36,13 +36,13 @@ function Farmer(Size)
 		CreateGood("Scratch Plow", 1)
 	}
 	Table.Field = {16, 16}
-	Table.Buildings = {CreateBuilding(10, 10, "Dirt", "Board", "Hay", "Human")}
+	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "Human")}
 	Table.Animals = {{"Chicken", Size * 2}}
 	Table.AI = Peasant
 	return Table
 end
 
-function Herder(Size)
+function Herder(Size, Location)
 	local Table = {}
 	local Goat = GetAnimal("Goat")
 	local Pig = GetAnimal("Pig")
@@ -51,13 +51,13 @@ function Herder(Size)
 	
 	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt))}
 	Table.Field = {20}
-	Table.Buildings = {CreateBuilding(12, 12, "Dirt", "Board", "Hay", "All")}
+	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}
 	Table.AI = Peasant			
 	return Table
 end
 
-function Lumberjack(Size)
+function Lumberjack(Size, Location)
 	local Table = Farmer(Size)
 	
 	table.insert(Table, {"Axe", 1})

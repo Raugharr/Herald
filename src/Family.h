@@ -18,6 +18,7 @@ struct Array;
 struct Field;
 struct Constraint;
 struct FamilyType;
+struct CityLocation;
 typedef struct lua_State lua_State;
 
 struct Family {
@@ -41,7 +42,7 @@ void DestroyFamily(struct Family* _Family);
  */
 int FamilySize(struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
-void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y);
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct CityLocation* _Location);
 /**
  * Returns the yearly requirement of nutrition needed to feed the people in the family _Family.
  */

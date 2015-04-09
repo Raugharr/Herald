@@ -21,12 +21,6 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-#define BUILD_WALL(_Start, _End, _X, _Y, _Itr _Mid)	\
-	for((_Itr) = (_Start); (_Itr) < (_End); ++(_Itr)) { 									\
-		if((_Itr) != (_Mid)) 															\	
-			CreateObject(malloc(sizeof(struct Object)), OBJECT_WALL, (_X), (_Y), ObjNoThink);			\
-	}
-
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person) {
 	struct Construction* _Construct = (struct Construction*) malloc(sizeof(struct Construction));
 	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, BuildingArea(_Building));
@@ -78,13 +72,8 @@ struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, con
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
-	/*while(_Zones[i] != NULL) {
-		_Zones[i]->X = 0;
-		_Zones[i]->Y = 0;
-		++i;
-	}*/
 	_Building->Zones = calloc(i, sizeof(struct Zone*));
-	for(i = 0; _Zones[i] != NULL; ++i) {
+	/*for(i = 0; _Zones[i] != NULL; ++i) {
 		_Building->Zones[i] = _Zones[i];
 		_MidX = (_Zones[i]->X + (_Zones[i]->X + _Zones[i]->Width)) / 2;
 	
@@ -102,7 +91,7 @@ struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, con
 			}
 		}
 	}
-	_Zones[i] = NULL;
+	_Zones[i] = NULL;*/
 	return _Building;
 }
 

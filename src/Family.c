@@ -122,7 +122,7 @@ void Marry(struct Person* _Male, struct Person* _Female) {
 	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0);
 }
 
-void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y) {
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct CityLocation* _Location) {
 	int i;
 	int j;
 	int _FamType = Random(0, 9999);
@@ -140,7 +140,8 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			++g_Log.Indents;
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
 			lua_pushinteger(_State, FamilySize(_Family));
-			if(LuaCallFunc(_State, 1, 1, 0) == 0) {
+			lua_pushlightuserdata(_State, _Location);
+			if(LuaCallFunc(_State, 2, 1, 0) == 0) {
 				--g_Log.Indents;
 				return;
 			}
@@ -167,9 +168,10 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "Buildings");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
-				_Obj = lua_touserdata(_State, -1);
-				ArrayInsertSort_S(_Family->Buildings, _Obj, ObjCmp);
+				//luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
+				//_Obj = lua_touserdata(_State, -1);
+				if((_Obj = LuaCheckBuilding(_State, -1)) != NULL)
+					ArrayInsertSort_S(_Family->Buildings, _Obj, ObjCmp);
 				lua_pop(_State, 1);
 			}
 			lua_pop(_State, 1);

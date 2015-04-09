@@ -7,7 +7,6 @@
 
 struct LinkedList;
 struct Zone;
-struct Object;
 
 enum {
 	ZONE_FIELD,
@@ -21,7 +20,6 @@ struct ZoneBase {
 	int MinWidth;
 	int MinLength;
 	int (*Requirements)(const struct Zone*, const struct LinkedList*);
-	int (*PlaceObj)(const struct Zone*, const struct Object*, int*, int*);
 };
 
 struct Zone {
@@ -38,7 +36,7 @@ extern struct ZoneBase g_Zones[];
 extern int g_ZoneCt;
 
 struct Zone* CreateZone(struct ZoneBase* _Base, int _Width, int _Length);
-void DestroyZone(struct Zone* _Zone);
+void DestroyZone(struct ZoneBase* _Zone);
 int NextZoneId();
 
 #endif

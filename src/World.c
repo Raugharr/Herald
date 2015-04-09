@@ -13,6 +13,7 @@
 #include "Building.h"
 #include "Good.h"
 #include "Population.h"
+#include "Location.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -78,7 +79,8 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	struct Family* _Parent = NULL;
 	struct Constraint** _AgeGroups = NULL;
 	struct Constraint** _BabyAvg = NULL;
-
+	struct CityLocation* _Settlement = NULL;
+	
 	lua_getglobal(g_LuaState, "AgeGroups");
 	LuaConstraintBnds(g_LuaState);
 	if((_AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
@@ -92,14 +94,15 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
+	_Settlement = CreateCityLocation(0, 0, 1000, 1000, "Test Settlement");
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y);
-		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y);
+		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&g_Families, _Parent);
 		while(_FamilySize > 0) {
 			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y);
-			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes, _X, _Y);
+			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 			RBInsert(&g_Families, _Family);
 			_FamilySize -= FamilySize(_Family);
 		}
@@ -353,6 +356,9 @@ void WorldInit(int _Area) {
 	Family_Init(_Array);
 	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList) == 0)
 		goto end;
+	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
+	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
+	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	
 	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList) == 0)
@@ -379,6 +385,8 @@ void WorldInit(int _Area) {
 		_Itr = _Itr->Next;
 	}
 	lua_pop(g_LuaState, 1);
+	g_GoodOutputs = realloc(g_GoodOutputs, sizeof(struct GoodOutput*) * (g_GoodOutputsSz + 1));
+	g_GoodOutputs[g_GoodOutputsSz] = NULL;
 	_Itr = _GoodList->Front;
 	while(_Itr != NULL) {
 		GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data));
@@ -386,8 +394,6 @@ void WorldInit(int _Area) {
 		Log(ELOG_INFO, "Good loaded %s.", ((struct GoodBase*)_Itr->Data)->Name);
 		_Itr = _Itr->Next;
 	}
-	g_GoodOutputs = realloc(g_GoodOutputs, sizeof(struct GoodOutput*) * (g_GoodOutputsSz + 1));
-	g_GoodOutputs[g_GoodOutputsSz] = NULL;
 	GoodLoadEnd:
 	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
 		goto end;
@@ -412,9 +418,6 @@ void WorldInit(int _Area) {
 	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
 	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
-	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
-	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
-	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
 
 	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);

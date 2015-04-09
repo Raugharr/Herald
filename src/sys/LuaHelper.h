@@ -102,13 +102,7 @@ int LuaArrayItrPrev(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);
 
-struct Person* LuaCheckPerson(lua_State* _State, int _Index);
-struct Good* LuaCheckGood(lua_State* _State, int _Index);
-struct Family* LuaCheckFamily(lua_State* _State, int _Index);
-struct Field* LuaCheckField(lua_State* _State, int _Index);
-struct Animal* LuaCheckAnimal(lua_State* _State, int _Index);
-struct Building* LuaCheckBuilding(lua_State* _State, int _Index);
-struct BuildMat* LuaCheckBuildMat(lua_State* _State, int _Index);
+void* LuaToObject(lua_State* _State, int _Index, const char* _Name);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.

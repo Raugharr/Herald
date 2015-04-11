@@ -41,6 +41,7 @@ typedef struct lua_State lua_State;
 extern lua_State* g_LuaState;
 
 void RegisterLuaFuncs(lua_State* _State);
+int RegisterRule(lua_State* _State);
 int RegisterIterator(lua_State* _State);
 int RegisterArrayItr(lua_State* _State);
 int RegisterPerson(lua_State* _State);

@@ -170,7 +170,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			while(lua_next(_State, -2) != 0) {
 				//luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
 				//_Obj = lua_touserdata(_State, -1);
-				if((_Obj = LuaCheckBuilding(_State, -1)) != NULL)
+				if((_Obj = (struct Building*) LuaToObject(_State, -1, "Building")) != NULL)
 					ArrayInsertSort_S(_Family->Buildings, _Obj, ObjCmp);
 				lua_pop(_State, 1);
 			}

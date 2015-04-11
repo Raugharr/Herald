@@ -12,6 +12,7 @@
 #include "Array.h"
 #include "Event.h"
 #include "Random.h"
+#include "Rule.h"
 #include "../Herald.h"
 #include "../Good.h"
 #include "../Crop.h"
@@ -28,6 +29,14 @@
 #include <malloc.h>
 
 lua_State* g_LuaState = NULL;
+
+static const luaL_Reg g_LuaFuncsRule[] = {
+		{"LuaCall", LuaRuleLuaCall},
+		{"GreaterThan", LuaRuleGreaterThan},
+		{"LessThan", LuaRuleLessThan},
+		{"IsTrue", LuaRuleIsTrue},
+		{NULL, NULL}
+};
 
 static const luaL_Reg g_LuaFuncs[] = {
 		{"CreateConstraintBounds", LuaConstraintBnds},
@@ -115,6 +124,7 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static int(*g_LuaFuncsRegister[])(lua_State*) = {
+		RegisterRule,
 		RegisterIterator,
 		RegisterPerson,
 		RegisterGood,
@@ -140,6 +150,25 @@ void RegisterLuaFuncs(lua_State* _State) {
 			return (void) luaL_error(_State, "Loading Lua functions has failed.");
 		++i;
 	}
+}
+
+int RegisterRule(lua_State* _State) {
+	if(luaL_newmetatable(_State, "Rule") == 0)
+		return 0;
+	lua_pushliteral(_State, "__index");
+	lua_pushvalue(_State, -2);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "__class");
+	lua_pushstring(_State, "Rule");
+	lua_rawset(_State, -3);
+
+	lua_pushliteral(_State, "__newindex");
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	luaL_setfuncs(_State, g_LuaFuncsRule, 0);
+	lua_setglobal(_State, "Rule");
+	return 1;
 }
 
 int RegisterIterator(lua_State* _State) {

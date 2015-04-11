@@ -12,6 +12,7 @@ typedef int (*lua_CFunction) (lua_State *L);
 struct LinkedList;
 struct Constraint;
 typedef struct lua_State lua_State;
+typedef struct luaL_Reg luaL_Reg;
 
 #define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
@@ -40,18 +41,13 @@ typedef struct lua_State lua_State;
 
 extern lua_State* g_LuaState;
 
+struct LuaObjectReg {
+	const char* Name;
+	const luaL_Reg* Funcs;
+};
+
 void RegisterLuaFuncs(lua_State* _State);
-int RegisterRule(lua_State* _State);
-int RegisterIterator(lua_State* _State);
-int RegisterArrayItr(lua_State* _State);
-int RegisterPerson(lua_State* _State);
-int RegisterGood(lua_State* _State);
-int RegisterFamily(lua_State* _State);
-int RegisterField(lua_State* _State);
-int RegisterAnimal(lua_State* _State);
-int RegisterBuilding(lua_State* _State);
-int RegisterArray(lua_State* _State);
-int RegisterBuildMat(lua_State* _State);
+int LuaRegisterObject(lua_State* _State, const char* _Name, const luaL_Reg* _Funcs);
 
 int LuaPersonGetId(lua_State* _State);
 int LuaPersonGetX(lua_State* _State);

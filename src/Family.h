@@ -35,7 +35,7 @@ struct Family {
 void Family_Init(struct Array* _Array);
 void Family_Quit();
 struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct Person* _Wife, struct Person** _Children, int _ChildrenSize);
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y);
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct CityLocation* _Location);
 void DestroyFamily(struct Family* _Family);
 /**
  * Returns how many people are in _Family.

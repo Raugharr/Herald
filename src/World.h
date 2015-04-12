@@ -8,6 +8,8 @@
 
 #include "Herald.h"
 
+#include "sys/LinkedList.h"
+
 #define WorldGetTile(_X, _Y) ((_Y) / g_WorldSize + (_X))
 
 typedef struct lua_State lua_State;
@@ -26,6 +28,7 @@ extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
 extern struct Person* g_Player;
 extern struct TaskPool* g_TaskPool;
+extern struct LinkedList g_Settlements;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 

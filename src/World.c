@@ -50,6 +50,7 @@ struct RBTree g_Families;
 struct KDTree g_ObjPos;
 struct Person* g_Player = NULL;
 struct TaskPool* g_TaskPool = NULL;
+struct LinkedList g_Settlements = {0, NULL, NULL};
 struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
@@ -57,7 +58,7 @@ int g_Temperature = 0;
 static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
 		{"GetDate", LuaWorldGetDate},
-		{"GetPersons", LuaWorldGetPersons},
+		//{"GetPersons", LuaWorldGetPersons},
 		{"Tick", LuaWorldTick},
 		{NULL, NULL}
 };
@@ -82,6 +83,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	struct Constraint** _BabyAvg = NULL;
 	struct CityLocation* _Settlement = NULL;
 	
+	//TODO: AgeGroups and BabyAvg should not be here but instead in a global or as an argument.
 	lua_getglobal(g_LuaState, "AgeGroups");
 	LuaConstraintBnds(g_LuaState);
 	if((_AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
@@ -95,20 +97,23 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateCityLocation(0, 0, 1000, 1000, "Test Settlement");
+	_Settlement = CreateCityLocation(_X, _Y, _X + 1, _Y + 1, "Test Settlement");
+	LnkLstPushBack(&g_Settlements, _Settlement);
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
-		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y);
+		//TODO: _X and _Y should be given to the family by the CityLocation they live in.
+		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&g_Families, _Parent);
 		while(_FamilySize > 0) {
-			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y);
+			_Family = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 			RBInsert(&g_Families, _Family);
 			_FamilySize -= FamilySize(_Family);
 		}
 		_Population -= FamilySize(_Parent);
 	}
+	CityLocationPickLeader(_Settlement);
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
 	lua_pop(g_LuaState, 4);
@@ -173,7 +178,7 @@ int PopulateWorld() {
 	return 0;
 }
 
-int LuaPersonItrItr(lua_State* _State) {
+/*int LuaPersonItrItr(lua_State* _State) {
 	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
 	return 1;
 }
@@ -228,17 +233,10 @@ int LuaPersonItrPrev(lua_State* _State) {
 	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
 	lua_pushcclosure(_State, LuaPersonItrPrev_Aux, 1);
 	return 1;
-}
+}*/
 
 struct Person* PickPlayer() {
-	struct Person* _Person = g_PersonList;
-
-	while(_Person != NULL) {
-		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE)
-			break;
-		_Person = _Person->Next;
-	}
-	return _Person;
+	return ((struct CityLocation*)g_Settlements.Front->Data)->Leader;
 }
 
 struct WorldTile* CreateWorldTile() {
@@ -252,7 +250,7 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 	free(_Tile);
 }
 
-int LuaRegisterPersonItr(lua_State* _State) {
+/*int LuaRegisterPersonItr(lua_State* _State) {
 	if(luaL_newmetatable(_State, "PersonIterator") == 0)
 		return 0;
 
@@ -281,19 +279,14 @@ int LuaRegisterPersonItr(lua_State* _State) {
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "PersonIterator");
 	return 1;
-}
+}*/
 
 int LuaWorldGetPlayer(lua_State* _State) {
-	lua_newtable(_State);
-	lua_getglobal(_State, "Person");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, g_Player);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Person", g_Player);
 	return 1;
 }
 
-int LuaWorldGetPersons(lua_State* _State) {
+/*int LuaWorldGetPersons(lua_State* _State) {
 	lua_newtable(_State);
 
 	lua_getglobal(_State, "PersonIterator");
@@ -302,7 +295,7 @@ int LuaWorldGetPersons(lua_State* _State) {
 	lua_pushlightuserdata(_State, g_PersonList);
 	lua_rawset(_State, -3);
 	return 1;
-}
+}*/
 
 int LuaWorldGetDate(lua_State* _State) {
 	lua_pushinteger(_State, g_Date);
@@ -349,7 +342,6 @@ void WorldInit(int _Area) {
 	GenerateTiles(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
-	LuaRegisterPersonItr(g_LuaState);
 	chdir(DATAFLD);
 	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
@@ -456,7 +448,8 @@ void WorldQuit() {
 }
 
 int World_Tick() {
-	struct Person* _Person = g_PersonList;
+	struct LnkLst_Node* _Settlement = g_Settlements.Front;
+	struct Person* _Person = NULL;
 	struct Event* _Event = NULL;
 	struct KDNode* _Itr = NULL;
 	struct LinkedList _QueuedPeople = {0, NULL, NULL};
@@ -466,15 +459,19 @@ int World_Tick() {
 
 	do {
 	ATImerUpdate(&g_ATimer);
-		while(_Person != NULL) {
-			HashClear(g_AIHash);
-			BHVRun(_Person->Behavior, _Person, g_AIHash);
-			PAIEat(_Person, g_AIHash);
-			while(ActorHasJob((struct Actor*)_Person) != 0) {
-				if(ActorNextJob((struct Actor*)_Person) == 0)
-					LnkLstPushBack(&_QueuedPeople, _Person);
+		while(_Settlement != NULL) {
+			while(_Person != NULL) {
+				_Person = ((struct CityLocation*)_Settlement->Data)->People;
+				HashClear(g_AIHash);
+				BHVRun(_Person->Behavior, _Person, g_AIHash);
+				PAIEat(_Person, g_AIHash);
+				while(ActorHasJob((struct Actor*)_Person) != 0) {
+					if(ActorNextJob((struct Actor*)_Person) == 0)
+						LnkLstPushBack(&_QueuedPeople, _Person);
+				}
+				_Person = _Person->Next;
 			}
-			_Person = _Person->Next;
+			_Settlement = _Settlement->Next;
 		}
 		while((_Event = HandleEvents()) != NULL) {
 			if(_Event->Type == EVENT_FARMING) {
@@ -505,7 +502,7 @@ int World_Tick() {
 				((struct WorldTile*)g_World->Table[i])->Temperature = g_TemperatureList[MONTH(g_Date)];
 			}
 		}
-		_Person = g_PersonList;
+		_Settlement = g_Settlements.Front;
 		--_Ticks;
 	} while(_Ticks > 0);
 	LnkLstClear(&_QueuedPeople);

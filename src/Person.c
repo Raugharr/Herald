@@ -10,6 +10,7 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Good.h"
+#include "Location.h"
 #include "sys/LinkedList.h"
 #include "sys/LuaHelper.h"
 #include "sys/RBTree.h"
@@ -32,7 +33,6 @@
 #define BIRTH_TIME (9)
 
 struct MemoryPool* g_PersonPool = NULL;
-struct Person* g_PersonList = NULL;
 
 struct Pregancy* CreatePregancy(struct Person* _Person) {
 	struct Pregancy* _Pregancy = (struct Pregancy*) malloc(sizeof(struct Pregancy));
@@ -61,7 +61,7 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 	return 0;
 }
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y) {
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct CityLocation* _Location) {
 	struct Person* _Person = NULL;
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
@@ -74,21 +74,21 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Parent = NULL;
 	_Person->Occupation = NULL;
 
-	ILL_CREATE(g_PersonList, _Person);
+	ILL_CREATE(_Location->People, _Person);
+	_Person->HomeLoc = _Location;
 	_Person->Behavior = NULL;
-	g_PersonList = _Person;
 	return _Person;
 }
 
 void DestroyPerson(struct Person* _Person) {
 	DtorActor((struct Actor*)_Person);
-	ILL_DESTROY(g_PersonList, _Person);
+	ILL_DESTROY(_Person->HomeLoc->People, _Person);
 	MemPool_Free(g_PersonPool, _Person);
 }
 
 struct Person* CreateChild(struct Family* _Family) {
 	struct Person* _Mother = _Family->People[WIFE];
-	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Mother->Nutrition, _Mother->X, _Mother->Y);
+	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Mother->Nutrition, _Mother->X, _Mother->Y, _Mother->HomeLoc);
 	
 	_Child->Family = _Family;
 	return _Child;
@@ -232,12 +232,12 @@ void ClothingWear(struct Person* _Person, struct Good* _Clothing) {
 
 void ClothingRemove(struct Person* _Person, struct Good* _Clothing) {
 	int i = 0;
-	
+
 	for(i = 0; i < PERSON_CLOTHMAX; ++i)
 		if(_Person->Clothing[i] != NULL && GoodCmp(_Clothing, _Person->Clothing[i]) == 0) {
 			ObjectAddPos(_Person->X, _Person->Y, (struct Object*)_Clothing);
 			_Person->Clothing[i] = NULL;
-			return;	
+			return;
 		}
 }
 
@@ -248,7 +248,7 @@ int BodyLocation(int* _Body, int _Location, int _Position) {
 		return -1;
 	if(_Location < EBODY_HEAD || _Location > EBODY_SIZE)
 		return -1;
-	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE) 
+	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE)
 		return -1;
 	_Int = _Location / 8;
 	return _Body[_Int] & (0xF << (4 * (_Location - (_Int * 8)) - 4));
@@ -261,7 +261,7 @@ void SetBodyLoctionHealth(int* _Body, int _Location, int _Position, int _Health)
 		return;
 	if(_Location < EBODY_HEAD || _Location > EBODY_SIZE)
 		return;
-	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE) 
+	if(_Location > EBODY_NOPOS && _Position == EBODYPOS_NONE)
 		return;
 	_Int = _Location / 8;
 	_Body[_Int] = _Body[_Int] & ((_Health & 0xF) << (4 * (_Location - (_Int * 8)) - 4));

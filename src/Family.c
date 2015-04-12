@@ -60,22 +60,22 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	return _Family;
 }
 
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y) {
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct CityLocation* _Location) {
 	struct Family* _Family = NULL;
 
 	if(_Size > FAMILY_PEOPLESZ)
 		return NULL;
 
 	if(_Size >= 2) {
-		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500, _X, _Y);
-		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500, _X, _Y);
+		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500, _X, _Y, _Location);
+		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500, _X, _Y, _Location);
 		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
 			int _Child = CHILDREN + _Family->NumChildren;
 
-			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(0, DaysToDate(DateToDays(_Wife->Age) - DateToDays(_AgeGroups[TEENAGER]->Min))), Random(1, 2), 1500, _X, _Y);
+			_Family->People[_Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(0, DaysToDate(DateToDays(_Wife->Age) - DateToDays(_AgeGroups[TEENAGER]->Min))), Random(1, 2), 1500, _X, _Y, _Location);
 			_Family->People[_Child]->Family = _Family;
 			++_Family->NumChildren;
 		}

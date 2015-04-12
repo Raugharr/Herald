@@ -25,9 +25,9 @@
 
 struct HashTable;
 struct Object;
+struct CityLocation;
 
 extern struct MemoryPool* g_PersonPool;
-extern struct Person* g_PersonList;
 
 enum {
 	EBODYPOS_NONE,
@@ -87,6 +87,7 @@ struct Person {
 	struct Family* Parent;
 	struct Person* Next;
 	struct Person* Prev;
+	struct CityLocation* HomeLoc;
 	struct Occupation* Occupation;
 	struct Behavior* Behavior;
 	struct Good* Clothing[PERSON_CLOTHMAX];
@@ -104,7 +105,7 @@ struct Pregancy* CreatePregancy(struct Person* _Person);
 void DestroyPregancy(struct Pregancy* _Pregancy);
 int PregancyUpdate(struct Pregancy* _Pregancy);
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y);
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct CityLocation* _Location);
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 int PersonThink(struct Person* _Person);

@@ -102,6 +102,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		//TODO: _X and _Y should be given to the family by the CityLocation they live in.
+		CityLocationPlaceFamily(_Settlement, _Family, &_X, &_Y);
 		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&g_Families, _Parent);

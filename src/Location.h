@@ -6,6 +6,7 @@
 #define __LOCATION_H
 
 struct Person;
+struct Family;
 
 enum {
 	ELOC_SETTLEMENT,
@@ -42,5 +43,6 @@ void DestroyCityLocation(struct CityLocation* _Location);
 
 void CityLocationPickLeader(struct CityLocation* _Location);
 
+int CityLocationPlaceFamily(struct CityLocation* _Location, struct Family* _Family, int* _X, int* _Y);
 void PlaceBuilding(struct CityLocation* _Location, int _Width, int _Length, int* _X, int* _Y);
 #endif

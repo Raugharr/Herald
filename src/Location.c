@@ -5,6 +5,8 @@
 #include "Location.h"
 
 #include "Person.h"
+#include "Family.h"
+#include "sys/KDTree.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +41,23 @@ void CityLocationPickLeader(struct CityLocation* _Location) {
 		}
 		_Person = _Person->Next;
 	}
+}
+
+int CityLocationPlaceFamily(struct CityLocation* _Location, struct Family* _Family, int* _X, int* _Y) {
+	int _Point[] = {_Location->StartX, _Location->StartY};
+
+	while(_Point[0] < _Location->EndX) {
+		++_Point[0];
+		while(_Point[1] < _Location->EndY) {
+			if(KDSearchNode(&g_ObjPos, _Point) == NULL) {
+				*_X = _Point[0];
+				*_Y = _Point[1];
+				return 1;
+			}
+			++_Point[1];
+		}
+	}
+	return 0;
 }
 
 void PlaceBuilding(struct CityLocation* _Location, int _Width, int _Length, int* _X, int* _Y) {

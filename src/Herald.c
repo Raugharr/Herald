@@ -13,6 +13,7 @@
 #include "Good.h"
 #include "Occupation.h"
 #include "Population.h"
+#include "Mission.h"
 #include "AI/AIHelper.h"
 #include "AI/Pathfind.h"
 #include "sys/Stack.h"
@@ -24,6 +25,7 @@
 #include "sys/LuaHelper.h"
 #include "sys/Constraint.h"
 #include "sys/KDTree.h"
+#include "sys/Log.h"
 #include "sys/Event.h"
 
 #include <assert.h>
@@ -41,6 +43,7 @@ struct HashTable g_BuildMats;
 struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct ATimer g_ATimer;
+struct LinkedList g_MissionList;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
@@ -78,6 +81,13 @@ void HeraldInit() {
 	ATimerAddType(&g_ATimer, CreateATType(ATT_PREGANCY, (int(*)(void*))PregancyUpdate, (void(*)(void*))DestroyPregancy));
 	ATimerAddType(&g_ATimer, CreateATType(ATT_CONSTRUCTION, (int(*)(void*))ConstructUpdate, (void(*)(void*))DestroyConstruct));
 
+	g_MissionList.Back = NULL;
+	g_MissionList.Front = NULL;
+	g_MissionList.Size = 0;
+	Log(ELOG_INFO, "Loading Missions");
+	++g_Log.Indents;
+	LoadAllMissions(g_LuaState, &g_MissionList);
+	--g_Log.Indents;
 	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	EventInit();

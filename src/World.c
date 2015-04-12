@@ -14,6 +14,7 @@
 #include "Good.h"
 #include "Population.h"
 #include "Location.h"
+#include "Mission.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -409,11 +410,6 @@ void WorldInit(int _Area) {
 
 	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList) == 0)
 		goto end;
-	_Itr = _BuildList->Front;
-	while(_Itr != NULL) {
-		BuildMatToGoodBase((struct BuildMat*)_Itr->Data);
-		_Itr = _Itr->Next;
-	}
 	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
 	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));

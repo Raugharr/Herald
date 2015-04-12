@@ -9,6 +9,7 @@
 #include "sys/ATimer.h"
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
+#include "sys/LinkedList.h"
 
 #include <math.h>
 
@@ -84,6 +85,7 @@ extern struct HashTable g_BuildMats;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct ATimer g_ATimer;
+extern struct LinkedList g_MissionList;
 extern int g_ObjPosBal;
 
 extern struct Constraint** g_AgeConstraints;

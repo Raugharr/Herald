@@ -12,13 +12,14 @@
 #define LnkLstCatNode(_List, _Node) LnkLst_CatNode(List, _Node)
 
 #define ILL_CREATE(_Global, _Var)			\
-	if((_Global) == NULL)					\
+	if((_Global) == NULL) {					\
 		(_Var)->Next = NULL;				\
-	else {									\
+	} else {								\
 		(_Var)->Next = (_Global);			\
 		(_Global)->Prev = (_Var);			\
 	}										\
-	(_Var)->Prev = NULL;
+	(_Var)->Prev = NULL;					\
+	(_Global) = (_Var)
 
 #define ILL_DESTROY(_Global, _Var)				\
 	if((_Global) == (_Var)) {					\

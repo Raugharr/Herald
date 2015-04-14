@@ -485,6 +485,9 @@ int World_Tick() {
 			}
 		}
 		escape_events:
+		if(DAY(g_Date) == 1) {
+			GenerateMissions(g_LuaState, &g_Settlements, &g_MissionList);
+		}
 		_Itr = g_ObjPos.Root;
 		while(_Itr != NULL) {
 			struct LinkedList* _List = ((struct LinkedList*)_Itr->Data);

@@ -10,6 +10,7 @@
 #include "sys/Video.h"
 #include "sys/HashTable.h"
 #include "sys/LuaHelper.h"
+#include "sys/TaskPool.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
 
@@ -39,6 +40,7 @@ int main(int argc, char* args[]) {
 	while(g_VideoOk != 0) {
 		Events();
 		Draw();
+		g_RealTskPool->Time = SDL_GetTicks();
 	}
 
 	HeraldDestroy();

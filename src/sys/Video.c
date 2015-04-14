@@ -126,6 +126,7 @@ void Events(void) {
 	SDL_Event _Event;
 	struct Widget* _Callback = NULL;
 
+	GUIMessageCheck(&g_GUIMessageList);
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];

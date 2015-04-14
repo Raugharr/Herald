@@ -16,10 +16,11 @@
 
 int(*g_RuleFuncLookup[])(const struct Rule*) = {
 		RuleTrue,
-		RuleTrue,
+		(int(*)(const struct Rule*))RuleBoolean,
 		(int(*)(const struct Rule*))RuleGreaterThan,
 		(int(*)(const struct Rule*))RuleLessThan,
-		(int(*)(const struct Rule*))RuleLuaCall
+		(int(*)(const struct Rule*))RuleLuaCall,
+		(int(*)(const struct Rule*))RulePrimitive
 };
 
 struct Primitive* CreatePrimitive() {
@@ -30,6 +31,22 @@ void DestroyPrimitive(struct Primitive* _Primitive) {
 	if(_Primitive->Type == PRIM_STRING)
 		free(_Primitive->Value.String);
 	free(_Primitive);
+}
+
+int PrimitiveToBoolean(struct Primitive* _Primitive) {
+	switch(_Primitive->Type) {
+		case PRIM_FLOAT:
+			return _Primitive->Value.Float != 0;
+		case PRIM_INTEGER:
+			return _Primitive->Value.Int != 0;
+		case PRIM_BOOLEAN:
+			return _Primitive->Value.Int != 0;
+		case PRIM_PTR:
+			return _Primitive->Value.Ptr != NULL;
+		case PRIM_STRING:
+			return _Primitive->Value.String != ((char*)0);
+	}
+	return 0;
 }
 
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*)) {
@@ -73,7 +90,7 @@ void DestroyRuleComparator(struct RuleComparator* _Rule) {
 	free(_Rule);
 }
 
-struct RuleBoolean* CreateRuleBoolean(struct Rule* _Boolean) {
+struct RuleBoolean* CreateRuleBoolean(int _Boolean) {
 	struct RuleBoolean* _Rule = (struct RuleBoolean*) malloc(sizeof(struct RuleBoolean));
 
 	_Rule->Type = RULE_BOOLEAN;
@@ -83,7 +100,6 @@ struct RuleBoolean* CreateRuleBoolean(struct Rule* _Boolean) {
 }
 
 void DestroyRuleBoolean(struct RuleBoolean* _Rule) {
-	_Rule->Boolean->Destroy(_Rule->Boolean);
 	free(_Rule);
 }
 
@@ -95,11 +111,19 @@ struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, const char* _FuncName, 
 	_Rule->State = _State;
 	_Rule->FuncName = calloc(strlen(_FuncName) + 1, sizeof(char));
 	_Rule->Arguments = _Arguments;
+	strcpy(_Rule->FuncName, _FuncName);
 	return _Rule;
 }
 
 void DestroyRuleLuaCall(struct RuleLuaCall* _Rule) {
+	struct Primitive** _Itr = _Rule->Arguments;
+
+	while((*_Itr) != NULL) {
+		free(*_Itr);
+		++_Itr;
+	}
 	free(_Rule->FuncName);
+	free(_Rule->Arguments);
 	free(_Rule);
 }
 
@@ -125,6 +149,7 @@ void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive) {
 
 struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
 	struct Primitive* _Primitive = CreatePrimitive();
+
 	switch(lua_type(_State, _Index)) {
 		case LUA_TBOOLEAN:
 			_Primitive->Type = PRIM_BOOLEAN;
@@ -151,10 +176,11 @@ int LuaRuleLuaCall(lua_State* _State) {
 	struct RuleLuaCall* _Rule = NULL;
 
 	if(_Args > 1)
-		_Primitive = alloca(sizeof(struct Primitive*) * (_Args - 1));
+		_Primitive = calloc(sizeof(struct Primitive), (_Args));
 	_Func = luaL_checkstring(_State, 1);
 	for(i = 1; i < _Args; ++i)
-		_Primitive[i - 1] = LuaToPrimitive(_State, i);
+		_Primitive[i - 1] = LuaToPrimitive(_State, i + 1);
+	_Primitive[i] = NULL;
 	_Rule = CreateRuleLuaCall(_State, _Func, _Primitive);
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
@@ -184,13 +210,14 @@ int LuaRuleLessThan(lua_State* _State) {
 	return 1;
 }
 
-int LuaRuleIsTrue(lua_State* _State) {
-	struct Rule* _Boolean = NULL;
-	struct RuleBoolean* _Rule = NULL;
+int LuaRuleTrue(lua_State* _State) {
+	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(1);
+	LuaCtor(_State, "Rule", _Rule);
+	return 1;
+}
 
-	if((_Boolean = (struct Rule*) LuaToObject(_State, 1, "Rule")) == NULL)
-			luaL_error(_State, LUA_TYPERROR(_State, 1, "Rule", "LuaRuleIsTrue"));
-	_Rule = CreateRuleBoolean(_Boolean);
+int LuaRuleFalse(lua_State* _State) {
+	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(0);
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
 }
@@ -198,14 +225,14 @@ int LuaRuleIsTrue(lua_State* _State) {
 struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
 	struct RulePrimitive* _Rule = NULL;
 
-	if(lua_type(_State, 1) == LUA_TTABLE) {
-		if((_Rule = LuaToObject(_State, 1, "Rule")) == NULL) {
-			luaL_error(_State, LUA_TYPERROR(_State, 1, "Rule", "LuaRuleGreaterThan"));
+	if(lua_type(_State, _Index) == LUA_TTABLE) {
+		if((_Rule = LuaToObject(_State, _Index, "Rule")) == NULL) {
+			luaL_error(_State, LUA_TYPERROR(_State, _Index, "Rule", "LuaRuleGreaterThan"));
 			return NULL;
 		}
 	} else
 		_Rule = CreateRulePrimitive(LuaToPrimitive(_State, 1));
-	return _Rule;
+	return (struct Rule*) _Rule;
 }
 
 int RuleTrue(const struct Rule* _Rule) {
@@ -224,18 +251,33 @@ int RuleGreaterThan(const struct RuleComparator* _Rule) {
 int RuleLessThan(const struct RuleComparator* _Rule) {
 	return (RuleEval(_Rule->Left) < RuleEval(_Rule->Right));
 }
+
 int RuleLuaCall(const struct RuleLuaCall* _Rule) {
 	int i = 0;
-	struct Primitive* _Itr = *_Rule->Arguments;
+	struct Primitive** _Itr = _Rule->Arguments;
 
 	lua_getglobal(_Rule->State, _Rule->FuncName);
-	while(_Itr != NULL) {
-		PrimitiveLuaPush(_Rule->State, _Itr);
+	if(lua_type(_Rule->State, -1) != LUA_TFUNCTION)
+		return 0;
+	while((*_Itr) != NULL) {
+		PrimitiveLuaPush(_Rule->State, *_Itr);
 		++i;
-		_Itr += sizeof(struct Primitive*);
+		++_Itr;
 	}
 	LuaCallFunc(_Rule->State, i, 1, 0);
 	if(lua_isboolean(_Rule->State, -1) != 0)
 		return lua_toboolean(_Rule->State, -1);
+	else if(lua_isnumber(_Rule->State, -1) != 0)
+		return lua_tointeger(_Rule->State, -1);
 	return 0;
+}
+
+int RulePrimitive(const struct RulePrimitive* _Primitive) {
+	if(_Primitive->Value.Type == PRIM_INTEGER)
+		return _Primitive->Value.Value.Int;
+	return 0;
+}
+
+int RuleBoolean(const struct RuleBoolean* _Rule) {
+	return _Rule->Boolean != 0;
 }

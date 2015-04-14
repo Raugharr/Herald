@@ -20,6 +20,7 @@
 #include "sys/RBTree.h"
 #include "sys/Random.h"
 #include "sys/LinkedList.h"
+#include "sys/TaskPool.h"
 #include "sys/MemoryPool.h"
 #include "sys/Array.h"
 #include "sys/LuaHelper.h"
@@ -47,6 +48,7 @@ struct LinkedList g_MissionList;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
+struct TaskPool* g_RealTskPool = NULL;
 
 int g_Id = 0;
 const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -56,6 +58,8 @@ int IdISCallback(const int* _One, const int* _Two) {
 }
 
 void HeraldInit() {
+	g_RealTskPool = CreateTaskPool();
+
 	g_Crops.TblSize = 0;
 	g_Crops.Table = NULL;
 	g_Crops.Size = 0;
@@ -95,6 +99,7 @@ void HeraldInit() {
 }
 
 void HeraldDestroy() {
+	DestroyTaskPool(g_RealTskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);

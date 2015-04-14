@@ -55,7 +55,7 @@ struct RuleComparator {
 struct RuleBoolean {
 	int Type;
 	void(*Destroy)(struct Rule*);
-	struct Rule* Boolean;
+	int Boolean;
 };
 
 struct RuleLuaCall {
@@ -75,6 +75,8 @@ struct RulePrimitive {
 struct Primitive* CreatePrimitive();
 void DestroyPrimitive(struct Primitive* _Primitive);
 
+int PrimitiveToBoolean(struct Primitive* _Primitive);
+
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*));
 void DestroyRule(struct Rule* _Rule);
 
@@ -84,7 +86,7 @@ void DestroyRulePrimitive(struct RulePrimitive* _Rule);
 struct RuleComparator* CreateRuleComparator(int _Type, struct Rule* _Left, struct Rule* _Right);
 void DestroyRuleComparator(struct RuleComparator* _Rule);
 
-struct RuleBoolean* CreateRuleBoolean(struct Rule* _Boolean);
+struct RuleBoolean* CreateRuleBoolean(int _Boolean);
 void DestroyRuleBoolean(struct RuleBoolean* _Rule);
 
 struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, const char* _FuncName, struct Primitive** _Arguments);
@@ -96,7 +98,8 @@ struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
 int LuaRuleLuaCall(lua_State* _State);
 int LuaRuleGreaterThan(lua_State* _State);
 int LuaRuleLessThan(lua_State* _State);
-int LuaRuleIsTrue(lua_State* _State);
+int LuaRuleTrue(lua_State* _State);
+int LuaRuleFalse(lua_State* _State);
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 
@@ -105,6 +108,8 @@ int RuleFalse(const struct Rule* _Rule);
 int RuleGreaterThan(const struct RuleComparator* _Rule);
 int RuleLessThan(const struct RuleComparator* _Rule);
 int RuleLuaCall(const struct RuleLuaCall* _Rule);
+int RulePrimitive(const struct RulePrimitive* _Primitive);
+int RuleBoolean(const struct RuleBoolean* _Rule);
 
 extern int(*g_RuleFuncLookup[])(const struct Rule*);
 

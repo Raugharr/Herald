@@ -5,10 +5,14 @@
 
 #include "Mission.h"
 
+#include "Location.h"
+#include "World.h"
+
 #include "sys/LuaHelper.h"
 #include "sys/Rule.h"
 #include "sys/LinkedList.h"
 #include "sys/Log.h"
+#include "sys/GuiLua.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -93,14 +97,17 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	_Mission->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Mission->Description = calloc(strlen(_Description) + 1, sizeof(char));
 	_Mission->OptionNames = _OptionNames;
+	_Mission->LuaTable = calloc(strlen(_TableName) + 1, sizeof(char));
 	strcpy(_Mission->Name, _Name);
 	strcpy(_Mission->Description, _Description);
+	strcpy(_Mission->LuaTable, _TableName);
 	return _Mission;
 }
 
 void DestroyMission(struct Mission* _Mission) {
 	free(_Mission->Name);
 	free(_Mission->Description);
+	free(_Mission->LuaTable);
 	free(_Mission);
 }
 
@@ -110,17 +117,13 @@ struct MissionOption* LoadMissionOption(lua_State* _State, int _Index) {
 	struct Rule* _Rules[4];
 	struct MissionOption* _Option = NULL;
 
-	if(lua_type(_State, _Index) != LUA_TTABLE) {
+	if(lua_type(_State, _AbsIndex) != LUA_TTABLE) {
 		luaL_error(_State, "Mission option parameter is not a a table.");
 		return NULL;
 	}
-	lua_rawgeti(_State, _AbsIndex, 1);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		luaL_error(_State, "Mission option's second parameter is not a table.");
-		return NULL;
-	}
 	for(i = 0; i < 4; ++i) {
-		lua_rawgeti(_State, -1, i + 1);
+		lua_rawgeti(_State, _AbsIndex, i + 1);
+
 		if((_Rules[i] = (struct Rule*) LuaToObject(_State, -1, "Rule")) == NULL) {
 			luaL_error(_State, "Mission option's rule table contains a non rule.");
 			return NULL;
@@ -133,4 +136,59 @@ struct MissionOption* LoadMissionOption(lua_State* _State, int _Index) {
 	_Option->FailureCon = _Rules[2];
 	_Option->FailureRwrd = _Rules[3];
 	return _Option;
+}
+
+int CheckMissionOption(lua_State* _State, void* _None) {
+	struct MissionOption* _Mission = LoadMissionOption(_State, -1);
+
+	if(_Mission == NULL)
+		return 0;
+	if(RuleEval(_Mission->SuccessCon) != 0)
+		RuleEval(_Mission->SuccessRwrd);
+	else if(RuleEval(_Mission->FailureCon))
+		RuleEval(_Mission->FailureRwrd);
+	return 1;
+}
+
+void GenerateMissions(lua_State* _State, const struct LinkedList* _Settlements, const struct LinkedList* _Missions) {
+	struct LnkLst_Node* _SettleItr = _Settlements->Front;
+	struct LnkLst_Node* _MissionItr = NULL;
+	struct Mission* _Mission = NULL;
+	struct CityLocation* _Settlement = NULL;
+	struct Rule* _Rule = NULL;
+
+	while(_SettleItr != NULL) {
+		_MissionItr = _Missions->Front;
+		_Settlement = (struct CityLocation*)_SettleItr->Data;
+		while(_MissionItr != NULL) {
+			_Mission = (struct Mission*)_MissionItr->Data;
+			lua_getglobal(_State, _Mission->LuaTable);
+			lua_pushstring(_State, "Trigger");
+			lua_rawget(_State, -2);
+			lua_pushnil(_State);
+			LuaCallFunc(_State, 1, 1, 0);
+			if((_Rule = (struct Rule*)LuaToObject(_State, -1, "Rule")) == NULL) {
+				Log(ELOG_WARNING, "%s's trigger does not return a rule object.");
+				goto mission_end;
+			}
+			if(RuleEval(_Rule) == 1) {
+				if(_Settlement->Leader == g_Player) {
+					lua_settop(_State, 0);
+					lua_pushstring(_State, "MissionMenu");
+					lua_createtable(_State, 0, 2);
+					lua_pushstring(_State, "Mission");
+					lua_getglobal(_State, _Mission->LuaTable);
+					lua_rawset(_State, -3);
+					lua_pushstring(_State, "Settlement");
+					LuaCtor(_State, "Settlement", _Settlement);
+					lua_rawset(_State, -3);
+					LuaSetMenu(_State);
+					GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
+				}
+			}
+			mission_end:
+			_MissionItr = _MissionItr->Next;
+		}
+		_SettleItr = _SettleItr->Next;
+	}
 }

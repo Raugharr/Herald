@@ -21,7 +21,6 @@ struct Task {
 struct TaskPool {
 	struct BinaryHeap Schedule;
 	struct MemoryPool* TaskMemPool;
-	unsigned int Clock;
 	int ThreadCt;
 	int IsAlive;
 	int Time;

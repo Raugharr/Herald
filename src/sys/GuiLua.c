@@ -10,6 +10,8 @@
 #include "LuaHelper.h"
 #include "Array.h"
 #include "Log.h"
+#include "LinkedList.h"
+#include "../Herald.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
@@ -29,6 +31,8 @@
 
 #define LUA_EVENTIDSIZE (16)
 
+struct LinkedList g_GUIMessageList = {0, NULL, NULL};
+
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
 		{"VerticalContainer", LuaVerticalContainer},
@@ -44,6 +48,7 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"PopMenu", LuaPopMenu},
 		{"ScreenWidth", LuaScreenWidth},
 		{"ScreenHeight", LuaScreenHeight},
+		{"SendMessage", LuaSendMessage},
 		{NULL, NULL}
 };
 
@@ -798,6 +803,68 @@ int LuaScreenHeight(lua_State* _State) {
 	return 1;
 }
 
+int LuaSendMessage(lua_State* _State) {
+	luaL_checkstring(_State, 1);
+	if(lua_gettop(_State) != 2) {
+		luaL_error(_State, "SendMessage does not have any data.");
+		return 0;
+	}
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Messages");
+	lua_rawget(_State, -2);
+	lua_pushvalue(_State, 1);
+	lua_pushvalue(_State, 2);
+	lua_rawset(_State, -3);
+	return 0;
+}
+
+int LuaCheckMessage_Aux(void* _One) {
+	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) _One;
+
+	lua_getglobal(_Pair->State, "GUI");
+	lua_pushstring(_Pair->State, "Messages");
+	lua_rawget(_Pair->State, -2);
+	lua_pushstring(_Pair->State, _Pair->Key);
+	lua_rawget(_Pair->State, -2);
+	if(lua_type(_Pair->State, -1) == LUA_TNIL) {
+		lua_pop(_Pair->State, 3);
+		return 1;
+	}
+	_Pair->Callback(_Pair->One, _Pair->Two);
+	lua_pushstring(_Pair->State, _Pair->Key);
+	lua_pushnil(_Pair->State);
+	lua_rawset(_Pair->State, -4);
+	lua_pop(_Pair->State, 3);
+	return 0;
+}
+
+void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(void*, void*), void* _One, void* _Two) {
+	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) malloc(sizeof(struct GUIMessagePair));
+
+	_Pair->Callback = _Callback;
+	_Pair->State = _State;
+	_Pair->Key = _Key;
+	_Pair->One = _One;
+	LnkLstPushBack(&g_GUIMessageList, _Pair);
+}
+
+void GUIMessageCheck(struct LinkedList* _List) {
+	struct LnkLst_Node* _Itr = _List->Front;
+	struct GUIMessagePair* _Pair = NULL;
+
+	while(_Itr != NULL) {
+		_Pair = (struct GUIMessagePair*) _Itr->Data;
+		if(LuaCheckMessage_Aux(_Pair) == 0) {
+			void* _Data = _Itr->Data;
+			_Itr = _Itr->Next;
+			free(_Data);
+			LnkLstRemove(_List, _Itr);
+			continue;
+		}
+		_Itr = _Itr->Next;
+	}
+}
+
 struct Widget* LuaCheckWidget(lua_State* _State, int _Index) {
 	struct Widget* _Widget = NULL;
 
@@ -1175,6 +1242,10 @@ int InitGUILua(lua_State* _State) {
 	lua_newtable(_State);
 	lua_rawset(_State, -3);
 
+	lua_pushstring(_State, "Messages");
+	lua_newtable(_State);
+	lua_rawset(_State, -3);
+
 	lua_pushstring(_State, "EventIds");
 	lua_createtable(_State, LUA_EVENTIDSIZE, 0);
 	lua_rawset(_State, -3);
@@ -1201,6 +1272,10 @@ int QuitGUILua(lua_State* _State) {
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "ScreenStack");
 	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) == LUA_TNIL) {
+		luaL_error(_State, "QuitGUILua has no ScreenStack.");
+		return 0;
+	}
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		lua_pushstring(_State, "__screen");

@@ -148,7 +148,7 @@ void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void
 }
 
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
-	struct LnkLst_Node* _Prev = _Node->Prev;
+	struct LnkLst_Node* _Prev = NULL;
 
 	if(_List->Size == 1) {
 		_List->Front = NULL;
@@ -157,6 +157,7 @@ void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 		free(_Node);
 		return;
 	}
+	_Prev = _Node->Prev;
 	if(_List->Front == _Node) {
 		_List->Front = _Node->Next;
 		_List->Front->Prev = NULL;

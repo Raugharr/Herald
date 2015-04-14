@@ -17,13 +17,14 @@ int TaskCmp(const void* _One, const void* _Two) {
 
 int TaskPoolThread(struct TaskPool* _TaskPool) {
 	struct Task* _Task = NULL;
+	int _Ret = 0;
 
 	while(_TaskPool->IsAlive) {
 		while((_Task = TaskPoolNext(_TaskPool)) == NULL)
 			SDL_Delay(5);
 		//If the task is not completed continue it on the next tick.
-		if(_Task->Callback(_Task->DataOne, _Task->DataTwo) != 0) {
-			_Task->StartTime += 1;
+		if(_Task->StartTime <= _TaskPool->Time && (_Ret = _Task->Callback(_Task->DataOne, _Task->DataTwo)) != 0) {
+			_Task->StartTime += _Ret;
 			SDL_LockMutex(_TaskPool->PoolMutex);
 			BinaryHeapInsert(&_TaskPool->Schedule, _Task);
 			SDL_UnlockMutex(_TaskPool->PoolMutex);

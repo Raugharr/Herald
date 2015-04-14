@@ -97,6 +97,8 @@ int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
 int LuaArrayItrPrev(lua_State* _State);
 
+int LuaSettlementGetLeader(lua_State* _State);
+
 int LuaArrayItr(lua_State* _State);
 
 void* LuaToObject(lua_State* _State, int _Index, const char* _Name);
@@ -143,6 +145,7 @@ int LuaMonth(lua_State* _State);
 int LuaPrintDate(lua_State* _State);
 int LuaPrintYears(lua_State* _State);
 int LuaHook(lua_State* _State);
+int LuaRandom(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);

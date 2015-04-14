@@ -70,5 +70,4 @@ void WorldQuit();
 void CreateTempMap(int _Length);
 int World_Tick();
 
-
 #endif

@@ -5,11 +5,23 @@ typedef struct lua_State lua_State;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
 
+#include "LinkedList.h"
+
 #define RestoreScreen(_State) lua_settop((_State), 0);					\
 		lua_pushstring((_State), (const char*)g_GUIStack.Top->Data);	\
 		LuaSetMenu_Aux((_State))
 
 struct Widget;
+
+extern struct LinkedList g_GUIMessageList;
+
+struct GUIMessagePair {
+	int(*Callback)(void*, void*);
+	lua_State* State;
+	const char* Key;
+	void* One;
+	void* Two;
+};
 
 int LuaRegisterWidget(lua_State* _State);
 int LuaRegisterContainer(lua_State* _State);
@@ -45,6 +57,10 @@ int LuaCloseMenu(lua_State* _State);
 int LuaPopMenu(lua_State* _State);
 int LuaScreenWidth(lua_State* _State);
 int LuaScreenHeight(lua_State* _State);
+
+int LuaSendMessage(lua_State* _State);
+void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(void*, void*), void* _One, void* _Two);
+void GUIMessageCheck(struct LinkedList* _List);
 
 /**
  * Check functions

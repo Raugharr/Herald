@@ -30,11 +30,17 @@
 
 lua_State* g_LuaState = NULL;
 
+static const luaL_Reg g_LuaFuncsSettlement[] = {
+		{"GetLeader", LuaSettlementGetLeader},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsRule[] = {
 		{"LuaCall", LuaRuleLuaCall},
 		{"GreaterThan", LuaRuleGreaterThan},
 		{"LessThan", LuaRuleLessThan},
-		{"IsTrue", LuaRuleIsTrue},
+		{"True", LuaRuleTrue},
+		{"False", LuaRuleFalse},
 		{NULL, NULL}
 };
 
@@ -54,6 +60,7 @@ static const luaL_Reg g_LuaFuncs[] = {
 		{"CreateBuilding", LuaCreateBuilding},
 		{"CreateAnimal", LuaCreateAnimal},
 		{"GetBuildMat", LuaBuildMat},
+		{"Random", LuaRandom},
 		{NULL, NULL}
 };
 
@@ -131,6 +138,7 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static struct LuaObjectReg g_ObjectRegs[] = {
+		{"Settlement", g_LuaFuncsSettlement},
 		{"Rule", g_LuaFuncsRule},
 		{"Iterator", g_LuaFuncsIterator},
 		{"Person", g_LuaFuncsPerson},
@@ -585,6 +593,10 @@ int LuaArrayItrPrev(lua_State* _State) {
 	return 1;
 }
 
+int LuaSettlementGetLeader(lua_State* _State) {
+	return 0;
+}
+
 int LuaArrayItr(lua_State* _State) {
 	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
 	return 1;
@@ -887,6 +899,11 @@ int LuaHook(lua_State* _State) {
 	return 1;
 }
 
+int LuaRandom(lua_State* _State) {
+	Random(luaL_checkinteger(_State, 1), luaL_checkinteger(_State, 2));
+	return 1;
+}
+
 int LuaLoadFile(lua_State* _State, const char* _File) {
 	int _Error = luaL_loadfile(_State, _File);
 
@@ -1030,9 +1047,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Location = lua_touserdata(_State, 5);
 	if(_Location->Type != ELOC_SETTLEMENT)
 		luaL_error(_State, "Location is not a settlement.");
-	lua_len(_State, 1);
-	_ZoneTbl = alloca((lua_tointeger(_State, -1) + 1) * sizeof(struct Zone*));
-	lua_pop(_State, 1);
+	_ZoneTbl = alloca((lua_rawlen(_State, 1) + 1) * sizeof(struct Zone*));
 	lua_pushvalue(_State, 1);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {

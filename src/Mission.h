@@ -28,5 +28,7 @@ void LoadAllMissions(lua_State* _State, struct LinkedList* _List);
 struct Mission* LoadMission(lua_State* _State, const char* _TableName);
 void DestroyMission(struct Mission* _Mission);
 struct MissionOption* LoadMissionOption(lua_State* _State, int _Index);
+int CheckMissionOption(lua_State* _State, void* _None);
+void GenerateMissions(lua_State* _State, const struct LinkedList* _Settlements, const struct LinkedList* _Missions);
 
 #endif

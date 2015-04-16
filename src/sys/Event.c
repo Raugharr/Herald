@@ -5,40 +5,60 @@
 
 #include "Event.h"
 
-#include "../sys/MemoryPool.h"
-#include "../sys/LinkedList.h"
-#include "../sys/Queue.h"
+#include "MemoryPool.h"
+#include "LinkedList.h"
+#include "Queue.h"
+
+#include "../Person.h"
+#include "../Family.h"
+#include "../Crop.h"
 
 #include <stdlib.h>
 
 #define EVENTPOOL (1024)
 
-static struct Queue* g_EventQueue = NULL;
+static struct EventQueue g_EventQueue = {0, NULL, NULL};
 static struct LinkedList** g_EventHooks = NULL;
-static struct MemoryPool* g_MemoryPool = NULL;
+int g_EventId = 0;
+const char* g_EventNames[] = {
+		"Birth",
+		"Death",
+		"Age",
+		"Farming",
+		"StarvingFamily",
+		NULL
+};
+
+#define EventCtor(_Struct, _Event, _Location, _Type)					\
+	(_Event)->Id = g_EventId++;											\
+	(_Event)->Location = (_Location);									\
+	(_Event)->Type = (_Type);											\
+	(_Event->Next) = NULL
 
 void EventInit() {
 	int i;
-
-	g_EventQueue = CreateQueue(EVENTPOOL);
 	g_EventHooks = (struct LinkedList**) malloc(sizeof(struct LinkedList**) * EVENT_LAST);
-	g_MemoryPool = CreateMemoryPool(sizeof(struct Event), EVENTPOOL);
 	for(i = 0; i < EVENT_LAST; ++i)
 		g_EventHooks[i] = CreateLinkedList();
 }
 
 void EventQuit() {
-	int i;
+	int i = 0;
 
-	DestroyQueue(g_EventQueue);
-	DestroyMemoryPool(g_MemoryPool);
 	for(i = 0; i < EVENT_LAST; ++i)
 		DestroyLinkedList(g_EventHooks[i]);
 	free(g_EventHooks);
 }
 
 void EventPush(struct Event* _Event) {
-	QueuePush(g_EventQueue, _Event);
+	if(g_EventQueue.Top == NULL) {
+		g_EventQueue.Top = _Event;
+		g_EventQueue.Bottom = _Event;
+	} else {
+		g_EventQueue.Bottom->Next = _Event;
+		g_EventQueue.Bottom = _Event;
+	}
+	++g_EventQueue.Size;
 }
 
 void EventHook(int _EventId, void (*_Callback)(struct Event*)) {
@@ -71,43 +91,60 @@ void EventRmHook(int _EventId, void(*_Callback)(struct Event*)) {
 }
 
 struct Event* HandleEvents() {
-	return QueuePop(g_EventQueue);
+	struct Event* _Event = g_EventQueue.Top;
+
+	if(g_EventQueue.Size <= 1) {
+		g_EventQueue.Top = NULL;
+		g_EventQueue.Bottom = NULL;
+	} else
+		g_EventQueue.Top = g_EventQueue.Top->Next;
+	--g_EventQueue.Size;
+	return _Event;
 }
 
 struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child) {
-	struct EventBirth* _EventBirth = (struct EventBirth*) malloc(sizeof(struct EventBirth));
+	struct EventBirth* _Event = (struct EventBirth*) malloc(sizeof(struct EventBirth));
 
-	_EventBirth->Type = EVENT_BIRTH;
-	_EventBirth->Mother = _Mother;
-	_EventBirth->Child = _Child;
-	return (struct Event*)_EventBirth;
+	EventCtor(struct EventBirth, _Event, (struct Location*)_Mother->Family->HomeLoc, EVENT_BIRTH);
+	_Event->Mother = _Mother;
+	_Event->Child = _Child;
+	return (struct Event*)_Event;
 }
 
 struct Event* CreateEventDeath(struct Person* _Person) {
-	struct EventDeath* _EventDeath = (struct EventDeath*) malloc(sizeof(struct EventDeath));
+	struct EventDeath* _Event = (struct EventDeath*) malloc(sizeof(struct EventDeath));
 
-	_EventDeath->Type = EVENT_DEATH;
-	_EventDeath->Person = _Person;
-	return (struct Event*)_EventDeath;
+	EventCtor(struct EventDeath, _Event, (struct Location*)_Person->Family->HomeLoc, EVENT_AGE);
+	_Event->Person = _Person;
+	return (struct Event*)_Event;
 }
 
 struct Event* CreateEventTime(struct Person* _Person, DATE _Age) {
-	struct EventAge* _EventAge = (struct EventAge*) malloc(sizeof(struct EventAge));
+	struct EventAge* _Event = (struct EventAge*) malloc(sizeof(struct EventAge));
+	struct Location* _Location = NULL;
 
-	_EventAge->Type = EVENT_AGE;
-	_EventAge->Person = _Person;
-	_EventAge->Age = _Age;
-	return (struct Event*)_EventAge;
+	if(_Person != NULL)
+		_Location = (struct Location*) _Person->Family->HomeLoc;
+	EventCtor(struct EventAge, _Event, _Location, EVENT_AGE);
+	_Event->Person = _Person;
+	_Event->Age = _Age;
+	return (struct Event*)_Event;
 }
 
-struct Event* CreateEventFarming(int _X, int _Y, int _Action, const struct Field* _Field) {
+struct Event* CreateEventFarming(int _Action, const struct Field* _Field) {
 	struct EventFarming* _Event = (struct EventFarming*) malloc(sizeof(struct EventFarming));
 
-	_Event->Type = EVENT_FARMING;
-	_Event->X = _X;
-	_Event->Y = _Y;
+	EventCtor(struct EventFarming, _Event, (struct Location*)_Field->Owner->HomeLoc, EVENT_FARMING);
 	_Event->Action = _Action;
 	_Event->Field = _Field;
 
+	return (struct Event*)_Event;
+}
+
+struct Event* CreateEventStarvingFamily(struct Family* _Family) {
+	struct EventStarvingFamily* _Event = (struct EventStarvingFamily*) malloc(sizeof(struct EventStarvingFamily));
+
+	EventCtor(struct EventStarvingFamily, _Event, (struct Location*)_Family->HomeLoc, EVENT_STARVINGFAMILY);
+	_Event->Family = _Family;
 	return (struct Event*)_Event;
 }

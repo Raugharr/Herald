@@ -24,7 +24,8 @@ enum {
 	RULE_GREATERTHAN,
 	RULE_LESSTHAN,
 	RULE_LUACALL,
-	RULE_PRIMITIVE
+	RULE_PRIMITIVE,
+	RULE_EVENT
 };
 
 union UPrimitive {
@@ -72,6 +73,13 @@ struct RulePrimitive {
 	struct Primitive Value;
 };
 
+struct RuleEvent {
+	int Type;
+	void (*Destroy)(struct Rule*);
+	int (*Compare)(const void*, const void*);
+	int Event;
+};
+
 struct Primitive* CreatePrimitive();
 void DestroyPrimitive(struct Primitive* _Primitive);
 
@@ -79,6 +87,8 @@ int PrimitiveToBoolean(struct Primitive* _Primitive);
 
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*));
 void DestroyRule(struct Rule* _Rule);
+
+int RuleCmp(const void* _One, const void* _Two);
 
 struct RulePrimitive* CreateRulePrimitive(struct Primitive* _Primitive);
 void DestroyRulePrimitive(struct RulePrimitive* _Rule);
@@ -95,11 +105,15 @@ void DestroyRuleLuaCall(struct RuleLuaCall* _Rule);
 void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);
 struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
 
+struct RuleEvent* CreateRuleEvent(int _Event);
+void DestroyRuleEvent(struct RuleEvent* _Rule);
+
 int LuaRuleLuaCall(lua_State* _State);
 int LuaRuleGreaterThan(lua_State* _State);
 int LuaRuleLessThan(lua_State* _State);
 int LuaRuleTrue(lua_State* _State);
 int LuaRuleFalse(lua_State* _State);
+int LuaRuleEventFired(lua_State* _State);
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 
@@ -110,6 +124,8 @@ int RuleLessThan(const struct RuleComparator* _Rule);
 int RuleLuaCall(const struct RuleLuaCall* _Rule);
 int RulePrimitive(const struct RulePrimitive* _Primitive);
 int RuleBoolean(const struct RuleBoolean* _Rule);
+
+int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);
 
 extern int(*g_RuleFuncLookup[])(const struct Rule*);
 

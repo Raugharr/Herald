@@ -5,7 +5,9 @@
 #ifndef __LOCATION_H
 #define __LOCATION_H
 
-struct Person;
+#include "sys/LinkedList.h"
+
+struct BigGuy;
 struct Family;
 
 enum {
@@ -26,7 +28,7 @@ struct CityPlanner {
 	int BuildingY;
 };
 
-struct CityLocation {
+struct Settlement {
 	int Type;
 	int StartX;
 	int StartY;
@@ -35,14 +37,17 @@ struct CityLocation {
 	char* Name;
 	struct CityPlanner Planner;
 	struct Person* People;
-	struct Person* Leader;
+	struct LinkedList Families;
+	struct BigGuy* Leader;
+	int NumPeople;
 };
 
-struct CityLocation* CreateCityLocation(int _X, int _Y, int _Width, int _Length, const char* _Name);
-void DestroyCityLocation(struct CityLocation* _Location);
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name);
+void DestroySettlement(struct Settlement* _Location);
 
-void CityLocationPickLeader(struct CityLocation* _Location);
+void SettlementPickLeader(struct Settlement* _Location);
+void SettlementThink(struct Settlement* _Settlement);
 
-int CityLocationPlaceFamily(struct CityLocation* _Location, struct Family* _Family, int* _X, int* _Y);
-void PlaceBuilding(struct CityLocation* _Location, int _Width, int _Length, int* _X, int* _Y);
+int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y);
+void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _X, int* _Y);
 #endif

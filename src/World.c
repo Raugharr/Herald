@@ -15,6 +15,7 @@
 #include "Population.h"
 #include "Location.h"
 #include "Mission.h"
+#include "BigGuy.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -48,9 +49,11 @@ struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
 struct KDTree g_ObjPos;
-struct Person* g_Player = NULL;
+struct BigGuy* g_Player = NULL;
 struct TaskPool* g_TaskPool = NULL;
 struct LinkedList g_Settlements = {0, NULL, NULL};
+struct RBTree g_BigGuys = {NULL, 0, (int(*)(const void*, const void*)) BigGuyIdInsert, (int(*)(const void*, const void*)) BigGuyIdCmp};
+struct RBTree g_BigGuyState = {NULL, 0, (int(*)(const void*, const void*)) BigGuyStateInsert, (int(*)(const void*, const void*)) BigGuyMissionCmp};
 struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
@@ -81,7 +84,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	struct Family* _Parent = NULL;
 	struct Constraint** _AgeGroups = NULL;
 	struct Constraint** _BabyAvg = NULL;
-	struct CityLocation* _Settlement = NULL;
+	struct Settlement* _Settlement = NULL;
 	
 	//TODO: AgeGroups and BabyAvg should not be here but instead in a global or as an argument.
 	lua_getglobal(g_LuaState, "AgeGroups");
@@ -97,12 +100,12 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateCityLocation(_X, _Y, _X + 1, _Y + 1, "Test Settlement");
+	_Settlement = CreateSettlement(_X, _Y, _X + 1, _Y + 1, "Test Settlement");
 	LnkLstPushBack(&g_Settlements, _Settlement);
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		//TODO: _X and _Y should be given to the family by the CityLocation they live in.
-		CityLocationPlaceFamily(_Settlement, _Family, &_X, &_Y);
+		SettlementPlaceFamily(_Settlement, _Family, &_X, &_Y);
 		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&g_Families, _Parent);
@@ -114,7 +117,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		}
 		_Population -= FamilySize(_Parent);
 	}
-	CityLocationPickLeader(_Settlement);
+	SettlementPickLeader(_Settlement);
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
 	lua_pop(g_LuaState, 4);
@@ -236,8 +239,8 @@ int LuaPersonItrPrev(lua_State* _State) {
 	return 1;
 }*/
 
-struct Person* PickPlayer() {
-	return ((struct CityLocation*)g_Settlements.Front->Data)->Leader;
+struct BigGuy* PickPlayer() {
+	return ((struct Settlement*)g_Settlements.Front->Data)->Leader;
 }
 
 struct WorldTile* CreateWorldTile() {
@@ -308,19 +311,6 @@ int LuaWorldTick(lua_State* _State) {
 	return 0;
 }
 
-void GenerateTiles(int _Size) {
-	int i;
-	FILE* _File = NULL;
-	struct Tile _TileBuffer[MILE_FEET];
-
-	for(i = 0; i < MILE_FEET; ++i)
-		_TileBuffer[i].Terrain = TERRAIN_GRASS;
-	_File = fopen("map", "wb+");
-	for(i = 0; i < _Size; ++i);
-		fwrite(_TileBuffer, sizeof(struct Tile), MILE_FEET, _File);
-	fclose(_File);
-}
-
 void WorldInit(int _Area) {
 	int i;
 	int _WorldSize = _Area * _Area;
@@ -340,7 +330,6 @@ void WorldInit(int _Area) {
 	g_World = CreateArray(_WorldSize);
 	for(i = 0; i < _WorldSize; ++i)
 		g_World->Table[i] = CreateWorldTile();
-	GenerateTiles(_Area * _Area);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
 	chdir(DATAFLD);
@@ -462,7 +451,7 @@ int World_Tick() {
 	ATImerUpdate(&g_ATimer);
 		while(_Settlement != NULL) {
 			while(_Person != NULL) {
-				_Person = ((struct CityLocation*)_Settlement->Data)->People;
+				_Person = ((struct Settlement*)_Settlement->Data)->People;
 				HashClear(g_AIHash);
 				BHVRun(_Person->Behavior, _Person, g_AIHash);
 				PAIEat(_Person, g_AIHash);
@@ -474,20 +463,21 @@ int World_Tick() {
 			}
 			_Settlement = _Settlement->Next;
 		}
-		while((_Event = HandleEvents()) != NULL) {
+		if(DAY(g_Date) == 1) {
+			EventPush(CreateEventStarvingFamily(g_Player->Person->Family));
+		}
+			while((_Event = HandleEvents()) != NULL) {
 			if(_Event->Type == EVENT_FARMING) {
-				struct Array* _Field = g_Player->Family->Fields;
+				struct Array* _Field = g_Player->Person->Family->Fields;
 				for(i = 0; i < _Field->Size; ++i)
 					if(((struct Field*)_Field->Table[i]) == ((struct EventFarming*)_Event)->Field) {
 						_Ticks = 0;
 						goto escape_events;
 					}
 			}
+			GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
 		}
 		escape_events:
-		if(DAY(g_Date) == 1) {
-			GenerateMissions(g_LuaState, &g_Settlements, &g_MissionList);
-		}
 		_Itr = g_ObjPos.Root;
 		while(_Itr != NULL) {
 			struct LinkedList* _List = ((struct LinkedList*)_Itr->Data);

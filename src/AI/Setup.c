@@ -301,7 +301,7 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 }
 
 int PAIEat(struct Person* _Person, struct HashTable* _Table) {
-	struct Family* _Family = _Person->Family;
+	/*struct Family* _Family = _Person->Family;
 	struct Food* _CloseFood = NULL;
 	int _BestDist = INT_MAX;
 	int _Distance = 0;
@@ -315,7 +315,7 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 			}
 		}
 	}
-	ActorAddJob(ACTORJOB_EAT, (struct Actor*)_Person, (struct Object*)_CloseFood, NULL);
+	ActorAddJob(ACTORJOB_EAT, (struct Actor*)_Person, (struct Object*)_CloseFood, NULL);*/
 	return 1;
 }
 

@@ -4,6 +4,7 @@
 
 #include "Location.h"
 
+#include "BigGuy.h"
 #include "Person.h"
 #include "Family.h"
 #include "sys/KDTree.h"
@@ -11,8 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct CityLocation* CreateCityLocation(int _X, int _Y, int _Width, int _Length, const char* _Name) {
-	struct CityLocation* _Loc = (struct CityLocation*) malloc(sizeof(struct CityLocation));
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name) {
+	struct Settlement* _Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
 	_Loc->Type = ELOC_SETTLEMENT;
 	_Loc->StartX = _X;
@@ -22,28 +23,40 @@ struct CityLocation* CreateCityLocation(int _X, int _Y, int _Width, int _Length,
 	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Loc->People = NULL;
 	_Loc->Leader = NULL;
+	_Loc->Families.Size = 0;
+	_Loc->Families.Front = NULL;
+	_Loc->Families.Back = NULL;
 	strcpy(_Loc->Name, _Name);
 	return _Loc;
 }
 
-void DestroyCityLocation(struct CityLocation* _Location) {
+void DestroySettlement(struct Settlement* _Location) {
 	free(_Location->Name);
 	free(_Location);
 }
 
-void CityLocationPickLeader(struct CityLocation* _Location) {
+void SettlementPickLeader(struct Settlement* _Location) {
 	struct Person* _Person = _Location->People;
 
 	while(_Person != NULL) {
 		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
-			_Location->Leader = _Person;
+			_Location->Leader = CreateBigGuy(_Person);
 			break;
 		}
 		_Person = _Person->Next;
 	}
 }
 
-int CityLocationPlaceFamily(struct CityLocation* _Location, struct Family* _Family, int* _X, int* _Y) {
+void SettlementThink(struct Settlement* _Settlement) {
+	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
+
+	while(_Itr != NULL) {
+		FamilyThink((struct Family*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+}
+
+int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y) {
 	int _Point[] = {_Location->StartX, _Location->StartY};
 
 	while(_Point[0] < _Location->EndX) {
@@ -56,11 +69,12 @@ int CityLocationPlaceFamily(struct CityLocation* _Location, struct Family* _Fami
 			}
 			++_Point[1];
 		}
+		_Location->NumPeople += FamilySize(_Family);
 	}
 	return 0;
 }
 
-void PlaceBuilding(struct CityLocation* _Location, int _Width, int _Length, int* _X, int* _Y) {
+void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _X, int* _Y) {
 	*_X = _Location->Planner.BuildingX;
 	*_Y = _Location->Planner.BuildingY;
 	_Location->Planner.BuildingY += _Length;

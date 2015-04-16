@@ -41,6 +41,7 @@ static const luaL_Reg g_LuaFuncsRule[] = {
 		{"LessThan", LuaRuleLessThan},
 		{"True", LuaRuleTrue},
 		{"False", LuaRuleFalse},
+		{"EventFired", LuaRuleEventFired},
 		{NULL, NULL}
 };
 
@@ -1111,7 +1112,7 @@ int LuaCreateBuilding(lua_State* _State) {
 	_Width = 0;
 	_Length = 0;
 	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	PlaceBuilding((struct CityLocation*) _Location, _Width, _Length, &_X, &_Y);
+	PlaceBuilding((struct Settlement*) _Location, _Width, _Length, &_X, &_Y);
 	_ZoneTbl[0]->X = _X;
 	_ZoneTbl[0]->Y = _Y;
 	HORIZONTAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y - 1, _ZoneTbl[0]->Width);

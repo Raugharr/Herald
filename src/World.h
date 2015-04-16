@@ -18,6 +18,7 @@ struct Array;
 struct Person;
 struct RBTree;
 struct TaskPool;
+struct BigGuy;
 
 extern DATE g_Date;
 extern struct Array* g_World;
@@ -26,9 +27,11 @@ extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
-extern struct Person* g_Player;
+extern struct BigGuy* g_Player;
 extern struct TaskPool* g_TaskPool;
 extern struct LinkedList g_Settlements;
+extern struct RBTree g_BigGuys;
+extern struct RBTree g_BigGuyState;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
@@ -47,14 +50,12 @@ struct FamilyType {
 
 //Each tile represents a mile of the world.
 struct WorldTile {
+	float Forest;
+	float Unbuildable;
 	int Temperature;
 };
 
-struct Tile {
-	int Terrain;
-};
-
-struct Person* PickPlayer();
+struct BigGuy* PickPlayer();
 
 struct WorldTile* CreateWorldTile();
 void DestroyWorldTile(struct WorldTile* _Tile);

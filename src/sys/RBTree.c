@@ -438,6 +438,14 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	free(_OldNode);
 }
 
+void RBDepthFirst_Aux(const struct RBNode* _Node, struct RBNode** _Stack, int _Index) {
+	if(_Node == NULL)
+		return;
+	_Stack[_Index] = _Node;
+	RBDepthFirst_Aux(_Node->Left, _Stack, _Index + 1);
+	RBDepthFirst_Aux(_Node->Right, _Stack, _Index + 2);
+}
+
 struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node) {
 	struct RBItrStack* _Itr = (struct RBItrStack*) malloc(sizeof(struct RBItrStack));
 

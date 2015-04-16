@@ -61,7 +61,7 @@ int PregancyUpdate(struct Pregancy* _Pregancy) {
 	return 0;
 }
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct CityLocation* _Location) {
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Settlement* _Location) {
 	struct Person* _Person = NULL;
 
 	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
@@ -75,20 +75,19 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Occupation = NULL;
 
 	ILL_CREATE(_Location->People, _Person);
-	_Person->HomeLoc = _Location;
 	_Person->Behavior = NULL;
 	return _Person;
 }
 
 void DestroyPerson(struct Person* _Person) {
 	DtorActor((struct Actor*)_Person);
-	ILL_DESTROY(_Person->HomeLoc->People, _Person);
+	ILL_DESTROY(_Person->Family->HomeLoc->People, _Person);
 	MemPool_Free(g_PersonPool, _Person);
 }
 
 struct Person* CreateChild(struct Family* _Family) {
 	struct Person* _Mother = _Family->People[WIFE];
-	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Mother->Nutrition, _Mother->X, _Mother->Y, _Mother->HomeLoc);
+	struct Person* _Child = CreatePerson("Foo", 0, Random(1, 2), _Mother->Nutrition, _Mother->X, _Mother->Y, _Mother->Family->HomeLoc);
 	
 	_Child->Family = _Family;
 	return _Child;
@@ -112,6 +111,55 @@ int PersonThink(struct Person* _Person) {
 	return 1;
 }
 
+int PersonEat(struct Person* _Person) {
+	struct Food* _FoodPtr = NULL;
+	int _Size = _Person->Family->Goods->Size;
+	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
+	struct Food* _Food = (struct Food*) _FoodPtr;
+	int _Nut = 0;
+	int _NutReq = NUTRITION_LOSS;
+	int _Div = 0;
+	int i = 0;
+	struct Family* _Family = _Person->Family;
+
+
+		for(i = 0; i < _Family->Goods->Size; ++i) {
+			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == EFOOD) {
+				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
+			}
+		}
+	for(i = 0; i < _Size; ++i) {
+		_Food = (struct Food*)_Tbl[i];
+		if(_Food->Base->Category != EFOOD)
+			continue;
+		_Div = _Food->Base->Nutrition / FOOD_MAXPARTS;
+		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts != 0) {
+			if(_Food->Base->Nutrition > _NutReq) {
+				--_Food->Parts;
+				if(_Food->Parts <= 0) {
+					if(_Food->Quantity > 0) {
+						--_Food->Quantity;
+						_Food->Parts = FOOD_MAXPARTS;
+					}
+				}
+				_Nut += _Div;
+			} else {
+				if(_Food->Quantity == 0) {
+					_Nut += _Food->Base->Nutrition  * (_Food->Parts / FOOD_MAXPARTS);
+					_Food->Parts = 0;
+				} else {
+					_Nut += _Food->Base->Nutrition;
+					--_Food->Quantity;
+				}
+			}
+		}
+	}
+	if(_Nut == 0)
+		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
+	_Person->Nutrition += _Nut;
+	return _Nut;
+}
+
 void PersonDeath(struct Person* _Person) {
 	int i;
 	struct Family* _Family = _Person->Family;
@@ -128,8 +176,9 @@ void PersonDeath(struct Person* _Person) {
 			}
 			break;
 		}
-	DestroyPerson(_Person);
+	RBDelete(&g_BigGuys, _Person);
 	EventPush(CreateEventDeath(_Person));
+	DestroyPerson(_Person);
 }
 
 void BodyStrToBody(const char* _BodyStr, int* _Locations) {

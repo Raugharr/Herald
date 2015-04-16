@@ -85,8 +85,9 @@ extern struct HashTable g_Goods;
 extern struct HashTable g_BuildMats;
 extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
+extern struct RBTree g_MissionTree;
 extern struct ATimer g_ATimer;
-extern struct LinkedList g_MissionList;
+extern struct RBTree g_MissionList;
 extern struct TaskPool* g_RealTskPool;
 extern int g_ObjPosBal;
 

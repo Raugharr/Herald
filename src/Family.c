@@ -10,6 +10,8 @@
 #include "Crop.h"
 #include "Good.h"
 #include "Population.h"
+#include "Location.h"
+#include "sys/Event.h"
 #include "sys/Array.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
@@ -34,7 +36,7 @@ void Family_Quit() {
 	DestroyArray(g_FirstNames);
 }
 
-struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct Person* _Wife, struct Person** _Children, int _ChildrenSize) {
+struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct Person* _Wife, struct Person** _Children, int _ChildrenSize, struct Settlement* _Location) {
 	struct Family* _Family = (struct Family*) malloc(sizeof(struct Family));
 	int i;
 
@@ -57,10 +59,11 @@ struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct P
 	_Family->Buildings = CreateArray(2);
 	_Family->Goods = CreateArray(16);
 	_Family->Animals = CreateArray(0);
+	_Family->HomeLoc = _Location;
 	return _Family;
 }
 
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct CityLocation* _Location) {
+struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct Settlement* _Location) {
 	struct Family* _Family = NULL;
 
 	if(_Size > FAMILY_PEOPLESZ)
@@ -69,7 +72,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 	if(_Size >= 2) {
 		struct Person* _Husband = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EMALE, 1500, _X, _Y, _Location);
 		struct Person* _Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size)], Random(_AgeGroups[TEENAGER]->Min, _AgeGroups[ADULT]->Max), EFEMALE, 1500, _X, _Y, _Location);
-		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0);
+		_Family = CreateFamily(_Name, _Husband, _Wife, NULL, 0, _Location);
 		_Size -= 2;
 
 		while(_Size-- > 0) {
@@ -101,11 +104,25 @@ void DestroyFamily(struct Family* _Family) {
 	DestroyArray(_Family->Fields);
 	DestroyArray(_Family->Buildings);
 	DestroyArray(_Family->Goods);
-	//DestroyArray(_Family->Animals);
+	DestroyArray(_Family->Animals);
 	free(_Family);
 }
 
-int FamilySize(struct Family* _Family) {
+int FamilyThink(struct Family* _Family) {
+	int i = 0;
+	int _PersonHungry = 0;
+
+	for(i = 0; _Family->People[i] != NULL; ++i) {
+		PersonThink(_Family->People[i]);
+		if(PersonEat(_Family->People[i]) == 0)
+			_PersonHungry = 1;
+	}
+	if(_PersonHungry != 0)
+		EventPush(CreateEventStarvingFamily(_Family));
+	return 1;
+}
+
+int FamilySize(const struct Family* _Family) {
 	int _Size = 0;
 	int i;
 
@@ -119,10 +136,10 @@ int FamilySize(struct Family* _Family) {
 
 void Marry(struct Person* _Male, struct Person* _Female) {
 	assert(_Male->Gender == EMALE && _Female->Gender == EFEMALE);
-	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0);
+	CreateFamily(_Male->Family->Name, _Male, _Female, NULL, 0, _Male->Family->HomeLoc);
 }
 
-void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct CityLocation* _Location) {
+void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct Settlement* _Location) {
 	int i;
 	int j;
 	int _FamType = Random(0, 9999);
@@ -160,7 +177,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "Field");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				ArrayInsert_S(_Family->Fields, CreateField(_X, _Y, NULL, lua_tointeger(_State, -1)));
+				ArrayInsert_S(_Family->Fields, CreateField(_X, _Y, NULL, lua_tointeger(_State, -1), _Family));
 				lua_pop(_State, 1);
 			}
 			lua_pop(_State, 1);

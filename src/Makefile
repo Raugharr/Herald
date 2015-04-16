@@ -1,10 +1,10 @@
 CC=gcc
 CFLAGS+= -Wall
 OBJFLD=obj/
-DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h Occupation.h World.h Actor.h Zone.h Location.h Mission.h
+DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h Occupation.h World.h Actor.h Zone.h Location.h Mission.h BigGuy.h
 OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)Occupation.o $(OBJFLD)World.o \
-$(OBJFLD)Actor.o $(OBJFLD)Zone.o $(OBJFLD)Location.o $(OBJFLD)Mission.o
+$(OBJFLD)Actor.o $(OBJFLD)Zone.o $(OBJFLD)Location.o $(OBJFLD)Mission.o $(OBJFLD)BigGuy.o
 ODIR=.
 ifdef Windows
 	LIB=-lmingw32 -llua -lSDL2main -lSDL2 -lSDL2_ttf

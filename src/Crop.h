@@ -56,13 +56,14 @@ struct Field {
 	int UnusedAcres;
 	int Status;
 	int StatusTime; //How much more time it will take to reach the next status.
+	struct Family* Owner;
 };
 
 struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter);
 void DestroyCrop(struct Crop* _Crop);
 struct Crop* CropLoad(lua_State* _State, int _Index);
 
-struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres);
+struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres, struct Family* _Owner);
 int FieldCmp(const void* _One, const void* _Two);
 void DestroyField(struct Field* _Field);
 int InputReqFieldCmp(const void* _One, const void* _Two);
@@ -95,7 +96,7 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields);
  * element in _Crops must be a struct InputReq where the Req variable is
  * a struct Crop*.
  */
-void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops);
+void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Family* _Family);
 /**
  * Finds fields that are adjacent to each other and combines them.
  */

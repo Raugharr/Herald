@@ -61,10 +61,10 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 
 struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
 	int i = 0;
-	int x = 0;
+	/*int x = 0;
 	int y = 0;
 	int _MidX = 0;
-	int _MidY = 0;
+	int _MidY = 0;*/
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);

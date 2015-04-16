@@ -7,6 +7,7 @@
 
 #include "LuaHelper.h"
 #include "Log.h"
+#include "Event.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -59,6 +60,10 @@ struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*)) {
 
 void DestroyRule(struct Rule* _Rule) {
 	free(_Rule);
+}
+
+int RuleCmp(const void* _One, const void* _Two) {
+	return RuleEval(((struct Rule*)_One)) - RuleEval(((struct Rule*)_Two));
 }
 
 struct RulePrimitive* CreateRulePrimitive(struct Primitive* _Primitive) {
@@ -168,6 +173,18 @@ struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
 	return _Primitive;
 }
 
+struct RuleEvent* CreateRuleEvent(int _Event) {
+	struct RuleEvent* _Rule = (struct RuleEvent*) malloc(sizeof(struct RuleEvent));
+
+	_Rule->Type = RULE_EVENT;
+	_Rule->Destroy = (void(*)(struct Rule*))DestroyRuleEvent;
+	_Rule->Event = _Event;
+	return _Rule;
+}
+void DestroyRuleEvent(struct RuleEvent* _Rule) {
+	free(_Rule);
+}
+
 int LuaRuleLuaCall(lua_State* _State) {
 	const char* _Func = NULL;
 	int _Args = lua_gettop(_State);
@@ -220,6 +237,22 @@ int LuaRuleFalse(lua_State* _State) {
 	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(0);
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
+}
+
+int LuaRuleEventFired(lua_State* _State) {
+	int i = 0;
+	struct Rule* _Rule = NULL;
+	const char* _String = luaL_checkstring(_State, 1);
+
+	for(i = 0; g_EventNames[i] != NULL; ++i) {
+		if(strcmp(g_EventNames[i], _String) == 0) {
+			_Rule = (struct Rule*) CreateRuleEvent(i);
+			LuaCtor(_State, "Rule", _Rule);
+			return 1;
+		}
+	}
+	luaL_error(_State, "%s is not an event name.", _String);
+	return 0;
 }
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
@@ -280,4 +313,17 @@ int RulePrimitive(const struct RulePrimitive* _Primitive) {
 
 int RuleBoolean(const struct RuleBoolean* _Rule) {
 	return _Rule->Boolean != 0;
+}
+
+int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two) {
+	int _Diff = _One->Type - _Two->Type;
+
+	if(_Diff != 0)
+		return _Diff;
+	if(_One->Type == RULE_EVENT)
+		return ((struct RuleEvent*)_One)->Event - ((struct RuleEvent*)_Two)->Event;
+	_Diff = RuleEventCompare(((struct RuleComparator*)_One)->Left, ((struct RuleComparator*)_Two)->Left);
+	if(_Diff != 0)
+		return _Diff;
+	return RuleEventCompare(((struct RuleComparator*)_One)->Right, ((struct RuleComparator*)_Two)->Right);
 }

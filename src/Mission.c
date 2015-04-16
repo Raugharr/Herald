@@ -7,12 +7,14 @@
 
 #include "Location.h"
 #include "World.h"
+#include "BigGuy.h"
 
 #include "sys/LuaHelper.h"
 #include "sys/Rule.h"
-#include "sys/LinkedList.h"
+#include "sys/RBTree.h"
 #include "sys/Log.h"
 #include "sys/GuiLua.h"
+#include "sys/Event.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +23,7 @@
 #include <dirent.h>
 #include <malloc.h>
 
-void LoadAllMissions(lua_State* _State, struct LinkedList* _List) {
+void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	int i = 0;
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
@@ -42,8 +44,9 @@ void LoadAllMissions(lua_State* _State, struct LinkedList* _List) {
 			++i;
 		}
 		_TableName[i] = '\0';
-		LnkLst_PushBack(_List, LoadMission(_State, _TableName));
+		RBInsert(_List, LoadMission(_State, _TableName));
 		Log(ELOG_INFO, "Loaded mission %s", _TableName);
+		i = 0;
 	}
 	error:
 	chdir("../..");
@@ -57,6 +60,7 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	int i = 0;
 	int _AbsIndex = 0;
 	struct Mission* _Mission = NULL;
+	struct Rule* _RuleEvent = NULL;
 
 	lua_getglobal(_State, _TableName);
 	_AbsIndex = LuaAbsPos(_State, -1);
@@ -76,7 +80,13 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	lua_pushstring(_State, "Description");
 	lua_rawget(_State, _AbsIndex);
 	AddString(_State, -1, &_Description);
-	lua_pop(_State, 3);
+	lua_pushstring(_State, "Trigger");
+	lua_rawget(_State, _AbsIndex);
+	if((_RuleEvent = (struct Rule*) LuaToObject(_State, -1, "Rule")) == NULL) {
+		luaL_error(_State, "Mission trigger rule is a non rule.");
+		return NULL;
+	}
+	lua_pop(_State, 4);
 	if(_Name == NULL || _Description == NULL)
 		return NULL;
 	lua_pushstring(_State, "OptionNames");
@@ -98,6 +108,8 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	_Mission->Description = calloc(strlen(_Description) + 1, sizeof(char));
 	_Mission->OptionNames = _OptionNames;
 	_Mission->LuaTable = calloc(strlen(_TableName) + 1, sizeof(char));
+	_Mission->Trigger = _RuleEvent;
+	_Mission->Next = NULL;
 	strcpy(_Mission->Name, _Name);
 	strcpy(_Mission->Description, _Description);
 	strcpy(_Mission->LuaTable, _TableName);
@@ -108,6 +120,7 @@ void DestroyMission(struct Mission* _Mission) {
 	free(_Mission->Name);
 	free(_Mission->Description);
 	free(_Mission->LuaTable);
+	free(_Mission->Trigger);
 	free(_Mission);
 }
 
@@ -150,16 +163,32 @@ int CheckMissionOption(lua_State* _State, void* _None) {
 	return 1;
 }
 
-void GenerateMissions(lua_State* _State, const struct LinkedList* _Settlements, const struct LinkedList* _Missions) {
-	struct LnkLst_Node* _SettleItr = _Settlements->Front;
-	struct LnkLst_Node* _MissionItr = NULL;
+void GenerateMissions(lua_State* _State, const struct Event* _Event, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
 	struct Mission* _Mission = NULL;
-	struct CityLocation* _Settlement = NULL;
-	struct Rule* _Rule = NULL;
+	struct BigGuy* _BGItr = NULL;
 
-	while(_SettleItr != NULL) {
+	_Mission = RBSearch(_Missions, _Event);
+	while(_Mission != NULL) {
+			_BGItr = RBSearch(_BigGuys, _Mission);
+			if(_BGItr != NULL) {
+				lua_settop(_State, 0);
+				lua_pushstring(_State, "MissionMenu");
+				lua_createtable(_State, 0, 2);
+				lua_pushstring(_State, "Mission");
+				lua_getglobal(_State, _Mission->LuaTable);
+				lua_rawset(_State, -3);
+				lua_pushstring(_State, "Settlement");
+				if(_Event->Location->Type == ELOC_SETTLEMENT )
+					LuaCtor(_State, "Settlement", (struct Settlement*)_Event->Location);
+				lua_rawset(_State, -3);
+				LuaSetMenu(_State);
+				GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
+		}
+			_Mission = _Mission->Next;
+	}
+	/*while(_SettleItr != NULL) {
 		_MissionItr = _Missions->Front;
-		_Settlement = (struct CityLocation*)_SettleItr->Data;
+		_Settlement = (struct Settlement*)_SettleItr->Data;
 		while(_MissionItr != NULL) {
 			_Mission = (struct Mission*)_MissionItr->Data;
 			lua_getglobal(_State, _Mission->LuaTable);
@@ -190,5 +219,15 @@ void GenerateMissions(lua_State* _State, const struct LinkedList* _Settlements, 
 			_MissionItr = _MissionItr->Next;
 		}
 		_SettleItr = _SettleItr->Next;
-	}
+	}*/
+}
+
+int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
+	return RuleEventCompare(_One->Trigger, _Two->Trigger);
+}
+
+int MissionTreeSearch(const struct Event* _One, const struct Mission* _Two) {
+	if(_Two->Trigger->Type != RULE_EVENT)
+		return -1;
+	return ((struct RuleEvent*)_Two->Trigger)->Event - _One->Type;
 }

@@ -63,8 +63,7 @@ struct RuleLuaCall {
 	int Type;
 	void (*Destroy)(struct Rule*);
 	lua_State* State;
-	char* FuncName;
-	struct Primitive** Arguments;
+	int TblRef;
 };
 
 struct RulePrimitive {
@@ -99,7 +98,7 @@ void DestroyRuleComparator(struct RuleComparator* _Rule);
 struct RuleBoolean* CreateRuleBoolean(int _Boolean);
 void DestroyRuleBoolean(struct RuleBoolean* _Rule);
 
-struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, const char* _FuncName, struct Primitive** _Arguments);
+struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef);
 void DestroyRuleLuaCall(struct RuleLuaCall* _Rule);
 
 void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);

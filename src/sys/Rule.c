@@ -108,27 +108,18 @@ void DestroyRuleBoolean(struct RuleBoolean* _Rule) {
 	free(_Rule);
 }
 
-struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, const char* _FuncName, struct Primitive** _Arguments) {
+struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef) {
 	struct RuleLuaCall* _Rule = (struct RuleLuaCall*) malloc(sizeof(struct RuleLuaCall));
 
 	_Rule->Type = RULE_LUACALL;
 	_Rule->Destroy = (void(*)(struct Rule*))DestroyRuleLuaCall;
 	_Rule->State = _State;
-	_Rule->FuncName = calloc(strlen(_FuncName) + 1, sizeof(char));
-	_Rule->Arguments = _Arguments;
-	strcpy(_Rule->FuncName, _FuncName);
+	_Rule->TblRef = _TableRef;
 	return _Rule;
 }
 
 void DestroyRuleLuaCall(struct RuleLuaCall* _Rule) {
-	struct Primitive** _Itr = _Rule->Arguments;
-
-	while((*_Itr) != NULL) {
-		free(*_Itr);
-		++_Itr;
-	}
-	free(_Rule->FuncName);
-	free(_Rule->Arguments);
+	luaL_unref(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
 	free(_Rule);
 }
 
@@ -186,19 +177,17 @@ void DestroyRuleEvent(struct RuleEvent* _Rule) {
 }
 
 int LuaRuleLuaCall(lua_State* _State) {
-	const char* _Func = NULL;
-	int _Args = lua_gettop(_State);
 	int i = 1;
-	struct Primitive** _Primitive = NULL;
+	int _Args = lua_gettop(_State);
 	struct RuleLuaCall* _Rule = NULL;
 
-	if(_Args > 1)
-		_Primitive = calloc(sizeof(struct Primitive), (_Args));
-	_Func = luaL_checkstring(_State, 1);
-	for(i = 1; i < _Args; ++i)
-		_Primitive[i - 1] = LuaToPrimitive(_State, i + 1);
-	_Primitive[i] = NULL;
-	_Rule = CreateRuleLuaCall(_State, _Func, _Primitive);
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_createtable(_State, _Args, 0);
+	for(i = 1; i <= _Args; ++i) {
+		lua_pushvalue(_State, i);
+		lua_rawseti(_State, -2, i);
+	}
+	_Rule = CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX));
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
 }
@@ -287,17 +276,15 @@ int RuleLessThan(const struct RuleComparator* _Rule) {
 
 int RuleLuaCall(const struct RuleLuaCall* _Rule) {
 	int i = 0;
-	struct Primitive** _Itr = _Rule->Arguments;
+	int _Len = 0;
+	int _Table = 0;
 
-	lua_getglobal(_Rule->State, _Rule->FuncName);
-	if(lua_type(_Rule->State, -1) != LUA_TFUNCTION)
-		return 0;
-	while((*_Itr) != NULL) {
-		PrimitiveLuaPush(_Rule->State, *_Itr);
-		++i;
-		++_Itr;
-	}
-	LuaCallFunc(_Rule->State, i, 1, 0);
+	lua_rawgeti(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
+	_Table = LuaAbsPos(_Rule->State, -1);
+	_Len = lua_rawlen(_Rule->State, -1);
+	for(i = 1; i <= _Len; ++i)
+		lua_rawgeti(_Rule->State, _Table, i);
+	LuaCallFunc(_Rule->State, _Len - 1, 1, 0);
 	if(lua_isboolean(_Rule->State, -1) != 0)
 		return lua_toboolean(_Rule->State, -1);
 	else if(lua_isnumber(_Rule->State, -1) != 0)

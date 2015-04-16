@@ -97,6 +97,9 @@ int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
 int LuaArrayItrPrev(lua_State* _State);
 
+int LuaBGGetPerson(lua_State* _State);
+int LuaBGSetAuthority(lua_State* _State);
+
 int LuaSettlementGetLeader(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);

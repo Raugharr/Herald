@@ -13,6 +13,7 @@
 #include "Event.h"
 #include "Random.h"
 #include "Rule.h"
+#include "../BigGuy.h"
 #include "../Herald.h"
 #include "../Good.h"
 #include "../Crop.h"
@@ -29,6 +30,12 @@
 #include <malloc.h>
 
 lua_State* g_LuaState = NULL;
+
+static const luaL_Reg g_LuaFuncsBigGuy[] = {
+		{"GetPerson", LuaBGGetPerson},
+		{"SetAuthority", LuaBGSetAuthority},
+		{NULL, NULL}
+};
 
 static const luaL_Reg g_LuaFuncsSettlement[] = {
 		{"GetLeader", LuaSettlementGetLeader},
@@ -139,6 +146,7 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static struct LuaObjectReg g_ObjectRegs[] = {
+		{"BigGuy", g_LuaFuncsBigGuy},
 		{"Settlement", g_LuaFuncsSettlement},
 		{"Rule", g_LuaFuncsRule},
 		{"Iterator", g_LuaFuncsIterator},
@@ -594,8 +602,26 @@ int LuaArrayItrPrev(lua_State* _State) {
 	return 1;
 }
 
-int LuaSettlementGetLeader(lua_State* _State) {
+int LuaBGGetPerson(lua_State* _State) {
+	struct BigGuy* _BG = LuaCheckClass(_State, 1, "BigGuy");
+
+	LuaCtor(_State, "Person", _BG->Person);
+	return 1;
+}
+
+int LuaBGSetAuthority(lua_State* _State) {
+	struct BigGuy* _BG = LuaCheckClass(_State, 1, "BigGuy");
+	int _Authority = luaL_checkinteger(_State, 2);
+
+	_BG->Authority += _Authority;
 	return 0;
+}
+
+int LuaSettlementGetLeader(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	LuaCtor(_State, "BigGuy", _Settlement->Leader);
+	return 1;
 }
 
 int LuaArrayItr(lua_State* _State) {

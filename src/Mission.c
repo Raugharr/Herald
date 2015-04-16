@@ -229,5 +229,5 @@ int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
 int MissionTreeSearch(const struct Event* _One, const struct Mission* _Two) {
 	if(_Two->Trigger->Type != RULE_EVENT)
 		return -1;
-	return ((struct RuleEvent*)_Two->Trigger)->Event - _One->Type;
+	return _One->Type - ((struct RuleEvent*)_Two->Trigger)->Event;
 }

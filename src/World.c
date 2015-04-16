@@ -325,7 +325,6 @@ void WorldInit(int _Area) {
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
 	g_AIHash = CreateHash(32);
-	g_TaskPool = CreateTaskPool();
 	g_WorldSize = _Area;
 	g_World = CreateArray(_WorldSize);
 	for(i = 0; i < _WorldSize; ++i)
@@ -428,7 +427,6 @@ void WorldQuit() {
 		DestroyWorldTile(g_World->Table[i]);
 	AIQuit();
 	RBRemoveAll(&g_Families, (void(*)(void*))DestroyFamily);
-	DestroyTaskPool(g_TaskPool);
 	DestroyArray(g_World);
 	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();

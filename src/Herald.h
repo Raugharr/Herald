@@ -88,7 +88,7 @@ extern struct HashTable g_Populations;
 extern struct RBTree g_MissionTree;
 extern struct ATimer g_ATimer;
 extern struct RBTree g_MissionList;
-extern struct TaskPool* g_RealTskPool;
+extern struct TaskPool* g_TaskPool;
 extern int g_ObjPosBal;
 
 extern struct Constraint** g_AgeConstraints;

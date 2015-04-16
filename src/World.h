@@ -28,7 +28,6 @@ extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
 extern struct BigGuy* g_Player;
-extern struct TaskPool* g_TaskPool;
 extern struct LinkedList g_Settlements;
 extern struct RBTree g_BigGuys;
 extern struct RBTree g_BigGuyState;

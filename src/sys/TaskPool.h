@@ -16,6 +16,7 @@ struct Task {
 	void* DataOne;
 	void* DataTwo;
 	int StartTime;
+	int IsFrameBased;
 };
 
 struct TaskPool {

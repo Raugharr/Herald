@@ -49,7 +49,6 @@ struct ATimer g_ATimer;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
-struct TaskPool* g_RealTskPool = NULL;
 
 int g_Id = 0;
 const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -59,8 +58,6 @@ int IdISCallback(const int* _One, const int* _Two) {
 }
 
 void HeraldInit() {
-	g_RealTskPool = CreateTaskPool();
-
 	g_Crops.TblSize = 0;
 	g_Crops.Table = NULL;
 	g_Crops.Size = 0;
@@ -81,6 +78,7 @@ void HeraldInit() {
 	g_Populations.Table = NULL;
 	g_Populations.Size = 0;
 
+	g_TaskPool = CreateTaskPool();
 	g_ATimer.Tree = CreateRBTree((int(*)(const void*, const void*))ATimerICallback, (int(*)(const void*, const void*))ATimerSCallback);
 	g_ATimer.ATypes = calloc(ATT_SIZE, sizeof(struct ATType*));
 	ATimerAddType(&g_ATimer, CreateATType(ATT_PREGANCY, (int(*)(void*))PregancyUpdate, (void(*)(void*))DestroyPregancy));
@@ -97,7 +95,7 @@ void HeraldInit() {
 }
 
 void HeraldDestroy() {
-	DestroyTaskPool(g_RealTskPool);
+	DestroyTaskPool(g_TaskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	ATTimerRmAll(&g_ATimer);

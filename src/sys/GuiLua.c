@@ -11,6 +11,7 @@
 #include "Array.h"
 #include "Log.h"
 #include "LinkedList.h"
+#include "TaskPool.h"
 #include "../Herald.h"
 
 #include <SDL2/SDL.h>
@@ -818,8 +819,8 @@ int LuaSendMessage(lua_State* _State) {
 	return 0;
 }
 
-int LuaCheckMessage_Aux(void* _One) {
-	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) _One;
+int LuaCheckMessage_Aux(void* _One, void* _Two) {
+	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) ((struct LnkLst_Node*)_One)->Data;
 
 	lua_getglobal(_Pair->State, "GUI");
 	lua_pushstring(_Pair->State, "Messages");
@@ -835,6 +836,8 @@ int LuaCheckMessage_Aux(void* _One) {
 	lua_pushnil(_Pair->State);
 	lua_rawset(_Pair->State, -4);
 	lua_pop(_Pair->State, 3);
+	LnkLstRemove((struct LinkedList*)_Two, (struct LnkLst_Node*)_One);
+	free(_Pair);
 	return 0;
 }
 
@@ -850,17 +853,9 @@ void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(voi
 
 void GUIMessageCheck(struct LinkedList* _List) {
 	struct LnkLst_Node* _Itr = _List->Front;
-	struct GUIMessagePair* _Pair = NULL;
 
 	while(_Itr != NULL) {
-		_Pair = (struct GUIMessagePair*) _Itr->Data;
-		if(LuaCheckMessage_Aux(_Pair) == 0) {
-			void* _Data = _Itr->Data;
-			_Itr = _Itr->Next;
-			free(_Data);
-			LnkLstRemove(_List, _Itr);
-			continue;
-		}
+		TaskPoolAdd(g_TaskPool, g_TaskPool->Time, LuaCheckMessage_Aux, _Itr, _List);
 		_Itr = _Itr->Next;
 	}
 }

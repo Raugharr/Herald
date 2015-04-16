@@ -20,8 +20,10 @@ int TaskPoolThread(struct TaskPool* _TaskPool) {
 	int _Ret = 0;
 
 	while(_TaskPool->IsAlive) {
-		while((_Task = TaskPoolNext(_TaskPool)) == NULL)
+		if((_Task = TaskPoolNext(_TaskPool)) == NULL) {
 			SDL_Delay(5);
+			continue;
+		}
 		//If the task is not completed continue it on the next tick.
 		if(_Task->StartTime <= _TaskPool->Time && (_Ret = _Task->Callback(_Task->DataOne, _Task->DataTwo)) != 0) {
 			_Task->StartTime += _Ret;

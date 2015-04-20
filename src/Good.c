@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lua.h>
+#include <malloc.h>
 
 char* g_PersonBodyStr[] = {
 		"Head",

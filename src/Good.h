@@ -39,7 +39,9 @@ enum {
 	ECLOTHING = (1 << 6),
 	EFURNITURE = (1 << 7),
 	EGOOD = (1 << 8),
-	EOTHER = (1 << 9)
+	EWEAPON = (1 << 9),
+	EARMOR = (1 << 10),
+	EOTHER = (1 << 11)
 };
 
 enum {

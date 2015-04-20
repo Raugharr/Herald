@@ -40,6 +40,7 @@ int LuaContextItem(lua_State* _State);
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
 int LuaDefaultFont(lua_State* _State);
+int LuaGetDefaultFont(lua_State* _State);
 int LuaSetMenu(lua_State* _State);
 int LuaSetMenu_Aux(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);

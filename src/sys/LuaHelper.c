@@ -31,6 +31,13 @@
 
 lua_State* g_LuaState = NULL;
 
+static const luaL_Reg g_LuaFuncsArrayIterator[] = {
+		{"Itr", LuaArrayItr},
+		{"Next", LuaArrayItrNext},
+		{"Prev", LuaArrayItrPrev},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"GetPerson", LuaBGGetPerson},
 		{"SetAuthority", LuaBGSetAuthority},
@@ -146,20 +153,20 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static struct LuaObjectReg g_ObjectRegs[] = {
-		{"BigGuy", g_LuaFuncsBigGuy},
-		{"Settlement", g_LuaFuncsSettlement},
-		{"Rule", g_LuaFuncsRule},
-		{"Iterator", g_LuaFuncsIterator},
-		{"Person", g_LuaFuncsPerson},
-		{"Good", g_LuaFuncsGood},
-		{"Family", g_LuaFuncsFamily},
-		{"Field", g_LuaFuncsField},
-		{"Animal", g_LuaFuncsField},
-		{"Building", g_LuaFuncsBuilding},
-		{"Array", g_LuaFuncsArray},
-		{"ArrayItr", NULL},
-		{"BuildMat", NULL},
-		{NULL, NULL}
+		{"BigGuy", NULL, g_LuaFuncsBigGuy},
+		{"Settlement", NULL, g_LuaFuncsSettlement},
+		{"Rule", NULL, g_LuaFuncsRule},
+		{"Iterator", NULL, g_LuaFuncsIterator},
+		{"Person", NULL, g_LuaFuncsPerson},
+		{"Good", NULL, g_LuaFuncsGood},
+		{"Family", NULL, g_LuaFuncsFamily},
+		{"Field", NULL, g_LuaFuncsField},
+		{"Animal", NULL, g_LuaFuncsAnimal},
+		{"Building", NULL, g_LuaFuncsBuilding},
+		{"Array", NULL, g_LuaFuncsArray},
+		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
+		{"BuildMat", NULL, NULL},
+		{NULL, NULL, NULL}
 };
 
 void RegisterLuaFuncs(lua_State* _State) {
@@ -170,13 +177,13 @@ void RegisterLuaFuncs(lua_State* _State) {
 
 	i = 0;
 	while(g_ObjectRegs[i].Name != NULL) {
-		if(LuaRegisterObject(_State, g_ObjectRegs[i].Name, g_ObjectRegs[i].Funcs) == 0)
-			return (void) luaL_error(_State, "Loading Lua functions has failed.");
+		if(LuaRegisterObject(_State, g_ObjectRegs[i].Name, g_ObjectRegs[i].BaseClass, g_ObjectRegs[i].Funcs) == 0)
+			return (void) luaL_error(_State, "Loading Lua functions has failed loading class %s.", g_ObjectRegs[i].Name);
 		++i;
 	}
 }
 
-int LuaRegisterObject(lua_State* _State, const char* _Name, const luaL_Reg* _Funcs) {
+int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs) {
 	if(luaL_newmetatable(_State, _Name) == 0)
 		return 0;
 	lua_pushliteral(_State, "__index");
@@ -185,7 +192,16 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const luaL_Reg* _Fun
 	lua_pushstring(_State, "__class");
 	lua_pushstring(_State, _Name);
 	lua_rawset(_State, -3);
-
+	if(_BaseClass != NULL) {
+		lua_pushliteral(_State, "__baseclass");
+		lua_getglobal(_State, _BaseClass);
+		if(lua_type(_State, -1) != LUA_TTABLE) {
+			luaL_error(_State, "Loading Lua class %s failed. Base class %s is not a class.", _Name, _BaseClass);
+			lua_pop(_State, 3);
+			return 0;
+		}
+		lua_rawset(_State, -3);
+	}
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
@@ -329,14 +345,7 @@ int LuaFamilyGetPeople(lua_State* _State) {
 int LuaFamilyGetFields(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "ArrayIterator");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Family->Fields);
-	lua_rawset(_State, -3);
-
+	LuaCtor(_State, "ArrayIterator", _Family->Fields);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "Field");
 	lua_rawset(_State, -3);

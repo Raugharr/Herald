@@ -42,6 +42,7 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"GetFont", LuaGetFont},
 		{"SetFont", LuaDefaultFont},
 		{"DefaultFont", LuaDefaultFont},
+		{"GetDefaultFont", LuaGetDefaultFont},
 		{"SetMenu", LuaSetMenu},
 		{"SetFocusColor", LuaSetFocusColor},
 		{"SetUnfocusColor", LuaSetUnfocusColor},
@@ -462,6 +463,11 @@ int LuaDefaultFont(lua_State* _State) {
 	return 0;
 }
 
+int LuaGetDefaultFont(lua_State* _State) {
+	LuaCtor(_State, "Font", g_GUIDefs.Font);
+	return 1;
+}
+
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 	char* _NameCopy = NULL;
@@ -820,7 +826,9 @@ int LuaSendMessage(lua_State* _State) {
 }
 
 int LuaCheckMessage_Aux(void* _One, void* _Two) {
-	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) ((struct LnkLst_Node*)_One)->Data;
+	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) (*((struct LnkLst_Node**)_One))->Data;
+	struct LnkLst_Node** _Curr = ((struct LnkLst_Node**)_One);
+	struct LnkLst_Node* _Next = NULL;
 
 	lua_getglobal(_Pair->State, "GUI");
 	lua_pushstring(_Pair->State, "Messages");
@@ -836,7 +844,9 @@ int LuaCheckMessage_Aux(void* _One, void* _Two) {
 	lua_pushnil(_Pair->State);
 	lua_rawset(_Pair->State, -4);
 	lua_pop(_Pair->State, 3);
-	LnkLstRemove((struct LinkedList*)_Two, (struct LnkLst_Node*)_One);
+	_Next = (*_Curr)->Next;
+	LnkLstRemove((struct LinkedList*)_Two, *_Curr);
+	*_Curr = _Next;
 	free(_Pair);
 	return 0;
 }
@@ -855,8 +865,12 @@ void GUIMessageCheck(struct LinkedList* _List) {
 	struct LnkLst_Node* _Itr = _List->Front;
 
 	while(_Itr != NULL) {
-		TaskPoolAdd(g_TaskPool, g_TaskPool->Time, LuaCheckMessage_Aux, _Itr, _List);
-		_Itr = _Itr->Next;
+		LuaCheckMessage_Aux(&_Itr, _List);
+		//TaskPoolAdd(g_TaskPool, g_TaskPool->Time, LuaCheckMessage_Aux, _Itr, _List);
+		if(_Itr != NULL)
+			_Itr = _Itr->Next;
+		else
+			break;
 	}
 }
 

@@ -14,6 +14,8 @@
 #include "sys/RBTree.h"
 #include "sys/Log.h"
 #include "sys/GuiLua.h"
+#include "sys/Gui.h"
+#include "sys/Stack.h"
 #include "sys/Event.h"
 
 #include <stdlib.h>
@@ -170,7 +172,7 @@ void GenerateMissions(lua_State* _State, const struct Event* _Event, const struc
 	_Mission = RBSearch(_Missions, _Event);
 	while(_Mission != NULL) {
 			_BGItr = RBSearch(_BigGuys, _Mission);
-			if(_BGItr != NULL) {
+			if(_BGItr != NULL && strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0) {
 				lua_settop(_State, 0);
 				lua_pushstring(_State, "MissionMenu");
 				lua_createtable(_State, 0, 2);

@@ -25,7 +25,7 @@ typedef struct luaL_Reg luaL_Reg;
 		lua_rawset((_State), -3);					\
 	} else {										\
 		lua_pop((_State), 1);						\
-		Log(ELOG_WARNING, "Lua class %s not not exist", (_Class));	\
+		Log(ELOG_WARNING, "Lua class %s does not exist", (_Class));	\
 	}
 	
 #define ConstraintToLua(_State, _Constraint)			\
@@ -43,11 +43,12 @@ extern lua_State* g_LuaState;
 
 struct LuaObjectReg {
 	const char* Name;
+	const char* BaseClass;
 	const luaL_Reg* Funcs;
 };
 
 void RegisterLuaFuncs(lua_State* _State);
-int LuaRegisterObject(lua_State* _State, const char* _Name, const luaL_Reg* _Funcs);
+int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs);
 
 int LuaPersonGetId(lua_State* _State);
 int LuaPersonGetX(lua_State* _State);

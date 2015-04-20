@@ -21,7 +21,8 @@ int(*g_RuleFuncLookup[])(const struct Rule*) = {
 		(int(*)(const struct Rule*))RuleGreaterThan,
 		(int(*)(const struct Rule*))RuleLessThan,
 		(int(*)(const struct Rule*))RuleLuaCall,
-		(int(*)(const struct Rule*))RulePrimitive
+		(int(*)(const struct Rule*))RulePrimitive,
+		RuleTrue
 };
 
 struct Primitive* CreatePrimitive() {

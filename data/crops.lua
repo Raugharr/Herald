@@ -6,7 +6,7 @@ Crops = {
 		YieldPerSeed = 4.0,
 		NutritionalValue = 480,
 		GrowingDegree = 1680,
-		GrowingBase = 42
+		GrowingBase = 41
 	},
 	
 	{
@@ -26,7 +26,7 @@ Crops = {
 		YieldPerSeed = 4.6,
 		NutritionalValue = 360,
 		GrowingDegree = 1540,
-		GrowingBase = 42
+		GrowingBase = 41
 	},
 	
 	{
@@ -36,6 +36,6 @@ Crops = {
 		YieldPerSeed = 3.14,
 		NutritionalValue = 540,
 		GrowingDegree = 1750,
-		GrowingBase = 42
+		GrowingBase = 41
 	}
 }

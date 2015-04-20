@@ -82,7 +82,7 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 }
 
 int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
-	struct Family* _Family = _Person->Family;
+	/*struct Family* _Family = _Person->Family;
 	struct Field* _Field = NULL;
 	struct Array* _Array = NULL;
 	int _FieldSize = _Family->Fields->Size;
@@ -121,7 +121,7 @@ int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
 			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0)
 				ActorAddJob(ACTORJOB_HARVEST, (struct Actor*)_Person, (struct Object*)_Field, _Family->Goods);
 		}
-	}
+	}*/
 	return 1;
 }
 

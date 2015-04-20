@@ -10,7 +10,7 @@ struct Actor;
 struct Object;
 struct ActorJobPair;
 
-enum {
+/*enum {
 	ACTORJOB_EAT,
 	ACTORJOB_PLANT,
 	ACTORJOB_HARVEST,
@@ -18,9 +18,9 @@ enum {
 };
 
 int ActorJobTempTime(struct Actor* _Worker, struct Object* _NoObj, void* _NoVoid);
-
-int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair);
+*/
+/*int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair);
 int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair);
 int ActorJobHarvest(struct Actor* _Worker, struct ActorJobPair* _Pair);
-
+*/
 #endif

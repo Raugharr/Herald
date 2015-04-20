@@ -72,7 +72,7 @@ int InputReqFieldCmp(const void* _One, const void* _Two);
  */
 void FieldReset(struct Field* _Field);
 int FieldPlant(struct Field* _Field, struct Good* _Seeds);
-void FieldWork(struct Field* _Field, int _Total, struct Good* _Tool);
+void FieldWork(struct Field* _Field, int _Total);
 void FieldHarvest(struct Field* _Field, struct Array* _Goods);
 int FieldUpdate(struct Field* _Field);
 void FieldSetAcres(struct Field* _Field, int _Acres);

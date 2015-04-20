@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct ActorJobBase g_ActorJobBases[] = {
+/*struct ActorJobBase g_ActorJobBases[] = {
 		{ACTORJOB_EAT, ActorJobEat, ActorJobTempTime},
 		{ACTORJOB_PLANT, ActorJobPlant, ActorJobTempTime},
 		{ACTORJOB_HARVEST, ActorJobHarvest, ActorJobTempTime}
@@ -24,7 +24,7 @@ struct ActorJobBase g_ActorJobBases[] = {
 int ActorJobTempTime(struct Actor* _Worker, struct Object* _NoObj, void* _NoVoid) {
 	return 0;
 }
-
+*/
 int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair) {
 /*	struct Food* _FoodPtr = _Pair->Object;
 	struct Person* _Person = (struct Person*)_Worker;
@@ -69,7 +69,7 @@ int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair) {
 	return 0;*/
 }
 
-int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair) {
+/*int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair) {
 	FieldPlant((struct Field*)_Pair->Object, _Pair->Extra);
 	return 1;
 }
@@ -78,3 +78,4 @@ int ActorJobHarvest(struct Actor* _Worker, struct ActorJobPair* _Pair) {
 	FieldHarvest((struct Field*)_Pair->Object, (struct Array*)_Pair->Extra);
 	return 1;
 }
+*/

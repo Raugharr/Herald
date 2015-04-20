@@ -10,6 +10,7 @@
 #include "Crop.h"
 #include "Good.h"
 #include "Population.h"
+#include "BigGuy.h"
 #include "Location.h"
 #include "sys/Event.h"
 #include "sys/Array.h"
@@ -83,6 +84,7 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint*
 			++_Family->NumChildren;
 		}
 	}
+	SettlementPlaceFamily(_Location, _Family, &_X, &_Y);
 	return _Family;
 }
 
@@ -108,17 +110,96 @@ void DestroyFamily(struct Family* _Family) {
 	free(_Family);
 }
 
+struct Food* FamilyMakeFood(struct Family* _Family) {
+	int _Size;
+	int i;
+	int j;
+	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
+	struct Array* _GoodsArray = NULL;
+	struct FoodBase* _Food = NULL;
+	struct Food* _FamFood = NULL;
+	struct Good* _Good = NULL;
+
+	if(_Foods == NULL)
+		return NULL;
+
+	for(i = 0; i < _Size; ++i) {
+		_Food = ((struct FoodBase*)_Foods[i]->Req);
+		for(j = 0; j < _Food->IGSize; ++j) {
+			_Good = LinearSearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
+			_Good->Quantity -= _Foods[i]->Quantity * _Food->InputGoods[j]->Quantity;
+			_GoodsArray = _Family->Goods;
+			if((_FamFood = LinearSearch(_Food, _GoodsArray->Table, _GoodsArray->Size, GoodCmp)) == NULL) {
+				_FamFood =  CreateFood(_Food, _Family->People[1]->X, _Family->People[1]->Y);
+				ArrayInsert_S(_GoodsArray, _FamFood);
+			}
+			_FamFood->Quantity += _Foods[i]->Quantity;
+			goto end;
+		}
+		DestroyInputReq(_Foods[i]);
+	}
+	if(i == 0)
+		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_Date), _Family->Id);
+	end:
+	free(_Foods);
+	return _FamFood;
+}
+
+void FamilyWorkField(struct Family* _Family) {
+	struct Field* _Field = NULL;
+	struct Array* _Array = NULL;
+	int i = 0;
+	int j = 0;
+
+	for(i = 0; i < _Family->Fields->Size; ++i) {
+		_Field = ((struct Field*)_Family->Fields->Table[i]);
+		if(_Field == NULL)
+			return;
+		if(_Field->Status == ENONE) {
+			SelectCrops(_Family, _Family->Fields);
+		} else if(_Field->Status == EFALLOW && MONTH(g_Date) >= 1 && MONTH(g_Date) <= 2) {
+			_Array = _Family->Goods;
+			for(j = 0; j < _Array->Size; ++j) {
+				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
+					FieldPlant(_Field, _Array->Table[j]);
+					break;
+				}
+			}
+		} else if(_Field->Status > EFALLOW) {
+			if(_Field->Status == EHARVESTING)
+				FieldHarvest((struct Field*)_Field, _Family->Goods);
+			else
+				FieldWork(_Field, ActorWorkMult((struct Actor*)_Family->People[0]));
+		}
+	}
+}
+
 int FamilyThink(struct Family* _Family) {
 	int i = 0;
 	int _PersonHungry = 0;
+	struct Food* _Food = NULL;
 
+	FamilyWorkField(_Family);
+	for(i = 0; i < _Family->Fields->Size; ++i) {
+		if(_Family == g_Player->Person->Family)
+			FieldUpdate((struct Field*)_Family->Fields->Table[i]);
+		else
+		FieldUpdate((struct Field*)_Family->Fields->Table[i]);
+	}
+	if((_Food = FamilyMakeFood(_Family)) == NULL)
+		goto hungry_person;
 	for(i = 0; _Family->People[i] != NULL; ++i) {
 		PersonThink(_Family->People[i]);
-		if(PersonEat(_Family->People[i]) == 0)
+		if(_Food->Quantity > 0) {
+			_Family->People[i]->Nutrition += _Food->Base->Nutrition;
+			--_Food->Quantity;
+		} else
 			_PersonHungry = 1;
 	}
-	if(_PersonHungry != 0)
+	if(_PersonHungry != 0) {
+		hungry_person:
 		EventPush(CreateEventStarvingFamily(_Family));
+	}
 	return 1;
 }
 
@@ -185,8 +266,6 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "Buildings");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				//luaL_checktype(_State, -1, LUA_TLIGHTUSERDATA);
-				//_Obj = lua_touserdata(_State, -1);
 				if((_Obj = (struct Building*) LuaToObject(_State, -1, "Building")) != NULL)
 					ArrayInsertSort_S(_Family->Buildings, _Obj, ObjCmp);
 				lua_pop(_State, 1);
@@ -249,6 +328,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 		}
 		_FamType -= _FamilyTypes[i]->Percent * 10000;
 	}
+	SelectCrops(_Family, _Family->Fields);
 	return;
 	LuaError:
 	--g_Log.Indents;

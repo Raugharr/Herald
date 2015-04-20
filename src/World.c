@@ -105,7 +105,6 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
 		//TODO: _X and _Y should be given to the family by the CityLocation they live in.
-		SettlementPlaceFamily(_Settlement, _Family, &_X, &_Y);
 		_Parent = CreateRandFamily("Bar", Fuzify(_BabyAvg, Random(0, 9999)) + 2, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&g_Families, _Parent);
@@ -286,7 +285,7 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 }*/
 
 int LuaWorldGetPlayer(lua_State* _State) {
-	LuaCtor(_State, "Person", g_Player);
+	LuaCtor(_State, "BigGuy", g_Player);
 	return 1;
 }
 
@@ -406,10 +405,10 @@ void WorldInit(int _Area) {
 
 	g_ObjPos.Root = NULL;
 	g_ObjPos.Size = 0;
-	if(PopulateWorld() == 0)
-		goto end;
 	g_GoodDeps = GoodBuildDep(&g_Goods);
 	g_AnFoodDep = AnimalFoodDep(&g_Populations);
+	if(PopulateWorld() == 0)
+		goto end;
 	end:
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);
@@ -437,9 +436,9 @@ void WorldQuit() {
 
 int World_Tick() {
 	struct LnkLst_Node* _Settlement = g_Settlements.Front;
+	struct LnkLst_Node* _Itr = NULL;
 	struct Person* _Person = NULL;
 	struct Event* _Event = NULL;
-	struct KDNode* _Itr = NULL;
 	struct LinkedList _QueuedPeople = {0, NULL, NULL};
 	int _Ticks = 30;
 	int _OldMonth = MONTH(g_Date);
@@ -448,21 +447,12 @@ int World_Tick() {
 	do {
 	ATImerUpdate(&g_ATimer);
 		while(_Settlement != NULL) {
-			while(_Person != NULL) {
-				_Person = ((struct Settlement*)_Settlement->Data)->People;
-				HashClear(g_AIHash);
-				BHVRun(_Person->Behavior, _Person, g_AIHash);
-				PAIEat(_Person, g_AIHash);
-				while(ActorHasJob((struct Actor*)_Person) != 0) {
-					if(ActorNextJob((struct Actor*)_Person) == 0)
-						LnkLstPushBack(&_QueuedPeople, _Person);
-				}
-				_Person = _Person->Next;
+			_Itr = ((struct Settlement*)_Settlement->Data)->Families.Front;
+			while(_Itr != NULL) {
+				FamilyThink((struct Family*)_Itr->Data);
+				_Itr = _Itr->Next;
 			}
 			_Settlement = _Settlement->Next;
-		}
-		if(DAY(g_Date) == 1) {
-			EventPush(CreateEventStarvingFamily(g_Player->Person->Family));
 		}
 			while((_Event = HandleEvents()) != NULL) {
 			if(_Event->Type == EVENT_FARMING) {
@@ -473,21 +463,10 @@ int World_Tick() {
 						goto escape_events;
 					}
 			}
-			GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
+			//GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
 		}
 		escape_events:
 		_Itr = g_ObjPos.Root;
-		while(_Itr != NULL) {
-			struct LinkedList* _List = ((struct LinkedList*)_Itr->Data);
-			struct LnkLst_Node* _ListItr = _List->Front;
-
-			while(_ListItr != NULL) {
-				((struct Object*)_ListItr->Data)->Think((struct Object*)_ListItr->Data);
-				_ListItr = _ListItr->Next;
-			}
-			_Itr = KDNextNode(_Itr);
-
-		}
 		NextDay(&g_Date);
 		if(MONTH(g_Date) != _OldMonth) {
 			for(i = 0; i < g_World->Size; ++i) {

@@ -111,14 +111,12 @@ int PersonThink(struct Person* _Person) {
 	return 1;
 }
 
-int PersonEat(struct Person* _Person) {
+int PersonEat(struct Person* _Person, struct Food* _Food) {
 	struct Food* _FoodPtr = NULL;
 	int _Size = _Person->Family->Goods->Size;
 	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
-	struct Food* _Food = (struct Food*) _FoodPtr;
 	int _Nut = 0;
 	int _NutReq = NUTRITION_LOSS;
-	int _Div = 0;
 	int i = 0;
 	struct Family* _Family = _Person->Family;
 
@@ -128,32 +126,6 @@ int PersonEat(struct Person* _Person) {
 				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
 			}
 		}
-	for(i = 0; i < _Size; ++i) {
-		_Food = (struct Food*)_Tbl[i];
-		if(_Food->Base->Category != EFOOD)
-			continue;
-		_Div = _Food->Base->Nutrition / FOOD_MAXPARTS;
-		while(_Nut < _NutReq && _Food->Quantity > 0 && _Food->Parts != 0) {
-			if(_Food->Base->Nutrition > _NutReq) {
-				--_Food->Parts;
-				if(_Food->Parts <= 0) {
-					if(_Food->Quantity > 0) {
-						--_Food->Quantity;
-						_Food->Parts = FOOD_MAXPARTS;
-					}
-				}
-				_Nut += _Div;
-			} else {
-				if(_Food->Quantity == 0) {
-					_Nut += _Food->Base->Nutrition  * (_Food->Parts / FOOD_MAXPARTS);
-					_Food->Parts = 0;
-				} else {
-					_Nut += _Food->Base->Nutrition;
-					--_Food->Quantity;
-				}
-			}
-		}
-	}
 	if(_Nut == 0)
 		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
 	_Person->Nutrition += _Nut;

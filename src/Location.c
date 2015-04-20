@@ -23,6 +23,7 @@ struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, con
 	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Loc->People = NULL;
 	_Loc->Leader = NULL;
+	_Loc->NumPeople = 0;
 	_Loc->Families.Size = 0;
 	_Loc->Families.Front = NULL;
 	_Loc->Families.Back = NULL;
@@ -65,11 +66,12 @@ int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, 
 			if(KDSearchNode(&g_ObjPos, _Point) == NULL) {
 				*_X = _Point[0];
 				*_Y = _Point[1];
+				_Location->NumPeople += FamilySize(_Family);
+				LnkLstPushBack(&_Location->Families, _Family);
 				return 1;
 			}
 			++_Point[1];
 		}
-		_Location->NumPeople += FamilySize(_Family);
 	}
 	return 0;
 }

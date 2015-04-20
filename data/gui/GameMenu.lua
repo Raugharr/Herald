@@ -12,12 +12,12 @@ function GameMenu.Init(Width, Height, Data)
 	GameMenu.Date:SetFocus(false)
 	Menu:CreateLabel("View Self"):OnKey("Enter", "Released",
 		function()
-			GUI.SetMenu("ViewPersonMenu", World.GetPlayer())
+			GUI.SetMenu("ViewPersonMenu", World.GetPlayer():GetPerson())
 		end)
-		local ActionList = GUI.CreateContextItem(0, 0, 100, 80, 0, {0, 0, 0, 0}, Menu)
+		--[[local ActionList = GUI.CreateContextItem(0, 0, 100, 80, 0, {0, 0, 0, 0}, Menu)
 		ActionList:CreateLabel("TakeAction")
 		ActionList:CreateLabel("Construct Building")
-		ActionList:CreateLabel("Create Good")
+		ActionList:CreateLabel("Create Good")--]]
 	Menu:CreateLabel("Advance Time"):OnKey("Enter", "Released",
 		function()
 			World.Tick()

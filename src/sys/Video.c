@@ -18,7 +18,7 @@
 SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
 int g_VideoOk = 1;
-SDL_Surface* g_WindowSurface = NULL;
+SDL_Texture* g_WindowTexture = NULL;
 int g_VideoTimer = 0;
 
 int VideoInit(void) {
@@ -32,7 +32,8 @@ int VideoInit(void) {
 		goto error;
 	if(TTF_Init() == -1)
 		goto error;
-	g_WindowSurface = SDL_GetWindowSurface(g_Window);
+	g_WindowTexture = SDL_CreateTexture(g_Renderer, SDL_GetWindowPixelFormat(g_Window), SDL_TEXTUREACCESS_STREAMING, SDL_WIDTH, SDL_HEIGHT);
+	SDL_SetTextureBlendMode(g_WindowTexture, SDL_BLENDMODE_NONE);
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	--g_Log.Indents;
@@ -180,15 +181,16 @@ void Draw(void) {
 
 	if(g_VideoOk == 0)
 		return;
-	//SDL_RenderClear(g_Renderer);
 	_Screen = GetScreen(g_LuaState);
-	SDL_FillRect(g_WindowSurface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
+	SDL_RenderClear(g_Renderer);
+	//SDL_FillRect(g_WindowSurface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
 	else
 		g_VideoOk = 0;
-	//SDL_RenderPresent(g_Renderer);
-	g_VideoOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
+	//SDL_RenderCopy(g_Renderer, g_WindowTexture, NULL, NULL);
+	SDL_RenderPresent(g_Renderer);
+	//g_VideoOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);
 	g_VideoTimer = SDL_GetTicks();
@@ -262,7 +264,7 @@ int KeyEventCmp(const void* _One, const void* _Two) {
 }
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
-	SDL_Surface* _Temp = SDL_ConvertSurface(_Surface, g_WindowSurface->format, 0);
+	SDL_Surface* _Temp = SDL_ConvertSurface(_Surface, SDL_GetWindowSurface(g_Window)->format, 0);
 
 	if(_Temp == NULL)
 		Log(ELOG_ERROR, SDL_GetError());
@@ -270,7 +272,13 @@ SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
 	return _Temp;
 }
 
-void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
+SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
+	SDL_Texture* _Texture = SDL_CreateTextureFromSurface(g_Renderer, _Surface);
+	SDL_FreeSurface(_Surface);
+	return _Texture;
+}
+
+/*void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	int i;
 	int j;
 	int _Width = 0;
@@ -316,7 +324,7 @@ void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
 	end:
 	if(SDL_MUSTLOCK(_Surface))
 		SDL_UnlockSurface(_Surface);
-}
+}*/
 
 int FirstFocusable(const struct Container* _Parent) {
 	int i;

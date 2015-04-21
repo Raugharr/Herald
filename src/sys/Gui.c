@@ -76,7 +76,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 		_Widget->Parent = NULL;
 }
 
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font) {
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->OnDraw = LabelOnDraw;
 	_Widget->OnFocus = LabelOnFocus;
@@ -85,6 +85,8 @@ void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* 
 	_Widget->OnDraw = LabelOnDraw;
 	_Widget->SetText = WidgetSetText;
 	_Widget->Text = _Text;
+	SDL_SetTextureBlendMode(_Text, SDL_BLENDMODE_ADD);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
 }
 
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
@@ -181,7 +183,7 @@ void DestroyWidget(struct Widget* _Widget, lua_State* _State) {
 }
 
 void DestroyLabel(struct Label* _Text, lua_State* _State) {
-	SDL_FreeSurface(_Text->Text);
+	SDL_DestroyTexture(_Text->Text);
 	DestroyWidget((struct Widget*)_Text, _State);
 }
 void DestroyContainer(struct Container* _Container, lua_State* _State) {
@@ -315,23 +317,27 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child) {
 }
 
 int LabelOnDraw(struct Widget* _Widget) {
-	if(SDL_BlitSurface(((struct Label*)_Widget)->Text, NULL, g_WindowSurface, &_Widget->Rect) != 0)
+	if(SDL_RenderCopy(g_Renderer, ((struct Label*)_Widget)->Text, NULL, &_Widget->Rect))
+	//if(SDL_UpdateTexture(g_WindowTexture, &_Widget->Rect, ((struct Label*)_Widget)->Text->pixels, ((struct Label*)_Widget)->Text->pitch) != 0)
+	//if(SDL_BlitSurface(((struct Label*)_Widget)->Text, NULL, g_WindowSurface, &_Widget->Rect) != 0)
 		return 0;
 	return 1;
 }
 
 int LabelOnFocus(struct Widget* _Widget) {
-	ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontFocus.r, g_GUIDefs.FontFocus.b, g_GUIDefs.FontFocus.g);
+	//ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus);
 	return 1;
 }
 int LabelOnUnfocus(struct Widget* _Widget) {
-	ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontFocus, &g_GUIDefs.FontUnfocus);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
+	//ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontFocus, &g_GUIDefs.FontUnfocus);
 	return 1;
 }
 
-int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text) {
+int WidgetSetText(struct Widget* _Widget, SDL_Texture* _Text) {
 	if(((struct Label*)_Widget)->Text != NULL)
-		SDL_FreeSurface(((struct Label*)_Widget)->Text);
+		SDL_DestroyTexture(((struct Label*)_Widget)->Text);
 	((struct Label*)_Widget)->Text = _Text;
 	return 1;
 }

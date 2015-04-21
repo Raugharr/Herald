@@ -19,10 +19,12 @@ struct Person;
 struct RBTree;
 struct TaskPool;
 struct BigGuy;
+struct WorldTile;
 
 extern DATE g_Date;
-extern struct Array* g_World;
+extern struct WorldTile* g_World;
 extern int g_WorldSize;
+extern int g_WorldArea;
 extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;

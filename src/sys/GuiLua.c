@@ -293,7 +293,7 @@ int LuaCreateLabel(lua_State* _State) {
 	_Rect.h = _Surface->h;
 	lua_newtable(_State);
 	_Label = CreateLabel();
-	ConstructLabel(_Label, _Parent, &_Rect, _State, _Surface, _Font);
+	ConstructLabel(_Label, _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
 	lua_getglobal(_State, "Label");
 	lua_setmetatable(_State, -2);
 	lua_pushstring(_State, "__self");
@@ -1138,7 +1138,7 @@ int LuaContainerParagraph(lua_State* _State) {
 		_Rect.w = _Surface->w;
 		_Rect.h = _Surface->h;
 		_PRect.h += _Rect.h;
-		ConstructLabel(_Label, _NewContainer, &_Rect, _State, ConvertSurface(_Surface), _Font);
+		ConstructLabel(_Label, _NewContainer, &_Rect, _State, SurfaceToTexture(ConvertSurface(_Surface)), _Font);
 		_String = _Temp + 1;
 		_Label->CanFocus = 0;
 		_Rect.w = 0;
@@ -1153,7 +1153,8 @@ int LuaLabelSetText(lua_State* _State) {
 	struct Label* _Label = LuaCheckLabel(_State, 1);
 	const char* _Text = luaL_checkstring(_State, 2);
 
-	_Label->SetText((struct Widget*)_Label, ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus)));
+	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus))));
+	SDL_SetTextureBlendMode(_Label->Text, SDL_BLENDMODE_ADD);
 	return 0;
 }
 
@@ -1307,6 +1308,8 @@ struct Container* GetScreen(lua_State* _State) {
 	struct Container* _Screen = NULL;
 
 	lua_getglobal(_State, "GUI");
+	if(lua_type(_State, -1) == LUA_TNIL)
+		return NULL;
 	lua_pushstring(_State, "Screen");
 	lua_rawget(_State, -2);
 	_Screen = LuaToClass(_State, -1);

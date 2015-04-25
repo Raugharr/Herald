@@ -33,7 +33,8 @@ function Farmer(Size, Location)
 		CreateGood("Rye", Rye.PerAcre * 5),
 		CreateGood("Barley", Barley.PerAcre * 5),
 		CreateGood("Oats", Oats.PerAcre * 5),
-		CreateGood("Scratch Plow", 1)
+		CreateGood("Scratch Plow", 1),
+		CreateGood("Spear", 3)
 	}
 	Table.Field = {16, 16}
 	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "Human")}
@@ -49,7 +50,7 @@ function Herder(Size, Location)
 	local GoatCt = Size
 	local PigCt = Size * 2
 	
-	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt))}
+	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt)), CreateGood("Spear", 3)}
 	Table.Field = {20}
 	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}

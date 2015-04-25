@@ -37,6 +37,20 @@ char* g_PersonBodyStr[] = {
 };
 struct GoodOutput** g_GoodOutputs = NULL;
 int g_GoodOutputsSz = 0;
+struct Good*(*g_GoodCopy[])(const struct Good*) = {
+	FoodGoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy,
+	GoodCopy
+};
 
 int GoodOutputCmp(const void* _One, const void* _Two) {
 	return ((struct GoodOutput*)_One)->Output->Id - ((struct GoodOutput*)_Two)->Output->Id;
@@ -97,6 +111,19 @@ void DestroyGoodBase(struct GoodBase* _Good) {
 	free(_Good);
 }
 
+struct Good* GoodCopy(const struct Good* _Good) {
+	struct Good* _NewGood = CreateGood(_Good->Base, _Good->X, _Good->Y);
+
+	return _NewGood;
+}
+
+struct Good* FoodGoodCopy(const struct Good* _Good) {
+	struct Good* _NewGood = (struct Good*) CreateFood((struct FoodBase*)_Good->Base, _Good->X, _Good->Y);
+
+	((struct Food*)_NewGood)->Parts = ((struct Food*)_Good)->Parts;
+	return _NewGood;
+}
+
 int GoodInpGdCmp(const void* _One, const void* _Two) {
 	return ((struct GoodBase*)((struct InputReq*)_One)->Req)->Id - ((struct GoodBase*)((struct InputReq*)_Two)->Req)->Id;
 }
@@ -121,6 +148,7 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 			else if(!strcmp("Category", lua_tostring(_State, -2))) {
 					if(lua_isstring(_State, -1) == 1) {
 						_Temp = lua_tostring(_State, -1);
+						_Return = 1;
 					if(!strcmp("Food", _Temp))
 						_Category = EFOOD;
 					else if(!strcmp("Ingredient", _Temp))
@@ -135,16 +163,18 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 						_Category = EMATERIAL;
 					else if(!strcmp("Clothing", _Temp))
 						_Category = ECLOTHING;
-					else if(!strcmp("Furniture", _Temp))
-						_Category = EFURNITURE;
 					else if(!strcmp("Good", _Temp))
 						_Category = EGOOD;
+					else if(!strcmp("Weapon", _Temp))
+						_Category = EWEAPON;
+					else if(!strcmp("Armor", _Temp))
+						_Category = EARMOR;
 					else if(!strcmp("Other", _Temp))
 						_Category = EOTHER;
 					else _Return = -1;
 					}
 				if(_Category <= 0 && _Return <= 0) {
-					printf("%s is not a valid category.", _Temp);
+					Log(ELOG_WARNING, "%s is not a valid category.", _Temp);
 					goto fail;
 				}
 			}
@@ -182,6 +212,18 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 
 		_Good = (struct GoodBase*) CreateClothingBase(_Name, _Category);
 		ClothingBaseLoad(_State, _Good, _Locations);
+	} else if(_Category == EWEAPON) {
+		_Good = (struct GoodBase*) CreateWeaponBase(_Name, _Category);
+		if(WeaponBaseLoad(_State, (struct WeaponBase*)_Good) == 0) {
+			_Top = lua_gettop(_State);
+			DestroyWeaponBase((struct WeaponBase*)_Good);
+			return NULL;
+		}
+	//} else if(_Category == EARMOR) {
+		//_Good = (struct GoodBase*) CreateArmorBase(_Name, _Category);
+		//if(ArmorBaseLoad(_State, (struct ArmorBase*)_Good) == 0) {
+
+		//}
 	} else
 		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);
 	if(_Return > 0)
@@ -224,6 +266,10 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 		if(lua_isstring(_State, -1) == 1) {
 			_Req = CreateInputReq();
 			_Name = lua_tostring(_State, -1);
+			if(strcmp(_Good->Name, _Name) == 0) {
+				Log(ELOG_WARNING, "Good %s is attempting to make itself its own input good.", _Good->Name);
+				goto fail;
+			}
 			if((_Req->Req = HashSearch(&g_Goods, _Name)) != NULL) {
 				lua_pop(_State, 1);
 				if(lua_next(_State, -2) == 0)
@@ -377,6 +423,77 @@ void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations
 	lua_pop(_State, 1);
 }
 
+int WeaponBaseLoad(lua_State* _State, struct WeaponBase* _Weapon) {
+	char* _Type = NULL;
+
+	lua_pushstring(_State, "Type");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TSTRING) {
+		Log(ELOG_WARNING, "Weapon type is not a string.");
+		return 0;
+	}
+	_Type = lua_tostring(_State, -1);
+	lua_pop(_State, 1);
+	if(strcmp(_Type, "Spear") == 0) {
+		_Weapon->WeaponType = EWEAPON_SPEAR;
+		_Weapon->Range = MELEE_RANGE;
+		_Weapon->RangeAttack = 0;
+		goto melee;
+	} else if(strcmp(_Type, "Sword") == 0) {
+		_Weapon->WeaponType = EWEAPON_SWORD;
+		_Weapon->Range = MELEE_RANGE;
+		_Weapon->RangeAttack = 0;
+		goto melee;
+	} else if(strcmp(_Type, "Javelin") == 0) {
+		_Weapon->WeaponType = EWEAPON_JAVELIN;
+		_Weapon->Range = 3;
+	} else if(strcmp(_Type, "Bow") == 0) {
+		_Weapon->WeaponType = EWEAPON_BOW;
+		_Weapon->Range = 5;
+		_Weapon->MeleeAttack = 0;
+		_Weapon->Charge = 0;
+	} else {
+		Log(ELOG_WARNING, "%s is not a weapon type.", _Type);
+		return 0;
+	}
+	lua_pushstring(_State, "RangeAttack");
+	lua_rawget(_State, -2);
+	AddInteger(_State, -1, _Weapon->RangeAttack);
+	lua_pop(_State, 1);
+	if(_Weapon->WeaponType == EWEAPON_BOW)
+		return 1;
+	melee:
+	lua_pushstring(_State, "MeleeAttack");
+	lua_rawget(_State, -2);
+	AddInteger(_State, -1, &_Weapon->MeleeAttack);
+	lua_pushstring(_State, "Charge");
+	lua_rawget(_State, -3);
+	AddInteger(_State, -1, &_Weapon->Charge);
+	lua_pop(_State, 2);
+	return 1;
+}
+
+int ArmorBaseLoad(lua_State* _State, struct ArmorBase* _Armor) {
+	char* _Type = NULL;
+
+	lua_pushstring(_State, "Type");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TSTRING) {
+		Log(ELOG_WARNING, "Weapon type is not a string.");
+		return 0;
+	}
+	_Type = lua_tostring(_State, -1);
+	lua_pop(_State, 1);
+	if(strcmp(_Type, "Armor") == 0) {
+		_Armor->ArmorType = EARMOR_BODY;
+	} else if(strcmp(_Type, "Shield") == 0) {
+		_Armor->ArmorType = EARMOR_SHIELD;
+	} else {
+
+	}
+	return 1;
+}
+
 struct GoodDep* CreateGoodDep(const struct GoodBase* _Good) {
 	struct GoodDep* _GoodDep = (struct GoodDep*) malloc(sizeof(struct GoodDep));
 
@@ -456,12 +573,20 @@ void DestroyFood(struct Food* _Food) {
 }
 
 struct ClothingBase* CreateClothingBase(const char* _Name, int _Category) {
-	return (struct ClothingBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ClothingBase)), _Name, _Category);
+	return (struct ClothingBase*) InitGoodBase((struct GoodBase*) malloc(sizeof(struct ClothingBase)), _Name, _Category);
 }
 
 void DestroyClothingBase(struct ClothingBase* _Clothing) {
 	free(_Clothing->Locations);
 	free(_Clothing);
+}
+
+struct WeaponBase* CreateWeaponBase(const char* _Name, int _Category) {
+	return (struct WeaponBase*) InitGoodBase((struct GoodBase*) malloc(sizeof(struct WeaponBase)), _Name, _Category);
+}
+
+void DestroyWeaponBase(struct WeaponBase* _Weapon) {
+	free(_Weapon);
 }
 
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList) {

@@ -31,6 +31,9 @@
 #include "AI/Setup.h"
 #include "AI/AIHelper.h"
 
+#include "Warband.h"
+#include "Location.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -46,6 +49,7 @@ int g_Date = 0;
 struct WorldTile* g_World = NULL;
 int g_WorldSize = 0;
 int g_WorldArea = 0;
+SDL_Texture* g_WorldTex = NULL;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
@@ -120,7 +124,8 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	SettlementPickLeader(_Settlement);
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
-	lua_pop(g_LuaState, 4);
+	//lua_pop(g_LuaState, 4);
+	lua_settop(g_LuaState, 0);
 }
 
 int PopulateWorld() {
@@ -175,6 +180,7 @@ int PopulateWorld() {
 	_FamilyTypes[i] = NULL;
 	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_WorldSize- 1),  Random(0, g_WorldSize - 1));
 	g_Player = PickPlayer();
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_WorldSize - 1),  Random(0, g_WorldSize - 1));
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:
@@ -311,6 +317,16 @@ int LuaWorldTick(lua_State* _State) {
 	return 0;
 }
 
+void ArmyTest() {
+	struct Army* _One = CreateArmy(g_Player);
+	struct Army* _Two = CreateArmy(g_Player);
+	CreateWarband((struct Settlement*)g_Settlements.Front->Data, _One);
+	CreateWarband((struct Settlement*)g_Settlements.Back->Data,	_Two);
+	struct Battle* _Battle = CreateBattle(_One, _Two);
+	BattleThink(_Battle);
+	BattleThink(_Battle);
+}
+
 void WorldInit(int _Area) {
 	int i;
 	int _WorldSize = _Area * _Area;
@@ -327,6 +343,7 @@ void WorldInit(int _Area) {
 	g_AIHash = CreateHash(32);
 	g_WorldArea = _Area;
 	g_WorldSize = _WorldSize;
+	WorldTextureInit();
 	g_World = (struct WorldTile*) calloc(_WorldSize, sizeof(struct WorldTile));
 	for(i = 0; i < _WorldSize; ++i)
 		g_World[i].Temperature = 0;
@@ -372,9 +389,11 @@ void WorldInit(int _Area) {
 	g_GoodOutputs[g_GoodOutputsSz] = NULL;
 	_Itr = _GoodList->Front;
 	while(_Itr != NULL) {
-		GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data));
+		if(GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data)) == 0)
+			goto goodload_loopend;
 		GoodLoadOutput(g_LuaState, ((struct GoodBase*)_Itr->Data));
 		Log(ELOG_INFO, "Good loaded %s.", ((struct GoodBase*)_Itr->Data)->Name);
+		goodload_loopend:
 		_Itr = _Itr->Next;
 	}
 	GoodLoadEnd:
@@ -411,6 +430,7 @@ void WorldInit(int _Area) {
 	g_AnFoodDep = AnimalFoodDep(&g_Populations);
 	if(PopulateWorld() == 0)
 		goto end;
+	ArmyTest();
 	end:
 	DestroyLinkedList(_CropList);
 	DestroyLinkedList(_GoodList);

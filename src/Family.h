@@ -7,7 +7,7 @@
 #define __FAMILY_H
 
 #define CHILDREN_SIZE (8)
-#define FAMILY_PEOPLESZ (CHILDREN_SIZE + 2)																									\
+#define FAMILY_PEOPLESZ (CHILDREN_SIZE + 2)
 
 #define HUSBAND (0)
 #define WIFE (1)
@@ -47,6 +47,7 @@ int FamilyThink(struct Family* _Family);
 int FamilySize(const struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
 void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct Settlement* _Location);
+struct Good* FamilyTakeGood(struct Family* _Family, int _Index);
 /**
  * Returns the yearly requirement of nutrition needed to feed the people in the family _Family.
  */

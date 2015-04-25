@@ -335,6 +335,19 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	luaL_error(_State, "In function %s the %s table does not contain a valid element.", _FamilyTypes[i]->LuaFunc, _Error);
 }
 
+struct Good* FamilyTakeGood(struct Family* _Family, int _Index) {
+	struct Good* _Good = _Family->Goods->Table[_Index];
+
+	if(_Good->Quantity > 1) {
+		--_Good->Quantity;
+		_Good = g_GoodCopy[_Good->Base->Category](_Good);
+	} else {
+		_Family->Goods->Table[_Index] = _Family->Goods->Table[_Family->Goods->Size];
+		--_Family->Goods->Size;
+	}
+	return _Good;
+}
+
 int FamilyNutReq(struct Family* _Family) {
 	int _Nutrition = 0;
 	int i;

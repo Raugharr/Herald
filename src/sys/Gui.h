@@ -89,8 +89,8 @@ struct Widget {
 
 struct Label {
 	DECLARE_WIDGET;
-	int (*SetText)(struct Widget*, SDL_Surface*);
-	SDL_Surface* Text;
+	int (*SetText)(struct Widget*, SDL_Texture*);
+	SDL_Texture* Text;
 };
 
 struct Container {
@@ -121,7 +121,7 @@ struct GUIFocus* CreateGUIFocus(void);
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Surface* _Text, struct Font* _Font);
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
@@ -166,7 +166,7 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 int LabelOnDraw(struct Widget* _Widget);
 int LabelOnFocus(struct Widget* _Widget);
 int LabelOnUnfocus(struct Widget* _Widget);
-int WidgetSetText(struct Widget* _Widget, SDL_Surface* _Text);
+int WidgetSetText(struct Widget* _Widget, SDL_Texture* _Text);
 
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 int TableHorzFocChange(const struct Container* _Container);

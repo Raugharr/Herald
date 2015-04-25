@@ -23,7 +23,7 @@ void CtorActor(struct Actor* _Actor, int _Type, int _X, int _Y, int(*_Think)(str
 }
 
 void DtorActor(struct Actor* _Actor) {
-	ObjectRmPos((struct Object*) _Actor);
+	//ObjectRmPos((struct Object*) _Actor);
 }
 
 void ActorDeath(struct Actor* _Actor) {

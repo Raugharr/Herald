@@ -18,5 +18,11 @@ Goods = {
 	{Name = "Wool Trousers", Category = "Clothing", Locations = {"Ankles", "Lower Legs", "Upper Legs", "Pelvis"}, InputGoods = {{"Wool Yarn", 57600}}},
 	{Name = "Quern", Category = "Good", InputGoods = {{"Stone", 3}}, OutputGoods = {{"Flour", 300}}},
 	{Name = "Dirt", Category = "Material", InputGoods = {}},
-	{Name = "Wood", Category = "Material", InputGoods = {}}
+	{Name = "Wood", Category = "Material", InputGoods = {}},
+	{Name = "Spear", Category = "Weapon", Type = "Spear", MeleeAttack = 3, Charge = 1, InputGoods = {}},
+	{Name = "Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 2, InputGoods = {}},
+	{Name = "Partial Leather Armor", Category = "Armor", Type = "Armor", Defense = 1, InputGoods = {}},
+	{Name = "Full Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 3, InputGoods = {{"Leather Body Armor", 1}, {"Partial Leather Armor", 1}}},
+	{Name = "Wooden Shield", Category = "Armor", Type = "Shield", Defense = 2, InputGoods = {}}
+	--{Name = "Javalin", Category = "Weapon", Type = "Javelin", Damage = 2, RangeDamage = 3, Impact = 1 InputGoods = {}},
 }

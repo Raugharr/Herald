@@ -352,8 +352,10 @@ void TableNewChild(struct Container* _Parent, struct Widget* _Child) {
 	}
 	_Child->Rect.x = _Parent->Rect.x + (_Row * ((struct Table*)_Parent)->CellMax.w);
 	_Child->Rect.y = _Parent->Rect.y + (_Col * ((struct Table*)_Parent)->CellMax.h);
-	_Child->Rect.w = ((struct Table*)_Parent)->CellMax.w;
-	_Child->Rect.h = ((struct Table*)_Parent)->CellMax.h;
+	if(_Child->Rect.w > ((struct Table*)_Parent)->CellMax.w)
+		_Child->Rect.w = ((struct Table*)_Parent)->CellMax.w;
+	if(_Child->Rect.h > ((struct Table*)_Parent)->CellMax.h)
+		_Child->Rect.h = ((struct Table*)_Parent)->CellMax.h;
 }
 
 int TableHorzFocChange(const struct Container* _Container) {

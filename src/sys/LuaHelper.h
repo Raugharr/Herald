@@ -47,6 +47,9 @@ struct LuaObjectReg {
 	const luaL_Reg* Funcs;
 };
 
+void InitLuaSystem();
+void QuitLuaSystem();
+
 void RegisterLuaFuncs(lua_State* _State);
 int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs);
 

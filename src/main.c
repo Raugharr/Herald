@@ -26,17 +26,10 @@
 int main(int argc, char* args[]) {
 	g_Log.Level = ELOG_ALL;
 	LogSetFile("Log.txt");
-	g_LuaState = luaL_newstate();
-	lua_atpanic(g_LuaState, LogLua);
-	luaL_openlibs(g_LuaState);
-	RegisterLuaFuncs(g_LuaState);
-	atexit(LogCloseFile);
  	HeraldInit();
  	VideoInit();
 	WorldInit(300);
 
-	//for(i = 0; i < 366; ++i)
-	//	Tick();
 	while(g_VideoOk != 0) {
 		Events();
 		Draw();

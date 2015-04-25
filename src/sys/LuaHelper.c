@@ -169,6 +169,18 @@ static struct LuaObjectReg g_ObjectRegs[] = {
 		{NULL, NULL, NULL}
 };
 
+void InitLuaSystem() {
+	g_LuaState = luaL_newstate();
+	lua_atpanic(g_LuaState, LogLua);
+	luaL_openlibs(g_LuaState);
+	RegisterLuaFuncs(g_LuaState);
+	atexit(LogCloseFile);
+}
+
+void QuitLuaSystem() {
+	lua_close(g_LuaState);
+}
+
 void RegisterLuaFuncs(lua_State* _State) {
 	int i = 0;
 

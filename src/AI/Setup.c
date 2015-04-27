@@ -349,7 +349,7 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 		DestroyInputReq(_Foods[i]);
 	}
 	if(i == 0)
-		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_Date), _Person->Id);
+		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Person->Id);
 	free(_Foods);
 	return 1;
 }

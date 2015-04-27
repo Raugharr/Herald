@@ -28,6 +28,7 @@
 #include "sys/Random.h"
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
+#include "tile/Tile.h"
 #include "AI/Setup.h"
 #include "AI/AIHelper.h"
 
@@ -45,11 +46,19 @@
 #define NULL ((void*)0)
 #endif
 
+struct GameWorld g_GameWorld = {
+		0,
+		{NULL, 300, 300 * 300},
+		NULL,
+		NULL,
+		{NULL, 0, NULL, NULL},
+		{NULL, 0},
+		NULL,
+		{0, NULL, NULL},
+		{NULL, 0, NULL, NULL},
+		{NULL, 0, NULL, NULL},
+};
 int g_Date = 0;
-struct WorldTile* g_World = NULL;
-int g_WorldSize = 0;
-int g_WorldArea = 0;
-SDL_Texture* g_WorldTex = NULL;
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
@@ -66,7 +75,6 @@ int g_Temperature = 0;
 static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
 		{"GetDate", LuaWorldGetDate},
-		//{"GetPersons", LuaWorldGetPersons},
 		{"Tick", LuaWorldTick},
 		{NULL, NULL}
 };
@@ -125,7 +133,6 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
 	//lua_pop(g_LuaState, 4);
-	lua_settop(g_LuaState, 0);
 }
 
 int PopulateWorld() {
@@ -178,72 +185,15 @@ int PopulateWorld() {
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
-	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_WorldSize- 1),  Random(0, g_WorldSize - 1));
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer.TileArea - 1),  Random(0, g_GameWorld.MapRenderer.TileArea - 1));
 	g_Player = PickPlayer();
-	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_WorldSize - 1),  Random(0, g_WorldSize - 1));
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer.TileArea - 1),  Random(0, g_GameWorld.MapRenderer.TileArea - 1));
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:
 	DestroyConstrntBnds(_ManorSize);
 	return 0;
 }
-
-/*int LuaPersonItrItr(lua_State* _State) {
-	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
-	return 1;
-}
-
-int LuaPersonItrNext_Aux(lua_State* _State) {
-	int _UpValue = lua_upvalueindex(1);
-	struct Person* _Person = lua_touserdata(_State, _UpValue);
-
-	if(_Person == NULL)
-		goto end;
-	if(_Person->Next == NULL) {
-		lua_pushnil(_State);
-		lua_pushvalue(_State, 1);
-		lua_pushnil(_State);
-		return 3;
-	}
-	_Person = _Person->Next;
-	end:
-	lua_pushlightuserdata(_State, _Person);
-	lua_pushvalue(_State, -1);
-	lua_replace(_State, _UpValue);
-	return 1;
-}
-
-int LuaPersonItrNext(lua_State* _State) {
-	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
-	lua_pushcclosure(_State, LuaPersonItrNext_Aux, 1);
-	return 1;
-}
-
-int LuaPersonItrPrev_Aux(lua_State* _State) {
-	int _UpValue = lua_upvalueindex(1);
-	struct Person* _Person = lua_touserdata(_State, _UpValue);
-
-	if(_Person == NULL)
-		goto end;
-	if(_Person->Prev == NULL) {
-		lua_pushnil(_State);
-		lua_pushvalue(_State, 1);
-		lua_pushnil(_State);
-		return 3;
-	}
-	_Person = _Person->Prev;
-	end:
-	lua_pushlightuserdata(_State, _Person);
-	lua_pushvalue(_State, -1);
-	lua_replace(_State, _UpValue);
-	return 1;
-}
-
-int LuaPersonItrPrev(lua_State* _State) {
-	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
-	lua_pushcclosure(_State, LuaPersonItrPrev_Aux, 1);
-	return 1;
-}*/
 
 struct BigGuy* PickPlayer() {
 	return ((struct Settlement*)g_Settlements.Front->Data)->Leader;
@@ -260,52 +210,10 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 	free(_Tile);
 }
 
-/*int LuaRegisterPersonItr(lua_State* _State) {
-	if(luaL_newmetatable(_State, "PersonIterator") == 0)
-		return 0;
-
-	lua_pushliteral(_State, "__index");
-	lua_pushvalue(_State, -2);
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "__newindex");
-	lua_pushnil(_State);
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "Itr");
-	lua_pushcfunction(_State, LuaPersonItrItr);
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "Next");
-	lua_pushcfunction(_State, LuaPersonItrNext);
-	lua_rawset(_State, -3);
-
-	lua_pushliteral(_State, "Prev");
-	lua_pushcfunction(_State, LuaPersonItrPrev);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "__baseclass");
-	lua_getglobal(_State, "Iterator");
-	lua_rawset(_State, -3);
-	lua_setglobal(_State, "PersonIterator");
-	return 1;
-}*/
-
 int LuaWorldGetPlayer(lua_State* _State) {
 	LuaCtor(_State, "BigGuy", g_Player);
 	return 1;
 }
-
-/*int LuaWorldGetPersons(lua_State* _State) {
-	lua_newtable(_State);
-
-	lua_getglobal(_State, "PersonIterator");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, g_PersonList);
-	lua_rawset(_State, -3);
-	return 1;
-}*/
 
 int LuaWorldGetDate(lua_State* _State) {
 	lua_pushinteger(_State, g_Date);
@@ -331,22 +239,16 @@ void WorldInit(int _Area) {
 	int i;
 	int _WorldSize = _Area * _Area;
 	struct Array* _Array = NULL;
-	struct LinkedList* _CropList = CreateLinkedList();
-	struct LinkedList* _GoodList = CreateLinkedList();
-	struct LinkedList* _BuildList = CreateLinkedList();
-	struct LinkedList* _PopList = CreateLinkedList();
-	struct LinkedList* _OccupationList = CreateLinkedList();
+	struct LinkedList _CropList = {0, NULL, NULL};
+	struct LinkedList _GoodList = {0, NULL, NULL};
+	struct LinkedList _BuildList = {0, NULL, NULL};
+	struct LinkedList _PopList = {0, NULL, NULL};
+	struct LinkedList _OccupationList = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
 	g_AIHash = CreateHash(32);
-	g_WorldArea = _Area;
-	g_WorldSize = _WorldSize;
-	WorldTextureInit();
-	g_World = (struct WorldTile*) calloc(_WorldSize, sizeof(struct WorldTile));
-	for(i = 0; i < _WorldSize; ++i)
-		g_World[i].Temperature = 0;
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
 	chdir(DATAFLD);
@@ -354,22 +256,22 @@ void WorldInit(int _Area) {
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 1000000);
 	Family_Init(_Array);
-	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, _GoodList) == 0)
+	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, &_GoodList) == 0)
 		goto end;
-	g_Goods.TblSize = (_GoodList->Size * 5) / 4;
+	g_Goods.TblSize = (_GoodList.Size * 5) / 4;
 	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
 	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
-	LISTTOHASH(_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
+	LISTTOHASH(&_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
 	
-	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, _CropList) == 0)
+	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, &_CropList) == 0)
 		goto end;
-	g_Crops.TblSize = (_CropList->Size * 5) / 4;
+	g_Crops.TblSize = (_CropList.Size * 5) / 4;
 	g_Crops.Table = (struct HashNode**) calloc(g_Crops.TblSize, sizeof(struct HashNode*));
 	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
-	LISTTOHASH(_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
+	LISTTOHASH(&_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
 
 
-	if(_GoodList->Size == 0) {
+	if(_GoodList.Size == 0) {
 		Log(ELOG_WARNING, "Failed to load goods.");
 		goto GoodLoadEnd;
 	}
@@ -377,7 +279,7 @@ void WorldInit(int _Area) {
 		goto end;
 	lua_getglobal(g_LuaState, "Goods");
 	i = 1;
-	_Itr = _GoodList->Front;
+	_Itr = _GoodList.Front;
 	while(_Itr != NULL) {
 		lua_pushstring(g_LuaState, ((struct GoodBase*)_Itr->Data)->Name);
 		lua_rawgeti(g_LuaState, -2, i++);
@@ -387,7 +289,7 @@ void WorldInit(int _Area) {
 	lua_pop(g_LuaState, 1);
 	g_GoodOutputs = realloc(g_GoodOutputs, sizeof(struct GoodOutput*) * (g_GoodOutputsSz + 1));
 	g_GoodOutputs[g_GoodOutputsSz] = NULL;
-	_Itr = _GoodList->Front;
+	_Itr = _GoodList.Front;
 	while(_Itr != NULL) {
 		if(GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data)) == 0)
 			goto goodload_loopend;
@@ -397,28 +299,28 @@ void WorldInit(int _Area) {
 		_Itr = _Itr->Next;
 	}
 	GoodLoadEnd:
-	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  _PopList) == 0)
+	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  &_PopList) == 0)
 		goto end;
-	g_Populations.TblSize = (_PopList->Size * 5) / 4;
+	g_Populations.TblSize = (_PopList.Size * 5) / 4;
 	g_Populations.Table = (struct HashNode**) calloc(g_Populations.TblSize, sizeof(struct HashNode*));
 	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
-	if(LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, _OccupationList) == 0)
+	if(LuaLoadList(g_LuaState, "occupations.lua", "Occupations", (void*(*)(lua_State*, int))&OccupationLoad, &LnkLst_PushBack, &_OccupationList) == 0)
 		goto end;
-	g_Occupations.TblSize = ((_OccupationList->Size + 1) * 5) / 4;
+	g_Occupations.TblSize = ((_OccupationList.Size + 1) * 5) / 4;
 	g_Occupations.Table = (struct HashNode**) calloc(g_Occupations.TblSize, sizeof(struct HashNode*));
 	memset(g_Occupations.Table, 0, g_Occupations.TblSize * sizeof(struct HashNode*));
 
-	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, _BuildList) == 0)
+	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, &_BuildList) == 0)
 		goto end;
-	g_BuildMats.TblSize = (_BuildList->Size * 5) / 4;
+	g_BuildMats.TblSize = (_BuildList.Size * 5) / 4;
 	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
 	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
-	g_GoodOutputs = calloc(_GoodList->Size + 1, sizeof(struct GoodOutput*));
+	g_GoodOutputs = calloc(_GoodList.Size + 1, sizeof(struct GoodOutput*));
 
-	LISTTOHASH(_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
-	LISTTOHASH(_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
-	LISTTOHASH(_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
+	LISTTOHASH(&_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
+	LISTTOHASH(&_OccupationList, _Itr, &g_Occupations, ((struct Occupation*)_Itr->Data)->Name);
+	LISTTOHASH(&_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
 	g_Families.Table = NULL;
 	g_Families.Size = 0;
 	g_Families.ICallback = (int (*)(const void*, const void*))&FamilyICallback;
@@ -432,11 +334,6 @@ void WorldInit(int _Area) {
 		goto end;
 	ArmyTest();
 	end:
-	DestroyLinkedList(_CropList);
-	DestroyLinkedList(_GoodList);
-	DestroyLinkedList(_BuildList);
-	DestroyLinkedList(_PopList);
-	DestroyLinkedList(_OccupationList);
 	chdir("..");
 	--g_Log.Indents;
 }
@@ -488,8 +385,8 @@ int World_Tick() {
 		_Itr = g_ObjPos.Root;
 		NextDay(&g_Date);
 		if(MONTH(g_Date) != _OldMonth) {
-			for(i = 0; i < g_WorldSize; ++i) {
-				g_World[i].Temperature = g_TemperatureList[MONTH(g_Date)];
+			for(i = 0; i < g_GameWorld.MapRenderer.TileArea; ++i) {
+				g_GameWorld.MapRenderer.Tiles[i]->Temperature = g_TemperatureList[MONTH(g_Date)];
 			}
 		}
 		_Settlement = g_Settlements.Front;

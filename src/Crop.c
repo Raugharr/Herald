@@ -221,7 +221,7 @@ void FieldHarvest(struct Field* _Field, struct Array* _Goods) {
 
 int FieldUpdate(struct Field* _Field) {
 	if(_Field->Status == EGROWING) {
-		int _Temp = g_TemperatureList[TO_MONTHS(g_Date)];//((struct WorldTile*)g_World->Table[WorldGetTile(_Field->X, _Field->Y)])->Temperature;
+		int _Temp = g_TemperatureList[TO_MONTHS(g_GameWorld.Date)];//((struct WorldTile*)g_World->Table[WorldGetTile(_Field->X, _Field->Y)])->Temperature;
 
 		_Field->StatusTime -= GrowingDegree(_Temp, _Temp, _Field->Crop->GrowingBase);
 		if(_Field->StatusTime <= 0) {

@@ -127,7 +127,7 @@ int PersonEat(struct Person* _Person, struct Food* _Food) {
 			}
 		}
 	if(_Nut == 0)
-		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_Date), _Person->Id);
+		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_GameWorld.Date), _Person->Id);
 	_Person->Nutrition += _Nut;
 	return _Nut;
 }

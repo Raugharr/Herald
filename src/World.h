@@ -9,10 +9,13 @@
 #include "Herald.h"
 
 #include "sys/LinkedList.h"
+#include "sys/KDTree.h"
+#include "tile/MapRenderer.h"
 
 #define WorldGetTile(_X, _Y) ((_Y) / g_WorldSize + (_X))
 
 typedef struct lua_State lua_State;
+typedef struct SDL_Texture SDL_Texture;
 
 struct Array;
 struct Person;
@@ -20,11 +23,9 @@ struct RBTree;
 struct TaskPool;
 struct BigGuy;
 struct WorldTile;
+struct GameWorld;
 
-extern DATE g_Date;
-extern struct WorldTile* g_World;
-extern int g_WorldSize;
-extern int g_WorldArea;
+extern struct GameWorld g_GameWorld;
 extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
@@ -36,8 +37,17 @@ extern struct RBTree g_BigGuyState;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
-struct WorldMaps {
-	int* AvgTemp[MONTHS];
+struct GameWorld {
+	DATE Date;
+	struct MapRenderer MapRenderer;
+	struct RBTree* GoodDeps;
+	struct Array* AnFoodDeps;
+	struct RBTree Families;
+	struct KDTree ObjPos;
+	struct BigGuy* Player;
+	struct LinkedList Settlements;
+	struct RBTree BigGuys;
+	struct RBTree BigGuyStates;
 };
 
 enum {

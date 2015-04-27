@@ -139,7 +139,7 @@ struct Food* FamilyMakeFood(struct Family* _Family) {
 		DestroyInputReq(_Foods[i]);
 	}
 	if(i == 0)
-		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_Date), _Family->Id);
+		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Family->Id);
 	end:
 	free(_Foods);
 	return _FamFood;
@@ -157,7 +157,7 @@ void FamilyWorkField(struct Family* _Family) {
 			return;
 		if(_Field->Status == ENONE) {
 			SelectCrops(_Family, _Family->Fields);
-		} else if(_Field->Status == EFALLOW && MONTH(g_Date) >= 1 && MONTH(g_Date) <= 2) {
+		} else if(_Field->Status == EFALLOW && MONTH(g_GameWorld.Date) >= 1 && MONTH(g_GameWorld.Date) <= 2) {
 			_Array = _Family->Goods;
 			for(j = 0; j < _Array->Size; ++j) {
 				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {

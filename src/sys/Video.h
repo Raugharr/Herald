@@ -59,6 +59,5 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface);
 int FirstFocusable(const struct Container* _Parent);
 int NextFocusable(const struct Container* _Parent, int _Index, int _Pos);
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
-SDL_Texture* CreateWorldTexture(int _Size);
 //SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

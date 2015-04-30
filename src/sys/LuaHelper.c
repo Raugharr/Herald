@@ -13,6 +13,7 @@
 #include "Event.h"
 #include "Random.h"
 #include "Rule.h"
+#include "../Government.h"
 #include "../BigGuy.h"
 #include "../Herald.h"
 #include "../Good.h"
@@ -27,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lua/lauxlib.h>
+#include <lua/lualib.h>
 #include <malloc.h>
 
 lua_State* g_LuaState = NULL;
@@ -641,7 +643,7 @@ int LuaBGSetAuthority(lua_State* _State) {
 int LuaSettlementGetLeader(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
-	LuaCtor(_State, "BigGuy", _Settlement->Leader);
+	LuaCtor(_State, "BigGuy", _Settlement->Government->Leader);
 	return 1;
 }
 

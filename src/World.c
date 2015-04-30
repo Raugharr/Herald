@@ -16,6 +16,7 @@
 #include "Location.h"
 #include "Mission.h"
 #include "BigGuy.h"
+#include "Government.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -28,7 +29,7 @@
 #include "sys/Random.h"
 #include "sys/RBTree.h"
 #include "sys/LuaHelper.h"
-#include "tile/Tile.h"
+#include "video/Tile.h"
 #include "AI/Setup.h"
 #include "AI/AIHelper.h"
 
@@ -113,7 +114,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateSettlement(_X, _Y, _X + 1, _Y + 1, "Test Settlement");
+	_Settlement = CreateSettlement(_X, _Y, _X + 1, _Y + 1, "Test Settlement", GOV_TRIBAL);
 	LnkLstPushBack(&g_Settlements, _Settlement);
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
@@ -196,7 +197,7 @@ int PopulateWorld() {
 }
 
 struct BigGuy* PickPlayer() {
-	return ((struct Settlement*)g_Settlements.Front->Data)->Leader;
+	return ((struct Settlement*)g_Settlements.Front->Data)->Government->Leader;
 }
 
 struct WorldTile* CreateWorldTile() {

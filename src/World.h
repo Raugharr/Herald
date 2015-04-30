@@ -10,7 +10,7 @@
 
 #include "sys/LinkedList.h"
 #include "sys/KDTree.h"
-#include "tile/MapRenderer.h"
+#include "video/MapRenderer.h"
 
 #define WorldGetTile(_X, _Y) ((_Y) / g_WorldSize + (_X))
 

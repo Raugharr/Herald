@@ -13,6 +13,7 @@
 #include "sys/TaskPool.h"
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
+#include <SDL2/SDL_image.h>
 
 #include <stdlib.h>
 #ifdef _WIN32
@@ -20,12 +21,20 @@
 #else
 	#include <sys/io.h>
 #endif
-#include <lua/lauxlib.h>
-#include <lua/lualib.h>
 
 int main(int argc, char* args[]) {
+	int i = 0;
+	struct System _Systems[] = {
+			{"Lua", InitLuaSystem, QuitLuaSystem},
+			{NULL, NULL, NULL}
+	};
 	g_Log.Level = ELOG_ALL;
 	LogSetFile("Log.txt");
+	for(i = 0; _Systems[i].Name != NULL; ++i) {
+		Log(ELOG_INFO, "Initializing %s system.", _Systems[i].Name);
+		_Systems[i].Init();
+	};
+	IMG_Init(IMG_INIT_PNG);
  	HeraldInit();
  	VideoInit();
 	WorldInit(300);
@@ -34,7 +43,11 @@ int main(int argc, char* args[]) {
 		Events();
 		Draw();
 	}
-
+	for(i = 0; _Systems[i].Name != NULL; ++i) {
+		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
+		_Systems[i].Quit();
+	}
+	IMG_Quit();
 	HeraldDestroy();
 	VideoQuit();
 	WorldQuit();

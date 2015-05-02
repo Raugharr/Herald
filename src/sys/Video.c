@@ -176,6 +176,8 @@ void Events(void) {
 	}
 }
 
+#include "../World.h"
+
 void Draw(void) {
 	struct Container* _Screen = NULL;
 
@@ -183,6 +185,7 @@ void Draw(void) {
 		return;
 	_Screen = GetScreen(g_LuaState);
 	SDL_RenderClear(g_Renderer);
+	MapRender(g_Renderer, g_GameWorld.MapRenderer);
 	//SDL_FillRect(g_WindowSurface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);

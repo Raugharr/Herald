@@ -5,7 +5,7 @@
 
 #include "QuadTree.h"
 
-#include "LinkedList.h"
+#include "../sys/LinkedList.h"
 
 #include <stdlib.h>
 #include <math.h>

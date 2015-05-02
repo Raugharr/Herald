@@ -6,7 +6,7 @@
 #include "Gui.h"
 
 #include "Video.h"
-#include "Stack.h"
+#include "../sys/Stack.h"
 #include "GuiLua.h"
 
 #include <string.h>

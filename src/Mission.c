@@ -13,8 +13,8 @@
 #include "sys/Rule.h"
 #include "sys/RBTree.h"
 #include "sys/Log.h"
-#include "sys/GuiLua.h"
-#include "sys/Gui.h"
+#include "video/GuiLua.h"
+#include "video/Gui.h"
 #include "sys/Stack.h"
 #include "sys/Event.h"
 

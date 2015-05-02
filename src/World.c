@@ -17,7 +17,7 @@
 #include "Mission.h"
 #include "BigGuy.h"
 #include "Government.h"
-#include "sys/Video.h"
+#include "video/Video.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"

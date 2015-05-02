@@ -7,8 +7,8 @@
 
 #include "Gui.h"
 #include "GuiLua.h"
-#include "LuaHelper.h"
-#include "Log.h"
+#include "../sys/LuaHelper.h"
+#include "../sys/Log.h"
 
 #include <stdlib.h>
 #include <string.h>

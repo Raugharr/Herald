@@ -5,7 +5,7 @@ typedef struct lua_State lua_State;
 typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
 
-#include "LinkedList.h"
+#include "../sys/LinkedList.h"
 
 #define RestoreScreen(_State) lua_settop((_State), 0);					\
 		lua_pushstring((_State), (const char*)g_GUIStack.Top->Data);	\

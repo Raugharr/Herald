@@ -6,7 +6,7 @@
 #ifndef __VIDEO_H
 #define __VIDEO_H
 
-#include "Stack.h"
+#include "../sys/Stack.h"
 
 #include <SDL2/SDL.h>
 

@@ -7,11 +7,11 @@
 
 #include "Gui.h"
 #include "Video.h"
-#include "LuaHelper.h"
-#include "Array.h"
-#include "Log.h"
-#include "LinkedList.h"
-#include "TaskPool.h"
+#include "../sys/LuaHelper.h"
+#include "../sys/Array.h"
+#include "../sys/Log.h"
+#include "../sys/LinkedList.h"
+#include "../sys/TaskPool.h"
 #include "../Herald.h"
 
 #include <SDL2/SDL.h>

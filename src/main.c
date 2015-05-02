@@ -7,7 +7,7 @@
 #include "World.h"
 #include "Person.h"
 #include "sys/Log.h"
-#include "sys/Video.h"
+#include "video/Video.h"
 #include "sys/HashTable.h"
 #include "sys/LuaHelper.h"
 #include "sys/TaskPool.h"

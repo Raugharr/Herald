@@ -9,6 +9,7 @@
 
 struct BigGuy;
 struct Family;
+struct Government;
 
 enum {
 	ELOC_SETTLEMENT,
@@ -37,12 +38,13 @@ struct Settlement {
 	char* Name;
 	struct CityPlanner Planner;
 	struct Person* People;
+	struct LinkedList BigGuys;
 	struct LinkedList Families;
-	struct BigGuy* Leader;
+	struct Government* Government;
 	int NumPeople;
 };
 
-struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name);
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name, int _GovType);
 void DestroySettlement(struct Settlement* _Location);
 
 void SettlementPickLeader(struct Settlement* _Location);

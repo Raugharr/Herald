@@ -7,12 +7,13 @@
 #include "BigGuy.h"
 #include "Person.h"
 #include "Family.h"
+#include "Government.h"
 #include "sys/KDTree.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name) {
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name, int _GovType) {
 	struct Settlement* _Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
 	_Loc->Type = ELOC_SETTLEMENT;
@@ -22,9 +23,11 @@ struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, con
 	_Loc->EndY = _Y + _Length;
 	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Loc->People = NULL;
-	_Loc->Leader = NULL;
+	_Loc->Government = CreateGovernment(_GovType);
 	_Loc->NumPeople = 0;
-	_Loc->Families.Size = 0;
+	_Loc->BigGuys.Size = 0;
+	_Loc->BigGuys.Front = NULL;
+	_Loc->Families.Back = NULL;
 	_Loc->Families.Front = NULL;
 	_Loc->Families.Back = NULL;
 	strcpy(_Loc->Name, _Name);
@@ -32,6 +35,7 @@ struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, con
 }
 
 void DestroySettlement(struct Settlement* _Location) {
+	free(_Location->Government);
 	free(_Location->Name);
 	free(_Location);
 }
@@ -41,7 +45,7 @@ void SettlementPickLeader(struct Settlement* _Location) {
 
 	while(_Person != NULL) {
 		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
-			_Location->Leader = CreateBigGuy(_Person);
+			_Location->Government->Leader = CreateBigGuy(_Person); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
 			break;
 		}
 		_Person = _Person->Next;

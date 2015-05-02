@@ -39,7 +39,7 @@ extern int* g_AvgTempMap[MONTHS];
 
 struct GameWorld {
 	DATE Date;
-	struct MapRenderer MapRenderer;
+	struct MapRenderer* MapRenderer;
 	struct RBTree* GoodDeps;
 	struct Array* AnFoodDeps;
 	struct RBTree Families;

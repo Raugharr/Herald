@@ -17,6 +17,7 @@
 #include "Mission.h"
 #include "BigGuy.h"
 #include "Government.h"
+#include "sys/Video.h"
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -49,7 +50,7 @@
 
 struct GameWorld g_GameWorld = {
 		0,
-		{NULL, 300, 300 * 300},
+		NULL,
 		NULL,
 		NULL,
 		{NULL, 0, NULL, NULL},
@@ -186,9 +187,9 @@ int PopulateWorld() {
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
-	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer.TileArea - 1),  Random(0, g_GameWorld.MapRenderer.TileArea - 1));
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer->TileArea - 1),  Random(0, g_GameWorld.MapRenderer->TileArea - 1));
 	g_Player = PickPlayer();
-	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer.TileArea - 1),  Random(0, g_GameWorld.MapRenderer.TileArea - 1));
+	PopulateManor((Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, Random(0, g_GameWorld.MapRenderer->TileArea - 1),  Random(0, g_GameWorld.MapRenderer->TileArea - 1));
 	DestroyConstrntBnds(_ManorSize);
 	return 1;
 	end:
@@ -236,6 +237,12 @@ void ArmyTest() {
 	BattleThink(_Battle);
 }
 
+void GameWorldInit(int _Area) {
+	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
+	struct Point _ScreenSize = {SDL_WIDTH / 2, SDL_HEIGHT / 2};
+
+	g_GameWorld.MapRenderer = CreateMapRenderer(_Area, &_ScreenSize);
+}
 void WorldInit(int _Area) {
 	int i;
 	int _WorldSize = _Area * _Area;
@@ -249,6 +256,7 @@ void WorldInit(int _Area) {
 
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
+	GameWorldInit(_Area);
 	g_AIHash = CreateHash(32);
 	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
@@ -386,8 +394,8 @@ int World_Tick() {
 		_Itr = g_ObjPos.Root;
 		NextDay(&g_Date);
 		if(MONTH(g_Date) != _OldMonth) {
-			for(i = 0; i < g_GameWorld.MapRenderer.TileArea; ++i) {
-				g_GameWorld.MapRenderer.Tiles[i]->Temperature = g_TemperatureList[MONTH(g_Date)];
+			for(i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
+				g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_Date)];
 			}
 		}
 		_Settlement = g_Settlements.Front;

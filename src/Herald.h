@@ -72,6 +72,12 @@ struct InputReq {
 	double Quantity;
 };
 
+struct System {
+	const char* Name;
+	void(*Init)();
+	void(*Quit)();
+};
+
 struct Object {
 	int Id;
 	int Type;

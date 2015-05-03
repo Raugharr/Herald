@@ -6,6 +6,7 @@
 #define __LOCATION_H
 
 #include "sys/LinkedList.h"
+#include "video/Point.h"
 
 struct BigGuy;
 struct Family;
@@ -18,10 +19,8 @@ enum {
 
 struct Location {
 	int Type;
-	int StartX;
-	int StartY;
-	int EndX;
-	int EndY;
+	struct Point StartPos;
+	struct Point EndPos;
 };
 
 struct CityPlanner {
@@ -31,10 +30,8 @@ struct CityPlanner {
 
 struct Settlement {
 	int Type;
-	int StartX;
-	int StartY;
-	int EndX;
-	int EndY;
+	struct Point StartPos;
+	struct Point EndPos;
 	char* Name;
 	struct CityPlanner Planner;
 	struct Person* People;
@@ -44,12 +41,12 @@ struct Settlement {
 	int NumPeople;
 };
 
-struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name, int _GovType);
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, const char* _Name, int _GovType);
 void DestroySettlement(struct Settlement* _Location);
 
 void SettlementPickLeader(struct Settlement* _Location);
 void SettlementThink(struct Settlement* _Settlement);
 
 int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y);
-void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _X, int* _Y);
+void PlaceBuilding(struct Settlement* _Location, int _Width, int _Height, int* _X, int* _Y);
 #endif

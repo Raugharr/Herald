@@ -13,14 +13,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Length, const char* _Name, int _GovType) {
+struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, const char* _Name, int _GovType) {
 	struct Settlement* _Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
 	_Loc->Type = ELOC_SETTLEMENT;
-	_Loc->StartX = _X;
-	_Loc->StartY = _Y;
-	_Loc->EndX = _X + _Width;
-	_Loc->EndY = _Y + _Length;
+	_Loc->StartPos.X = _X;
+	_Loc->StartPos.Y = _Y;
+	_Loc->EndPos.X = _X + _Width;
+	_Loc->EndPos.Y = _Y + _Height;
 	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Loc->People = NULL;
 	_Loc->Government = CreateGovernment(_GovType);
@@ -62,11 +62,11 @@ void SettlementThink(struct Settlement* _Settlement) {
 }
 
 int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y) {
-	int _Point[] = {_Location->StartX, _Location->StartY};
+	int _Point[] = {_Location->StartPos.X, _Location->StartPos.Y};
 
-	while(_Point[0] < _Location->EndX) {
+	while(_Point[0] < _Location->EndPos.X) {
 		++_Point[0];
-		while(_Point[1] < _Location->EndY) {
+		while(_Point[1] < _Location->EndPos.Y) {
 			if(KDSearchNode(&g_ObjPos, _Point) == NULL) {
 				*_X = _Point[0];
 				*_Y = _Point[1];
@@ -84,7 +84,7 @@ void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _
 	*_X = _Location->Planner.BuildingX;
 	*_Y = _Location->Planner.BuildingY;
 	_Location->Planner.BuildingY += _Length;
-	if(_Location->Planner.BuildingY > _Location->EndY) {
+	if(_Location->Planner.BuildingY > _Location->EndPos.Y) {
 		_Location->Planner.BuildingY = 0;
 		_Location->Planner.BuildingX += _Width;
 	}

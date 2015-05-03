@@ -43,13 +43,13 @@ int main(int argc, char* args[]) {
 		Events();
 		Draw();
 	}
-	for(i = 0; _Systems[i].Name != NULL; ++i) {
-		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
-		_Systems[i].Quit();
-	}
 	IMG_Quit();
 	HeraldDestroy();
 	VideoQuit();
 	WorldQuit();
+	for(i = 0; _Systems[i].Name != NULL; ++i) {
+		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
+		_Systems[i].Quit();
+	}
 	return 0;
 }

@@ -9,6 +9,9 @@
 #include "GuiLua.h"
 #include "../sys/LuaHelper.h"
 #include "../sys/Log.h"
+#include "Point.h"
+#include "MapRenderer.h"
+#include "../World.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +125,8 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 	return _Focus;
 }
 
+#include "Tile.h"
+
 void Events(void) {
 	int i;
 	SDL_Event _Event;
@@ -132,6 +137,14 @@ void Events(void) {
 		if(_Event.type == SDL_KEYUP) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 
+			if(_Event.key.type == SDLK_a)
+				g_GameWorld.MapRenderer->Screen.Center.X -= TILE_WIDTH;
+			else if(_Event.key.keysym.sym == SDLK_d)
+				g_GameWorld.MapRenderer->Screen.Center.X += TILE_WIDTH;
+			else if(_Event.key.keysym.sym == SDLK_w)
+				g_GameWorld.MapRenderer->Screen.Center.Y -= TILE_HEIGHT;
+			else if(_Event.key.keysym.sym == SDLK_s)
+				g_GameWorld.MapRenderer->Screen.Center.Y += TILE_HEIGHT;
 			if(_Event.key.type == SDL_KEYUP)
 				_Widget->OnKeyUp(_Widget, &_Event.key);
 			if(_Event.key.keysym.sym == SDLK_UP) {
@@ -142,11 +155,11 @@ void Events(void) {
 				_Widget->OnUnfocus(_Widget);
 				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->VertFocChange);
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_a || _Event.key.keysym.sym == SDLK_LEFT) {
+			} else if(_Event.key.keysym.sym == SDLK_LEFT) {
 				_Widget->OnUnfocus(_Widget);
 				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_d || _Event.key.keysym.sym == SDLK_RIGHT) {
+			} else if(_Event.key.keysym.sym == SDLK_RIGHT) {
 				_Widget->OnUnfocus(_Widget);
 				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
@@ -176,24 +189,26 @@ void Events(void) {
 	}
 }
 
-#include "../World.h"
-
 void Draw(void) {
 	struct Container* _Screen = NULL;
-
+	struct Point _Pos;
+	SDL_GetMouseState(&_Pos.X, &_Pos.Y);
+	struct Tile* _Tile = ScreenToTile(g_GameWorld.MapRenderer, &_Pos);
 	if(g_VideoOk == 0)
 		return;
 	_Screen = GetScreen(g_LuaState);
 	SDL_RenderClear(g_Renderer);
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
-	//SDL_FillRect(g_WindowSurface, NULL, (g_GUIDefs.Background.r << 16) | (g_GUIDefs.Background.g << 8) | (g_GUIDefs.Background.b));
+	if(_Tile != NULL) {
+		SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
+
+		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
+	}
 	if(_Screen != NULL)
 		_Screen->OnDraw((struct Widget*) _Screen);
 	else
 		g_VideoOk = 0;
-	//SDL_RenderCopy(g_Renderer, g_WindowTexture, NULL, NULL);
 	SDL_RenderPresent(g_Renderer);
-	//g_VideoOk &= (SDL_UpdateWindowSurface(g_Window) == 0);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);
 	g_VideoTimer = SDL_GetTicks();
@@ -281,54 +296,6 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 	return _Texture;
 }
 
-/*void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To) {
-	int i;
-	int j;
-	int _Width = 0;
-	int _Height = 0;
-	Uint32* _Pixel;
-	SDL_Color* _Color;
-	SDL_Palette* _Palette = _Surface->format->palette;
-	SDL_PixelFormat* _Format = _Surface->format;
-
-	if(SDL_MUSTLOCK(_Surface))
-		if(SDL_LockSurface(_Surface) != 0)
-			return;
-	if(_Format->BytesPerPixel == 1)
-		goto palette;
-	else if(_Format->BytesPerPixel != 4)
-		return;
-	_Width = _Surface->w;
-	_Height = _Surface->h;
-	for(i = 0; i < _Width; ++i) {
-		for(j = 0; j < _Height; ++j) {
-			_Pixel = (Uint32*)((Uint8*)_Surface->pixels + j * _Surface->pitch + i * sizeof(*_Pixel));
-			if((((*_Pixel & _Format->Rmask) >> _Format->Rshift) << _Format->Rloss) == _Prev->r &&
-					(((*_Pixel & _Format->Gmask) >> _Format->Gshift) << _Format->Gloss) == _Prev->g &&
-					(((*_Pixel & _Format->Bmask) >> _Format->Bshift) << _Format->Bloss) == _Prev->b &&
-					(((*_Pixel & _Format->Amask) >> _Format->Ashift) << _Format->Aloss) == (((_Prev->a & _Format->Amask) >> _Format->Ashift) << _Format->Aloss)) {
-				*_Pixel = (_To->r << _Format->Rshift) | (_To->g << _Format->Gshift) | (_To->b << _Format->Bshift) | ((_To->a & _Format->Amask) << _Format->Ashift);
-			}
-		}
-	}
-	goto end;
-	palette:
-	for(i = 0; i < _Palette->ncolors; ++i) {
-		_Color = &_Palette->colors[i];
-		if(_Color->r == _Prev->r && _Color->g == _Prev->g && _Color->b == _Prev->b && _Color->a == _Prev->a) {
-			_Color->r = _To->r;
-			_Color->g = _To->g;
-			_Color->b = _To->b;
-			_Color->a = _To->a;
-			++_Palette->version;
-			break;
-		}
-	}
-	end:
-	if(SDL_MUSTLOCK(_Surface))
-		SDL_UnlockSurface(_Surface);
-}*/
-
 int FirstFocusable(const struct Container* _Parent) {
 	int i;
 
@@ -354,23 +321,3 @@ int NextFocusable(const struct Container* _Parent, int _Index, int _Pos) {
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
 	return ((_Parent->Rect.x + _Parent ->Rect.w) / 2) - ((_Widget->Rect.x + _Widget ->Rect.w) / 2);
 }
-
-/*SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2) {
-	int _DeltaX = _X2 - _X1;
-	int _DeltaY = _Y2 - _Y1;
-	int x;
-	int y = 0;
-	float _Error = 0.0f;
-	float _DeltaError = abs(_DeltaY / _DeltaX);
-	SDL_Surface* _Surface = SDL_CreateRGBSurface(0, abs(_X1 - _X2), abs(_Y1, _Y2), 8, 0, 0, 0, 0);
-
-	for(x = _X1; x < _X2; ++x) {
-		_Surface->pixels
-		_Error += _DeltaError;
-		if(_Error >= 0.5f) {
-			++y;
-			_Error -= 1.0f;
-		}
-	}
-	return _Surface;
-}*/

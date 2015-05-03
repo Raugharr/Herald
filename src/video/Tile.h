@@ -5,15 +5,20 @@
 #ifndef __TILE_H
 #define __TILE_H
 
-#define TILE_WIDTH (64)
-#define TILE_HEIGHT (64)
+#define TILE_WIDTH (42)
+#define TILE_WIDTH_THIRD (TILE_WIDTH * 0.75)
+#define TILE_HEIGHT (48)
+#define TILE_HEIGHT_THIRD (TILE_HEIGHT * 0.75)
+#define TILE_GRADIENT ((TILE_HEIGHT / 4) / (TILE_WIDTH / 2))
 
-#define TILE_NORTHWEST(_Pos) _Pos.Y -= 1
-#define TILE_NORTHEAST(_Pos) _Pox.X += 1; _Pos.Y -= 1
-#define TILE_EAST(_Pos) _Pos.X += 1
-#define TILE_SOUTHEAST(_Pos) _Pos.Y += 1
-#define TILE_SOUTHWEST(_Pos) _Pos.X -= 1; _Pos.Y += 1
-#define TILE_WEST(_Pos) _Pos.X -= 1
+enum {
+	TILE_NORTHWEST,
+	TILE_NORTHEAST,
+	TILE_EAST,
+	TILE_SOUTHEAST,
+	TILE_SOUTHWEST,
+	TILE_WEST
+};
 
 #include "Point.h"
 

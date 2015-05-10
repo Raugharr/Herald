@@ -9,6 +9,11 @@
 #include "BigGuy.h"
 #include "sys/Log.h"
 
+static const int* g_AllowedLesserGovs[] = {
+		{NULL},
+		{GOV_TRIBAL},
+};
+
 struct Government* CreateGovernment(int _GovType) {
 	struct Government* _Gov = (struct Government*) malloc(sizeof(struct Government));
 
@@ -33,4 +38,12 @@ int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _S
 	}
 	_Settlement->Government->Leader = _Best;
 	return 1;
+}
+
+void GovernmentLesserJoin(struct Government* _Gov) {
+
+}
+
+void GovernmentLesserLeave(struct Government* _Gov) {
+
 }

@@ -33,6 +33,32 @@
 
 lua_State* g_LuaState = NULL;
 
+static luaL_Reg g_LuaFuncsReform[] = {
+		{"GetName", LuaReformGetName},
+		{NULL, NULL},
+};
+
+static luaL_Reg g_LuaFuncsLinkedListNode[] = {
+		{"Next", LuaLnkLstNodeNext},
+		{"Prev", LuaLnkLstNodePrev},
+		{"Itr", LuaLnkLstNodeItr},
+		{NULL, NULL}
+};
+
+static luaL_Reg g_LuaFuncsLinkedList[] = {
+		{"Front", LuaLnkLstFront},
+		{"Back", LuaLnkLstBack},
+		{"Size", LuaLnkLstSize},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsGovernment[] = {
+		{"PossibleReforms", LuaGovernmentPossibleReforms},
+		{"Type", LuaGovernmentType},
+		{"Rule", LuaGovernmentRule},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsArrayIterator[] = {
 		{"Itr", LuaArrayItr},
 		{"Next", LuaArrayItrNext},
@@ -155,10 +181,14 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static struct LuaObjectReg g_ObjectRegs[] = {
+		{"Iterator", NULL, g_LuaFuncsIterator},
+		{"Reform", NULL, g_LuaFuncsReform},
+		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
+		{"LinkedList", NULL, g_LuaFuncsLinkedList},
+		{"Government", NULL, g_LuaFuncsGovernment},
 		{"BigGuy", NULL, g_LuaFuncsBigGuy},
 		{"Settlement", NULL, g_LuaFuncsSettlement},
 		{"Rule", NULL, g_LuaFuncsRule},
-		{"Iterator", NULL, g_LuaFuncsIterator},
 		{"Person", NULL, g_LuaFuncsPerson},
 		{"Good", NULL, g_LuaFuncsGood},
 		{"Family", NULL, g_LuaFuncsFamily},
@@ -183,6 +213,9 @@ void QuitLuaSystem() {
 	lua_close(g_LuaState);
 }
 
+/*
+ * TODO: Should allow for default member functions.
+ */
 void RegisterLuaFuncs(lua_State* _State) {
 	int i = 0;
 
@@ -573,7 +606,7 @@ int LuaArrayCreate(lua_State* _State) {
 }
 
 int LuaArrayItr_Aux(lua_State* _State) {
-	struct Array* _Array = LuaCheckClass(_State, lua_upvalueindex(1), "Iterator");
+	struct Array* _Array = LuaCheckClass(_State, lua_upvalueindex(1), "ArrayIterator");
 	int _Index = lua_tointeger(_State, lua_upvalueindex(2));
 	int _Change = lua_tointeger(_State, lua_upvalueindex(3));
 	int i;
@@ -610,7 +643,7 @@ int LuaArrayItr_Aux(lua_State* _State) {
 }
 
 int LuaArrayItrNext(lua_State* _State) {
-	LuaTestClass(_State, 1, "Iterator");
+	LuaTestClass(_State, 1, "ArrayIterator");
 	lua_pushinteger(_State, 0);
 	lua_pushinteger(_State, 1);
 	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
@@ -618,7 +651,7 @@ int LuaArrayItrNext(lua_State* _State) {
 }
 
 int LuaArrayItrPrev(lua_State* _State) {
-	LuaTestClass(_State, 1, "Iterator");
+	LuaTestClass(_State, 1, "ArrayIterator");
 	lua_pushinteger(_State, 0);
 	lua_pushinteger(_State, -1);
 	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
@@ -638,6 +671,125 @@ int LuaBGSetAuthority(lua_State* _State) {
 
 	_BG->Authority += _Authority;
 	return 0;
+}
+
+int LuaLnkLstNodeIterate(lua_State* _State) {
+	struct LnkLst_Node* _Itr = LuaCheckClass(_State, lua_upvalueindex(1), "LinkedListNode");
+	int _Foward = lua_tointeger(_State, lua_upvalueindex(2));
+
+	if(_Itr == NULL)
+		return 0;
+	LuaCtor(_State, "Reform", _Itr->Data);
+	if(_Foward != 0)
+		_Itr = _Itr->Next;
+	else
+		_Itr = _Itr->Prev;
+	lua_pushvalue(_State, lua_upvalueindex(1));
+	lua_pushstring(_State, "__self");
+	lua_pushlightuserdata(_State, _Itr);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
+	return 1;
+}
+
+int LuaLnkLstFront(lua_State* _State) {
+	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+
+	LuaCtor(_State, "LinkedListNode", _List->Front);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, 1);
+	lua_rawset(_State, -3);
+	lua_pushinteger(_State, 1);
+	lua_pushcclosure(_State, LuaLnkLstNodeIterate, 2);
+	return 1;
+}
+
+int LuaLnkLstBack(lua_State* _State) {
+	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+
+	LuaCtor(_State, "LinkedListNode", _List->Back);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, 1);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaLnkLstSize(lua_State* _State) {
+	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+
+	lua_pushinteger(_State, _List->Size);
+	return 1;
+}
+
+int LuaGovernmentPossibleReforms(lua_State* _State) {
+	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+
+	LuaCtor(_State, "LinkedList", &_Government->PossibleReforms);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "Reform");
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaGovernmentType(lua_State* _State) {
+	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+
+	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVTYPE_MASK));
+	return 1;
+}
+
+int LuaGovernmentRule(lua_State* _State) {
+	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+
+	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVRULE_MASK));
+	return 1;
+}
+
+int LuaLnkLstNodeNext(lua_State* _State) {
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
+
+	LuaCtor(_State, "LinkedListNode", _Node->Next);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, 1);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaLnkLstNodePrev(lua_State* _State) {
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
+
+	LuaCtor(_State, "LinkedListNode", _Node->Prev);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, 1);
+	lua_rawset(_State, -3);
+	return 1;
+}
+
+int LuaLnkLstNodeItr(lua_State* _State) {
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
+	const char* _Class = NULL;
+
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TSTRING) {
+		luaL_error(_State, "__classtype is not defined.");
+		lua_pushnil(_State);
+		return 1;
+	}
+	_Class = lua_tostring(_State, -1);
+	LuaCtor(_State, _Class, _Node->Data);
+	return 1;
+}
+
+int LuaReformGetName(lua_State* _State) {
+	struct Reform* _Reform = LuaCheckClass(_State, 1, "Reform");
+
+	lua_pushstring(_State, _Reform->Name);
+	return 1;
 }
 
 int LuaSettlementGetLeader(lua_State* _State) {

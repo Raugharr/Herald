@@ -188,40 +188,6 @@ void GenerateMissions(lua_State* _State, const struct Event* _Event, const struc
 		}
 			_Mission = _Mission->Next;
 	}
-	/*while(_SettleItr != NULL) {
-		_MissionItr = _Missions->Front;
-		_Settlement = (struct Settlement*)_SettleItr->Data;
-		while(_MissionItr != NULL) {
-			_Mission = (struct Mission*)_MissionItr->Data;
-			lua_getglobal(_State, _Mission->LuaTable);
-			lua_pushstring(_State, "Trigger");
-			lua_rawget(_State, -2);
-			lua_pushnil(_State);
-			LuaCallFunc(_State, 1, 1, 0);
-			if((_Rule = (struct Rule*)LuaToObject(_State, -1, "Rule")) == NULL) {
-				Log(ELOG_WARNING, "%s's trigger does not return a rule object.");
-				goto mission_end;
-			}
-			if(RuleEval(_Rule) == 1) {
-				if(_Settlement->Leader == g_Player) {
-					lua_settop(_State, 0);
-					lua_pushstring(_State, "MissionMenu");
-					lua_createtable(_State, 0, 2);
-					lua_pushstring(_State, "Mission");
-					lua_getglobal(_State, _Mission->LuaTable);
-					lua_rawset(_State, -3);
-					lua_pushstring(_State, "Settlement");
-					LuaCtor(_State, "Settlement", _Settlement);
-					lua_rawset(_State, -3);
-					LuaSetMenu(_State);
-					GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
-				}
-			}
-			mission_end:
-			_MissionItr = _MissionItr->Next;
-		}
-		_SettleItr = _SettleItr->Next;
-	}*/
 }
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {

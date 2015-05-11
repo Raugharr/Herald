@@ -23,7 +23,7 @@ struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, con
 	_Loc->EndPos.Y = _Y + _Height;
 	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Loc->People = NULL;
-	_Loc->Government = CreateGovernment(_GovType);
+	_Loc->Government = CreateGovernment(_GovType, 0);
 	_Loc->NumPeople = 0;
 	_Loc->BigGuys.Size = 0;
 	_Loc->BigGuys.Front = NULL;

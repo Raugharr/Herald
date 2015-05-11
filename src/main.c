@@ -6,6 +6,7 @@
 #include "Herald.h"
 #include "World.h"
 #include "Person.h"
+#include "Government.h"
 #include "sys/Log.h"
 #include "video/Video.h"
 #include "sys/HashTable.h"
@@ -26,6 +27,7 @@ int main(int argc, char* args[]) {
 	int i = 0;
 	struct System _Systems[] = {
 			{"Lua", InitLuaSystem, QuitLuaSystem},
+			{"Reform", InitReforms, QuitReforms},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;

@@ -16,7 +16,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person) {
 	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
 	_BigGuy->Person = _Person;
-	_BigGuy->InMeeting = 0;
+	_BigGuy->State = 0;
 	_BigGuy->Authority = 0;
 	RBInsert(&g_BigGuys, _BigGuy);
 	RBInsert(&g_BigGuyState, _BigGuy);
@@ -38,7 +38,7 @@ int BigGuyIdCmp(const struct BigGuy* _BigGuy, const int* _Two) {
 }
 
 int BigGuyStateInsert(const struct BigGuy* _One, const struct BigGuy* _Two) {
-	return _One->InMeeting - _Two->InMeeting;
+	return _One->State - _Two->State;
 }
 
 int BigGuyMissionCmp(const struct BigGuy* _BigGuy, const struct Mission* _Mission) {

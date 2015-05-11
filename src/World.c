@@ -76,6 +76,7 @@ int g_Temperature = 0;
 
 static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
+		{"GetSettlement", LuaWorldGetSettlement},
 		{"GetDate", LuaWorldGetDate},
 		{"Tick", LuaWorldTick},
 		{NULL, NULL}
@@ -115,7 +116,7 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateSettlement(_X, _Y, _X + 1, _Y + 1, "Test Settlement", GOV_TRIBAL);
+	_Settlement = CreateSettlement(_X, _Y, _X + 1, _Y + 1, "Test Settlement", (GOVSTCT_TRIBAL | GOVRULE_ELECTIVE | GOVTYPE_CONSENSUS));
 	LnkLstPushBack(&g_Settlements, _Settlement);
 	while(_Population > 0) {
 		_FamilySize = Fuzify(g_FamilySize, Random(1, 100));
@@ -214,6 +215,11 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 
 int LuaWorldGetPlayer(lua_State* _State) {
 	LuaCtor(_State, "BigGuy", g_Player);
+	return 1;
+}
+
+int LuaWorldGetSettlement(lua_State* _State) {
+	LuaCtor(_State, "Government", g_Player->Person->Family->HomeLoc->Government);
 	return 1;
 }
 

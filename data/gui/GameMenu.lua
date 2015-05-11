@@ -6,7 +6,10 @@ function GameMenu.Init(Width, Height, Data)
 	local DateCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Screen)
 	
 	DateCont:SetFocus(false)
-	Menu:CreateLabel("View Settlement")
+	Menu:CreateLabel("View Settlement"):OnKey("Enter", "Released",
+		function()
+			GUI.SetMenu("GovernmentMenu", World.GetSettlement())
+		end)
 	Menu:CreateLabel("Save")
 	GameMenu.Date = DateCont:CreateLabel(PrintDate(World.GetDate()))
 	GameMenu.Date:SetFocus(false)

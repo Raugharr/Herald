@@ -73,7 +73,7 @@ void DestroyWorldTile(struct WorldTile* _Tile);
 
 int LuaRegisterPersonItr(lua_State* _State);
 int LuaWorldGetPlayer(lua_State* _State);
-int LuaWorldGetPersons(lua_State* _State);
+int LuaWorldGetSettlement(lua_State* _State);;
 int LuaWorldGetDate(lua_State* _State);
 int LuaWorldTick(lua_State* _State);
 

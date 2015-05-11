@@ -23,6 +23,7 @@ typedef struct lua_State lua_State;
 
 struct Family {
 	int Id;
+	int FamilyId;
 	int NumChildren;
 	const char* Name;
 	struct Person* People[FAMILY_PEOPLESZ];

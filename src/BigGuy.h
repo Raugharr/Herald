@@ -8,9 +8,14 @@
 struct Person;
 struct Mission;
 
+enum {
+	BGSTATE_PASSREFORM
+};
+
 struct BigGuy {
 	struct Person* Person;
-	int InMeeting;
+	int IsDirty;
+	int State;
 	int Authority;
 };
 

@@ -240,3 +240,4 @@ void ElectiveMonarchyLeaderDeath(struct Government* _Gov) {
 		_Itr = _Itr->Next;
 	}
 }
+

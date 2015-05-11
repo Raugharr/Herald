@@ -104,6 +104,21 @@ int LuaArrayItrPrev(lua_State* _State);
 int LuaBGGetPerson(lua_State* _State);
 int LuaBGSetAuthority(lua_State* _State);
 
+int LuaLnkLstFront(lua_State* _State);
+int LuaLnkLstBack(lua_State* _State);
+int LuaLnkLstSize(lua_State* _State);
+int LuaLnkLstIterate(lua_State* _State);
+
+int LuaGovernmentPossibleReforms(lua_State* _State);
+int LuaGovernmentType(lua_State* _State);
+int LuaGovernmentRule(lua_State* _State);
+
+int LuaLnkLstNodeNext(lua_State* _State);
+int LuaLnkLstNodePrev(lua_State* _State);
+int LuaLnkLstNodeItr(lua_State* _State);
+
+int LuaReformGetName(lua_State* _State);
+
 int LuaSettlementGetLeader(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);

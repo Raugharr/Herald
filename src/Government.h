@@ -105,6 +105,7 @@ struct RepublicGovernment {
 	struct Reform* LeaderDeath;
 	struct Reform* LesserGovLeave;
 	struct Reform* LesserGovJoin;
+	int NextElection;
 };
 
 void InitReforms(void);
@@ -115,6 +116,7 @@ void DestroyReform(struct Reform* _Reform);
 
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);
+
 void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject);
 void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
 void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);

@@ -22,18 +22,6 @@ extern struct Reform** g_Reforms;
 
 struct Government;
 
-/*
- * Organize by power structure, then by how leader is elective.
- */
-
-enum {
-	GOVRANK_MAYOR = 0,
-	GOVRANK_COUNTY = 1,
-	GOVRANK_PROVINCE = 2,
-	GOVRANK_KINGDOM = 4,
-	GOVRANK_ALL = 7
-};
-
 enum {
 	GOVRULE_ELECTIVE = (1 << 0),
 	GOVRULE_MONARCHY = (1 << 1),
@@ -69,6 +57,11 @@ enum {
 	GOVCAT_MILITARYLEADER = (1 << 6)
 };
 
+struct ReformOp {
+	unsigned char OpCode;
+	unsigned char Value;
+};
+
 struct Reform {
 	char* Name;
 	int AllowedGovs;
@@ -76,6 +69,7 @@ struct Reform {
 	int Category;
 	int AuthLvlReq;
 	int GovType;
+	struct ReformOp OpCode;
 	void (*OnPass)(struct Government*);//Look for triggers that can be fired as a result of this reform passing.
 	//Add data structure for requirements, costs, and prerequisites.
 	//int (*OnEvent)(const struct Reform*, struct Settlement*);
@@ -89,6 +83,7 @@ struct Government {
 	int AllowedSubjects;
 	int AllowedMilLeaders;
 	int AuthorityLevel;
+	int RulerGender;
 	struct BigGuy* Leader;
 	struct LinkedList SubGovernments;
 	struct Government* ParentGovernment;
@@ -111,8 +106,10 @@ struct RepublicGovernment {
 void InitReforms(void);
 void QuitReforms(void);
 
-struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category);
+struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode);
 void DestroyReform(struct Reform* _Reform);
+
+void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform);
 
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);
@@ -120,6 +117,7 @@ void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedLis
 void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject);
 void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
 void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);
+
 void MonarchyLeaderDeath(struct Government* _Gov);
 void ElectiveLeaderDeath(struct Government* _Gov);
 void ElectiveMonarchyLeaderDeath(struct Government* _Gov);

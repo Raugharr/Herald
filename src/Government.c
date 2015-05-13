@@ -14,8 +14,46 @@
 #include <stdlib.h>
 #include <string.h>
 
+enum {
+	GOVRANK_MAYOR = 0,
+	GOVRANK_COUNTY = 1,
+	GOVRANK_PROVINCE = 2,
+	GOVRANK_KINGDOM = 4,
+	GOVRANK_ALL = 7
+};
+
+enum {
+	GOVNONE = 0,
+	GOVSET = (1 << 0),
+	GOVSUB = (1 << 1),
+	GOVADD = (1 << 2),
+	GOVINTR = GOVADD,
+	GOVSET_SUCESSION = (GOVINTR | GOVSET),
+	GOVSET_RULERGENDER,
+	GOVSET_MILLEADER,
+	GOVSET_AUTHORITY,
+	GOVSUB_AUTHORITY = (GOVINTR | GOVSUB),
+	GOVADD_AUTHORITY = (GOVINTR | GOVADD)
+};
+
+enum {
+	GOVSUCESSION_ELECTED,
+	GOVSUCESSION_MONARCHY, //Used for change from elected leader to monarchy. Will determine proper inheritance law.
+	GOVSUCESSION_AGNATIC,
+	GOVSUCESSION_SIZE
+};
+
+enum {
+	GOVMILLEADER_NONE,
+	GOVMILLEADER_RULER,
+	GOVMILLEADER_PRIVLEDGED,
+	GOVMILLEADER_SIZE
+};
+
 struct Reform** g_Reforms = NULL;
 const char* g_GovernmentTypeStr[] = {
+		"Elective",
+		"Monarchy",
 		"Absolute",
 		"Constitutional",
 		"Republic",
@@ -31,14 +69,24 @@ const char* g_GovernmentTypeStr[] = {
 		"Chiefdom",
 		"Clan"
 };
+void (*g_GovernmentSucession[GOVSUCESSION_SIZE])(struct Government*) = {
+		ElectiveLeaderDeath,
+		NULL,
+		NULL
+};
 
 void InitReforms(void) {
 	struct LinkedList _List = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
+	struct ReformOp _OpCode;
 	int i = 0;
 
-	LnkLstPushBack(&_List, CreateReform("Elected Leader", GOVSTCT_TRIBAL, GOVRANK_ALL, GOVCAT_INTERNALLEADER | GOVCAT_LEADER));
-	LnkLstPushBack(&_List, CreateReform("Leader is warlord.", GOVSTCT_TRIBAL, GOVRANK_ALL, GOVCAT_INTERNALLEADER | GOVCAT_LEADER));
+	_OpCode.OpCode = GOVSET_SUCESSION;
+	_OpCode.Value = GOVSUCESSION_ELECTED;
+	LnkLstPushBack(&_List, CreateReform("Elected Leader", GOVSTCT_TRIBAL, GOVRANK_ALL, GOVCAT_INTERNALLEADER | GOVCAT_LEADER, &_OpCode));
+	_OpCode.OpCode = GOVSET_MILLEADER;
+	_OpCode.Value = GOVMILLEADER_RULER;
+	LnkLstPushBack(&_List, CreateReform("Leader is warlord.", GOVSTCT_TRIBAL, GOVRANK_ALL, GOVCAT_INTERNALLEADER | GOVCAT_LEADER, &_OpCode));
 	g_Reforms = calloc(_List.Size + 1, sizeof(struct Reform*));
 	_Itr = _List.Front;
 	for(i = 0; i < _List.Size && _Itr != NULL; ++i, _Itr = _Itr->Next)
@@ -54,7 +102,7 @@ void QuitReforms(void) {
 	free(g_Reforms);
 }
 
-struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category) {
+struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode) {
 	struct Reform* _Reform = (struct Reform*) malloc(sizeof(struct Reform));
 	int i = 0;
 
@@ -64,6 +112,8 @@ struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGov
 	_Reform->AllowedGovRanks = _AllowedGovRanks;
 	_Reform->Category = _Category;
 	_Reform->OnPass = NULL;
+	_Reform->OpCode.OpCode = _OpCode->OpCode;
+	_Reform->OpCode.Value = _OpCode->Value;
 	for(i = 0; i < REFORM_MAXCHOICE; ++i)
 		_Reform->Next[i] = NULL;
 	_Reform->Prev = NULL;
@@ -75,12 +125,40 @@ void DestroyReform(struct Reform* _Reform) {
 	free(_Reform);
 }
 
+void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform) {
+	const struct ReformOp* _OpCode = &_Reform->OpCode;
+
+	switch(_OpCode->OpCode) {
+		case GOVSET_SUCESSION:
+			if(_OpCode->Value < GOVSUCESSION_SIZE)
+				_Gov->LeaderDeath = g_GovernmentSucession[_OpCode->Value];
+			break;
+		case GOVSET_RULERGENDER:
+			_Gov->RulerGender = _OpCode->Value;
+			break;
+		case GOVSET_AUTHORITY:
+			_Gov->AuthorityLevel = _OpCode->Value;
+			break;
+		case GOVSET_MILLEADER:
+			if(_OpCode->Value < GOVMILLEADER_SIZE)
+				_Gov->AllowedMilLeaders = _OpCode->Value;
+			break;
+		case GOVSUB_AUTHORITY:
+			_Gov->AuthorityLevel = _Gov->AuthorityLevel - _OpCode->Value;
+			break;
+		case GOVADD_AUTHORITY:
+			_Gov->AuthorityLevel = _Gov->AuthorityLevel + _OpCode->Value;
+			break;
+	}
+}
+
 struct Government* CreateGovernment(int _GovType, int _GovRank) {
 	struct Government* _Gov = (struct Government*) malloc(sizeof(struct Government));
 	int i = 0;
 
 	_Gov->GovType = _GovType;
 	_Gov->GovRank = (1 << _GovRank);
+	_Gov->RulerGender = EMALE;
 	_Gov->SubGovernments.Front = NULL;
 	_Gov->SubGovernments.Back = NULL;
 	_Gov->SubGovernments.Size = 0;
@@ -189,6 +267,7 @@ void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform) {
 		return;
 	while(_Itr != NULL) {
 		if(((struct Reform*)_Itr->Data) == _Reform) {
+			ReformOnPass(_Gov, _Reform);
 			_Gov->Leader->State = _Gov->Leader->State | BGSTATE_PASSREFORM;
 			LnkLst_Remove(&_Gov->PossibleReforms, _Itr);
 			LnkLstPushBack(&_Gov->PassedReforms, _Reform);

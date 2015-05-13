@@ -54,8 +54,10 @@ static luaL_Reg g_LuaFuncsLinkedList[] = {
 
 static const luaL_Reg g_LuaFuncsGovernment[] = {
 		{"PossibleReforms", LuaGovernmentPossibleReforms},
+		{"Structure", LuaGovernmentStructure},
 		{"Type", LuaGovernmentType},
 		{"Rule", LuaGovernmentRule},
+		{"PassReform", LuaGovernmentPassReform},
 		{NULL, NULL}
 };
 
@@ -733,10 +735,17 @@ int LuaGovernmentPossibleReforms(lua_State* _State) {
 	return 1;
 }
 
-int LuaGovernmentType(lua_State* _State) {
+int LuaGovernmentStructure(lua_State* _State) {
 	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
 
 	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVTYPE_MASK));
+	return 1;
+}
+
+int LuaGovernmentType(lua_State* _State) {
+	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+
+	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVSTCT_MASK));
 	return 1;
 }
 
@@ -745,6 +754,14 @@ int LuaGovernmentRule(lua_State* _State) {
 
 	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVRULE_MASK));
 	return 1;
+}
+
+int LuaGovernmentPassReform(lua_State* _State) {
+	struct Government* _Gov = LuaCheckClass(_State, 1, "Government");
+	struct Reform* _Reform = LuaCheckClass(_State, 2, "Reform");
+
+	GovernmentPassReform(_Gov, _Reform);
+	return 0;
 }
 
 int LuaLnkLstNodeNext(lua_State* _State) {

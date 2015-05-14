@@ -173,6 +173,7 @@ struct RBTree* CopyRBTree(struct RBTree* _Tree) {
 }
 
 void DestroyRBTree(struct RBTree* _Tree) {
+	RBClear(_Tree);
 	free(_Tree);
 }
 
@@ -438,7 +439,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	free(_OldNode);
 }
 
-void RBDepthFirst_Aux(const struct RBNode* _Node, struct RBNode** _Stack, int _Index) {
+void RBDepthFirst_Aux(const struct RBNode* _Node, const struct RBNode** _Stack, int _Index) {
 	if(_Node == NULL)
 		return;
 	_Stack[_Index] = _Node;
@@ -446,73 +447,87 @@ void RBDepthFirst_Aux(const struct RBNode* _Node, struct RBNode** _Stack, int _I
 	RBDepthFirst_Aux(_Node->Right, _Stack, _Index + 2);
 }
 
-struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node) {
-	struct RBItrStack* _Itr = (struct RBItrStack*) malloc(sizeof(struct RBItrStack));
-
+struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node, struct RBItrStack* _Itr) {
 	_Itr->Node = _Node;
 	_Itr->Prev = _Prev;
 	return _Itr;
 }
 
-int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
+void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 	struct RBItrStack* _Stack = NULL;
-	struct RBItrStack* _Temp = NULL;
 	struct RBItrStack* _Delete = NULL;
 	struct RBNode* _Itr = NULL;
+	struct RBItrStack* _ItrStack[_Tree->Size];
+	struct RBItrStack* _StackItr = _ItrStack[0];
 
 	if(_Tree->Table == NULL)
-		return 0;
-	_Stack = RBStackPush(NULL, NULL);
-	_Delete = RBStackPush(NULL, NULL);
+		return;
+	_Stack = RBStackPush(NULL, NULL, _StackItr++);
+	_Delete = RBStackPush(NULL, NULL, _StackItr++);
 	_Itr = _Tree->Table;
 
 	while(_Itr != NULL) {
 		if(_Callback(_Itr->Data) == 1)
-			_Delete = RBStackPush(_Delete, _Itr);
+			_Delete = RBStackPush(_Delete, _Itr, _StackItr++);
 		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Right);
+			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
 		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Left);
-		_Temp = _Stack;
+			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;
-		free(_Temp);
-	}
-	if(_Delete->Node == NULL) {
-		free(_Delete);
-		return 0;
 	}
 	_Itr = _Delete->Node;
 	while(_Itr != NULL) {
 		RBDeleteNode(_Tree, _Delete->Node);
-		_Temp = _Delete;
 		_Itr = _Delete->Node;
 		_Delete = _Delete->Prev;
-		free(_Temp);
 	}
-	return 0;
 }
 
 void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*)) {
 	struct RBItrStack* _Stack = NULL;
-	struct RBItrStack* _Temp = NULL;
 	struct RBNode* _Itr = NULL;
+	struct RBItrStack* _ItrStack[_Tree->Size];
+	struct RBItrStack* _StackItr = _ItrStack[0];
 
 	if(_Tree->Table == NULL)
 		return;
-	_Stack = RBStackPush(NULL, NULL);
+	_Stack = RBStackPush(NULL, NULL, _StackItr++);
 	_Itr = _Tree->Table;
 
 	while(_Itr != NULL) {
 		_Callback(_Itr->Data);
 		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Right);
+			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
 		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Left);
-		_Temp = _Stack;
+			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
 		_Itr = _Stack->Node;
 		_Stack = _Stack->Prev;
-		free(_Temp);
+	}
+
+	while(_Tree->Size > 0) {
+		RBDeleteNode(_Tree, _Tree->Table);
+	}
+}
+
+void RBClear(struct RBTree* _Tree) {
+	struct RBItrStack* _Stack = NULL;
+	struct RBNode* _Itr = NULL;
+	struct RBItrStack* _ItrStack[_Tree->Size];
+	struct RBItrStack* _StackItr = _ItrStack[0];
+
+	if(_Tree->Table == NULL)
+		return;
+	_Stack = RBStackPush(NULL, NULL, _StackItr++);
+	_Itr = _Tree->Table;
+
+	while(_Itr != NULL) {
+		if(_Itr->Right != NULL)
+			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
+		if(_Itr->Left != NULL)
+			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
+		_Itr = _Stack->Node;
+		_Stack = _Stack->Prev;
 	}
 
 	while(_Tree->Size > 0) {

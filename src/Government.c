@@ -23,17 +23,17 @@ enum {
 };
 
 enum {
-	GOVNONE = 0,
-	GOVSET = (1 << 0),
-	GOVSUB = (1 << 1),
-	GOVADD = (1 << 2),
-	GOVINTR = GOVADD,
-	GOVSET_SUCESSION = (GOVINTR | GOVSET),
+	GOVNONE,// = 0,
+	//GOVSET = (1 << 0),
+	//GOVSUB = (1 << 1),
+	//GOVADD = (1 << 2),
+	//GOVINTR = GOVADD,
+	GOVSET_SUCESSION,// = (GOVINTR | GOVSET),
 	GOVSET_RULERGENDER,
 	GOVSET_MILLEADER,
 	GOVSET_AUTHORITY,
-	GOVSUB_AUTHORITY = (GOVINTR | GOVSUB),
-	GOVADD_AUTHORITY = (GOVINTR | GOVADD)
+	GOVSUB_AUTHORITY,// = (GOVINTR | GOVSUB),
+	GOVADD_AUTHORITY,// = (GOVINTR | GOVADD)
 };
 
 enum {
@@ -111,9 +111,12 @@ struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGov
 	_Reform->AllowedGovs = _AllowedGovs;
 	_Reform->AllowedGovRanks = _AllowedGovRanks;
 	_Reform->Category = _Category;
-	_Reform->OnPass = NULL;
 	_Reform->OpCode.OpCode = _OpCode->OpCode;
 	_Reform->OpCode.Value = _OpCode->Value;
+	for(i = 0; i < GOVSTAT_MAX; ++i) {
+		_Reform->LeaderReqs[i] = 0;
+		_Reform->LeaderCosts[i] = 0;
+	}
 	for(i = 0; i < REFORM_MAXCHOICE; ++i)
 		_Reform->Next[i] = NULL;
 	_Reform->Prev = NULL;
@@ -150,6 +153,13 @@ void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform) {
 			_Gov->AuthorityLevel = _Gov->AuthorityLevel + _OpCode->Value;
 			break;
 	}
+}
+
+int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform) {
+	int _CanPass = ((_Gov)->GovType & (_Reform)->AllowedGovs);
+
+	_CanPass = _CanPass | (_Reform->LeaderReqs[GOVSTAT_AUTHORITY] < _Gov->Leader->Authority);
+	return _CanPass;
 }
 
 struct Government* CreateGovernment(int _GovType, int _GovRank) {

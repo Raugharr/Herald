@@ -18,7 +18,6 @@ extern struct Reform** g_Reforms;
 #endif
 
 #define REFORM_MAXCHOICE (6)
-#define CanPassReform(_Gov, _Reform) ((_Gov)->GovType & (_Reform)->AllowedGovs)
 
 struct Government;
 
@@ -57,6 +56,13 @@ enum {
 	GOVCAT_MILITARYLEADER = (1 << 6)
 };
 
+enum {
+	GOVSTAT_AUTHORITY,
+	GOVSTAT_SIZE
+};
+
+#define GOVSTAT_MAX (6)
+
 struct ReformOp {
 	unsigned char OpCode;
 	unsigned char Value;
@@ -69,10 +75,9 @@ struct Reform {
 	int Category;
 	int AuthLvlReq;
 	int GovType;
+	int LeaderReqs[GOVSTAT_SIZE];
+	int LeaderCosts[GOVSTAT_SIZE];
 	struct ReformOp OpCode;
-	void (*OnPass)(struct Government*);//Look for triggers that can be fired as a result of this reform passing.
-	//Add data structure for requirements, costs, and prerequisites.
-	//int (*OnEvent)(const struct Reform*, struct Settlement*);
 	struct Reform* Next[REFORM_MAXCHOICE];
 	struct Reform* Prev;
 };
@@ -89,6 +94,7 @@ struct Government {
 	struct Government* ParentGovernment;
 	struct LinkedList PossibleReforms;
 	struct LinkedList PassedReforms;
+	struct LinkedList Advisors;
 	void (*LeaderDeath)(struct Government*);
 };
 
@@ -110,6 +116,7 @@ struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGov
 void DestroyReform(struct Reform* _Reform);
 
 void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform);
+int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform);
 
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);

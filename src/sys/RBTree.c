@@ -439,97 +439,50 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	free(_OldNode);
 }
 
-void RBDepthFirst_Aux(const struct RBNode* _Node, const struct RBNode** _Stack, int _Index) {
+struct RBItrStack* RBDepthFirst_Aux(struct RBNode* const _Node, struct RBItrStack* _Stack, int _Index) {
 	if(_Node == NULL)
-		return;
-	_Stack[_Index] = _Node;
-	RBDepthFirst_Aux(_Node->Left, _Stack, _Index + 1);
-	RBDepthFirst_Aux(_Node->Right, _Stack, _Index + 2);
-}
-
-struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node, struct RBItrStack* _Itr) {
-	_Itr->Node = _Node;
-	_Itr->Prev = _Prev;
-	return _Itr;
+		return _Stack;
+	(*_Stack).Prev = _Stack;
+	(*_Stack).Node = _Node;
+	++_Stack;
+	_Stack = RBDepthFirst_Aux(_Node->Left, _Stack, (2 * _Index) + 1);
+	_Stack = RBDepthFirst_Aux(_Node->Right, _Stack, (2 * _Index) + 2);
+	return _Stack;
 }
 
 void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
-	struct RBItrStack* _Stack = NULL;
-	struct RBItrStack* _Delete = NULL;
-	struct RBNode* _Itr = NULL;
-	struct RBItrStack* _ItrStack[_Tree->Size];
-	struct RBItrStack* _StackItr = _ItrStack[0];
+	int i = 0;
+	int j = 0;
+	struct RBItrStack _Stack[_Tree->Size];
+	struct RBItrStack _DeleteStack[_Tree->Size];
 
 	if(_Tree->Table == NULL)
 		return;
-	_Stack = RBStackPush(NULL, NULL, _StackItr++);
-	_Delete = RBStackPush(NULL, NULL, _StackItr++);
-	_Itr = _Tree->Table;
-
-	while(_Itr != NULL) {
-		if(_Callback(_Itr->Data) == 1)
-			_Delete = RBStackPush(_Delete, _Itr, _StackItr++);
-		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
-		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
-		_Itr = _Stack->Node;
-		_Stack = _Stack->Prev;
+	memset(_Stack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
+	memset(_DeleteStack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
+	RBDepthFirst(_Tree->Table, _Stack);
+	for(i = 0; i < _Tree->Size; ++i) {
+		if(_Callback(_Stack[i].Node->Data) != 0)
+			_DeleteStack[j] = _Stack[i];
 	}
-	_Itr = _Delete->Node;
-	while(_Itr != NULL) {
-		RBDeleteNode(_Tree, _Delete->Node);
-		_Itr = _Delete->Node;
-		_Delete = _Delete->Prev;
-	}
+	for(i = 0; i < j; ++i)
+		RBDeleteNode(_Tree, _DeleteStack[i].Node);
 }
 
 void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*)) {
-	struct RBItrStack* _Stack = NULL;
-	struct RBNode* _Itr = NULL;
-	struct RBItrStack* _ItrStack[_Tree->Size];
-	struct RBItrStack* _StackItr = _ItrStack[0];
+	struct RBItrStack _ItrStack[_Tree->Size];
+	int i = 0;
 
-	if(_Tree->Table == NULL)
-		return;
-	_Stack = RBStackPush(NULL, NULL, _StackItr++);
-	_Itr = _Tree->Table;
-
-	while(_Itr != NULL) {
-		_Callback(_Itr->Data);
-		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
-		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
-		_Itr = _Stack->Node;
-		_Stack = _Stack->Prev;
-	}
-
+	memset(_ItrStack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
+	RBDepthFirst(_Tree->Table, _ItrStack);
+	for(i = 0; i < _Tree->Size; ++i)
+		_Callback(_ItrStack[i].Node->Data);
 	while(_Tree->Size > 0) {
 		RBDeleteNode(_Tree, _Tree->Table);
 	}
 }
 
 void RBClear(struct RBTree* _Tree) {
-	struct RBItrStack* _Stack = NULL;
-	struct RBNode* _Itr = NULL;
-	struct RBItrStack* _ItrStack[_Tree->Size];
-	struct RBItrStack* _StackItr = _ItrStack[0];
-
-	if(_Tree->Table == NULL)
-		return;
-	_Stack = RBStackPush(NULL, NULL, _StackItr++);
-	_Itr = _Tree->Table;
-
-	while(_Itr != NULL) {
-		if(_Itr->Right != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Right, _StackItr++);
-		if(_Itr->Left != NULL)
-			_Stack = RBStackPush(_Stack, _Itr->Left, _StackItr++);
-		_Itr = _Stack->Node;
-		_Stack = _Stack->Prev;
-	}
-
 	while(_Tree->Size > 0) {
 		RBDeleteNode(_Tree, _Tree->Table);
 	}

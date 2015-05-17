@@ -7,6 +7,7 @@
 #define __EVENT_H
 
 #include "../World.h"
+#include "RBTree.h"
 
 #define EVENT_BIRTHMSG "%s has given birth to %s.";
 #define EVENT_DEATHMSG "%s has died.";
@@ -16,6 +17,7 @@
 #endif
 
 extern const char* g_EventNames[];
+extern struct RBTree g_ActorObservers;
 
 struct Location;
 
@@ -27,6 +29,13 @@ enum {
 	EVENT_STARVINGFAMILY,
 	EVENT_DATE,
 	EVENT_LAST //Do not remove.
+};
+
+struct EventObserver {
+	int EventType;
+	int ObjectId;
+	void (*OnEvent)(const void*, void*); //First const void* is the event, second const void* is the listener.
+	const void* Listener;
 };
 
 struct EventQueue {
@@ -98,6 +107,12 @@ struct Event* CreateEventDeath(struct Person* _Person);
 struct Event* CreateEventTime(struct Person* _Person, DATE _Age);
 struct Event* CreateEventFarming(int _Action, const struct Field* _Field);
 struct Event* CreateEventStarvingFamily(struct Family* _Family);
+
+struct EventObserver* CreateEventObserver(int _EventType, int _ObjectId, void (*_OnEvent)(const void*, void*), const void* _Listener);
+void DestroyEventObserver(struct EventObserver* _EventObs);
+
+void ActorObserverInsert(struct EventObserver* _Obs);
+void ActorObserverRemove(struct EventObserver* _Obs);
 
 #endif
 

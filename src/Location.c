@@ -80,6 +80,16 @@ int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, 
 	return 0;
 }
 
+void SettlementPickBigGuy(struct Settlement* _Location) {
+	struct LnkLst_Node* _Itr = _Location->People;
+	struct Person* _Person = NULL;
+
+	while(_Itr != NULL) {
+		_Person = (struct Person*) _Itr->Data;
+		_Itr = _Itr->Next;
+	}
+}
+
 void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _X, int* _Y) {
 	*_X = _Location->Planner.BuildingX;
 	*_Y = _Location->Planner.BuildingY;

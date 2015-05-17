@@ -102,6 +102,63 @@ void QuitReforms(void) {
 	free(g_Reforms);
 }
 
+struct Government* CreateGovernment(int _GovType, int _GovRank) {
+	struct Government* _Gov = (struct Government*) malloc(sizeof(struct Government));
+	int i = 0;
+
+	_Gov->GovType = _GovType;
+	_Gov->GovRank = (1 << _GovRank);
+	_Gov->RulerGender = EMALE;
+	_Gov->SubGovernments.Front = NULL;
+	_Gov->SubGovernments.Back = NULL;
+	_Gov->SubGovernments.Size = 0;
+
+	_Gov->PossibleReforms.Front = NULL;
+	_Gov->PossibleReforms.Back = NULL;
+	_Gov->PossibleReforms.Size = 0;
+
+	_Gov->PassedReforms.Front = NULL;
+	_Gov->PassedReforms.Back = NULL;
+	_Gov->PassedReforms.Size = 0;
+	_Gov->Leader = NULL;
+	_Gov->LeaderDeath = NULL;
+	_Gov->ParentGovernment = NULL;
+
+	for(i = 0; g_Reforms[i] != NULL; ++i) {
+		if(g_Reforms[i]->Prev == NULL
+				&& (g_Reforms[i]->AllowedGovRanks & _Gov->GovRank) != 0
+				&& (g_Reforms[i]->AllowedGovs & _Gov->GovType) != 0) {
+			LnkLstPushBack(&_Gov->PossibleReforms, g_Reforms[i]);
+		}
+
+	}
+	return _Gov;
+}
+
+void DestroyGovernment(struct Government* _Gov) {
+	LnkLstClear(&_Gov->PassedReforms);
+	LnkLstClear(&_Gov->PossibleReforms);
+	LnkLstClear(&_Gov->SubGovernments);
+	free(_Gov);
+}
+
+struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Government* _Gov) {
+	struct ReformPassing* _New = (struct ReformPassing*) malloc(sizeof(struct ReformPassing));
+
+	_New->Reform = _Reform;
+	_New->Gov = _Gov;
+	_New->Popularity = 400;
+	_New->Escalation = 0;
+	_Gov->Leader->State = _Gov->Leader->State | BGSTATE_PASSREFORM;
+	return _New;
+}
+
+void DestroyReformPassing(struct ReformPassing* _Reform) {
+	_Reform->Gov->Leader->State = _Reform->Gov->Leader->State & (~BGSTATE_PASSREFORM);
+	_Reform->Gov->Reform = NULL;
+	free(_Reform);
+}
+
 struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode) {
 	struct Reform* _Reform = (struct Reform*) malloc(sizeof(struct Reform));
 	int i = 0;
@@ -156,50 +213,10 @@ void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform) {
 }
 
 int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform) {
-	int _CanPass = ((_Gov)->GovType & (_Reform)->AllowedGovs);
+	int _CanPass = ((_Gov->Reform == NULL) && ((_Gov)->GovType & (_Reform)->AllowedGovs));
 
 	_CanPass = _CanPass | (_Reform->LeaderReqs[GOVSTAT_AUTHORITY] < _Gov->Leader->Authority);
 	return _CanPass;
-}
-
-struct Government* CreateGovernment(int _GovType, int _GovRank) {
-	struct Government* _Gov = (struct Government*) malloc(sizeof(struct Government));
-	int i = 0;
-
-	_Gov->GovType = _GovType;
-	_Gov->GovRank = (1 << _GovRank);
-	_Gov->RulerGender = EMALE;
-	_Gov->SubGovernments.Front = NULL;
-	_Gov->SubGovernments.Back = NULL;
-	_Gov->SubGovernments.Size = 0;
-
-	_Gov->PossibleReforms.Front = NULL;
-	_Gov->PossibleReforms.Back = NULL;
-	_Gov->PossibleReforms.Size = 0;
-
-	_Gov->PassedReforms.Front = NULL;
-	_Gov->PassedReforms.Back = NULL;
-	_Gov->PassedReforms.Size = 0;
-	_Gov->Leader = NULL;
-	_Gov->LeaderDeath = NULL;
-	_Gov->ParentGovernment = NULL;
-
-	for(i = 0; g_Reforms[i] != NULL; ++i) {
-		if(g_Reforms[i]->Prev == NULL
-				&& (g_Reforms[i]->AllowedGovRanks & _Gov->GovRank) != 0
-				&& (g_Reforms[i]->AllowedGovs & _Gov->GovType) != 0) {
-			LnkLstPushBack(&_Gov->PossibleReforms, g_Reforms[i]);
-		}
-
-	}
-	return _Gov;
-}
-
-void DestroyGovernment(struct Government* _Gov) {
-	LnkLstClear(&_Gov->PassedReforms);
-	LnkLstClear(&_Gov->PossibleReforms);
-	LnkLstClear(&_Gov->SubGovernments);
-	free(_Gov);
 }
 
 int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement) {
@@ -277,8 +294,8 @@ void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform) {
 		return;
 	while(_Itr != NULL) {
 		if(((struct Reform*)_Itr->Data) == _Reform) {
+			_Gov->Reform = CreateReformPassing(_Reform, _Gov);
 			ReformOnPass(_Gov, _Reform);
-			_Gov->Leader->State = _Gov->Leader->State | BGSTATE_PASSREFORM;
 			LnkLst_Remove(&_Gov->PossibleReforms, _Itr);
 			LnkLstPushBack(&_Gov->PassedReforms, _Reform);
 			return;
@@ -329,4 +346,3 @@ void ElectiveMonarchyLeaderDeath(struct Government* _Gov) {
 		_Itr = _Itr->Next;
 	}
 }
-

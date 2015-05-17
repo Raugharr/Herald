@@ -82,6 +82,13 @@ struct Reform {
 	struct Reform* Prev;
 };
 
+struct ReformPassing {
+	struct Reform* Reform;
+	struct Government* Gov;
+	int Popularity;
+	int Escalation;
+};
+
 struct Government {
 	int GovType;
 	int GovRank;
@@ -90,8 +97,9 @@ struct Government {
 	int AuthorityLevel;
 	int RulerGender;
 	struct BigGuy* Leader;
-	struct LinkedList SubGovernments;
 	struct Government* ParentGovernment;
+	struct ReformPassing* Reform;
+	struct LinkedList SubGovernments;
 	struct LinkedList PossibleReforms;
 	struct LinkedList PassedReforms;
 	struct LinkedList Advisors;
@@ -112,6 +120,11 @@ struct RepublicGovernment {
 void InitReforms(void);
 void QuitReforms(void);
 
+struct Government* CreateGovernment(int _GovType, int _GovRank);
+void DestroyGovernment(struct Government* _Gov);
+struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Government* _Gov);
+void DestroyReformPassing(struct ReformPassing* _Reform);
+
 struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode);
 void DestroyReform(struct Reform* _Reform);
 
@@ -129,8 +142,6 @@ void MonarchyLeaderDeath(struct Government* _Gov);
 void ElectiveLeaderDeath(struct Government* _Gov);
 void ElectiveMonarchyLeaderDeath(struct Government* _Gov);
 
-struct Government* CreateGovernment(int _GovType, int _GovRank);
-void DestroyGovernment(struct Government* _Gov);
 int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement);
 int GovernmentLeaderPreferred(const struct Reform* _Reform, struct Settlement* _Settlement);
 

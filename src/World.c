@@ -132,7 +132,8 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		}
 		_Population -= FamilySize(_Parent);
 	}
-	SettlementPickLeader(_Settlement);
+	_Settlement->Government->Leader = BigGuyLeaderType(_Settlement->People);
+	_Settlement->Government->Leader->State = _Settlement->Government->Leader->State | BGSTATE_ISLEADER;
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
 	//lua_pop(g_LuaState, 4);
@@ -394,7 +395,7 @@ int World_Tick() {
 						goto escape_events;
 					}
 			}
-			//GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
+			GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
 		}
 		escape_events:
 		_Itr = g_ObjPos.Root;

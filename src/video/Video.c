@@ -198,7 +198,7 @@ void Draw(void) {
 		return;
 	_Screen = GetScreen(g_LuaState);
 	SDL_RenderClear(g_Renderer);
-	MapRender(g_Renderer, g_GameWorld.MapRenderer);
+	//MapRender(g_Renderer, g_GameWorld.MapRenderer);
 	if(_Tile != NULL) {
 		SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
 

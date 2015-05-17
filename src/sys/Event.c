@@ -29,6 +29,16 @@ const char* g_EventNames[] = {
 		NULL
 };
 
+int ActorObserverI(const void* _One, const void* _Two) {
+	return ((struct EventObserver*)((struct LinkedList*)_One)->Front->Data)->ObjectId - ((struct EventObserver*)((struct LinkedList*)_Two)->Front->Data)->ObjectId;
+}
+
+int ActorObserverS(const void* _One, const void* _Two) {
+	return ((struct EventObserver*)((struct LinkedList*)_One)->Front->Data)->ObjectId - *((int*)_Two);
+}
+
+struct RBTree g_ActorObservers = {NULL, 0, ActorObserverI, ActorObserverS};
+
 #define EventCtor(_Struct, _Event, _Location, _Type)					\
 	(_Event)->Id = g_EventId++;											\
 	(_Event)->Location = (_Location);									\
@@ -147,4 +157,47 @@ struct Event* CreateEventStarvingFamily(struct Family* _Family) {
 	EventCtor(struct EventStarvingFamily, _Event, (struct Location*)_Family->HomeLoc, EVENT_STARVINGFAMILY);
 	_Event->Family = _Family;
 	return (struct Event*)_Event;
+}
+
+struct EventObserver* CreateEventObserver(int _EventType, int _ObjectId, void (*_OnEvent)(const void*, void*), const void* _Listener) {
+	struct EventObserver* _Obs = (struct EventObserver*) malloc(sizeof(struct EventObserver));
+
+	_Obs->EventType = _EventType;
+	_Obs->ObjectId = _ObjectId;
+	_Obs->OnEvent = _OnEvent;
+	_Obs->Listener = _Listener;
+	return _Obs;
+}
+void DestroyEventObserver(struct EventObserver* _EventObs) {
+	free(_EventObs);
+}
+
+void ActorObserverInsert(struct EventObserver* _Obs) {
+	struct LinkedList* _List = NULL;
+
+	if((_List = RBSearch(&g_ActorObservers, _Obs)) == NULL) {
+		_List = CreateLinkedList();
+		RBInsert(&g_ActorObservers, _List);
+	} else
+		LnkLstPushBack(_List, _Obs);
+}
+
+void ActorObserverRemove(struct EventObserver* _Obs) {
+	struct LinkedList* _List = NULL;
+	struct LnkLst_Node* _Itr = NULL;
+	struct RBNode* _Node = RBSearchNode(&g_ActorObservers, _List);
+
+	if(_Node == NULL)
+		return;
+	while(_Itr != NULL) {
+		if(_Itr->Data == _Obs) {
+			LnkLstRemove(_List, _Itr);
+			break;
+		}
+		_Itr = _Itr->Next;
+	}
+	if(_List->Size == 0) {
+		DestroyLinkedList(_List);
+		RBDeleteNode(&g_ActorObservers, _Node);
+	}
 }

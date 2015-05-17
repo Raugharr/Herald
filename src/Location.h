@@ -8,6 +8,8 @@
 #include "sys/LinkedList.h"
 #include "video/Point.h"
 
+#define SETTLEMENT_MINBG (3)
+
 struct BigGuy;
 struct Family;
 struct Government;
@@ -44,9 +46,9 @@ struct Settlement {
 struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, const char* _Name, int _GovType);
 void DestroySettlement(struct Settlement* _Location);
 
-void SettlementPickLeader(struct Settlement* _Location);
 void SettlementThink(struct Settlement* _Settlement);
 
 int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y);
 void PlaceBuilding(struct Settlement* _Location, int _Width, int _Height, int* _X, int* _Y);
+void SettlementPickBigGuy(struct Settlement* _Location);
 #endif

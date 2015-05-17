@@ -22,6 +22,7 @@ struct Mission {
 	char* Description;
 	char* LuaTable;
 	struct Event* EventType;
+	int State;
 	struct Rule* Trigger;
 	char** OptionNames;
 	struct Mission* Next;
@@ -32,9 +33,9 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName);
 void DestroyMission(struct Mission* _Mission);
 struct MissionOption* LoadMissionOption(lua_State* _State, int _Index);
 int CheckMissionOption(lua_State* _State, void* _None);
-void GenerateMissions(lua_State* _Stat, const struct Event* _Evente, const struct RBTree* _BigGuys, const struct RBTree* _Missions);
+void GenerateMissions(lua_State* _Stat, const struct RBTree* _BigGuys, const struct RBTree* _Missions);
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two);
-int MissionTreeSearch(const struct Event* _One, const struct Mission* _Two);
+int MissionTreeSearch(const int* _One, const struct Mission* _Two);
 
 #endif

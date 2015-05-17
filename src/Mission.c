@@ -17,6 +17,7 @@
 #include "video/Gui.h"
 #include "sys/Stack.h"
 #include "sys/Event.h"
+#include "sys/Random.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -62,7 +63,7 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	int i = 0;
 	int _AbsIndex = 0;
 	struct Mission* _Mission = NULL;
-	struct Rule* _RuleEvent = NULL;
+	int _MissionState = 0;
 
 	lua_getglobal(_State, _TableName);
 	_AbsIndex = LuaAbsPos(_State, -1);
@@ -84,9 +85,24 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	AddString(_State, -1, &_Description);
 	lua_pushstring(_State, "Trigger");
 	lua_rawget(_State, _AbsIndex);
-	if((_RuleEvent = (struct Rule*) LuaToObject(_State, -1, "Rule")) == NULL) {
-		luaL_error(_State, "Mission trigger rule is a non rule.");
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		luaL_error(_State, "Mission trigger is not a table.");
 		return NULL;
+	}
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_type(_State, -2) != LUA_TSTRING) {
+			Log(ELOG_WARNING, "Mission Trigger contains a nonstring element.");
+			goto stateloop_end;
+		}
+		for(i = 0; i < BGSTATE_SIZE; ++i) {
+			if(strcmp(g_BGStateStr[i], lua_tostring(_State, -2)) == 0) {
+				_MissionState = _MissionState | (1 << i);
+				break;
+			}
+		}
+		stateloop_end:
+		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 4);
 	if(_Name == NULL || _Description == NULL)
@@ -110,7 +126,7 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	_Mission->Description = calloc(strlen(_Description) + 1, sizeof(char));
 	_Mission->OptionNames = _OptionNames;
 	_Mission->LuaTable = calloc(strlen(_TableName) + 1, sizeof(char));
-	_Mission->Trigger = _RuleEvent;
+	_Mission->Trigger = _MissionState;
 	_Mission->Next = NULL;
 	strcpy(_Mission->Name, _Name);
 	strcpy(_Mission->Description, _Description);
@@ -165,7 +181,7 @@ int CheckMissionOption(lua_State* _State, void* _None) {
 	return 1;
 }
 
-void GenerateMissions(lua_State* _State, const struct Event* _Event, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
+void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
 	struct Mission* _Mission = NULL;
 	struct BigGuy* _BGItr = NULL;
 
@@ -191,11 +207,25 @@ void GenerateMissions(lua_State* _State, const struct Event* _Event, const struc
 }
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
-	return RuleEventCompare(_One->Trigger, _Two->Trigger);
+	int _OneState = ffs(_One->State);
+	int _TwoState = ffs(_Two->State);
+
+	if(_OneState < _TwoState)
+		return -1;
+	return 1;
+	//return RuleEventCompare(_One->Trigger, _Two->Trigger);
 }
 
-int MissionTreeSearch(const struct Event* _One, const struct Mission* _Two) {
-	if(_Two->Trigger->Type != RULE_EVENT)
+int MissionTreeSearch(const int* _One, const struct Mission* _Two) {
+	int _OneState = ffs(*_One);
+	int _TwoState = ffs(_Two->State);
+
+	if(_OneState < _TwoState)
 		return -1;
-	return _One->Type - ((struct RuleEvent*)_Two->Trigger)->Event;
+	else if(_OneState > _TwoState)
+			return 1;
+	return 0;
+	/*if(_Two->Trigger->Type != RULE_EVENT)
+		return -1;
+	return _One->Type - ((struct RuleEvent*)_Two->Trigger)->Event;*/
 }

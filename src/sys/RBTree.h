@@ -54,16 +54,16 @@ struct RBNode* RBSearchNode(const struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode);
 
-void RBDepthFirst_Aux(const struct RBNode* _Node, struct RBNode** _Stack, int _Index);
-struct RBItrStack* RBStackPush(struct RBItrStack* _Prev, struct RBNode* _Node);
+struct RBItrStack* RBDepthFirst_Aux(struct RBNode* const _Node, struct RBItrStack* _Stack, int _Index);
 /**
  * _Callback takes a single argument that will contain a pointer to an RBNode's Data field.
  * _Callback will remove the RBNode that contains _Callback's argument from the tree if _Callback returns 1
  * otherwise nothing will happen.
  * @return How many elements from the red black tree that have been deleted.
  */
-int RBIterate(struct RBTree* _Tree, int(*_Callback)(void*));
+void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*));
 void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*));
+void RBClear(struct RBTree* _Tree);
 /**
  *  Returns the data of the largest element that is _Node or a child of _Node.
  */

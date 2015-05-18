@@ -40,18 +40,6 @@ void DestroySettlement(struct Settlement* _Location) {
 	free(_Location);
 }
 
-void SettlementPickLeader(struct Settlement* _Location) {
-	struct Person* _Person = _Location->People;
-
-	while(_Person != NULL) {
-		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
-			_Location->Government->Leader = CreateBigGuy(_Person); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
-			break;
-		}
-		_Person = _Person->Next;
-	}
-}
-
 void SettlementThink(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
 
@@ -78,16 +66,6 @@ int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, 
 		}
 	}
 	return 0;
-}
-
-void SettlementPickBigGuy(struct Settlement* _Location) {
-	struct LnkLst_Node* _Itr = _Location->People;
-	struct Person* _Person = NULL;
-
-	while(_Itr != NULL) {
-		_Person = (struct Person*) _Itr->Data;
-		_Itr = _Itr->Next;
-	}
 }
 
 void PlaceBuilding(struct Settlement* _Location, int _Width, int _Length, int* _X, int* _Y) {

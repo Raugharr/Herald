@@ -10,6 +10,8 @@
 
 #define SETTLEMENT_MINBG (3)
 
+#define SETTLEMENT_MINBG (3)
+
 struct BigGuy;
 struct Family;
 struct Government;
@@ -50,5 +52,4 @@ void SettlementThink(struct Settlement* _Settlement);
 
 int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, int* _X, int* _Y);
 void PlaceBuilding(struct Settlement* _Location, int _Width, int _Height, int* _X, int* _Y);
-void SettlementPickBigGuy(struct Settlement* _Location);
 #endif

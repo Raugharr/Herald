@@ -34,7 +34,7 @@ int ActorObserverI(const void* _One, const void* _Two) {
 }
 
 int ActorObserverS(const void* _One, const void* _Two) {
-	return ((struct EventObserver*)((struct LinkedList*)_One)->Front->Data)->ObjectId - *((int*)_Two);
+	return ((struct EventObserver*)((struct LinkedList*)_Two)->Front->Data)->ObjectId - *((int*)_Two);
 }
 
 struct RBTree g_ActorObservers = {NULL, 0, ActorObserverI, ActorObserverS};
@@ -175,8 +175,9 @@ void DestroyEventObserver(struct EventObserver* _EventObs) {
 void ActorObserverInsert(struct EventObserver* _Obs) {
 	struct LinkedList* _List = NULL;
 
-	if((_List = RBSearch(&g_ActorObservers, _Obs)) == NULL) {
+	if((_List = RBSearch(&g_ActorObservers, &_Obs->EventType)) == NULL) {
 		_List = CreateLinkedList();
+		LnkLstPushBack(_List, _Obs);
 		RBInsert(&g_ActorObservers, _List);
 	} else
 		LnkLstPushBack(_List, _Obs);

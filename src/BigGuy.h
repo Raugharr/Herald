@@ -8,6 +8,8 @@
 struct Person;
 struct Mission;
 
+#define BigGuyAddState(_BigGuy, _State) (_BigGuy)->State = (_BigGuy)->State | (_State); (_BigGuy)->IsDirty = 1
+
 enum {
 	BGSTATE_PASSREFORM = (1 << 0),
 	BGSTATE_ISLEADER = (1 << 1),

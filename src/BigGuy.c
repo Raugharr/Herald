@@ -31,6 +31,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person) {
 	_BigGuy->Person = _Person;
 	_BigGuy->State = 0;
 	_BigGuy->Authority = 0;
+	_BigGuy->IsDirty = 1;
 	RBInsert(&g_BigGuys, _BigGuy);
 	RBInsert(&g_BigGuyState, _BigGuy);
 	ActorObserverInsert(CreateEventObserver(EVENT_DEATH, _Person->Id, ((void(*)(const void*, void*))BGOnObserve), _BigGuy));

@@ -22,10 +22,8 @@ struct Mission {
 	char* Description;
 	char* LuaTable;
 	struct Event* EventType;
-	int State;
-	struct Rule* Trigger;
+	int Trigger;
 	char** OptionNames;
-	struct Mission* Next;
 };
 
 void LoadAllMissions(lua_State* _State, struct RBTree* _List);

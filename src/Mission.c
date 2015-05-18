@@ -127,7 +127,6 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	_Mission->OptionNames = _OptionNames;
 	_Mission->LuaTable = calloc(strlen(_TableName) + 1, sizeof(char));
 	_Mission->Trigger = _MissionState;
-	_Mission->Next = NULL;
 	strcpy(_Mission->Name, _Name);
 	strcpy(_Mission->Description, _Description);
 	strcpy(_Mission->LuaTable, _TableName);
@@ -138,7 +137,6 @@ void DestroyMission(struct Mission* _Mission) {
 	free(_Mission->Name);
 	free(_Mission->Description);
 	free(_Mission->LuaTable);
-	free(_Mission->Trigger);
 	free(_Mission);
 }
 
@@ -182,33 +180,39 @@ int CheckMissionOption(lua_State* _State, void* _None) {
 }
 
 void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
+	int i = 0;
 	struct Mission* _Mission = NULL;
-	struct BigGuy* _BGItr = NULL;
+	struct RBItrStack _Stack[_BigGuys->Size];
+	struct BigGuy* _BigGuy = NULL;
 
-	_Mission = RBSearch(_Missions, _Event);
-	while(_Mission != NULL) {
-			_BGItr = RBSearch(_BigGuys, _Mission);
-			if(_BGItr != NULL && strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0) {
-				lua_settop(_State, 0);
-				lua_pushstring(_State, "MissionMenu");
-				lua_createtable(_State, 0, 2);
-				lua_pushstring(_State, "Mission");
-				lua_getglobal(_State, _Mission->LuaTable);
-				lua_rawset(_State, -3);
-				lua_pushstring(_State, "Settlement");
-				if(_Event->Location->Type == ELOC_SETTLEMENT )
-					LuaCtor(_State, "Settlement", (struct Settlement*)_Event->Location);
-				lua_rawset(_State, -3);
-				LuaSetMenu(_State);
-				GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
+	if(_BigGuys->Table == NULL)
+		return;
+	RBDepthFirst(_BigGuys->Table, _Stack);
+	for(i = 0; i < _BigGuys->Size; ++i) {
+		_BigGuy = (struct BigGuy*) _Stack[i].Node;
+		if(_BigGuy->IsDirty == 0)
+			continue;
+		_Mission = RBSearch(_Missions, &_BigGuy->State);
+		if(strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0) {
+			lua_settop(_State, 0);
+			lua_pushstring(_State, "MissionMenu");
+			lua_createtable(_State, 0, 2);
+			lua_pushstring(_State, "Mission");
+			lua_getglobal(_State, _Mission->LuaTable);
+			lua_rawset(_State, -3);
+			lua_pushstring(_State, "BigGuy");
+			LuaCtor(_State, "BigGuy", (struct BigGuy*)_BigGuy);
+			lua_rawset(_State, -3);
+			LuaSetMenu(_State);
+			GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
 		}
-			_Mission = _Mission->Next;
+		_BigGuy->IsDirty = 0;
 	}
 }
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
-	int _OneState = ffs(_One->State);
-	int _TwoState = ffs(_Two->State);
+	int _OneState = ffs(_One->Trigger);
+	int _TwoState = ffs(_Two->Trigger);
 
 	if(_OneState < _TwoState)
 		return -1;
@@ -218,7 +222,7 @@ int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
 
 int MissionTreeSearch(const int* _One, const struct Mission* _Two) {
 	int _OneState = ffs(*_One);
-	int _TwoState = ffs(_Two->State);
+	int _TwoState = ffs(_Two->Trigger);
 
 	if(_OneState < _TwoState)
 		return -1;

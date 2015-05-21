@@ -28,6 +28,8 @@ int main(int argc, char* args[]) {
 	struct System _Systems[] = {
 			{"Lua", InitLuaSystem, QuitLuaSystem},
 			{"Reform", InitReforms, QuitReforms},
+			{"Main", HeraldInit, HeraldDestroy},
+			{"Video", VideoInit, VideoQuit},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;
@@ -37,8 +39,6 @@ int main(int argc, char* args[]) {
 		_Systems[i].Init();
 	};
 	IMG_Init(IMG_INIT_PNG);
- 	HeraldInit();
- 	VideoInit();
 	WorldInit(300);
 
 	while(g_VideoOk != 0) {
@@ -46,8 +46,6 @@ int main(int argc, char* args[]) {
 		Draw();
 	}
 	IMG_Quit();
-	HeraldDestroy();
-	VideoQuit();
 	WorldQuit();
 	for(i = 0; _Systems[i].Name != NULL; ++i) {
 		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);

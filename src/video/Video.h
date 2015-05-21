@@ -43,7 +43,7 @@ extern SDL_Renderer* g_Renderer;
 extern int g_VideoOk;
 extern SDL_Texture* g_WindowTexture;
 
-int VideoInit(void);
+void VideoInit(void);
 void VideoQuit(void);
 int NextGUIId(void);
 struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos);

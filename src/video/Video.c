@@ -24,7 +24,7 @@ int g_VideoOk = 1;
 SDL_Texture* g_WindowTexture = NULL;
 int g_VideoTimer = 0;
 
-int VideoInit(void) {
+void VideoInit(void) {
 	Log(ELOG_INFO, "Setting up video.");
 	++g_Log.Indents;
 	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
@@ -40,11 +40,10 @@ int VideoInit(void) {
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	--g_Log.Indents;
-	return 1;
+	return;
 	error:
 	g_VideoOk = 0;
 	--g_Log.Indents;
-	return 0;
 }
 
 void VideoQuit(void) {

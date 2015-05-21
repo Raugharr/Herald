@@ -33,6 +33,12 @@
 
 lua_State* g_LuaState = NULL;
 
+static luaL_Reg g_LuaFuncsReformPassing[] = {
+		{"GetVotes", LuaReformPassingGetVotes},
+		{"GetMaxVotes", LuaReformPassingGetMaxVotes},
+		{NULL, NULL}
+};
+
 static luaL_Reg g_LuaFuncsReform[] = {
 		{"GetName", LuaReformGetName},
 		{NULL, NULL},
@@ -58,6 +64,7 @@ static const luaL_Reg g_LuaFuncsGovernment[] = {
 		{"Type", LuaGovernmentType},
 		{"Rule", LuaGovernmentRule},
 		{"PassReform", LuaGovernmentPassReform},
+		{"GetReform", LuaGovernmentGetReform},
 		{NULL, NULL}
 };
 
@@ -183,6 +190,7 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 };
 
 static struct LuaObjectReg g_ObjectRegs[] = {
+		{"ReformPassing", NULL, g_LuaFuncsReformPassing},
 		{"Iterator", NULL, g_LuaFuncsIterator},
 		{"Reform", NULL, g_LuaFuncsReform},
 		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
@@ -764,6 +772,17 @@ int LuaGovernmentPassReform(lua_State* _State) {
 	return 0;
 }
 
+int LuaGovernmentGetReform(lua_State* _State) {
+	struct Government* _Gov = LuaCheckClass(_State, 1, "Government");
+
+	if(_Gov->Reform != NULL) {
+		LuaCtor(_State, "ReformPassing", _Gov->Reform);
+	} else {
+		lua_pushnil(_State);
+	}
+	return 1;
+}
+
 int LuaLnkLstNodeNext(lua_State* _State) {
 	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
 
@@ -799,6 +818,20 @@ int LuaLnkLstNodeItr(lua_State* _State) {
 	}
 	_Class = lua_tostring(_State, -1);
 	LuaCtor(_State, _Class, _Node->Data);
+	return 1;
+}
+
+int LuaReformPassingGetVotes(lua_State* _State) {
+	struct ReformPassing* _Reform = LuaCheckClass(_State, 1, "ReformPassing");
+
+	lua_pushinteger(_State, _Reform->VotesFor);
+	return 1;
+}
+
+int LuaReformPassingGetMaxVotes(lua_State* _State) {
+	struct ReformPassing* _Reform = LuaCheckClass(_State, 1, "ReformPassing");
+
+	lua_pushinteger(_State, _Reform->MaxVotes);
 	return 1;
 }
 

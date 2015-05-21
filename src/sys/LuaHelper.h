@@ -114,10 +114,14 @@ int LuaGovernmentStructure(lua_State* _State);
 int LuaGovernmentType(lua_State* _State);
 int LuaGovernmentRule(lua_State* _State);
 int LuaGovernmentPassReform(lua_State* _State);
+int LuaGovernmentGetReform(lua_State* _State);
 
 int LuaLnkLstNodeNext(lua_State* _State);
 int LuaLnkLstNodePrev(lua_State* _State);
 int LuaLnkLstNodeItr(lua_State* _State);
+
+int LuaReformPassingGetVotes(lua_State* _State);
+int LuaReformPassingGetMaxVotes(lua_State* _State);
 
 int LuaReformGetName(lua_State* _State);
 

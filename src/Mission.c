@@ -188,11 +188,12 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const st
 	if(_BigGuys->Table == NULL)
 		return;
 	RBDepthFirst(_BigGuys->Table, _Stack);
-	for(i = 0; i < _BigGuys->Size; ++i) {
+	for(i = 0; i < _BigGuys->Size; ++i, _BigGuy->IsDirty = 0) {
 		_BigGuy = (struct BigGuy*) _Stack[i].Node;
 		if(_BigGuy->IsDirty == 0)
 			continue;
-		_Mission = RBSearch(_Missions, &_BigGuy->State);
+		if((_Mission = RBSearch(_Missions, &_BigGuy->State)) == NULL)
+			continue;
 		if(strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0) {
 			lua_settop(_State, 0);
 			lua_pushstring(_State, "MissionMenu");
@@ -206,7 +207,6 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const st
 			LuaSetMenu(_State);
 			GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
 		}
-		_BigGuy->IsDirty = 0;
 	}
 }
 

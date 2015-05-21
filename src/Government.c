@@ -102,7 +102,7 @@ void QuitReforms(void) {
 	free(g_Reforms);
 }
 
-struct Government* CreateGovernment(int _GovType, int _GovRank) {
+struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement) {
 	struct Government* _Gov = (struct Government*) malloc(sizeof(struct Government));
 	int i = 0;
 
@@ -120,9 +120,9 @@ struct Government* CreateGovernment(int _GovType, int _GovRank) {
 	_Gov->PassedReforms.Front = NULL;
 	_Gov->PassedReforms.Back = NULL;
 	_Gov->PassedReforms.Size = 0;
-	_Gov->Leader = NULL;
 	_Gov->LeaderDeath = NULL;
 	_Gov->ParentGovernment = NULL;
+	_Gov->Reform = NULL;
 
 	for(i = 0; g_Reforms[i] != NULL; ++i) {
 		if(g_Reforms[i]->Prev == NULL
@@ -132,6 +132,7 @@ struct Government* CreateGovernment(int _GovType, int _GovRank) {
 		}
 
 	}
+	_Gov->Location = _Settlement;
 	return _Gov;
 }
 
@@ -147,7 +148,9 @@ struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Governm
 
 	_New->Reform = _Reform;
 	_New->Gov = _Gov;
-	_New->Popularity = 400;
+	_New->MaxVotes = _Gov->Leader->Person->Family->HomeLoc->NumPeople;
+	_New->VotesFor = _New->MaxVotes / 2;
+	_New->Popularity = 500;
 	_New->Escalation = 0;
 	_Gov->Leader->State = _Gov->Leader->State | BGSTATE_PASSREFORM;
 	return _New;
@@ -157,6 +160,15 @@ void DestroyReformPassing(struct ReformPassing* _Reform) {
 	_Reform->Gov->Leader->State = _Reform->Gov->Leader->State & (~BGSTATE_PASSREFORM);
 	_Reform->Gov->Reform = NULL;
 	free(_Reform);
+}
+
+void ReformEscalate(struct ReformPassing* _Reform, const struct BigGuy* _Guy) {
+	_Reform->Escalation = _Reform->Escalation + 50;
+	_Reform->Popularity = _Reform->Popularity + 50;
+}
+
+void ReformImprovePopularity(struct ReformPassing* _Reform, const struct BigGuy* _Guy) {
+	_Reform->Popularity = _Reform->Popularity + 50;
 }
 
 struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode) {
@@ -217,6 +229,29 @@ int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform) {
 
 	_CanPass = _CanPass | (_Reform->LeaderReqs[GOVSTAT_AUTHORITY] < _Gov->Leader->Authority);
 	return _CanPass;
+}
+
+void GovernmentThink(struct Government* _Gov) {
+	if(_Gov->Reform != NULL) {
+		struct LnkLst_Node* _Itr = _Gov->Location->BigGuys.Front;
+		struct BigGuy* _Guy = NULL;
+		struct ReformPassing* _Reform = _Gov->Reform;
+
+		_Reform->VotesFor = 0;
+		while(_Itr != NULL) {
+			_Guy = _Itr->Data;
+			ReformImprovePopularity(_Gov->Reform, _Guy);
+			++_Reform->VotesFor;
+			_Itr = _Itr->Next;
+		}
+		_Reform->VotesFor = _Reform->VotesFor + (((float)_Reform->Popularity) / ((float)REFORM_POPULARITYMAX)) * (_Gov->Location->NumPeople - _Gov->Location->BigGuys.Size);
+		_Reform->Popularity = _Reform->Popularity + 10;
+		if(((float)_Reform->VotesFor) / ((float)_Reform->MaxVotes) >= REFORM_PASSVOTE) {
+			LnkLstPushBack(&_Gov->PassedReforms, _Reform->Reform);
+			DestroyReformPassing(_Reform);
+			_Gov->Reform = NULL;
+		}
+	}
 }
 
 int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement) {
@@ -303,6 +338,10 @@ void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform) {
 		_Itr = _Itr->Next;
 	}
 
+}
+void GovernmentCreateLeader(struct Government* _Gov) {
+	_Gov->Leader = BigGuyLeaderType(_Gov->Location->People);
+	BigGuyAddState(_Gov->Leader, BGSTATE_ISLEADER);
 }
 
 void MonarchyLeaderDeath(struct Government* _Gov) {

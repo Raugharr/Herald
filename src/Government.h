@@ -18,6 +18,8 @@ extern struct Reform** g_Reforms;
 #endif
 
 #define REFORM_MAXCHOICE (6)
+#define REFORM_POPULARITYMAX (1000)
+#define REFORM_PASSVOTE (0.7f)
 
 struct Government;
 
@@ -85,6 +87,8 @@ struct Reform {
 struct ReformPassing {
 	struct Reform* Reform;
 	struct Government* Gov;
+	int MaxVotes;
+	int VotesFor;
 	int Popularity;
 	int Escalation;
 };
@@ -96,6 +100,7 @@ struct Government {
 	int AllowedMilLeaders;
 	int AuthorityLevel;
 	int RulerGender;
+	struct Settlement* Location;
 	struct BigGuy* Leader;
 	struct Government* ParentGovernment;
 	struct ReformPassing* Reform;
@@ -120,10 +125,13 @@ struct RepublicGovernment {
 void InitReforms(void);
 void QuitReforms(void);
 
-struct Government* CreateGovernment(int _GovType, int _GovRank);
+struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement);
 void DestroyGovernment(struct Government* _Gov);
+
 struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Government* _Gov);
 void DestroyReformPassing(struct ReformPassing* _Reform);
+void ReformEscalate(struct ReformPassing* _Reform, const struct BigGuy* _Guy);
+void ReformImprovePopularity(struct ReformPassing* _Reform, const struct BigGuy* _Guy);
 
 struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode);
 void DestroyReform(struct Reform* _Reform);
@@ -131,18 +139,18 @@ void DestroyReform(struct Reform* _Reform);
 void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform);
 int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform);
 
+void GovernmentThink(struct Government* _Gov);
+int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement);
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);
 
 void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject);
 void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
 void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);
+void GovernmentCreateLeader(struct Government* _Gov);
 
 void MonarchyLeaderDeath(struct Government* _Gov);
 void ElectiveLeaderDeath(struct Government* _Gov);
 void ElectiveMonarchyLeaderDeath(struct Government* _Gov);
-
-int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement);
-int GovernmentLeaderPreferred(const struct Reform* _Reform, struct Settlement* _Settlement);
 
 #endif

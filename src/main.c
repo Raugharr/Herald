@@ -25,6 +25,7 @@
 
 int main(int argc, char* args[]) {
 	int i = 0;
+	int _WorldTimer = 0;
 	struct System _Systems[] = {
 			{"Lua", InitLuaSystem, QuitLuaSystem},
 			{"Reform", InitReforms, QuitReforms},
@@ -41,9 +42,12 @@ int main(int argc, char* args[]) {
 	IMG_Init(IMG_INIT_PNG);
 	WorldInit(300);
 
+	_WorldTimer = SDL_GetTicks();
 	while(g_VideoOk != 0) {
 		Events();
 		Draw();
+		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= SDL_GetTicks())
+			World_Tick();
 	}
 	IMG_Quit();
 	WorldQuit();

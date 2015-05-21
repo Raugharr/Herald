@@ -50,6 +50,7 @@
 
 struct GameWorld g_GameWorld = {
 		0,
+		0,
 		NULL,
 		NULL,
 		NULL,
@@ -78,7 +79,8 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetPlayer", LuaWorldGetPlayer},
 		{"GetSettlement", LuaWorldGetSettlement},
 		{"GetDate", LuaWorldGetDate},
-		{"Tick", LuaWorldTick},
+		{"Pause", LuaWorldPause},
+		{"IsPaused", LuaWorldIsPaused},
 		{NULL, NULL}
 };
 
@@ -228,9 +230,16 @@ int LuaWorldGetDate(lua_State* _State) {
 	return 1;
 }
 
-int LuaWorldTick(lua_State* _State) {
-	World_Tick();
+int LuaWorldPause(lua_State* _State) {
+	luaL_checktype(_State, 1, LUA_TBOOLEAN);
+
+	g_GameWorld.IsPaused = lua_toboolean(_State, 1);
 	return 0;
+}
+
+int LuaWorldIsPaused(lua_State* _State) {
+	lua_pushboolean(_State, g_GameWorld.IsPaused);
+	return 1;
 }
 
 void ArmyTest() {

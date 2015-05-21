@@ -38,6 +38,7 @@ extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
 struct GameWorld {
+	int IsPaused;
 	DATE Date;
 	struct MapRenderer* MapRenderer;
 	struct RBTree* GoodDeps;
@@ -75,6 +76,8 @@ int LuaRegisterPersonItr(lua_State* _State);
 int LuaWorldGetPlayer(lua_State* _State);
 int LuaWorldGetSettlement(lua_State* _State);;
 int LuaWorldGetDate(lua_State* _State);
+int LuaWorldPause(lua_State* _State);
+int LuaWorldIsPaused(lua_State* _State);
 int LuaWorldTick(lua_State* _State);
 
 void WorldInit(int _Area);

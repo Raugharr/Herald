@@ -5,6 +5,7 @@ function GameMenu.Init(Width, Height, Data)
 	local Menu = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0}, Screen)
 	local DateCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Screen)
 	
+	World.Pause(false)
 	DateCont:SetFocus(false)
 	Menu:CreateLabel("View Settlement"):OnKey("Enter", "Released",
 		function()
@@ -17,10 +18,6 @@ function GameMenu.Init(Width, Height, Data)
 		function()
 			GUI.SetMenu("ViewPersonMenu", World.GetPlayer():GetPerson())
 		end)
-		--[[local ActionList = GUI.CreateContextItem(0, 0, 100, 80, 0, {0, 0, 0, 0}, Menu)
-		ActionList:CreateLabel("TakeAction")
-		ActionList:CreateLabel("Construct Building")
-		ActionList:CreateLabel("Create Good")--]]
 	Menu:CreateLabel("Advance Time"):OnKey("Enter", "Released",
 		function()
 			World.Tick()
@@ -31,4 +28,8 @@ function GameMenu.Init(Width, Height, Data)
 			GUI.PopMenu() 
 		end)
 	return true
+end
+
+function GameMenu.Think(Menu)
+	Menu.Date:SetText(PrintDate(World.GetDate()))
 end

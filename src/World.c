@@ -132,11 +132,10 @@ void PopulateManor(int _Population, struct FamilyType** _FamilyTypes, int _X, in
 		}
 		_Population -= FamilySize(_Parent);
 	}
-	_Settlement->Government->Leader = BigGuyLeaderType(_Settlement->People);
-	_Settlement->Government->Leader->State = _Settlement->Government->Leader->State | BGSTATE_ISLEADER;
+	GovernmentCreateLeader(_Settlement->Government);
 	DestroyConstrntBnds(_AgeGroups);
 	DestroyConstrntBnds(_BabyAvg);
-	//lua_pop(g_LuaState, 4);
+	lua_pop(g_LuaState, 4);
 }
 
 int PopulateWorld() {
@@ -379,11 +378,7 @@ int World_Tick() {
 	do {
 	ATImerUpdate(&g_ATimer);
 		while(_Settlement != NULL) {
-			_Itr = ((struct Settlement*)_Settlement->Data)->Families.Front;
-			while(_Itr != NULL) {
-				FamilyThink((struct Family*)_Itr->Data);
-				_Itr = _Itr->Next;
-			}
+			SettlementThink((struct Settlement*)_Settlement->Data);
 			_Settlement = _Settlement->Next;
 		}
 			while((_Event = HandleEvents()) != NULL) {
@@ -395,8 +390,8 @@ int World_Tick() {
 						goto escape_events;
 					}
 			}
-			GenerateMissions(g_LuaState, _Event, &g_BigGuyState, &g_MissionList);
 		}
+		GenerateMissions(g_LuaState, &g_BigGuyState, &g_MissionList);
 		escape_events:
 		_Itr = g_ObjPos.Root;
 		NextDay(&g_Date);

@@ -7,7 +7,7 @@
 
 #include "BehaviorTree.h"
 #include "Setup.h"
-#include "../sys/LuaHelper.h"
+#include "../sys/LuaCore.h"
 #include "../sys/Log.h"
 
 #include <stdlib.h>

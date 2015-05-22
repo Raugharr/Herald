@@ -12,7 +12,7 @@
 #include "Zone.h"
 #include "sys/Random.h"
 #include "sys/Array.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/LinkedList.h"
 #include "sys/Log.h"
 

@@ -7,7 +7,7 @@
 
 #include "Herald.h"
 #include "sys/Constraint.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/HashTable.h"
 
 #include <stdlib.h>

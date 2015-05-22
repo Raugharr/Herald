@@ -10,7 +10,7 @@
 #include "World.h"
 #include "Crop.h"
 #include "sys/Log.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/Array.h"
 
 #include <stdio.h>

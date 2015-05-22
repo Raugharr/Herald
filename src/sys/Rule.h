@@ -98,23 +98,10 @@ void DestroyRuleComparator(struct RuleComparator* _Rule);
 struct RuleBoolean* CreateRuleBoolean(int _Boolean);
 void DestroyRuleBoolean(struct RuleBoolean* _Rule);
 
-struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef);
 void DestroyRuleLuaCall(struct RuleLuaCall* _Rule);
-
-void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);
-struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
 
 struct RuleEvent* CreateRuleEvent(int _Event);
 void DestroyRuleEvent(struct RuleEvent* _Rule);
-
-int LuaRuleLuaCall(lua_State* _State);
-int LuaRuleGreaterThan(lua_State* _State);
-int LuaRuleLessThan(lua_State* _State);
-int LuaRuleTrue(lua_State* _State);
-int LuaRuleFalse(lua_State* _State);
-int LuaRuleEventFired(lua_State* _State);
-
-struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 
 int RuleTrue(const struct Rule* _Rule);
 int RuleFalse(const struct Rule* _Rule);

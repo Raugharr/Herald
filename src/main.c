@@ -7,13 +7,19 @@
 #include "World.h"
 #include "Person.h"
 #include "Government.h"
-#include "sys/Log.h"
+#include "LuaFamily.h"
+#include "LuaSettlement.h"
+
 #include "video/Video.h"
+
+#include "sys/Log.h"
 #include "sys/HashTable.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/TaskPool.h"
+
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
+
 #include <SDL2/SDL_image.h>
 
 #include <stdlib.h>
@@ -39,6 +45,8 @@ int main(int argc, char* args[]) {
 		Log(ELOG_INFO, "Initializing %s system.", _Systems[i].Name);
 		_Systems[i].Init();
 	};
+	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
+	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	IMG_Init(IMG_INIT_PNG);
 	WorldInit(300);
 

@@ -29,7 +29,7 @@
 #include "sys/MemoryPool.h"
 #include "sys/Random.h"
 #include "sys/RBTree.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "video/Tile.h"
 #include "AI/Setup.h"
 #include "AI/AIHelper.h"

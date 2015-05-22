@@ -7,7 +7,7 @@
 
 #include "Gui.h"
 #include "Video.h"
-#include "../sys/LuaHelper.h"
+#include "../sys/LuaCore.h"
 #include "../sys/Array.h"
 #include "../sys/Log.h"
 #include "../sys/LinkedList.h"

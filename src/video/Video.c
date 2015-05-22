@@ -7,7 +7,7 @@
 
 #include "Gui.h"
 #include "GuiLua.h"
-#include "../sys/LuaHelper.h"
+#include "../sys/LuaCore.h"
 #include "../sys/Log.h"
 #include "Point.h"
 #include "MapRenderer.h"

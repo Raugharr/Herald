@@ -5,14 +5,14 @@
 
 #include "Rule.h"
 
-#include "LuaHelper.h"
+#include "LuaCore.h"
 #include "Log.h"
 #include "Event.h"
 
+#include <lua/lauxlib.h>
+#include <lua/lualib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <lua/lua.h>
-#include <lua/lauxlib.h>
 #include <malloc.h>
 
 int(*g_RuleFuncLookup[])(const struct Rule*) = {
@@ -124,47 +124,6 @@ void DestroyRuleLuaCall(struct RuleLuaCall* _Rule) {
 	free(_Rule);
 }
 
-void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive) {
-	switch(_Primitive->Type) {
-	case PRIM_FLOAT:
-		lua_pushnumber(_State, _Primitive->Value.Float);
-		break;
-	case PRIM_INTEGER:
-		lua_pushinteger(_State, _Primitive->Value.Int);
-		break;
-	case PRIM_BOOLEAN:
-		lua_pushboolean(_State, _Primitive->Value.Int);
-		break;
-	case PRIM_PTR:
-		lua_pushlightuserdata(_State, _Primitive->Value.Ptr);
-		break;
-	case PRIM_STRING:
-		lua_pushstring(_State, _Primitive->Value.String);
-		break;
-	}
-}
-
-struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
-	struct Primitive* _Primitive = CreatePrimitive();
-
-	switch(lua_type(_State, _Index)) {
-		case LUA_TBOOLEAN:
-			_Primitive->Type = PRIM_BOOLEAN;
-			_Primitive->Value.Int = lua_toboolean(_State, _Index);
-			break;
-		case LUA_TSTRING:
-			_Primitive->Type = PRIM_STRING;
-			_Primitive->Value.String = calloc(strlen(lua_tostring(_State, _Index)) + 1, sizeof(char));
-			strcpy(_Primitive->Value.String, lua_tostring(_State, _Index));
-			break;
-		case LUA_TNUMBER:
-			_Primitive->Type = PRIM_INTEGER;
-			_Primitive->Value.Int = lua_tointeger(_State, _Index);
-			break;
-	}
-	return _Primitive;
-}
-
 struct RuleEvent* CreateRuleEvent(int _Event) {
 	struct RuleEvent* _Rule = (struct RuleEvent*) malloc(sizeof(struct RuleEvent));
 
@@ -173,90 +132,11 @@ struct RuleEvent* CreateRuleEvent(int _Event) {
 	_Rule->Event = _Event;
 	return _Rule;
 }
+
 void DestroyRuleEvent(struct RuleEvent* _Rule) {
 	free(_Rule);
 }
 
-int LuaRuleLuaCall(lua_State* _State) {
-	int i = 1;
-	int _Args = lua_gettop(_State);
-	struct RuleLuaCall* _Rule = NULL;
-
-	lua_pushvalue(_State, LUA_REGISTRYINDEX);
-	lua_createtable(_State, _Args, 0);
-	for(i = 1; i <= _Args; ++i) {
-		lua_pushvalue(_State, i);
-		lua_rawseti(_State, -2, i);
-	}
-	_Rule = CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX));
-	LuaCtor(_State, "Rule", _Rule);
-	return 1;
-}
-
-int LuaRuleGreaterThan(lua_State* _State) {
-	struct RuleComparator* _Rule = NULL;
-	struct Rule* _Left = NULL;
-	struct Rule* _Right = NULL;
-
-	_Left = LuaValueToRule(_State, 1);
-	_Right = LuaValueToRule(_State, 2);
-	_Rule = CreateRuleComparator(RULE_GREATERTHAN, _Left, _Right);
-	LuaCtor(_State, "Rule", _Rule);
-	return 1;
-}
-
-int LuaRuleLessThan(lua_State* _State) {
-	struct RuleComparator* _Rule = NULL;
-	struct Rule* _Left = NULL;
-	struct Rule* _Right = NULL;
-
-	_Left = LuaValueToRule(_State, 1);
-	_Right = LuaValueToRule(_State, 2);
-	_Rule = CreateRuleComparator(RULE_LESSTHAN, _Left, _Right);
-	LuaCtor(_State, "Rule", _Rule);
-	return 1;
-}
-
-int LuaRuleTrue(lua_State* _State) {
-	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(1);
-	LuaCtor(_State, "Rule", _Rule);
-	return 1;
-}
-
-int LuaRuleFalse(lua_State* _State) {
-	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(0);
-	LuaCtor(_State, "Rule", _Rule);
-	return 1;
-}
-
-int LuaRuleEventFired(lua_State* _State) {
-	int i = 0;
-	struct Rule* _Rule = NULL;
-	const char* _String = luaL_checkstring(_State, 1);
-
-	for(i = 0; g_EventNames[i] != NULL; ++i) {
-		if(strcmp(g_EventNames[i], _String) == 0) {
-			_Rule = (struct Rule*) CreateRuleEvent(i);
-			LuaCtor(_State, "Rule", _Rule);
-			return 1;
-		}
-	}
-	luaL_error(_State, "%s is not an event name.", _String);
-	return 0;
-}
-
-struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
-	struct RulePrimitive* _Rule = NULL;
-
-	if(lua_type(_State, _Index) == LUA_TTABLE) {
-		if((_Rule = LuaToObject(_State, _Index, "Rule")) == NULL) {
-			luaL_error(_State, LUA_TYPERROR(_State, _Index, "Rule", "LuaRuleGreaterThan"));
-			return NULL;
-		}
-	} else
-		_Rule = CreateRulePrimitive(LuaToPrimitive(_State, 1));
-	return (struct Rule*) _Rule;
-}
 
 int RuleTrue(const struct Rule* _Rule) {
 	return 1;

@@ -20,7 +20,7 @@
 #include "../sys/HashTable.h"
 #include "../sys/Log.h"
 #include "../sys/Stack.h"
-#include "../sys/LuaHelper.h"
+#include "../sys/LuaCore.h"
 
 #include <math.h>
 #include <string.h>

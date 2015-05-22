@@ -23,7 +23,7 @@
 #include "sys/TaskPool.h"
 #include "sys/MemoryPool.h"
 #include "sys/Array.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/Constraint.h"
 #include "sys/KDTree.h"
 #include "sys/Log.h"

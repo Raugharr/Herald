@@ -12,7 +12,7 @@
 #include "Good.h"
 #include "Location.h"
 #include "sys/LinkedList.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/RBTree.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"

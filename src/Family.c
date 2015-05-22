@@ -16,7 +16,7 @@
 #include "sys/Array.h"
 #include "sys/Constraint.h"
 #include "sys/Random.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/Log.h"
 #include "sys/RBTree.h"
 #include "AI/LuaLib.h"

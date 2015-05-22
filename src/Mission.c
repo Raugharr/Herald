@@ -9,7 +9,7 @@
 #include "World.h"
 #include "BigGuy.h"
 
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/Rule.h"
 #include "sys/RBTree.h"
 #include "sys/Log.h"

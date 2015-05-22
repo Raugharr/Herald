@@ -12,7 +12,7 @@
 #include "Person.h"
 #include "Population.h"
 #include "sys/RBTree.h"
-#include "sys/LuaHelper.h"
+#include "sys/LuaCore.h"
 #include "sys/Log.h"
 #include "sys/Array.h"
 #include "sys/Event.h"

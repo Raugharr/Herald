@@ -1,18 +1,17 @@
 /*
- * File: LuaHelper.h
+ * File: LuaCore.h
  * Author: David Brotz
  */
+#ifndef __LUACORE_H
+#define __LUACORE_H
 
-#ifndef __LUAHELPER_H
-#define __LUAHELPER_H
-
-struct Building;
-typedef struct lua_State lua_State;
-typedef int (*lua_CFunction) (lua_State *L);
-struct LinkedList;
-struct Constraint;
 typedef struct lua_State lua_State;
 typedef struct luaL_Reg luaL_Reg;
+typedef int (*lua_CFunction) (lua_State *L);
+struct Constraint;
+struct LinkedList;
+struct Rule;
+struct Primitive;
 
 #define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
@@ -27,7 +26,7 @@ typedef struct luaL_Reg luaL_Reg;
 		lua_pop((_State), 1);						\
 		Log(ELOG_WARNING, "Lua class %s does not exist", (_Class));	\
 	}
-	
+
 #define ConstraintToLua(_State, _Constraint)			\
 	lua_createtable((_State), 0, 2);					\
 	lua_pushstring((_State), "Min");					\
@@ -50,82 +49,20 @@ struct LuaObjectReg {
 void InitLuaSystem();
 void QuitLuaSystem();
 
-void RegisterLuaFuncs(lua_State* _State);
+void RegisterLuaObjects(lua_State* _State, const struct LuaObjectReg* _Objects);
 int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs);
-
-int LuaPersonGetId(lua_State* _State);
-int LuaPersonGetX(lua_State* _State);
-int LuaPersonGetY(lua_State* _State);
-int LuaPersonGetGender(lua_State* _State);
-int LuaPersonGetNutrition(lua_State* _State);
-int LuaPersonGetAge(lua_State* _State);
-int LuaPersonGetName(lua_State* _State);
-int LuaPersonGetFamily(lua_State* _State);
-int LuaPersonGetParentFamily(lua_State* _State);
-
-int LuaGoodGetId(lua_State* _State);
-int LuaGoodGetQuantity(lua_State* _State);
-int LuaGoodGetBase(lua_State* _State);
-
-int LuaFamilyGetId(lua_State* _State);
-int LuaFamilyChildrenCt(lua_State* _State);
-int LuaFamilyGetName(lua_State* _State);
-int LuaFamilyGetPeople(lua_State* _State);
-int LuaFamilyGetFields(lua_State* _State);
-int LuaFamilyGetBuildings(lua_State* _State);
-int LuaFamilyGetBulidingCt(lua_State* _State);
-int LuaFamilyGetGoods(lua_State* _State);
-int LuaFamilyGetGoodCt(lua_State* _State);
-int LuaFamilyGetAnimals(lua_State* _State);
-int LuaFamilyGetAnimalCt(lua_State* _State);
-
-int LuaFieldGetId(lua_State* _State);
-int LuaFieldGetCrop(lua_State* _State);
-int LuaFieldGetYield(lua_State* _State);
-int LuaFieldGetAcres(lua_State* _State);
-int LuaFieldGetStatus(lua_State* _State);
-int LuaFieldGetStatusTime(lua_State* _State);
-
-int LuaAnimalGetId(lua_State* _State);
-int LuaAnimalIsMale(lua_State* _State);
-int LuaAnimalGetNutrition(lua_State* _State);
-int LuaAnimalGetAge(lua_State* _State);
-int LuaAnimalGetBase(lua_State* _State);
-
-int LuaBuildingGetId(lua_State* _State);
-int LuaBuildingGetWidth(lua_State* _State);
-int LuaBuildingGetLength(lua_State* _State);
-int LuaBuildingConstructionTime(lua_State* _State);
 
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
 int LuaArrayItrPrev(lua_State* _State);
 
-int LuaBGGetPerson(lua_State* _State);
-int LuaBGSetAuthority(lua_State* _State);
-
 int LuaLnkLstFront(lua_State* _State);
 int LuaLnkLstBack(lua_State* _State);
 int LuaLnkLstSize(lua_State* _State);
 int LuaLnkLstIterate(lua_State* _State);
-
-int LuaGovernmentPossibleReforms(lua_State* _State);
-int LuaGovernmentStructure(lua_State* _State);
-int LuaGovernmentType(lua_State* _State);
-int LuaGovernmentRule(lua_State* _State);
-int LuaGovernmentPassReform(lua_State* _State);
-int LuaGovernmentGetReform(lua_State* _State);
-
 int LuaLnkLstNodeNext(lua_State* _State);
 int LuaLnkLstNodePrev(lua_State* _State);
 int LuaLnkLstNodeItr(lua_State* _State);
-
-int LuaReformPassingGetVotes(lua_State* _State);
-int LuaReformPassingGetMaxVotes(lua_State* _State);
-
-int LuaReformGetName(lua_State* _State);
-
-int LuaSettlementGetLeader(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);
 
@@ -140,34 +77,10 @@ int LuaConstraint(lua_State* _State);
  */
 int LuaConstraintBnds(lua_State* _State);
 void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints);
-/*!
- * Creates a table containing information about a crop.
- * Requires one parameter that is a string equaling the key of a crop in g_Crops.
- */
-int LuaCrop(lua_State* _State);
-/*!
- * Creates a table containing information about a GoodBase.
- * Requires one parameter that is a string equaling the key of a GoodBase in g_Goods.
- */
-int LuaGoodBase(lua_State* _State);
-/*!
- * Creates a table containing information about a FoodBase.
- * Requires one parameter that is a string equaling the key of a FoodBase in g_Goods.
- */
-int LuaFoodBase(lua_State* _State);
-/*!
- * Creates a table containing information about a Population.
- * Requires one parameter that is a string equaling the key of a crop in g_Populations.
- */
-int LuaPopulation(lua_State* _State);
-int LuaPushPerson(lua_State* _State, int _Index);
-/*!
- * Creates a table containing information about a Person.
- * Requires one parameter that is a light user data that contains a pointer to a Person.
- */
-int LuaPerson(lua_State* _State);
-int LuaBuildMat(lua_State* _State);
 
+/**
+ * Converts years to days.
+ */
 int LuaYears(lua_State* _State);
 int LuaMonth(lua_State* _State);
 int LuaPrintDate(lua_State* _State);
@@ -185,14 +98,6 @@ int AddString(lua_State* _State, int _Index, const char** _String);
 int AddNumber(lua_State* _State, int _Index, double* _Number);
 int LuaLudata(lua_State* _State, int _Index, void** _Data);
 int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
-
-/**
- * Functions that create an object type.
- */
-
-int LuaCreateGood(lua_State* _State);
-int LuaCreateBuilding(lua_State* _State);
-int LuaCreateAnimal(lua_State* _State);
 
 /**
  * _Table must be big enough to contain at least lua_gettop(_State) elements.
@@ -217,8 +122,21 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*
  * These functions are for retrieving data from simple tables.
  */
-
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two);
 int LuaKeyValue(lua_State* _State, int _Index, const char** _Value, int* _Pair);
+
+struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef);
+
+int LuaRuleLuaCall(lua_State* _State);
+int LuaRuleGreaterThan(lua_State* _State);
+int LuaRuleLessThan(lua_State* _State);
+int LuaRuleTrue(lua_State* _State);
+int LuaRuleFalse(lua_State* _State);
+int LuaRuleEventFired(lua_State* _State);
+
+struct Rule* LuaValueToRule(lua_State* _State, int _Index);
+
+void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);
+struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
 
 #endif

@@ -81,7 +81,7 @@ void ATimerAddType(struct ATimer* _Timer, struct ATType* _Type) {
 }
 
 void ATImerUpdate(struct ATimer* _Timer) {
-	struct RBItrStack* _Stack = NULL;
+/*	struct RBItrStack* _Stack = NULL;
 	struct RBItrStack* _TempStk = NULL;
 	struct RBItrStack* _Delete = NULL;
 	struct RBNode* _Itr = NULL;
@@ -141,7 +141,7 @@ void ATImerUpdate(struct ATimer* _Timer) {
 		_Itr = _Delete->Node;
 		free(_TempStk);
 	}
-	return;
+	return;*/
 }
 
 void* ATimerSearch(struct ATimer* _Timer, struct Object* _Obj, int _Type) {

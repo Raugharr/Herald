@@ -800,6 +800,17 @@ int LuaPopMenu(lua_State* _State) {
 	return 0;
 }
 
+void LuaMenuThink(lua_State* _State) {
+	const char* _Menu = ((const char*)g_GUIStack.Top->Data);
+
+	lua_getglobal(_State, _Menu);
+	lua_pushstring(_State, "Think");
+	lua_rawget(_State, -2);
+	lua_pushvalue(_State, -2);
+	LuaCallFunc(_State, 1, 0, 0);
+	lua_pop(_State, 1);
+}
+
 int LuaScreenWidth(lua_State* _State) {
 	lua_pushinteger(_State, SDL_WIDTH);
 	return 1;

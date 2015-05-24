@@ -82,19 +82,17 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{NULL, NULL, NULL}
 };
 
-void InitLuaSystem() {
-	int i = 0;
-	g_LuaState = luaL_newstate();
+void InitLuaCore() {
+	//g_LuaState = luaL_newstate();
 	lua_atpanic(g_LuaState, LogLua);
 	luaL_openlibs(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaCoreObjects);
-	for(i = 0; (g_LuaCoreFuncs[i].name != NULL && g_LuaCoreFuncs[i].func != NULL); ++i)
-			lua_register(g_LuaState, g_LuaCoreFuncs[i].name, g_LuaCoreFuncs[i].func);
+	LuaRegisterFunctions(g_LuaState, g_LuaCoreFuncs);
 	atexit(LogCloseFile);
 }
 
-void QuitLuaSystem() {
-	lua_close(g_LuaState);
+void QuitLuaCore() {
+	//lua_close(g_LuaState);
 }
 
 /*
@@ -132,10 +130,18 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
-	if(_Funcs != NULL)
+	if(_Funcs != NULL) {
 		luaL_setfuncs(_State, _Funcs, 0);
+	}
 	lua_setglobal(_State, _Name);
 	return 1;
+}
+
+void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
+	int i = 0;
+
+	for(i = 0; (_Funcs[i].name != NULL && _Funcs[i].func != NULL); ++i)
+		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
 }
 
 int LuaArrayCreate(lua_State* _State) {
@@ -298,11 +304,11 @@ int LuaArrayItr(lua_State* _State) {
 	return 1;
 }
 
-void* LuaToObject(lua_State* _State, int _Index, const char* _Name) {
+void* LuaToObject(lua_State* _State, int _Index, const char* _Class) {
 	void* _Obj = NULL;
 
-	if((_Obj = LuaTestClass(_State, _Index, _Name)) == NULL)
-		return LuaCheckClass(_State, _Index, _Name);
+	if((_Obj = LuaTestClass(_State, _Index, _Class)) == NULL)
+		return LuaCheckClass(_State, _Index, _Class);
 	return _Obj;
 }
 

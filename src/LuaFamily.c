@@ -25,12 +25,21 @@
 #include <string.h>
 #include <malloc.h>
 
+static const luaL_Reg g_LuaWorldFuncs[] = {
+		{"GetPlayer", LuaWorldGetPlayer},
+		{"GetSettlement", LuaWorldGetSettlement},
+		{"GetDate", LuaWorldGetDate},
+		{"Pause", LuaWorldPause},
+		{"IsPaused", LuaWorldIsPaused},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFamilyFuncs[] = {
 		{"Crop", LuaCrop},
 		{"Good", LuaGoodBase},
 		{"Food", LuaFoodBase},
 		{"GetAnimal", LuaPopulation},
-		{"Person", LuaPerson},
+		{"GetPerson", LuaPerson},
 		{"CreateGood", LuaCreateGood},
 		{"CreateBuilding", LuaCreateBuilding},
 		{"CreateAnimal", LuaCreateAnimal},
@@ -100,7 +109,7 @@ static const luaL_Reg g_LuaFuncsBuilding[] = {
 		{NULL, NULL}
 };
 
-const struct LuaObjectReg g_LuaFamilyObjects[] = {
+static const struct LuaObjectReg g_LuaFamilyObjects[] = {
 		{"Person", NULL, g_LuaFuncsPerson},
 		{"Good", NULL, g_LuaFuncsGood},
 		{"Family", NULL, g_LuaFuncsFamily},
@@ -109,6 +118,13 @@ const struct LuaObjectReg g_LuaFamilyObjects[] = {
 		{"Building", NULL, g_LuaFuncsBuilding},
 		{NULL, NULL, NULL}
 };
+
+void InitLuaFamily() {
+	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
+	LuaRegisterFunctions(g_LuaState, g_LuaFamilyFuncs);
+	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
+	lua_setglobal(g_LuaState, "World");
+}
 
 int LuaPersonGetId(lua_State* _State) {
 	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");

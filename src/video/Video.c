@@ -201,12 +201,14 @@ void Draw(void) {
 	if(_Tile != NULL) {
 		SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
 
-		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
+		//SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
 	}
-	if(_Screen != NULL)
+	if(_Screen != NULL) {
+		LuaMenuThink(g_LuaState);
 		_Screen->OnDraw((struct Widget*) _Screen);
-	else
+	} else {
 		g_VideoOk = 0;
+	}
 	SDL_RenderPresent(g_Renderer);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);

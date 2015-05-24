@@ -17,7 +17,7 @@ struct Primitive;
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
 	lua_getglobal((_State), (_Class));			\
-	if(lua_type((_State), -1) != LUA_TNIL) {	\
+	if(lua_type((_State), -1) == LUA_TTABLE) {	\
 		lua_setmetatable((_State), -2);				\
 		lua_pushstring((_State), "__self");			\
 		lua_pushlightuserdata((_State), (_Ptr));	\
@@ -46,11 +46,23 @@ struct LuaObjectReg {
 	const luaL_Reg* Funcs;
 };
 
-void InitLuaSystem();
-void QuitLuaSystem();
+void InitLuaCore();
+void QuitLuaCore();
 
+/**
+ * Calls LuaRegisterObject on each element of _Objects.
+ */
 void RegisterLuaObjects(lua_State* _State, const struct LuaObjectReg* _Objects);
-int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs);
+/**
+ * Creates a class prototype that is named _Class that is a subclass of _BaseClass and contains the Lua functions declared in _Funcs.
+ * If _BaseClass is NULL then the prototype will have no subclass.
+ * If _Funcs is NULL no Lua functions will be loaded.
+ */
+int LuaRegisterObject(lua_State* _State, const char* _Class, const char* _BaseClass, const luaL_Reg* _Funcs);
+/**
+ * Registers all Lua functions in _Funcs to the global space of _State.
+ */
+void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
 
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
@@ -66,7 +78,12 @@ int LuaLnkLstNodeItr(lua_State* _State);
 
 int LuaArrayItr(lua_State* _State);
 
-void* LuaToObject(lua_State* _State, int _Index, const char* _Name);
+/**
+ * Returns the pointer contained by the table located at _Index.
+ * Pointer is located at the table's __self variable only if the table's __class variable is equal to _Class.
+ * If the table at _Index is not of type _Class LuaToObject returns NULL.
+ */
+void* LuaToObject(lua_State* _State, int _Index, const char* _Class);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.
@@ -118,6 +135,12 @@ void* LuaToClass(lua_State* _State, int _Index);
  * of type _Class.
  */
 void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
+/**
+ * Checks if the element located on the stack at _Index is of type _Class.
+ * If the element is not the correct _Class LuaCheckClass will recursively
+ * load the global table with the name of the element's __baseclass until
+ * __baseclass is nil or the __baseclass is equal to _Class.
+ */
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*
  * These functions are for retrieving data from simple tables.

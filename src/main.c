@@ -21,6 +21,8 @@
 #include "AI/Setup.h"
 
 #include <SDL2/SDL_image.h>
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
 
 #include <stdlib.h>
 #ifdef _WIN32
@@ -29,11 +31,17 @@
 	#include <sys/io.h>
 #endif
 
+void InitLuaSystem() {
+	InitLuaCore();
+	InitLuaFamily();
+	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+}
+
 int main(int argc, char* args[]) {
 	int i = 0;
 	int _WorldTimer = 0;
 	struct System _Systems[] = {
-			{"Lua", InitLuaSystem, QuitLuaSystem},
+			{"Lua", InitLuaSystem, QuitLuaCore},
 			{"Reform", InitReforms, QuitReforms},
 			{"Main", HeraldInit, HeraldDestroy},
 			{"Video", VideoInit, VideoQuit},
@@ -41,12 +49,11 @@ int main(int argc, char* args[]) {
 	};
 	g_Log.Level = ELOG_ALL;
 	LogSetFile("Log.txt");
+	g_LuaState = luaL_newstate();
 	for(i = 0; _Systems[i].Name != NULL; ++i) {
 		Log(ELOG_INFO, "Initializing %s system.", _Systems[i].Name);
 		_Systems[i].Init();
 	};
-	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
-	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	IMG_Init(IMG_INIT_PNG);
 	WorldInit(300);
 
@@ -54,8 +61,10 @@ int main(int argc, char* args[]) {
 	while(g_VideoOk != 0) {
 		Events();
 		Draw();
-		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= SDL_GetTicks())
+		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= SDL_GetTicks()) {
 			World_Tick();
+			_WorldTimer = SDL_GetTicks();
+		}
 	}
 	IMG_Quit();
 	WorldQuit();
@@ -63,5 +72,6 @@ int main(int argc, char* args[]) {
 		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
 		_Systems[i].Quit();
 	}
+	lua_close(g_LuaState);
 	return 0;
 }

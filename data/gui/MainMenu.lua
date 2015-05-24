@@ -21,3 +21,7 @@ function MainMenu.Init(Width, Height, Data)
 		end)	
 	return false
 end
+
+function MainMenu:Think(Menu)
+
+end

@@ -27,7 +27,7 @@ function GameMenu.Init(Width, Height, Data)
 		function() 
 			GUI.PopMenu() 
 		end)
-	return true
+	return false
 end
 
 function GameMenu.Think(Menu)

@@ -41,7 +41,14 @@ int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
 int LuaDefaultFont(lua_State* _State);
 int LuaGetDefaultFont(lua_State* _State);
+/**
+ * Lua function that takes one argument of type string.
+ * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.
+ */
 int LuaSetMenu(lua_State* _State);
+/**
+ * Sets the initial state of a Menu, if the menu is not already loaded calls its Init function.
+ */
 int LuaSetMenu_Aux(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);
 int LuaSetFocusColor(lua_State* _State);
@@ -56,6 +63,7 @@ int LuaOnKey(lua_State* _State);
 //Please Comment.
 int LuaCloseMenu(lua_State* _State);
 int LuaPopMenu(lua_State* _State);
+void LuaMenuThink(lua_State* _State);
 int LuaScreenWidth(lua_State* _State);
 int LuaScreenHeight(lua_State* _State);
 

@@ -9,7 +9,7 @@
 
 typedef struct lua_State lua_State;
 
-extern const struct LuaObjectReg g_LuaFamilyObjects[];
+void InitLuaFamily();
 
 int LuaPersonGetId(lua_State* _State);
 int LuaPersonGetX(lua_State* _State);

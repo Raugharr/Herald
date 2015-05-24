@@ -75,15 +75,6 @@ struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
 
-static const luaL_Reg g_LuaWorldFuncs[] = {
-		{"GetPlayer", LuaWorldGetPlayer},
-		{"GetSettlement", LuaWorldGetSettlement},
-		{"GetDate", LuaWorldGetDate},
-		{"Pause", LuaWorldPause},
-		{"IsPaused", LuaWorldIsPaused},
-		{NULL, NULL}
-};
-
 int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
 	return _One->Id - _Two->Id;
 }
@@ -273,8 +264,6 @@ void WorldInit(int _Area) {
 	++g_Log.Indents;
 	GameWorldInit(_Area);
 	g_AIHash = CreateHash(32);
-	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
-	lua_setglobal(g_LuaState, "World");
 	chdir(DATAFLD);
 	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
@@ -380,7 +369,7 @@ int World_Tick() {
 	struct Person* _Person = NULL;
 	struct Event* _Event = NULL;
 	struct LinkedList _QueuedPeople = {0, NULL, NULL};
-	int _Ticks = 30;
+	int _Ticks = 1;
 	int _OldMonth = MONTH(g_Date);
 	int i;
 

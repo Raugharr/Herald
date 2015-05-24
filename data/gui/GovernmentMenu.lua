@@ -16,7 +16,7 @@ function GovernmentMenu.Init(Width, Height, Data)
 	--Government:PossibleReforms():Front():Data():GetName()
 	VoteCont:SetFocus(false)
 	if Reform ~= nil then
-		VoteCont:CreateLabel(Reform:GetVotes() .. " votes for passing  out of " .. Reform:GetMaxVotes() .. " total votes.")
+		GovernmentMenu.VoteLabel = VoteCont:CreateLabel(Reform:GetVotes() .. " votes for passing  out of " .. Reform:GetMaxVotes() .. " total votes.")
 	end
 	
 	Screen:CreateLabel(Government:Rule() .. " " .. Government:Structure() .. " " .. Government:Type()):SetFocus(false)
@@ -31,4 +31,8 @@ function GovernmentMenu.Init(Width, Height, Data)
 			GUI.PopMenu()
 		end)
 	return false
+end
+
+function GovernmentMenu.Think(Menu)
+
 end

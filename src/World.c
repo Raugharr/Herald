@@ -17,7 +17,10 @@
 #include "Mission.h"
 #include "BigGuy.h"
 #include "Government.h"
+
 #include "video/Video.h"
+#include "video/Tile.h"
+
 #include "sys/TaskPool.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
@@ -30,7 +33,6 @@
 #include "sys/Random.h"
 #include "sys/RBTree.h"
 #include "sys/LuaCore.h"
-#include "video/Tile.h"
 #include "AI/Setup.h"
 #include "AI/AIHelper.h"
 
@@ -49,7 +51,7 @@
 #endif
 
 struct GameWorld g_GameWorld = {
-		0,
+		1,
 		0,
 		NULL,
 		NULL,
@@ -61,7 +63,7 @@ struct GameWorld g_GameWorld = {
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 };
-int g_Date = 0;
+
 struct RBTree* g_GoodDeps = NULL;
 struct Array* g_AnFoodDep = NULL;
 struct RBTree g_Families;
@@ -206,33 +208,6 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 	free(_Tile);
 }
 
-int LuaWorldGetPlayer(lua_State* _State) {
-	LuaCtor(_State, "BigGuy", g_Player);
-	return 1;
-}
-
-int LuaWorldGetSettlement(lua_State* _State) {
-	LuaCtor(_State, "Government", g_Player->Person->Family->HomeLoc->Government);
-	return 1;
-}
-
-int LuaWorldGetDate(lua_State* _State) {
-	lua_pushinteger(_State, g_Date);
-	return 1;
-}
-
-int LuaWorldPause(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TBOOLEAN);
-
-	g_GameWorld.IsPaused = lua_toboolean(_State, 1);
-	return 0;
-}
-
-int LuaWorldIsPaused(lua_State* _State) {
-	lua_pushboolean(_State, g_GameWorld.IsPaused);
-	return 1;
-}
-
 void ArmyTest() {
 	struct Army* _One = CreateArmy(g_Player);
 	struct Army* _Two = CreateArmy(g_Player);
@@ -363,6 +338,33 @@ void WorldQuit() {
 	DestroyHash(g_AIHash);
 }
 
+void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World) {
+
+	if(_State->KeyboardState == SDL_RELEASED) {
+		if(_State->KeyboardButton == SDLK_a)
+			g_GameWorld.MapRenderer->Screen.Center.X -= TILE_WIDTH;
+		else if(_State->KeyboardButton == SDLK_d)
+			g_GameWorld.MapRenderer->Screen.Center.X += TILE_WIDTH;
+		else if(_State->KeyboardButton == SDLK_w)
+			g_GameWorld.MapRenderer->Screen.Center.Y -= TILE_HEIGHT;
+		else if(_State->KeyboardButton == SDLK_s)
+			g_GameWorld.MapRenderer->Screen.Center.Y += TILE_HEIGHT;
+	}
+}
+
+void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World) {
+	struct Tile* _Tile = ScreenToTile(g_GameWorld.MapRenderer, &_State->MousePos);
+
+	if(_World->MapRenderer->IsRendering != 0) {
+		MapRender(g_Renderer, g_GameWorld.MapRenderer);
+		if(_Tile != NULL) {
+			SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
+
+			SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
+		}
+	}
+}
+
 int World_Tick() {
 	struct LnkLst_Node* _Settlement = g_Settlements.Front;
 	struct LnkLst_Node* _Itr = NULL;
@@ -370,7 +372,7 @@ int World_Tick() {
 	struct Event* _Event = NULL;
 	struct LinkedList _QueuedPeople = {0, NULL, NULL};
 	int _Ticks = 1;
-	int _OldMonth = MONTH(g_Date);
+	int _OldMonth = MONTH(g_GameWorld.Date);
 	int i;
 
 	do {
@@ -392,10 +394,10 @@ int World_Tick() {
 		GenerateMissions(g_LuaState, &g_BigGuyState, &g_MissionList);
 		escape_events:
 		_Itr = g_ObjPos.Root;
-		NextDay(&g_Date);
-		if(MONTH(g_Date) != _OldMonth) {
+		NextDay(&g_GameWorld.Date);
+		if(MONTH(g_GameWorld.Date) != _OldMonth) {
 			for(i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
-				g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_Date)];
+				g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
 			}
 		}
 		_Settlement = g_Settlements.Front;

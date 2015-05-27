@@ -18,6 +18,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+static struct KeyMouseState g_KeyMouseState;
+
 SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
 int g_VideoOk = 1;
@@ -124,26 +126,31 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 	return _Focus;
 }
 
-#include "Tile.h"
-
 void Events(void) {
 	int i;
 	SDL_Event _Event;
 	struct Widget* _Callback = NULL;
 
 	GUIMessageCheck(&g_GUIMessageList);
+	g_KeyMouseState.KeyboardButton = 0;
+	g_KeyMouseState.KeyboardButton = 0;
+	g_KeyMouseState.KeyboardMod = 0;
+	g_KeyMouseState.MouseButton = 0;
+	g_KeyMouseState.MouseState = 0;
+	g_KeyMouseState.MouseClicks = 0;
 	while(SDL_PollEvent(&_Event) != 0) {
+		if(_Event.type == SDL_KEYUP || _Event.type == SDL_KEYDOWN) {
+			g_KeyMouseState.KeyboardState = _Event.key.state;
+			g_KeyMouseState.KeyboardButton = _Event.key.keysym.sym;
+			g_KeyMouseState.KeyboardMod = _Event.key.keysym.mod;
+		} else if(_Event.type == SDL_MOUSEBUTTONUP || _Event.type == SDL_MOUSEBUTTONDOWN) {
+			g_KeyMouseState.MouseButton = _Event.button.button;
+			g_KeyMouseState.MouseState = _Event.button.state;
+			g_KeyMouseState.MouseClicks = _Event.button.clicks;
+		}
 		if(_Event.type == SDL_KEYUP) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 
-			if(_Event.key.type == SDLK_a)
-				g_GameWorld.MapRenderer->Screen.Center.X -= TILE_WIDTH;
-			else if(_Event.key.keysym.sym == SDLK_d)
-				g_GameWorld.MapRenderer->Screen.Center.X += TILE_WIDTH;
-			else if(_Event.key.keysym.sym == SDLK_w)
-				g_GameWorld.MapRenderer->Screen.Center.Y -= TILE_HEIGHT;
-			else if(_Event.key.keysym.sym == SDLK_s)
-				g_GameWorld.MapRenderer->Screen.Center.Y += TILE_HEIGHT;
 			if(_Event.key.type == SDL_KEYUP)
 				_Widget->OnKeyUp(_Widget, &_Event.key);
 			if(_Event.key.keysym.sym == SDLK_UP) {
@@ -186,23 +193,16 @@ void Events(void) {
 			}
 		}
 	}
+	GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
 }
 
 void Draw(void) {
 	struct Container* _Screen = NULL;
-	struct Point _Pos;
-	SDL_GetMouseState(&_Pos.X, &_Pos.Y);
-	struct Tile* _Tile = ScreenToTile(g_GameWorld.MapRenderer, &_Pos);
 	if(g_VideoOk == 0)
 		return;
 	_Screen = GetScreen(g_LuaState);
 	SDL_RenderClear(g_Renderer);
-	//MapRender(g_Renderer, g_GameWorld.MapRenderer);
-	if(_Tile != NULL) {
-		SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
-
-		//SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
-	}
+	GameWorldDraw(&g_KeyMouseState, &g_GameWorld);
 	if(_Screen != NULL) {
 		LuaMenuThink(g_LuaState);
 		_Screen->OnDraw((struct Widget*) _Screen);

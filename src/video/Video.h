@@ -8,6 +8,8 @@
 
 #include "../sys/Stack.h"
 
+#include "Point.h"
+
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
@@ -24,6 +26,16 @@ typedef struct SDL_KeyboardEvent SDL_KeyboardEvent;
 typedef struct SDL_Texture SDL_Texture;
 struct Widget;
 struct Container;
+
+struct KeyMouseState {
+	unsigned int MouseButton;
+	unsigned int MouseState;
+	unsigned int MouseClicks;
+	unsigned int KeyboardButton;
+	unsigned int KeyboardMod;
+	struct Point MousePos;
+	int KeyboardState;
+};
 
 struct Font {
 	TTF_Font* Font;

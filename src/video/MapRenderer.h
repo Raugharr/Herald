@@ -17,6 +17,7 @@ struct MapRenderer {
 	struct Tile** Tiles;
 	int TileLength;
 	int TileArea;
+	int IsRendering;
 	struct QuadTree RenderArea;
 	struct AABB Screen;
 	SDL_Texture* Grass;

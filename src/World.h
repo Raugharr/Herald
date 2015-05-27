@@ -24,6 +24,7 @@ struct TaskPool;
 struct BigGuy;
 struct WorldTile;
 struct GameWorld;
+struct KeyMouseState;
 
 extern struct GameWorld g_GameWorld;
 extern struct RBTree* g_GoodDeps;
@@ -72,16 +73,10 @@ struct BigGuy* PickPlayer();
 struct WorldTile* CreateWorldTile();
 void DestroyWorldTile(struct WorldTile* _Tile);
 
-int LuaRegisterPersonItr(lua_State* _State);
-int LuaWorldGetPlayer(lua_State* _State);
-int LuaWorldGetSettlement(lua_State* _State);;
-int LuaWorldGetDate(lua_State* _State);
-int LuaWorldPause(lua_State* _State);
-int LuaWorldIsPaused(lua_State* _State);
-int LuaWorldTick(lua_State* _State);
-
 void WorldInit(int _Area);
 void WorldQuit();
+void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World);
+void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World);
 void CreateTempMap(int _Length);
 int World_Tick();
 

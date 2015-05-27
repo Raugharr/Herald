@@ -44,6 +44,7 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize)
 	_Map->TileArea = _MapLength * _MapLength;
 	_Map->TileLength = _MapLength;
 	_Map->Tiles = calloc(_Map->TileArea, sizeof(struct Tile*));
+	_Map->IsRendering = 0;
 	_Map->RenderArea.NorthEast = NULL;
 	_Map->RenderArea.NorthWest = NULL;
 	_Map->RenderArea.SouthWest = NULL;

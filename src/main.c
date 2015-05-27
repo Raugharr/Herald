@@ -9,6 +9,7 @@
 #include "Government.h"
 #include "LuaFamily.h"
 #include "LuaSettlement.h"
+#include "LuaWorld.h"
 
 #include "video/Video.h"
 
@@ -35,6 +36,7 @@ void InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+	LuaWorldInit();
 }
 
 int main(int argc, char* args[]) {

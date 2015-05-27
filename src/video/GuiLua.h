@@ -7,6 +7,11 @@ typedef struct SDL_Surface SDL_Surface;
 
 #include "../sys/LinkedList.h"
 
+/**
+ * GuiLua uses a table on the global space called GUI.
+ * Table has variable named Menu that contains the currently displaying menu.
+ */
+
 #define RestoreScreen(_State) lua_settop((_State), 0);					\
 		lua_pushstring((_State), (const char*)g_GUIStack.Top->Data);	\
 		LuaSetMenu_Aux((_State))

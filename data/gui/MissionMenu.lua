@@ -19,3 +19,11 @@ function MissionMenu.Init(Width, Height, Data)
 	end
 	return false
 end
+
+function MissionMenu.Think(Menu)
+
+end
+
+function MissionMenu.Quit(Menu)
+
+end

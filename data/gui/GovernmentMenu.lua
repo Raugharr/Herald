@@ -6,7 +6,6 @@ function GovernmentMenu.Init(Width, Height, Data)
 	local Government = Data
 	local Reform = Government:GetReform()
 	
-	World.Pause(true)
 	local TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Screen)
 	TitleCon:SetFocus(false)
 	local Title = TitleCon:CreateLabel("Government")
@@ -34,5 +33,9 @@ function GovernmentMenu.Init(Width, Height, Data)
 end
 
 function GovernmentMenu.Think(Menu)
+
+end
+
+function GovernmentMenu.Quit(Menu)
 
 end

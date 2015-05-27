@@ -6,7 +6,6 @@ function ViewPersonMenu.Init(Width, Height, Person)
 	Display = nil
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	
-	World.Pause(true)
 	Menu:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
 	Menu:CreateLabel("Skills")
 	Menu:CreateLabel("Agriculture"):OnKey("Enter", "Released",
@@ -80,4 +79,8 @@ function ViewPersonMenu.Init(Width, Height, Person)
 		end)
 	
 	return false
+end
+
+function ViewPersonMenu.Quit(Menu)
+
 end

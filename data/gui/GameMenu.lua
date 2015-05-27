@@ -6,6 +6,7 @@ function GameMenu.Init(Width, Height, Data)
 	local DateCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Screen)
 	
 	World.Pause(false)
+	World.Render(true)
 	DateCont:SetFocus(false)
 	Menu:CreateLabel("View Settlement"):OnKey("Enter", "Released",
 		function()
@@ -32,4 +33,9 @@ end
 
 function GameMenu.Think(Menu)
 	Menu.Date:SetText(PrintDate(World.GetDate()))
+end
+
+function GameMenu.Quit(Menu)
+	World.Pause(true)
+	World.Render(false)
 end

@@ -577,6 +577,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pop(_State, 1);
 	if(lua_type(_State, -1) != LUA_TTABLE) {
 		RestoreScreen(_State);
+		lua_settop(_State, 0);
 		return luaL_error(_State, "%s is not a table.", _Name);
 	}
 	lua_pushstring(_State, "Init");
@@ -590,7 +591,9 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pushinteger(_State, SDL_HEIGHT);
 	lua_pushvalue(_State, 2);
 	if(LuaCallFunc(_State, 3, 1, 0) == 0) {
-		RestoreScreen(_State);
+		if(g_GUIStack.Size > 0) {
+			RestoreScreen(_State);
+		}
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	}
 	if(lua_type(_State, -1) != LUA_TBOOLEAN) {
@@ -696,9 +699,17 @@ int LuaCloseMenu(lua_State* _State) {
 	int _Len = 0;
 
 	g_GUIMenuChange = 1;
+	//Get the current menu.
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Menu");
 	lua_rawget(_State, -2);
+
+	//Call its Quit function.
+	lua_pushstring(_State, "Quit");
+	lua_rawget(_State, -2);
+	lua_pushvalue(_State, -2);
+	LuaCallFunc(_State, 1, 0, 0);
+
 	lua_pushstring(_State, "__name");
 	lua_rawget(_State, -2);
 	lua_getglobal(_State, lua_tostring(_State, -1));
@@ -803,12 +814,15 @@ int LuaPopMenu(lua_State* _State) {
 void LuaMenuThink(lua_State* _State) {
 	const char* _Menu = ((const char*)g_GUIStack.Top->Data);
 
-	lua_getglobal(_State, _Menu);
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Menu");
+	lua_rawget(_State, -2);
+
 	lua_pushstring(_State, "Think");
 	lua_rawget(_State, -2);
 	lua_pushvalue(_State, -2);
 	LuaCallFunc(_State, 1, 0, 0);
-	lua_pop(_State, 1);
+	lua_pop(_State, 2);
 }
 
 int LuaScreenWidth(lua_State* _State) {

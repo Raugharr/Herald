@@ -3,7 +3,6 @@ MainMenu = { }
 function MainMenu.Init(Width, Height, Data)
 	MainMenu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {50, 50, 0, 0})
 	
-	World.Pause(true)
 	GUI.BackgroundColor(0, 0, 0)
 	local TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, MainMenu.Screen)
 	TitleCon:SetFocus(false)
@@ -23,5 +22,9 @@ function MainMenu.Init(Width, Height, Data)
 end
 
 function MainMenu:Think(Menu)
+
+end
+
+function MainMenu:Quit(Menu)
 
 end

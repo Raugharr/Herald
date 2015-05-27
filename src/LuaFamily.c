@@ -25,15 +25,6 @@
 #include <string.h>
 #include <malloc.h>
 
-static const luaL_Reg g_LuaWorldFuncs[] = {
-		{"GetPlayer", LuaWorldGetPlayer},
-		{"GetSettlement", LuaWorldGetSettlement},
-		{"GetDate", LuaWorldGetDate},
-		{"Pause", LuaWorldPause},
-		{"IsPaused", LuaWorldIsPaused},
-		{NULL, NULL}
-};
-
 static const luaL_Reg g_LuaFamilyFuncs[] = {
 		{"Crop", LuaCrop},
 		{"Good", LuaGoodBase},
@@ -122,7 +113,6 @@ static const struct LuaObjectReg g_LuaFamilyObjects[] = {
 void InitLuaFamily() {
 	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
 	LuaRegisterFunctions(g_LuaState, g_LuaFamilyFuncs);
-	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
 	lua_setglobal(g_LuaState, "World");
 }
 

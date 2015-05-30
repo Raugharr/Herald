@@ -294,7 +294,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 }
 
 struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat) {
-	char* _Name = alloca(sizeof(char) * 64);
+	char _Name[64];
 	char* _RealName = NULL;
 	int _Size = 0;
 

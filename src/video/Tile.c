@@ -7,6 +7,7 @@
 
 #include "MapRenderer.h"
 #include "QuadTree.h"
+#include "Sprite.h"
 
 #include <SDL2/SDL.h>
 #include <stdlib.h>
@@ -26,7 +27,7 @@ struct Tile* CreateTile(struct MapRenderer* _Renderer, SDL_Texture* _Image, int 
 	_Tile->Forest = 0;
 	_Tile->Temperature = 0;
 	_Tile->Unbuildable = 0;
-	QTInsert(&_Renderer->RenderArea, _Tile, &_Tile->ScreenPos);
+	QTInsertPoint(&_Renderer->RenderArea[MAPRENDER_TILE], _Tile, &_Tile->TilePos);
 	return _Tile;
 }
 

@@ -63,14 +63,29 @@ void QTSubdivide(struct QuadTree* _Node) {
 		_Node->SouthEast = CreateQTNode(&_Center);
 }
 
-int QTInsert(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
+int QTInsertAABB(struct QuadTree* _Node, void* _Data, struct AABB* _AABB) {
+	if(AABBIntersectsAABB(&_Node->BoundingBox, _AABB) == 0)
+		return 0;
+	if(_Node->Data != NULL) {
+		QTInsertAABB(_Node->NorthEast, _Data, _AABB);
+		QTInsertAABB(_Node->NorthWest, _Data, _AABB);
+		QTInsertAABB(_Node->SouthWest, _Data, _AABB);
+		QTInsertAABB(_Node->SouthEast, _Data, _AABB);
+		return 1;
+	}
+	_Node->Data = _Data;
+	QTSubdivide(_Node);
+	return 1;
+}
+
+int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
 	if(PointInAABB(_Point, &_Node->BoundingBox) == 0)
 		return 0;
 	if(_Node->Data != NULL) {
-		if(QTInsert(_Node->NorthEast, _Data, _Point) == 0) {
-			if(QTInsert(_Node->NorthWest, _Data, _Point) == 0) {
-				if(QTInsert(_Node->SouthWest, _Data, _Point) == 0) {
-					if(QTInsert(_Node->SouthEast, _Data, _Point) == 0) {
+		if(QTInsertPoint(_Node->NorthEast, _Data, _Point) == 0) {
+			if(QTInsertPoint(_Node->NorthWest, _Data, _Point) == 0) {
+				if(QTInsertPoint(_Node->SouthWest, _Data, _Point) == 0) {
+					if(QTInsertPoint(_Node->SouthEast, _Data, _Point) == 0) {
 						return 0;
 					}
 				}
@@ -83,7 +98,7 @@ int QTInsert(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
 	return 1;
 }
 
-void QTInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct Point* (*_GetPos)(const void*), struct LinkedList* _DataList) {
+void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct Point* (*_GetPos)(const void*), struct LinkedList* _DataList) {
 	const struct Point* _Point = NULL;
 
 	if(_Node == NULL)
@@ -96,10 +111,29 @@ void QTInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struc
 			LnkLstPushBack(_DataList, _Node->Data);
 		}
 	}
-	QTInRectangle(_Node->NorthEast, _Rect, _GetPos, _DataList);
-	QTInRectangle(_Node->NorthWest, _Rect, _GetPos, _DataList);
-	QTInRectangle(_Node->SouthWest, _Rect, _GetPos, _DataList);
-	QTInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
+	QTPointInRectangle(_Node->NorthEast, _Rect, _GetPos, _DataList);
+	QTPointInRectangle(_Node->NorthWest, _Rect, _GetPos, _DataList);
+	QTPointInRectangle(_Node->SouthWest, _Rect, _GetPos, _DataList);
+	QTPointInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
+}
+
+void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct AABB* (*_GetPos)(const void*), struct LinkedList* _DataList) {
+	const struct AABB* _AABB = NULL;
+
+	if(_Node == NULL)
+		return;
+	if(AABBIntersectsAABB(&_Node->BoundingBox, _Rect) == 0)
+		return;
+	if(_Node->Data != NULL) {
+		_AABB = _GetPos(_Node->Data);
+		if(AABBInsideAABB(_AABB, _Rect)) {
+			LnkLstPushBack(_DataList, _Node->Data);
+		}
+	}
+	QTAABBInRectangle(_Node->NorthEast, _Rect, _GetPos, _DataList);
+	QTAABBInRectangle(_Node->NorthWest, _Rect, _GetPos, _DataList);
+	QTAABBInRectangle(_Node->SouthWest, _Rect, _GetPos, _DataList);
+	QTAABBInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
 }
 
 void QTRange(struct QuadTree* _Tree, struct AABB* _Boundary) {

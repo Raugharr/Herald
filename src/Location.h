@@ -41,6 +41,7 @@ struct Settlement {
 	struct Person* People;
 	struct LinkedList BigGuys;
 	struct LinkedList Families;
+	struct LinkedList Sprites;
 	struct Government* Government;
 	int NumPeople;
 };

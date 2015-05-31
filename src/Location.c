@@ -8,6 +8,10 @@
 #include "Person.h"
 #include "Family.h"
 #include "Government.h"
+
+#include "video/Sprite.h"
+#include "video/MapRenderer.h"
+
 #include "sys/KDTree.h"
 
 #include <stdlib.h>
@@ -30,6 +34,9 @@ struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, con
 	_Loc->Families.Back = NULL;
 	_Loc->Families.Front = NULL;
 	_Loc->Families.Back = NULL;
+	_Loc->Sprites.Back = NULL;
+	_Loc->Sprites.Front = NULL;
+	_Loc->Sprites.Back = NULL;
 	strcpy(_Loc->Name, _Name);
 	return _Loc;
 }
@@ -57,6 +64,9 @@ int SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family, 
 		++_Point[0];
 		while(_Point[1] < _Location->EndPos.Y) {
 			if(KDSearchNode(&g_ObjPos, _Point) == NULL) {
+				struct Point _Pos = {_Point[0], _Point[1]};
+
+				LnkLstPushBack(&_Location->Sprites, CreateSprite(g_GameWorld.MapRenderer, g_GameWorld.MapRenderer->Settlement, MAPRENDER_UNIT, &_Pos));
 				*_X = _Point[0];
 				*_Y = _Point[1];
 				_Location->NumPeople += FamilySize(_Family);

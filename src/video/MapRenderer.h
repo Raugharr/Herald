@@ -13,16 +13,23 @@ struct AABB;
 typedef struct SDL_Texture SDL_Texture;
 typedef struct SDL_Renderer SDL_Renderer;
 
+enum {
+	MAPRENDER_TILE,
+	MAPRENDER_UNIT,
+	MAPRENDER_LAYERS
+};
+
 struct MapRenderer {
 	struct Tile** Tiles;
 	int TileLength;
 	int TileArea;
 	int IsRendering;
-	struct QuadTree RenderArea;
+	struct QuadTree RenderArea[MAPRENDER_LAYERS];
 	struct AABB Screen;
 	SDL_Texture* Grass;
 	SDL_Texture* OddGrass;
 	SDL_Texture* Selector;
+	SDL_Texture* Settlement;
 };
 
 struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize);

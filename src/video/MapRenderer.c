@@ -5,6 +5,7 @@
 
 #include "MapRenderer.h"
 
+#include "Sprite.h"
 #include "Tile.h"
 #include "Point.h"
 #include "Video.h"
@@ -37,23 +38,30 @@ static struct Point g_TileOddOffsets[] = {
 
 struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize) {
 	struct MapRenderer* _Map = (struct MapRenderer*) malloc(sizeof(struct MapRenderer));
+
 	_Map->OddGrass = IMG_LoadTexture(g_Renderer, "data/graphics/grass.png");
 	_Map->Grass = IMG_LoadTexture(g_Renderer, "data/graphics/grass2.png");
 	_Map->Selector = IMG_LoadTexture(g_Renderer, "data/graphics/select.png");
+	_Map->Settlement = IMG_LoadTexture(g_Renderer, "data/graphics/settlement.png");
+
+	if(_Map->Grass == NULL)
+		Log(ELOG_WARNING, SDL_GetError());
 
 	_Map->TileArea = _MapLength * _MapLength;
 	_Map->TileLength = _MapLength;
 	_Map->Tiles = calloc(_Map->TileArea, sizeof(struct Tile*));
 	_Map->IsRendering = 0;
-	_Map->RenderArea.NorthEast = NULL;
-	_Map->RenderArea.NorthWest = NULL;
-	_Map->RenderArea.SouthWest = NULL;
-	_Map->RenderArea.SouthEast = NULL;
-	_Map->RenderArea.Data = NULL;
-	_Map->RenderArea.BoundingBox.Center.X = _Map->TileLength / 2 * TILE_WIDTH;
-	_Map->RenderArea.BoundingBox.Center.Y = _Map->TileLength / 2 * TILE_HEIGHT;
-	_Map->RenderArea.BoundingBox.HalfDimension.X = _Map->RenderArea.BoundingBox.Center.X;
-	_Map->RenderArea.BoundingBox.HalfDimension.Y = _Map->RenderArea.BoundingBox.Center.Y;
+	for(int i = 0; i < MAPRENDER_LAYERS; ++i) {
+		_Map->RenderArea[i].NorthEast = NULL;
+		_Map->RenderArea[i].NorthWest = NULL;
+		_Map->RenderArea[i].SouthWest = NULL;
+		_Map->RenderArea[i].SouthEast = NULL;
+		_Map->RenderArea[i].Data = NULL;
+		_Map->RenderArea[i].BoundingBox.Center.X = _Map->TileLength / 2 * TILE_WIDTH;
+		_Map->RenderArea[i].BoundingBox.Center.Y = _Map->TileLength / 2 * TILE_HEIGHT;
+		_Map->RenderArea[i].BoundingBox.HalfDimension.X = _Map->RenderArea[i].BoundingBox.Center.X;
+		_Map->RenderArea[i].BoundingBox.HalfDimension.Y = _Map->RenderArea[i].BoundingBox.Center.Y;
+	}
 	_Map->Screen.Center.X = _RenderSize->X;
 	_Map->Screen.Center.Y = _RenderSize->Y;
 	_Map->Screen.HalfDimension.X = _RenderSize->X;
@@ -66,6 +74,7 @@ void DestroyMapRenderer(struct MapRenderer* _Map) {
 	SDL_DestroyTexture(_Map->Grass);
 	SDL_DestroyTexture(_Map->OddGrass);
 	SDL_DestroyTexture(_Map->Selector);
+	SDL_DestroyTexture(_Map->Settlement);
 }
 
 void MapLoad(struct MapRenderer* _Map) {
@@ -126,21 +135,33 @@ struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int 
 void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 	struct LinkedList _Data = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
-	struct Tile* _Tile = NULL;
+	struct Sprite* _Sprite = NULL;
 	SDL_Rect _Rect;
 
-	QTInRectangle(&_Map->RenderArea, &_Map->Screen, ((const struct Point*(*)(const void*))TileGetScreenPos), &_Data);
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((const struct Point*(*)(const void*))SpriteGetTilePos), &_Data);
 	_Itr = _Data.Front;
 	while(_Itr != NULL) {
-		_Tile = (struct Tile*)_Itr->Data;
-		_Rect.x = _Tile->ScreenPos.X - (_Map->Screen.Center.X - _Map->Screen.HalfDimension.X);
-		_Rect.y = _Tile->ScreenPos.Y - (_Map->Screen.Center.Y - _Map->Screen.HalfDimension.Y);
+		_Sprite = (struct Sprite*)_Itr->Data;
+		_Rect.x = _Sprite->ScreenPos.X - (_Map->Screen.Center.X - _Map->Screen.HalfDimension.X);
+		_Rect.y = _Sprite->ScreenPos.Y - (_Map->Screen.Center.Y - _Map->Screen.HalfDimension.Y);
 		_Rect.w = TILE_WIDTH;
 		_Rect.h = TILE_HEIGHT;
-		if((((struct Tile*)_Itr->Data)->TilePos.Y & 1) == 1)
+		if((_Sprite->TilePos.Y & 1) == 1)
 			SDL_RenderCopy(g_Renderer, _Map->OddGrass, NULL, &_Rect);
 		else
 		SDL_RenderCopy(g_Renderer, _Map->Grass, NULL, &_Rect);
+		_Itr = _Itr->Next;
+	}
+	LnkLstClear(&_Data);
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((const struct Point*(*)(const void*))SpriteGetTilePos), &_Data);
+	_Itr = _Data.Front;
+	while(_Itr != NULL) {
+		_Sprite = (struct Sprite*)_Itr->Data;
+		_Rect.x = _Sprite->ScreenPos.X - (_Map->Screen.Center.X - _Map->Screen.HalfDimension.X);
+		_Rect.y = _Sprite->ScreenPos.Y - (_Map->Screen.Center.Y - _Map->Screen.HalfDimension.Y);
+		_Rect.w = TILE_WIDTH;
+		_Rect.h = TILE_HEIGHT;
+		SDL_RenderCopy(g_Renderer, _Map->Settlement, NULL, &_Rect);
 		_Itr = _Itr->Next;
 	}
 	LnkLstClear(&_Data);

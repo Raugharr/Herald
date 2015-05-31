@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS+= -Wall -pg -g
+CFLAGS+= -Wall -std=c99 -pg
 OBJFLD=obj/
 DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h Occupation.h World.h Actor.h Zone.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h
 OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \

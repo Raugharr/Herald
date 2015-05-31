@@ -42,6 +42,8 @@ void InitLuaSystem() {
 int main(int argc, char* args[]) {
 	int i = 0;
 	int _WorldTimer = 0;
+	int _DrawTimer = 0;
+	int _Ticks = 0;
 	struct System _Systems[] = {
 			{"Lua", InitLuaSystem, QuitLuaCore},
 			{"Reform", InitReforms, QuitReforms},
@@ -59,14 +61,20 @@ int main(int argc, char* args[]) {
 	IMG_Init(IMG_INIT_PNG);
 	WorldInit(300);
 
-	_WorldTimer = SDL_GetTicks();
+
+	_WorldTimer = 0;
 	while(g_VideoOk != 0) {
+		_Ticks = SDL_GetTicks();
 		Events();
-		Draw();
-		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= SDL_GetTicks()) {
-			World_Tick();
-			_WorldTimer = SDL_GetTicks();
+		if(_DrawTimer + 16 <= _Ticks) {
+			Draw();
+			_DrawTimer = _Ticks;
 		}
+		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= _Ticks) {
+			World_Tick();
+			_WorldTimer = _Ticks;
+		}
+		++g_TaskPool->Time;
 	}
 	IMG_Quit();
 	WorldQuit();

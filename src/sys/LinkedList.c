@@ -76,6 +76,9 @@ void LnkLstClear(struct LinkedList* _List) {
 		free(_Node);
 		_Node = _Temp;
 	}
+	_List->Size = 0;
+	_List->Front = NULL;
+	_List->Back = NULL;
 }
 
 void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {

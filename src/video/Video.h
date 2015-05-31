@@ -28,13 +28,13 @@ struct Widget;
 struct Container;
 
 struct KeyMouseState {
-	unsigned int MouseButton;
-	unsigned int MouseState;
+	unsigned int MouseButton; /* Which button is pressed. */
+	unsigned int MouseState; /* Pressed or released. */
 	unsigned int MouseClicks;
-	unsigned int KeyboardButton;
+	unsigned int KeyboardButton; /* Which key is pressed. */
 	unsigned int KeyboardMod;
 	struct Point MousePos;
-	int KeyboardState;
+	int KeyboardState; /* Pressed or released. */
 };
 
 struct Font {
@@ -62,8 +62,7 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 void Events(void);
 void Draw(void);
 
-int SDLEventCmp(const void* _One, const void* _Two);
-int KeyEventCmp(const void* _One, const void* _Two);
+int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _Two);
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface);

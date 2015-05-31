@@ -18,7 +18,17 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-static struct KeyMouseState g_KeyMouseState;
+#define KeyMouseStateClear(_State)	\
+	(_State)->MouseButton = 0;		\
+	(_State)->MouseState = 0;		\
+	(_State)->MouseClicks = 0;		\
+	(_State)->KeyboardButton = 0;	\
+	(_State)->KeyboardMod = 0;		\
+	(_State)->MousePos.X = 0;		\
+	(_State)->MousePos.Y = 0;		\
+	(_State)->KeyboardState = 0;
+
+static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, {0, 0}, 0};
 
 SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
@@ -132,12 +142,7 @@ void Events(void) {
 	struct Widget* _Callback = NULL;
 
 	GUIMessageCheck(&g_GUIMessageList);
-	g_KeyMouseState.KeyboardButton = 0;
-	g_KeyMouseState.KeyboardButton = 0;
-	g_KeyMouseState.KeyboardMod = 0;
-	g_KeyMouseState.MouseButton = 0;
-	g_KeyMouseState.MouseState = 0;
-	g_KeyMouseState.MouseClicks = 0;
+	KeyMouseStateClear(&g_KeyMouseState);
 	while(SDL_PollEvent(&_Event) != 0) {
 		if(_Event.type == SDL_KEYUP || _Event.type == SDL_KEYDOWN) {
 			g_KeyMouseState.KeyboardState = _Event.key.state;
@@ -183,7 +188,7 @@ void Events(void) {
 				}
 				continue;
 				event_check:
-				if(KeyEventCmp(&g_GUIEvents->Events[i].Event, &_Event) == 0) {
+				if(KeyEventCmp(&g_GUIEvents->Events[i].Event, &g_KeyMouseState) == 0) {
 					LuaCallEvent(g_LuaState, g_GUIEvents->Events[i].RefId, _Callback);
 					if(g_GUIMenuChange != 0) {
 						g_GUIMenuChange = 0;
@@ -193,7 +198,9 @@ void Events(void) {
 			}
 		}
 	}
+	if(g_GameWorld.IsPaused  == 0)
 	GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
+	return;
 }
 
 void Draw(void) {
@@ -263,22 +270,21 @@ void DestroyFocus(struct GUIFocus* _Focus) {
 	DestroyFocus(_Prev);
 }
 
-int SDLEventCmp(const void* _One, const void* _Two) {
-	if((((SDL_Event*)_One)->type == SDL_KEYDOWN || ((SDL_Event*)_Two)->type == SDL_KEYUP) &&
-			(((SDL_Event*)_Two)->type == SDL_KEYDOWN || ((SDL_Event*)_Two)->type == SDL_KEYUP))
-		return KeyEventCmp(_One, _Two);
-	return 0;
-}
-
-int KeyEventCmp(const void* _One, const void* _Two) {
-	if(((SDL_Event*)_One)->type != ((SDL_Event*)_Two)->type)
-		return ((SDL_Event*)_One)->type - ((SDL_Event*)_Two)->type;
-	if(((SDL_Event*)_One)->key.state != ((SDL_Event*)_Two)->key.state)
-		return ((SDL_Event*)_One)->key.state - ((SDL_Event*)_Two)->key.state;
-	if(((SDL_Event*)_One)->key.keysym.sym != ((SDL_Event*)_Two)->key.keysym.sym)
-		return ((SDL_Event*)_One)->key.keysym.sym - ((SDL_Event*)_Two)->key.keysym.sym;
-	if(((SDL_Event*)_One)->key.keysym.mod != ((SDL_Event*)_Two)->key.keysym.mod)
-		return ((SDL_Event*)_One)->key.keysym.mod - ((SDL_Event*)_Two)->key.keysym.mod;
+int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _Two) {
+	if(_One->KeyboardButton != _Two->KeyboardButton)
+		return _One->KeyboardButton - _Two->KeyboardButton;
+	if(_One->KeyboardMod != _Two->KeyboardMod)
+		return _One->KeyboardMod != _Two->KeyboardMod;
+	if(_One->KeyboardState != _Two->KeyboardState)
+		return _One->KeyboardState - _Two->KeyboardState;
+	if(_One->MouseButton != _Two->MouseButton)
+		return _One->MouseButton - _Two->MouseButton;
+	if(_One->MouseClicks != _Two->MouseClicks)
+		return _One->MouseClicks - _Two->MouseClicks;
+	if((_One->MousePos.X != _Two->MousePos.X) || (_One->MousePos.Y != _Two->MousePos.Y))
+		return _One->MousePos.X - _Two->MousePos.X;
+	if(_One->MouseState != _Two->MouseState)
+		return _One->MouseState - _Two->MouseState;
 	return 0;
 }
 

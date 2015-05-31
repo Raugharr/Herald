@@ -32,8 +32,8 @@ struct BigGuy* CreateBigGuy(struct Person* _Person) {
 	_BigGuy->State = 0;
 	_BigGuy->Authority = 0;
 	_BigGuy->IsDirty = 1;
-	RBInsert(&g_BigGuys, _BigGuy);
-	RBInsert(&g_BigGuyState, _BigGuy);
+	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
+	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	ActorObserverInsert(CreateEventObserver(EVENT_DEATH, _Person->Id, ((void(*)(const void*, void*))BGOnObserve), _BigGuy));
 	return _BigGuy;
 }
@@ -49,8 +49,8 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 		}
 		_Itr = _Itr->Next;
 	}
-	RBDelete(&g_BigGuys, _BigGuy);
-	RBDelete(&g_BigGuyState, _BigGuy);
+	RBDelete(&g_GameWorld.BigGuys, _BigGuy);
+	RBDelete(&g_GameWorld.BigGuyStates, _BigGuy);
 	free(_BigGuy);
 }
 

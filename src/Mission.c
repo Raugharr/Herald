@@ -35,6 +35,7 @@ void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 
 	chdir("data/missions");
 	_Dir = opendir("./");
+	lua_settop(_State, 0);
 	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
 			continue;

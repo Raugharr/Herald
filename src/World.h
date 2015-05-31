@@ -31,17 +31,22 @@ extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
 extern struct RBTree g_Families;
 extern struct KDTree g_ObjPos;
-extern struct BigGuy* g_Player;
-extern struct LinkedList g_Settlements;
-extern struct RBTree g_BigGuys;
-extern struct RBTree g_BigGuyState;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
+
+#define GameWorldInsertSettlement(_GameWorld, _Settlement) 																							\
+{																																					\
+	struct AABB _AABB = {{((_Settlement)->StartPos.X + (_Settlement)->EndPos.X) / 2, ((_Settlement)->StartPos.Y + (_Settlement)->EndPos.Y) / 2}, 	\
+	{((_Settlement)->EndPos.X - (_Settlement)->StartPos.X) / 2, ((_Settlement)->EndPos.Y - (_Settlement)->StartPos.Y) / 2}};						\
+	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																						\
+	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &_AABB);																				\
+}
 
 struct GameWorld {
 	int IsPaused;
 	DATE Date;
 	struct MapRenderer* MapRenderer;
+	struct QuadTree SettlementIndex;
 	struct RBTree* GoodDeps;
 	struct Array* AnFoodDeps;
 	struct RBTree Families;

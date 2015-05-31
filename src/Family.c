@@ -181,7 +181,7 @@ int FamilyThink(struct Family* _Family) {
 
 	FamilyWorkField(_Family);
 	for(i = 0; i < _Family->Fields->Size; ++i) {
-		if(_Family == g_Player->Person->Family)
+		if(_Family == g_GameWorld.Player->Person->Family)
 			FieldUpdate((struct Field*)_Family->Fields->Table[i]);
 		else
 		FieldUpdate((struct Field*)_Family->Fields->Table[i]);

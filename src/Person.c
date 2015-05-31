@@ -148,7 +148,7 @@ void PersonDeath(struct Person* _Person) {
 			}
 			break;
 		}
-	RBDelete(&g_BigGuys, _Person);
+	RBDelete(&g_GameWorld.BigGuys, _Person);
 	EventPush(CreateEventDeath(_Person));
 	DestroyPerson(_Person);
 }

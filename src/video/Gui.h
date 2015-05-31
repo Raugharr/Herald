@@ -5,7 +5,7 @@
 #ifndef __GUI_H
 #define __GUI_H
 
-#include <SDL2/SDL.h>
+#include "Video.h"
 
 typedef struct SDL_Color SDL_Color;
 typedef struct SDL_Surface SDL_Surface;
@@ -37,7 +37,7 @@ typedef struct lua_State lua_State;
 	struct Margin Margins
 
 struct WEvent {
-	SDL_Event Event;
+	struct KeyMouseState Event;
 	int WidgetId;
 	int RefId;
 };

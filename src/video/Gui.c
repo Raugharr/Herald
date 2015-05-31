@@ -363,18 +363,23 @@ int TableHorzFocChange(const struct Container* _Container) {
 }
 
 void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod) {
-	SDL_Event _Event;
+	struct KeyMouseState _State;
 	struct WEvent _WEvent;
 
-	_Event.type = SDL_KEYUP;
-	_Event.key.state = _KeyState;
-	_Event.key.keysym.sym = _Key;
-	_Event.key.keysym.mod = _KeyMod;
+	_State.KeyboardState = _KeyState;
+	_State.KeyboardButton = _Key;
+	_State.KeyboardMod = _KeyMod;
+	_State.MouseButton = 0;
+	_State.MouseClicks = 0;
+	_State.MousePos.X = 0;
+	_State.MousePos.Y = 0;
+	_State.MouseState = 0;
+
 	if(g_GUIEvents->Size == g_GUIEvents->TblSz) {
-		g_GUIEvents->Events = realloc(g_GUIEvents->Events, sizeof(SDL_Event) * g_GUIEvents->TblSz * 2);
+		g_GUIEvents->Events = realloc(g_GUIEvents->Events, sizeof(struct WEvent) * g_GUIEvents->TblSz * 2);
 		g_GUIEvents->TblSz *= 2;
 	}
-	_WEvent.Event = _Event;
+	_WEvent.Event = _State;
 	_WEvent.WidgetId = _Widget->Id;
 	_WEvent.RefId = _RefId;
 	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;

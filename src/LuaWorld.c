@@ -36,12 +36,12 @@ void LuaWorldInit() {
 }
 
 int LuaWorldGetPlayer(lua_State* _State) {
-	LuaCtor(_State, "BigGuy", g_Player);
+	LuaCtor(_State, "BigGuy", g_GameWorld.Player);
 	return 1;
 }
 
 int LuaWorldGetSettlement(lua_State* _State) {
-	LuaCtor(_State, "Government", g_Player->Person->Family->HomeLoc->Government);
+	LuaCtor(_State, "Government", g_GameWorld.Player->Person->Family->HomeLoc->Government);
 	return 1;
 }
 

@@ -25,12 +25,12 @@ struct Sprite {
 struct Sprite* CreateSprite(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const struct Point* _TilePos);
 void DestroySprite(struct Sprite* _Sprite);
 
-static inline const struct Point* SpriteGetScreenPos(const struct Sprite* _Sprite) {
-	return &_Sprite->ScreenPos;
+static inline void SpriteGetScreenPos(const struct Sprite* _Sprite, struct Point* _Pos) {
+	*_Pos = _Sprite->ScreenPos;
 }
 
-static inline const struct Point* SpriteGetTilePos(const struct Sprite* _Sprite) {
-	return &_Sprite->TilePos;
+static inline void SpriteGetTilePos(const struct Sprite* _Sprite, struct Point* _Pos) {
+	*_Pos = _Sprite->TilePos;
 }
 
 #endif

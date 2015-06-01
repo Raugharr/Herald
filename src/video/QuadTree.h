@@ -21,6 +21,7 @@ struct QuadTree {
 void QTSubdivide(struct QuadTree* _Node);
 int QTInsertAABB(struct QuadTree* _Node, void* _Data, struct AABB* _AABB);
 int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point);
-void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct Point* (*_GetPos)(const void*), struct LinkedList* _DataList);
+void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct Point*), struct LinkedList* _DataList);
+void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct AABB*), struct LinkedList* _DataList);
 
 #endif

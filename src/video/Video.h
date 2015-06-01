@@ -27,6 +27,16 @@ typedef struct SDL_Texture SDL_Texture;
 struct Widget;
 struct Container;
 
+#define KeyMouseStateClear(_State)	\
+	(_State)->MouseButton = -1;		\
+	(_State)->MouseState = -1;		\
+	(_State)->MouseClicks = 0;		\
+	(_State)->KeyboardButton = 0;	\
+	(_State)->KeyboardMod = 0;		\
+	(_State)->MousePos.X = 0;		\
+	(_State)->MousePos.Y = 0;		\
+	(_State)->KeyboardState = 0;
+
 struct KeyMouseState {
 	unsigned int MouseButton; /* Which button is pressed. */
 	unsigned int MouseState; /* Pressed or released. */

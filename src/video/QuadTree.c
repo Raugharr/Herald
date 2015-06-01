@@ -98,16 +98,16 @@ int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
 	return 1;
 }
 
-void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct Point* (*_GetPos)(const void*), struct LinkedList* _DataList) {
-	const struct Point* _Point = NULL;
+void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct Point*), struct LinkedList* _DataList) {
+	struct Point _Point;
 
 	if(_Node == NULL)
 		return;
 	if(AABBIntersectsAABB(&_Node->BoundingBox, _Rect) == 0)
 		return;
 	if(_Node->Data != NULL) {
-		_Point = _GetPos(_Node->Data);
-		if(PointInAABB(_Point, _Rect)) {
+		_GetPos(_Node->Data, &_Point);
+		if(PointInAABB(&_Point, _Rect)) {
 			LnkLstPushBack(_DataList, _Node->Data);
 		}
 	}
@@ -117,16 +117,16 @@ void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const 
 	QTPointInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
 }
 
-void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, const struct AABB* (*_GetPos)(const void*), struct LinkedList* _DataList) {
-	const struct AABB* _AABB = NULL;
+void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct AABB*), struct LinkedList* _DataList) {
+	struct AABB _AABB;
 
 	if(_Node == NULL)
 		return;
 	if(AABBIntersectsAABB(&_Node->BoundingBox, _Rect) == 0)
 		return;
 	if(_Node->Data != NULL) {
-		_AABB = _GetPos(_Node->Data);
-		if(AABBInsideAABB(_AABB, _Rect)) {
+		_GetPos(_Node->Data, &_AABB);
+		if(AABBInsideAABB(_Rect, &_AABB)) {
 			LnkLstPushBack(_DataList, _Node->Data);
 		}
 	}

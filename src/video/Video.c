@@ -18,16 +18,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#define KeyMouseStateClear(_State)	\
-	(_State)->MouseButton = 0;		\
-	(_State)->MouseState = 0;		\
-	(_State)->MouseClicks = 0;		\
-	(_State)->KeyboardButton = 0;	\
-	(_State)->KeyboardMod = 0;		\
-	(_State)->MousePos.X = 0;		\
-	(_State)->MousePos.Y = 0;		\
-	(_State)->KeyboardState = 0;
-
 static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, {0, 0}, 0};
 
 SDL_Window* g_Window = NULL;

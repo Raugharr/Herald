@@ -138,7 +138,7 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 	struct Sprite* _Sprite = NULL;
 	SDL_Rect _Rect;
 
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((const struct Point*(*)(const void*))SpriteGetTilePos), &_Data);
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((void(*)(const void*, struct Point*))SpriteGetTilePos), &_Data);
 	_Itr = _Data.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;
@@ -153,7 +153,7 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 		_Itr = _Itr->Next;
 	}
 	LnkLstClear(&_Data);
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((const struct Point*(*)(const void*))SpriteGetTilePos), &_Data);
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((void(*)(const void*, struct Point*))SpriteGetTilePos), &_Data);
 	_Itr = _Data.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;

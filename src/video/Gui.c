@@ -366,14 +366,10 @@ void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, 
 	struct KeyMouseState _State;
 	struct WEvent _WEvent;
 
+	KeyMouseStateClear(&_State);
 	_State.KeyboardState = _KeyState;
 	_State.KeyboardButton = _Key;
 	_State.KeyboardMod = _KeyMod;
-	_State.MouseButton = 0;
-	_State.MouseClicks = 0;
-	_State.MousePos.X = 0;
-	_State.MousePos.Y = 0;
-	_State.MouseState = 0;
 
 	if(g_GUIEvents->Size == g_GUIEvents->TblSz) {
 		g_GUIEvents->Events = realloc(g_GUIEvents->Events, sizeof(struct WEvent) * g_GUIEvents->TblSz * 2);

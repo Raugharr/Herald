@@ -9,6 +9,7 @@
 #include "BigGuy.h"
 #include "Herald.h"
 #include "Location.h"
+#include "Warband.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -20,6 +21,12 @@
 #include <malloc.h>
 
 lua_State* g_LuaState = NULL;
+
+static luaL_Reg g_LuaFuncsArmy[] = {
+		{"GetLeader", LuaArmyGetLeader},
+		{"GetSize", LuaArmyGetSize},
+		{NULL, NULL}
+};
 
 static luaL_Reg g_LuaFuncsReformPassing[] = {
 		{"GetVotes", LuaReformPassingGetVotes},
@@ -50,10 +57,12 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 
 static const luaL_Reg g_LuaFuncsSettlement[] = {
 		{"GetLeader", LuaSettlementGetLeader},
+		{"RaiseArmy", LuaSettlementRaiseArmy},
 		{NULL, NULL}
 };
 
 const struct LuaObjectReg g_LuaSettlementObjects[] = {
+		{"Army", NULL, g_LuaFuncsArmy},
 		{"ReformPassing", NULL, g_LuaFuncsReformPassing},
 		{"Reform", NULL, g_LuaFuncsReform},
 		{"Government", NULL, g_LuaFuncsGovernment},
@@ -62,6 +71,20 @@ const struct LuaObjectReg g_LuaSettlementObjects[] = {
 		{"BuildMat", NULL, NULL},
 		{NULL, NULL, NULL}
 };
+
+int LuaArmyGetLeader(lua_State* _State) {
+	struct Army* _Army = LuaCheckClass(_State, 1, "Army");
+
+	LuaCtor(_State, "BigGuy", _Army->Leader);
+	return 1;
+}
+
+int LuaArmyGetSize(lua_State* _State) {
+	struct Army* _Army = LuaCheckClass(_State, 1, "Army");
+
+	lua_pushinteger(_State, ArmyGetSize(_Army));
+	return 1;
+}
 
 int LuaBGGetPerson(lua_State* _State) {
 	struct BigGuy* _BG = LuaCheckClass(_State, 1, "BigGuy");
@@ -153,5 +176,14 @@ int LuaSettlementGetLeader(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
 	LuaCtor(_State, "BigGuy", _Settlement->Government->Leader);
+	return 1;
+}
+
+int LuaSettlementRaiseArmy(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Army* _Army = CreateArmy(_Settlement->Government->Leader);
+
+	CreateWarband(_Settlement, _Army);
+	LuaCtor(_State, "Army", _Army);
 	return 1;
 }

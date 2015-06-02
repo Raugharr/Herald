@@ -14,6 +14,9 @@ typedef int (*lua_CFunction) (lua_State *L);
 
 extern const struct LuaObjectReg g_LuaSettlementObjects[];
 
+int LuaArmyGetLeader(lua_State* _State);
+int LuaArmyGetSize(lua_State* _State);
+
 int LuaBGGetPerson(lua_State* _State);
 int LuaBGSetAuthority(lua_State* _State);
 
@@ -30,5 +33,6 @@ int LuaReformPassingGetMaxVotes(lua_State* _State);
 int LuaReformGetName(lua_State* _State);
 
 int LuaSettlementGetLeader(lua_State* _State);
+int LuaSettlementRaiseArmy(lua_State* _State);
 
 #endif

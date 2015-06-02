@@ -6,6 +6,8 @@
 #define __LOCATION_H
 
 #include "sys/LinkedList.h"
+
+#include "video/AABB.h"
 #include "video/Point.h"
 
 #define SETTLEMENT_MINBG (3)
@@ -45,6 +47,13 @@ struct Settlement {
 	struct Government* Government;
 	int NumPeople;
 };
+
+static inline void LocationGetArea(const struct Location* _Location, struct AABB* _AABB) {
+	(*_AABB).Center.X = _Location->EndPos.X - _Location->StartPos.X;
+	(*_AABB).Center.Y = _Location->EndPos.Y - _Location->StartPos.Y;
+	(*_AABB).HalfDimension.X = (_Location->StartPos.X + _Location->EndPos.X) / 2;
+	(*_AABB).HalfDimension.Y = (_Location->StartPos.Y + _Location->EndPos.Y) / 2;
+}
 
 struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, const char* _Name, int _GovType);
 void DestroySettlement(struct Settlement* _Location);

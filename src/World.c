@@ -18,6 +18,7 @@
 #include "BigGuy.h"
 #include "Government.h"
 
+#include "video/GuiLua.h"
 #include "video/Video.h"
 #include "video/Tile.h"
 #include "video/Sprite.h"
@@ -361,7 +362,6 @@ void WorldQuit() {
 }
 
 void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World) {
-
 	if(_State->KeyboardState == SDL_RELEASED) {
 		if(_State->KeyboardButton == SDLK_a)
 			g_GameWorld.MapRenderer->Screen.Center.X -= TILE_WIDTH;
@@ -371,6 +371,21 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 			g_GameWorld.MapRenderer->Screen.Center.Y -= TILE_HEIGHT;
 		else if(_State->KeyboardButton == SDLK_s)
 			g_GameWorld.MapRenderer->Screen.Center.Y += TILE_HEIGHT;
+	}
+	if(_State->MouseState == SDL_RELEASED) {
+		struct LinkedList _List = {0, NULL, NULL};
+
+		QTAABBInRectangle(&g_GameWorld.SettlementIndex, &g_GameWorld.MapRenderer->Screen, (void(*)(const void*, struct AABB*))LocationGetArea, &_List);
+		if(_List.Size > 0) {
+			lua_settop(g_LuaState, 0);
+			lua_pushstring(g_LuaState, "ViewSettlementMenu");
+			lua_createtable(g_LuaState, 0, 1);
+			lua_pushstring(g_LuaState, "Settlement");
+			LuaCtor(g_LuaState, "Settlement", ((struct Settlement*)_List.Front->Data));
+			lua_rawset(g_LuaState, -3);
+			LuaSetMenu(g_LuaState);
+		}
+		LnkLstClear(&_List);
 	}
 }
 

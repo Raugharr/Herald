@@ -53,6 +53,9 @@ int LuaGetDefaultFont(lua_State* _State);
 int LuaSetMenu(lua_State* _State);
 /**
  * Sets the initial state of a Menu, if the menu is not already loaded calls its Init function.
+ * The value at position 1 on the Lua stack must be a string is the name of the menu to load.
+ * If the Lua stack is greater than 1 the second value on the stack must be a table that will be passed
+ * as the third argument to the menu's Init function.
  */
 int LuaSetMenu_Aux(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);

@@ -490,7 +490,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	else
 		luaL_checktype(_State, 2, LUA_TTABLE);
 	lua_getglobal(_State, _Name);
-	if(lua_type(_State, -1) == LUA_TNIL)
+	if(lua_type(_State, 1) == LUA_TNIL)
 		luaL_error(_State, "Menu %s not not exist", _Name);
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);

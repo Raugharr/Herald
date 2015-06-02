@@ -112,6 +112,22 @@ struct Army* CreateArmy(struct BigGuy* _Leader) {
 	return _Army;
 }
 
+void DestroyArmy(struct Army* _Army) {
+	free(_Army->Warbands);
+	free(_Army);
+}
+
+int ArmyGetSize(const struct Army* _Army) {
+	struct Warband* _Warband = _Army->Warbands;
+	int _Size = 0;
+
+	while(_Warband != NULL) {
+		_Size += _Warband->WarriorCt;
+		_Warband = _Warband->Next;
+	}
+	return _Size;
+}
+
 void ArmyCreateFront(struct Army* _Army, struct LinkedList* _Warbands) {
 	struct Warband* _Warband = _Army->Warbands;
 

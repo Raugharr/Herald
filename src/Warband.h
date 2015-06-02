@@ -48,7 +48,7 @@ struct Warrior {
 	struct Good* RangeWeapon;
 	struct Good* Armor;
 	struct Good* Shield;
-	struct Warrior* Next;
+	struct Warrior* Next; /* Implicit linked list containing the next and previous warriors in the warband that contains this warrior.*/
 	struct Warrior* Prev;
 };
 
@@ -56,7 +56,7 @@ struct Warband {
 	struct Warrior* Warriors;
 	int WarriorCt;
 	struct UnitStats Stats;
-	struct Warband* Next;
+	struct Warband* Next; /* Implicit linked list containing the next and previous warbands in the army that contains this warband.*/
 	struct Warband* Prev;
 };
 
@@ -93,6 +93,8 @@ void DestroyWarband(struct Warband* _Warband, struct Army* _Army);
 int CountWarbandUnits(struct LinkedList* _Warbands);
 
 struct Army* CreateArmy(struct BigGuy* _Leader);
+void DestroyArmy(struct Army* _Army);
+int ArmyGetSize(const struct Army* _Army);
 void ArmyCreateFront(struct Army* _Army, struct LinkedList* _Warbands);
 int ArmyBattleDecision(struct Army* _Army, int _Status, int _Range);
 

@@ -113,7 +113,6 @@ static const struct LuaObjectReg g_LuaFamilyObjects[] = {
 void InitLuaFamily() {
 	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
 	LuaRegisterFunctions(g_LuaState, g_LuaFamilyFuncs);
-	lua_setglobal(g_LuaState, "World");
 }
 
 int LuaPersonGetId(lua_State* _State) {

@@ -32,11 +32,20 @@
 	#include <sys/io.h>
 #endif
 
-void InitLuaSystem() {
+int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+	if(InitGUILua(g_LuaState) == 0)
+		return 0;
 	LuaWorldInit();
+	return 1;
+}
+
+void QuitLuaSystem() {
+	QuitGUILua(g_LuaState);
+	QuitLuaCore();
+	lua_close(g_LuaState);
 }
 
 int main(int argc, char* args[]) {
@@ -45,10 +54,10 @@ int main(int argc, char* args[]) {
 	int _DrawTimer = 0;
 	int _Ticks = 0;
 	struct System _Systems[] = {
+			{"Video", VideoInit, VideoQuit},
 			{"Lua", InitLuaSystem, QuitLuaCore},
 			{"Reform", InitReforms, QuitReforms},
 			{"Main", HeraldInit, HeraldDestroy},
-			{"Video", VideoInit, VideoQuit},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;
@@ -56,7 +65,10 @@ int main(int argc, char* args[]) {
 	g_LuaState = luaL_newstate();
 	for(i = 0; _Systems[i].Name != NULL; ++i) {
 		Log(ELOG_INFO, "Initializing %s system.", _Systems[i].Name);
-		_Systems[i].Init();
+		if(_Systems[i].Init() == 0) {
+			Log(ELOG_INFO, "System %s could not be loaded.", _Systems[i].Name);
+			goto quit;
+		}
 	};
 	IMG_Init(IMG_INIT_PNG);
 	WorldInit(300);
@@ -76,12 +88,12 @@ int main(int argc, char* args[]) {
 		}
 		++g_TaskPool->Time;
 	}
+	quit:
 	IMG_Quit();
 	WorldQuit();
 	for(i = 0; _Systems[i].Name != NULL; ++i) {
 		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
 		_Systems[i].Quit();
 	}
-	lua_close(g_LuaState);
 	return 0;
 }

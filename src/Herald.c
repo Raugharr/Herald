@@ -57,7 +57,7 @@ int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
 }
 
-void HeraldInit() {
+int HeraldInit() {
 	g_Crops.TblSize = 0;
 	g_Crops.Table = NULL;
 	g_Crops.Size = 0;
@@ -92,6 +92,7 @@ void HeraldInit() {
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	EventInit();
 	PathfindInit();
+	return 1;
 }
 
 void HeraldDestroy() {

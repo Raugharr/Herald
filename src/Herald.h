@@ -74,8 +74,8 @@ struct InputReq {
 
 struct System {
 	const char* Name;
-	void(*Init)();
-	void(*Quit)();
+	int(*Init)(void);
+	void(*Quit)(void);
 };
 
 struct Object {
@@ -103,8 +103,8 @@ extern struct Constraint** g_FamilySize;//Average number of families sharing the
 
 int IdISCallback(const int* _One, const int* _Two);
 
-void HeraldInit();
-void HeraldDestroy();
+int HeraldInit(void);
+void HeraldDestroy(void);
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 int InputReqQtyCmp(const void* _One, const void* _Two);

@@ -75,7 +75,7 @@ void (*g_GovernmentSucession[GOVSUCESSION_SIZE])(struct Government*) = {
 		NULL
 };
 
-void InitReforms(void) {
+int InitReforms(void) {
 	struct LinkedList _List = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 	struct ReformOp _OpCode;
@@ -92,6 +92,7 @@ void InitReforms(void) {
 	for(i = 0; i < _List.Size && _Itr != NULL; ++i, _Itr = _Itr->Next)
 		g_Reforms[i] = (struct Reform*)_Itr->Data;
 	LnkLstClear(&_List);
+	return 1;
 }
 
 void QuitReforms(void) {

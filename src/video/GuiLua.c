@@ -485,25 +485,28 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	struct Font* _Font = NULL;
 	struct Font* _Prev = NULL;
 
+	//Check if the global _Name exists if it doesn't close the menu.
 	if(lua_gettop(_State) == 1)
 		lua_pushnil(_State);
 	else
 		luaL_checktype(_State, 2, LUA_TTABLE);
 	lua_getglobal(_State, _Name);
-	if(lua_type(_State, 1) == LUA_TNIL)
+	if(lua_type(_State, -1) == LUA_TNIL)
 		luaL_error(_State, "Menu %s not not exist", _Name);
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
+
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Menu");
-	lua_pushvalue(_State, -3);
-	lua_rawset(_State, -3);
-	lua_pop(_State, 1);
+	lua_pushvalue(_State, 3); //Get the new table.
+	lua_rawset(_State, -3);//Set GUI.Menu equal to the global _Name.
+	lua_pop(_State, 1);// Pop global GUI.
+
 	lua_pushstring(_State, "__name");
 	lua_pushstring(_State, _Name);
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 3);
 	lua_pushstring(_State, "__savestate");
-	lua_rawget(_State, -2);
+	lua_rawget(_State, 3);
 	/* Is __savestate == 0 */
 	if(lua_toboolean(_State, -1) == 0) {
 		g_Focus = CreateGUIFocus();
@@ -574,17 +577,19 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		g_GUIMenuChange = 1;
 		return 0;
 	}
-	lua_pop(_State, 1);
+	lua_pop(_State, 1); //pop __savestate.
 	if(lua_type(_State, -1) != LUA_TTABLE) {
 		RestoreScreen(_State);
 		lua_settop(_State, 0);
 		return luaL_error(_State, "%s is not a table.", _Name);
 	}
 	lua_pushstring(_State, "Init");
-	lua_rawget(_State, -2);
-	lua_remove(_State, -2);
+	lua_rawget(_State, 3);
+	//lua_remove(_State, -2);
 	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0) {
-		RestoreScreen(_State);
+		if(g_GUIStack.Top != NULL) {
+			RestoreScreen(_State);
+		}
 		return luaL_error(_State, "%s is not a function.", _Name);
 	}
 	lua_pushinteger(_State, SDL_WIDTH);
@@ -629,7 +634,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
 		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 	}
-	lua_pop(_State, 2);
+	lua_pop(_State, 3);
 	g_VideoOk = 1;
 	return 0;
 }

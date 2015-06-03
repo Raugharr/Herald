@@ -122,7 +122,7 @@ struct RepublicGovernment {
 	int NextElection;
 };
 
-void InitReforms(void);
+int InitReforms(void);
 void QuitReforms(void);
 
 struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement);

@@ -590,12 +590,13 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		if(g_GUIStack.Top != NULL) {
 			RestoreScreen(_State);
 		}
-		return luaL_error(_State, "%s is not a function.", _Name);
+		return luaL_error(_State, "Init is not a function in menu %s.", _Name);
 	}
+	lua_pushvalue(_State, 3);
 	lua_pushinteger(_State, SDL_WIDTH);
 	lua_pushinteger(_State, SDL_HEIGHT);
 	lua_pushvalue(_State, 2);
-	if(LuaCallFunc(_State, 3, 1, 0) == 0) {
+	if(LuaCallFunc(_State, 4, 1, 0) == 0) {
 		if(g_GUIStack.Size > 0) {
 			RestoreScreen(_State);
 		}
@@ -1250,6 +1251,7 @@ int InitGUILua(lua_State* _State) {
 	int i = 0;
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
+	char* _Temp = NULL;
 
 	while(g_LuaGUIFuncDecl[i] != NULL) {
 		if(g_LuaGUIFuncDecl[i](_State) == 0)
@@ -1258,15 +1260,34 @@ int InitGUILua(lua_State* _State) {
 	}
 	luaL_newlib(_State, g_LuaFuncsGUI);
 	lua_setglobal(_State, "GUI");
-	if(LuaLoadFile(_State, "data/video.lua") != LUA_OK)
+
+	lua_newtable(_State);
+	lua_pushstring(_State, "Menu");
+	lua_newtable(_State);
+	lua_rawset(_State, -3);
+
+	lua_newtable(_State);
+	lua_pushstring(_State, "__index");
+	lua_pushglobaltable(_State);
+	lua_rawset(_State, -3);
+	lua_setmetatable(_State, -2);
+	LuaSetEnv(_State, "Menu");
+	lua_pop(_State, 1);
+	if(LuaLoadFile(_State, "data/video.lua", NULL) != LUA_OK)
 		return 0;
 	chdir("data/gui");
 	_Dir = opendir("./");
 	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
 			continue;
-		if(LuaLoadFile(_State, _Dirent->d_name) != LUA_OK)
+		if(LuaLoadFile(_State, _Dirent->d_name, "Menu") != LUA_OK)
 			goto error;
+		_Temp = strrchr(_Dirent->d_name, '.');
+		int _Size = _Temp - _Dirent->d_name;
+		char _MenuName[_Size + 1];
+		strncpy(_MenuName, _Dirent->d_name, _Size);
+		_MenuName[_Size] = '\0';
+		LuaAddMenu(_State, _MenuName);
 	}
 	chdir("../..");
 	lua_getglobal(_State, "GUI");
@@ -1392,4 +1413,15 @@ void LuaWidgetUnref(lua_State* _State, int _Ref) {
 	lua_rawget(_State, -2);
 	luaL_unref(_State, -1, _Ref);
 	lua_pop(_State, 2);
+}
+
+void LuaAddMenu(lua_State* _State, const char* _Name) {
+	LuaGetEnv(_State, "Menu");
+	lua_pushstring(_State, "Menu");
+	lua_rawget(_State, -2);
+	lua_setglobal(_State, _Name);
+	lua_pushstring(_State, "Menu");
+	lua_newtable(_State);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
 }

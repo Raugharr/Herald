@@ -141,7 +141,7 @@ int PopulateWorld() {
 	int _ManorInterval = 0;
 	int i = 0;
 
-	if(LuaLoadFile(g_LuaState, "std.lua") != LUA_OK) {
+	if(LuaLoadFile(g_LuaState, "std.lua", NULL) != LUA_OK) {
 		goto end;
 	}
 	lua_getglobal(g_LuaState, "ManorConstraints");
@@ -286,7 +286,7 @@ void WorldInit(int _Area) {
 		Log(ELOG_WARNING, "Failed to load goods.");
 		goto GoodLoadEnd;
 	}
-	if(LuaLoadFile(g_LuaState, "goods.lua") != LUA_OK)
+	if(LuaLoadFile(g_LuaState, "goods.lua", NULL) != LUA_OK)
 		goto end;
 	lua_getglobal(g_LuaState, "Goods");
 	i = 1;

@@ -1,79 +1,77 @@
-ViewPersonMenu = { }
-
-function ViewPersonMenu.Init(Width, Height, Person)
-	local Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
-	local Menu = GUI.VerticalContainer(0, 0, 400, Height, 0, {0, 0, 0, 0}, Screen)
-	Display = nil
+function Menu.Init(Menu, Width, Height, Person)
+	Menu.Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
+	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Height, 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.Display = nil
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	
-	Menu:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
-	Menu:CreateLabel("Skills")
-	Menu:CreateLabel("Agriculture"):OnKey("Enter", "Released",
+	Menu.MenuBar:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
+	Menu.MenuBar:CreateLabel("Skills")
+	Menu.MenuBar:CreateLabel("Agriculture"):OnKey("Enter", "Released",
 		function()
-			if(Display ~= nil) then
-				Display:Destroy()
+			if(Menu.Display ~= nil) then
+				Menu.Display:Destroy()
 			end
-			Display = Screen:CreateTable(5, 16, 0, {0, 0, 0, 0})
-			Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+			Menu.Display = Screen:CreateTable(5, 16, 0, {0, 0, 0, 0})
+			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			
-			Display:CreateLabel("Name"):SetFocus(false)
-			Display:CreateLabel("Yield"):SetFocus(false)
-			Display:CreateLabel("Acres"):SetFocus(false)
-			Display:CreateLabel("Status"):SetFocus(false)
-			Display:CreateLabel("StatusTime"):SetFocus(false)
+			Menu.Display:CreateLabel("Name"):SetFocus(false)
+			Menu.Display:CreateLabel("Yield"):SetFocus(false)
+			Menu.Display:CreateLabel("Acres"):SetFocus(false)
+			Menu.Display:CreateLabel("Status"):SetFocus(false)
+			Menu.Display:CreateLabel("StatusTime"):SetFocus(false)
 			for Field in Person:GetFamily():GetFields():Next() do	
-				Display:CreateLabel(Field:GetCrop().Name)
-				Display:CreateLabel(Field:GetYield())
-				Display:CreateLabel(Field:GetAcres())
-				Display:CreateLabel(Field:GetStatus())
-				Display:CreateLabel(Field:GetStatusTime())
+				Menu.Display:CreateLabel(Field:GetCrop().Name)
+				Menu.Display:CreateLabel(Field:GetYield())
+				Menu.Display:CreateLabel(Field:GetAcres())
+				Menu.Display:CreateLabel(Field:GetStatus())
+				Menu.Display:CreateLabel(Field:GetStatusTime())
 			end
 		end)
-	Menu:CreateLabel("Goods"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateLabel("Goods"):OnKey("Enter", "Released",
 		function()
-			if(Display ~= nil) then
-				Display:Destroy()
+			if(Menu.Display ~= nil) then
+				Menu.Display:Destroy()
 			end
-			Display = Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
-			Display:SetCellWidth(GetDefaultFont():FontWidth() * 8)
-			Display:SetCellHeight(GetDefaultFont():FontHeight())
-			Display:CreateLabel("Name"):SetFocus(false)
-			Display:CreateLabel("Quantity"):SetFocus(false)
+			Menu.Display = Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
+			Menu.Display:SetCellWidth(GetDefaultFont():FontWidth() * 8)
+			Menu.Display:SetCellHeight(GetDefaultFont():FontHeight())
+			Menu.Display:CreateLabel("Name"):SetFocus(false)
+			Menu.Display:CreateLabel("Quantity"):SetFocus(false)
 			for Good in Person:GetFamily():GetGoods():Next() do
-				Display:CreateLabel(Good:GetBase().Name)
-				Display:CreateLabel(Good:GetQuantity())
+				Menu.Display:CreateLabel(Good:GetBase().Name)
+				Menu.Display:CreateLabel(Good:GetQuantity())
 			end
 		end)
-	Menu:CreateLabel("Animals"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateLabel("Animals"):OnKey("Enter", "Released",
 		function()
-			if(Display ~= nil) then
-				Display:Destroy()
+			if(Menu.Display ~= nil) then
+				Menu.Display:Destroy()
 			end
-			Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
-			Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-			Display:CreateLabel("Name"):SetFocus(false)
-			Display:CreateLabel("Nutrition"):SetFocus(false)
-			Display:CreateLabel("Age"):SetFocus(false)
+			Menu.Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+			Menu.Display:CreateLabel("Name"):SetFocus(false)
+			Menu.Display:CreateLabel("Nutrition"):SetFocus(false)
+			Menu.Display:CreateLabel("Age"):SetFocus(false)
 			for An in Person:GetFamily():GetAnimals():Next() do
-				Display:CreateLabel(An:GetBase().Name)
-				Display:CreateLabel(An:GetNutrition())
-				Display:CreateLabel(PrintYears(An:GetAge()))
+				Menu.Display:CreateLabel(An:GetBase().Name)
+				Menu.Display:CreateLabel(An:GetNutrition())
+				Menu.Display:CreateLabel(PrintYears(An:GetAge()))
 			end
 		end)
-	Menu:CreateLabel("Buildings"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateLabel("Buildings"):OnKey("Enter", "Released",
 	 function()
-		if(Display ~= nil) then
-			Display:Destroy()
+		if(Menu.Display ~= nil) then
+			Menu.Display:Destroy()
 		end
-		Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
-		Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-		Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-		Display:CreateLabel("Width"):SetFocus(false)
-		Display:CreateLabel("Length"):SetFocus(false)
-	 end)
-	Menu:CreateLabel("Back"):OnKey("Enter", "Released",
+		Menu.Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+		Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+		Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+		Menu.Display:CreateLabel("Width"):SetFocus(false)
+		Menu.Display:CreateLabel("Length"):SetFocus(false)
+	end)
+	Menu.MenuBar:CreateLabel("Back"):OnKey("Enter", "Released",
 		function()
 			GUI.PopMenu()
 		end)
@@ -81,6 +79,10 @@ function ViewPersonMenu.Init(Width, Height, Person)
 	return false
 end
 
-function ViewPersonMenu.Quit(Menu)
+function Menu.Think(Menu)
+
+end
+
+function Menu.Quit(Menu)
 
 end

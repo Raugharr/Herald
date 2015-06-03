@@ -39,7 +39,7 @@ void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
 			continue;
-		if(LuaLoadFile(_State, _Dirent->d_name) != LUA_OK)
+		if(LuaLoadFile(_State, _Dirent->d_name, NULL) != LUA_OK)
 			goto error;
 		_SubString = strrchr(_Dirent->d_name, '.');
 		_TableName = alloca(sizeof(char) * (strlen(_Dirent->d_name) + 1));

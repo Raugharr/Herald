@@ -23,7 +23,7 @@ struct Primitive;
 		lua_pushlightuserdata((_State), (_Ptr));	\
 		lua_rawset((_State), -3);					\
 	} else {										\
-		lua_pop((_State), 1);						\
+		lua_pop((_State), 2);						\
 		Log(ELOG_WARNING, "Lua class %s does not exist", (_Class));	\
 	}
 
@@ -105,7 +105,7 @@ int LuaPrintYears(lua_State* _State);
 int LuaHook(lua_State* _State);
 int LuaRandom(lua_State* _State);
 
-int LuaLoadFile(lua_State* _State, const char* _File);
+int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);
 //FIXME: _Callback's second parameter is not used.
 int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return);
@@ -161,5 +161,14 @@ struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 
 void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);
 struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
+
+/*
+ * Set the environment _Env to the table at the top of the stack.
+ */
+void LuaSetEnv(lua_State* _State, const char* _Env);
+/*
+ * Get the environment _Env and pushes it into the stack.
+ */
+void LuaGetEnv(lua_State* _State, const char* _Env);
 
 #endif

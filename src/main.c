@@ -11,6 +11,7 @@
 #include "LuaSettlement.h"
 #include "LuaWorld.h"
 
+#include "video/GuiLua.h"
 #include "video/Video.h"
 
 #include "sys/Log.h"

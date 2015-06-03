@@ -18,6 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+const char* g_LuaGlobals[] = {
+		"Environments",
+		NULL
+};
+
 static const luaL_Reg g_LuaCoreFuncs[] = {
 		{"CreateConstraintBounds", LuaConstraintBnds},
 		{"ToYears", LuaYears},
@@ -84,6 +89,10 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 
 void InitLuaCore() {
 	//g_LuaState = luaL_newstate();
+	for(int i = 0; g_LuaGlobals[i] != NULL; ++i) {
+		lua_newtable(g_LuaState);
+		lua_setglobal(g_LuaState, g_LuaGlobals[i]);
+	}
 	lua_atpanic(g_LuaState, LogLua);
 	luaL_openlibs(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaCoreObjects);
@@ -423,13 +432,20 @@ int LuaRandom(lua_State* _State) {
 	return 1;
 }
 
-int LuaLoadFile(lua_State* _State, const char* _File) {
+int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) {
 	int _Error = luaL_loadfile(_State, _File);
 
 	if(_Error != 0)
 		goto error;
+	if(_Environment != NULL) {
+		LuaGetEnv(_State, _Environment);
+		lua_setupvalue(_State, -2, 1);
+	}
 	if((_Error = lua_pcall(_State, 0, LUA_MULTRET, 0)) != 0)
 		goto error;
+	const char* _Test = lua_getupvalue(_State, -1, 1);
+	if(_Test != NULL)
+		lua_pop(_State, 1);
 	return LUA_OK;
 
 	error:
@@ -463,7 +479,7 @@ int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return) {
 	void* _CallRet = NULL;
 
-	if(LuaLoadFile(_State, _File) != LUA_OK)
+	if(LuaLoadFile(_State, _File, NULL) != LUA_OK)
 		return 0;
 	lua_getglobal(_State, _Global);
 	if(!lua_istable(_State, -1))
@@ -537,6 +553,8 @@ void LuaStackToTable(lua_State* _State, int* _Table) {
 }
 
 void LuaCopyTable(lua_State* _State, int _Index) {
+	_Index = LuaAbsPos(_State, _Index);
+
 	if(lua_type(_State, _Index) != LUA_TTABLE)
 		return;
 	if(lua_type(_State, -1) != LUA_TTABLE)
@@ -779,4 +797,19 @@ struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
 			break;
 	}
 	return _Primitive;
+}
+
+void LuaSetEnv(lua_State* _State, const char* _Env) {
+	lua_getglobal(_State, "Environments");
+	lua_pushstring(_State, _Env);
+	lua_pushvalue(_State, -3);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
+}
+
+void LuaGetEnv(lua_State* _State, const char* _Env) {
+	lua_getglobal(_State, "Environments");
+	lua_pushstring(_State, _Env);
+	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
 }

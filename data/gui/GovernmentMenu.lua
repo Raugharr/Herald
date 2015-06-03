@@ -1,41 +1,39 @@
-GovernmentMenu = { }
-
-function GovernmentMenu.Init(Width, Height, Data)
-	local Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
-	local VoteCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Screen)
-	local Government = Data
-	local Reform = Government:GetReform()
+function Menu.Init(Menu, Width, Height, Data)
+	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
+	Menu.VoteCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.Government = Data["Settlement"]
+	Menu.Reform = Menu.Government:GetReform()
 	
-	local TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Screen)
-	TitleCon:SetFocus(false)
-	local Title = TitleCon:CreateLabel("Government")
-	Title:SetFocus(false)
-	Title:SetX(TitleCon:GetHorizontalCenter(Title))
+	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.TitleCon:SetFocus(false)
+	Menu.Title = Menu.TitleCon:CreateLabel("Government")
+	Menu.Title:SetFocus(false)
+	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	--Screen:Paragraph(GUI.GetFont("Elementary_Gothic_Bookhand.ttf", 12), Mission.Description)
 	--Government:PossibleReforms():Front():Data():GetName()
-	VoteCont:SetFocus(false)
-	if Reform ~= nil then
-		GovernmentMenu.VoteLabel = VoteCont:CreateLabel(Reform:GetVotes() .. " votes for passing  out of " .. Reform:GetMaxVotes() .. " total votes.")
+	Menu.VoteCont:SetFocus(false)
+	if Menu.Reform ~= nil then
+		Menu.VoteLabel = Menu.VoteCont:CreateLabel(Menu.Reform:GetVotes() .. " votes for passing  out of " .. Menu.Reform:GetMaxVotes() .. " total votes.")
 	end
 	
-	Screen:CreateLabel(Government:Rule() .. " " .. Government:Structure() .. " " .. Government:Type()):SetFocus(false)
-	for v in Government:PossibleReforms():Front() do
-		Screen:CreateLabel(v:GetName()):OnKey("Enter", "Released",
+	Menu.Screen:CreateLabel(Menu.Government:Rule() .. " " .. Menu.Government:Structure() .. " " .. Menu.Government:Type()):SetFocus(false)
+	for v in Menu.Government:PossibleReforms():Front() do
+		Menu.Screen:CreateLabel(v:GetName()):OnKey("Enter", "Released",
 			function()
-				Government:PassReform(v)
+				Menu.Government:PassReform(v)
 			 end)
 	end
-	Screen:CreateLabel("Back"):OnKey("Enter", "Released",
+	Menu.Screen:CreateLabel("Back"):OnKey("Enter", "Released",
 		function()
 			GUI.PopMenu()
 		end)
 	return false
 end
 
-function GovernmentMenu.Think(Menu)
+function Menu.Think(Menu)
 
 end
 
-function GovernmentMenu.Quit(Menu)
+function Menu.Quit(Menu)
 
 end

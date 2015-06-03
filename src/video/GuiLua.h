@@ -151,5 +151,6 @@ void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback);
  */
 int LuaWidgetRef(lua_State* _State);
 void LuaWidgetUnref(lua_State* _State, int _Ref);
+void LuaAddMenu(lua_State* _State, const char* _Name);
 
 #endif

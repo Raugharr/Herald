@@ -80,16 +80,6 @@ void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(voi
 void GUIMessageCheck(struct LinkedList* _List);
 
 /**
- * Check functions
- */
-
-struct Widget* LuaCheckWidget(lua_State* _State, int _Index);
-struct Container* LuaCheckContainer(lua_State* _State, int _Index);
-struct Label* LuaCheckLabel(lua_State* _State, int _Index);
-SDL_Surface* LuaCheckSurface(lua_State* _State, int _Index);
-struct Font* LuaCheckFont(lua_State* _State, int _Index);
-
-/**
  * Widget functions
  */
 

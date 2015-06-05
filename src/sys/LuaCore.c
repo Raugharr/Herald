@@ -121,7 +121,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 	if(luaL_newmetatable(_State, _Name) == 0)
 		return 0;
 	lua_pushliteral(_State, "__index");
-	lua_pushvalue(_State, -2);
+	lua_pushcfunction(_State, LuaClassIndex);
 	lua_rawset(_State, -3);
 	lua_pushstring(_State, "__class");
 	lua_pushstring(_State, _Name);
@@ -812,4 +812,22 @@ void LuaGetEnv(lua_State* _State, const char* _Env) {
 	lua_pushstring(_State, _Env);
 	lua_rawget(_State, -2);
 	lua_remove(_State, -2);
+}
+
+int LuaClassIndex(lua_State* _State) {
+	lua_getmetatable(_State, 1);
+	while(1) {
+		lua_pushvalue(_State, 2);
+		lua_rawget(_State, 3);
+		if(lua_type(_State, -1) != LUA_TNIL)
+			break;
+		lua_pop(_State, 1);
+		lua_pushstring(_State, "__baseclass");
+		lua_rawget(_State, 3);
+		if(lua_type(_State, -1) == LUA_TNIL)
+			break;
+		lua_replace(_State, 3);
+	}
+
+	return 1;
 }

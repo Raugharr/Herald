@@ -170,5 +170,6 @@ void LuaSetEnv(lua_State* _State, const char* _Env);
  * Get the environment _Env and pushes it into the stack.
  */
 void LuaGetEnv(lua_State* _State, const char* _Env);
+int LuaClassIndex(lua_State* _State);
 
 #endif

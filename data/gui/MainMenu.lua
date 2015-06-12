@@ -7,12 +7,12 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Title = Menu.TitleCon:CreateLabel("Herald")
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
-	Menu.Screen:CreateLabel("New"):OnKey("Enter", "Released",
+	Menu.Screen:CreateLabel("New"):OnClick(
 		function()
 			GUI.SetMenu("GameMenu")
 		end)
 	Menu.Screen:CreateLabel("Load")
-	Menu.Screen:CreateLabel("Exit"):OnKey("Enter", "Released", 
+	Menu.Screen:CreateLabel("Exit"):OnClick(
 		function() 
 			GUI.PopMenu()
 		end)	

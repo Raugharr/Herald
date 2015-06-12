@@ -10,60 +10,36 @@
 #include <stdlib.h>
 #include <math.h>
 
-struct QuadTree* CreateQTNode(struct AABB* _Center) {
+struct QuadTree* CreateQTNode(SDL_Rect* _Center) {
 	struct QuadTree* _Node = (struct QuadTree*) malloc(sizeof(struct QuadTree));
 
 	_Node->NorthWest = NULL;
 	_Node->NorthEast = NULL;
 	_Node->SouthEast = NULL;
 	_Node->SouthWest = NULL;
-	_Node->BoundingBox.Center.X = _Center->Center.X;
-	_Node->BoundingBox.Center.Y = _Center->Center.Y;
-	_Node->BoundingBox.HalfDimension.X = _Center->HalfDimension.X;
-	_Node->BoundingBox.HalfDimension.Y = _Center->HalfDimension.Y;
+	_Node->BoundingBox.x = _Center->x;
+	_Node->BoundingBox.y = _Center->y;
+	_Node->BoundingBox.w = _Center->w;
+	_Node->BoundingBox.h = _Center->h;
 	_Node->Data = NULL;
 	return _Node;
 }
 
 void QTSubdivide(struct QuadTree* _Node) {
-	/*float _XCenter = ((float)_Node->BoundingBox.Center.X) - (((float)_Node->BoundingBox.HalfDimension.X) / 2);
-	float _NWXCenter = _Node->BoundingBox.Center.X + (((float)_Node->BoundingBox.HalfDimension.X) / 2);
-	float _YCenter = ((float)_Node->BoundingBox.Center.Y) - (((float)_Node->BoundingBox.HalfDimension.Y) / 2);
-	float _HalfX = ((float)_Node->BoundingBox.HalfDimension.X) / 2;
-	float _HalfY = ((float)_Node->BoundingBox.HalfDimension.Y) / 2;
-	struct AABB _Center = {{floor(_XCenter),
-			floor(_YCenter)},
-			{floor(_HalfX), floor(_HalfY)}};
-	int _OldX = _Node->BoundingBox.Center.X;
+	SDL_Rect _Center = {_Node->BoundingBox.x, _Node->BoundingBox.y, _Node->BoundingBox.w / 2, _Node->BoundingBox.h / 2};
 
 	_Node->NorthEast = CreateQTNode(&_Center);
-	_Center.Center.X = ceil(_NWXCenter);
-	_Center.HalfDimension.X = ceil(_HalfX);
-	_Center.HalfDimension.Y = ceil(_HalfY);
+	_Center.x = (_Center.x + _Center.w) + (_Node->BoundingBox.w & 1); /// 2;
 	_Node->NorthWest = CreateQTNode(&_Center);
-	_Center.Center.Y = ceil(_NWXCenter);
+
+	_Center.y = (_Center.y + _Center.h) + (_Node->BoundingBox.h & 1);// / 2;
 	_Node->SouthWest = CreateQTNode(&_Center);
-	_Center.Center.X = _OldX;
-	_Node->SouthEast = CreateQTNode(&_Center);*/
-	int _OldX = _Node->BoundingBox.Center.X - (_Node->BoundingBox.HalfDimension.X / 2);
-	struct AABB _Center = {{_OldX, _Node->BoundingBox.Center.Y - (_Node->BoundingBox.HalfDimension.Y / 2)}, {0, 0}};
 
-		_Center.HalfDimension = _Center.Center;
-		_Node->NorthEast = CreateQTNode(&_Center);
-
-		_Center.Center.X = _Node->BoundingBox.Center.X + (_Node->BoundingBox.HalfDimension.X / 2);
-		_Center.HalfDimension.X = _Center.Center.X;
-		_Node->NorthWest = CreateQTNode(&_Center);
-
-		_Center.Center.Y = _Node->BoundingBox.Center.Y + (_Node->BoundingBox.HalfDimension.Y / 2);
-		_Center.HalfDimension.Y = _Center.Center.Y - _Node->BoundingBox.Center.Y;
-		_Node->SouthWest = CreateQTNode(&_Center);
-
-		_Center.Center.X = _OldX;
-		_Node->SouthEast = CreateQTNode(&_Center);
+	_Center.x = _Node->BoundingBox.x;
+	_Node->SouthEast = CreateQTNode(&_Center);
 }
 
-int QTInsertAABB(struct QuadTree* _Node, void* _Data, struct AABB* _AABB) {
+int QTInsertAABB(struct QuadTree* _Node, void* _Data, SDL_Rect* _AABB) {
 	if(AABBIntersectsAABB(&_Node->BoundingBox, _AABB) == 0)
 		return 0;
 	if(_Node->Data != NULL) {
@@ -78,7 +54,7 @@ int QTInsertAABB(struct QuadTree* _Node, void* _Data, struct AABB* _AABB) {
 	return 1;
 }
 
-int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
+int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point) {
 	if(PointInAABB(_Point, &_Node->BoundingBox) == 0)
 		return 0;
 	if(_Node->Data != NULL) {
@@ -98,8 +74,8 @@ int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point) {
 	return 1;
 }
 
-void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct Point*), struct LinkedList* _DataList) {
-	struct Point _Point;
+void QTPointInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Point*), struct LinkedList* _DataList) {
+	SDL_Point _Point;
 
 	if(_Node == NULL)
 		return;
@@ -117,8 +93,8 @@ void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (
 	QTPointInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
 }
 
-void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct AABB*), struct LinkedList* _DataList) {
-	struct AABB _AABB;
+void QTAABBInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Rect*), struct LinkedList* _DataList) {
+	struct SDL_Rect _AABB;
 
 	if(_Node == NULL)
 		return;
@@ -136,7 +112,7 @@ void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*
 	QTAABBInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
 }
 
-void QTRange(struct QuadTree* _Tree, struct AABB* _Boundary) {
+void QTRange(struct QuadTree* _Tree, SDL_Rect* _Boundary) {
 	if(AABBInsideAABB(_Boundary, &_Tree->BoundingBox) == 0)
 		return;
 }

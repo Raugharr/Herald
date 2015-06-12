@@ -6,13 +6,16 @@
 #include "Gui.h"
 
 #include "Video.h"
-#include "../sys/Stack.h"
+#include "AABB.h"
 #include "GuiLua.h"
+
+#include "../sys/Stack.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_rect.h>
 
 struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIMenuChange = 0;
@@ -21,6 +24,7 @@ struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 struct Font* g_GUIFonts = NULL;
 struct Stack g_GUIStack = {NULL, 0};
+//struct Widget* g_FocusedWidget = NULL;
 
 int NextGUIId(void) {return g_GUIId++;}
 
@@ -64,7 +68,9 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->Rect.w = _Rect->w;
 	_Widget->Rect.h = _Rect->h;
 	_Widget->LuaRef = LuaWidgetRef(_State);
+	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;
+	_Widget->OnClick = WidgetOnClick;
 	_Widget->OnDraw = NULL;
 	_Widget->OnFocus = NULL;
 	_Widget->OnUnfocus = NULL;
@@ -95,10 +101,11 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->ChildrenSz = 0;
 	_Widget->ChildCt = 0;
 	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
-	_Widget->OnFocus = (int(*)(struct Widget*))ContainerOnFocus;
+	_Widget->OnFocus = (struct Widget*(*)(struct Widget*, const SDL_Point*))ContainerOnFocus;
 	_Widget->OnUnfocus = (int(*)(struct Widget*))ContainerOnUnfocus;
 	_Widget->OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyContainer;
 	_Widget->OnDraw = (int(*)(struct Widget*))ContainerOnDraw;
+	_Widget->OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))ContainerOnClick;
 	_Widget->NewChild = NULL;
 	_Widget->RemChild = StaticRemChild;
 	_Widget->Spacing = _Spacing;
@@ -113,7 +120,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
 	_Widget->OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
-	_Widget->OnFocus = (int(*)(struct Widget*))ContextItemOnFocus;
+	_Widget->OnFocus = (struct Widget* (*)(struct Widget*, const SDL_Point*))ContextItemOnFocus;
 	_Widget->OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;
 	_Widget->NewChild = ContextItemNewChild;
 	_Widget->VertFocChange = 0;
@@ -122,7 +129,7 @@ void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent
 }
 
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font) {
+	int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font) {
 	int _THeight = TTF_FontHeight(_Font->Font) + _Spacing;
 	int _Size = _Rows * _Columns;
 	int i;
@@ -179,7 +186,8 @@ void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event) {
 }
 
 void DestroyWidget(struct Widget* _Widget, lua_State* _State) {
-	LuaWidgetUnref(_State, _Widget->LuaRef);
+	LuaWidgetUnref(_State, _Widget);
+	LuaWidgetOnKeyUnref(_State, _Widget);
 }
 
 void DestroyLabel(struct Label* _Text, lua_State* _State) {
@@ -222,36 +230,35 @@ int ContainerOnDraw(struct Container* _Container) {
 	return 1;
 }
 
-int ContainerOnFocus(struct Container* _Container) {
-	int _FocusIndex = FirstFocusable(_Container);
+struct Widget* ContainerOnFocus(struct Container* _Container, const SDL_Point* _Point) {
+	struct Widget* _Widget = NULL;
 
-	if(_FocusIndex != -1) {
-		struct GUIFocus* _Focus = NULL;
-
-		if(_Container->Children[_FocusIndex]->OnFocus(_Container->Children[_FocusIndex]) == 0)
+	if(PointInAABB(_Point, &_Container->Rect) == 0)
 			return 0;
-		_Focus = malloc(sizeof(struct GUIFocus));
-		_Focus->Parent = _Container;
-		_Focus->Index = _FocusIndex;
-		_Focus->Id = _Container->Children[_FocusIndex]->Id;
-		_Focus->Prev = g_Focus;
-		g_Focus = _Focus;
+	for(int i = 0; i < _Container->ChildCt; ++i) {
+		if((_Widget = _Container->Children[i]->OnFocus(_Container->Children[i], _Point)) != NULL)
+			return _Widget;
 	}
-	return 1;
+	return NULL;
 }
 
 int ContainerOnUnfocus(struct Container* _Container) {
-	/*if(g_Focus->Parent == _Container && _Container->Children[g_Focus->Index] != NULL) {
-		struct GUIFocus* _Focus = g_Focus;
-
-		g_Focus = g_Focus->Prev;
-		free(_Focus);
-	}*/
 	return 1;
 }
 
 int ContainerHorzFocChange(const struct Container* _Container) {
 	return 0;
+}
+
+struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _Point) {
+	struct Widget* _Widget = NULL;
+
+	if(PointInAABB(_Point, &_Container->Rect) == 0)
+		return 0;
+	for(int i = 0; i < _Container->ChildCt; ++i)
+		if((_Widget = _Container->Children[i]->OnClick(_Container->Children[i], _Point)) != NULL)
+			return _Widget;
+	return NULL;
 }
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
@@ -324,10 +331,12 @@ int LabelOnDraw(struct Widget* _Widget) {
 	return 1;
 }
 
-int LabelOnFocus(struct Widget* _Widget) {
+struct Widget* LabelOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
+	if(PointInAABB(_Point, &_Widget->Rect) == SDL_FALSE || _Widget->CanFocus == 0) {
+		return NULL;
+	}
 	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontFocus.r, g_GUIDefs.FontFocus.b, g_GUIDefs.FontFocus.g);
-	//ChangeColor(((struct Label*)_Widget)->Text, &g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus);
-	return 1;
+	return _Widget;
 }
 int LabelOnUnfocus(struct Widget* _Widget) {
 	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
@@ -381,11 +390,18 @@ void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, 
 	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;
 }
 
-int ContextItemOnFocus(struct ContextItem* _Widget) {
-	ContainerOnFocus((struct Container*)_Widget);
+struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point) {
+	if(PointInAABB(_Point, &_Widget->Rect) == SDL_TRUE) {
+		return _Widget;
+	}
+	return NULL;
+}
+
+struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point) {
+	ContainerOnFocus((struct Container*)_Widget, _Point);
 	_Widget->ShowContexts = 1;
 	_Widget->VertFocChange = _Widget->ChildCt;
-	return 1;
+	return (struct Widget*) _Widget;
 }
 
 int ContextItemOnUnfocus(struct ContextItem* _Widget) {

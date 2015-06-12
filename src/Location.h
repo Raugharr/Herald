@@ -48,11 +48,11 @@ struct Settlement {
 	int NumPeople;
 };
 
-static inline void LocationGetArea(const struct Location* _Location, struct AABB* _AABB) {
-	(*_AABB).Center.X = _Location->EndPos.X - _Location->StartPos.X;
-	(*_AABB).Center.Y = _Location->EndPos.Y - _Location->StartPos.Y;
-	(*_AABB).HalfDimension.X = (_Location->StartPos.X + _Location->EndPos.X) / 2;
-	(*_AABB).HalfDimension.Y = (_Location->StartPos.Y + _Location->EndPos.Y) / 2;
+static inline void LocationGetArea(const struct Location* _Location, SDL_Rect* _AABB) {
+	(*_AABB).x = _Location->StartPos.X;
+	(*_AABB).y = _Location->StartPos.Y;
+	(*_AABB).w = (_Location->StartPos.X + _Location->EndPos.X) / 2;
+	(*_AABB).h = (_Location->StartPos.Y + _Location->EndPos.Y) / 2;
 }
 
 struct Settlement* CreateSettlement(int _X, int _Y, int _Width, int _Height, const char* _Name, int _GovType);

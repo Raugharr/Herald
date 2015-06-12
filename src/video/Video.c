@@ -7,18 +7,21 @@
 
 #include "Gui.h"
 #include "GuiLua.h"
-#include "../sys/LuaCore.h"
-#include "../sys/Log.h"
 #include "Point.h"
 #include "MapRenderer.h"
-#include "../World.h"
 
+#include "../World.h"
+#include "../sys/LuaCore.h"
+#include "../sys/Log.h"
+
+#include <lua/lauxlib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, {0, 0}, 0};
+static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
+static struct Widget* g_FocusWidget = NULL;
 
 SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
@@ -125,23 +128,35 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 }
 
 void Events(void) {
-	int i;
 	SDL_Event _Event;
-	struct Widget* _Callback = NULL;
+	struct Container* _Screen = NULL;
+	struct Widget* _Widget = NULL;
 
 	GUIMessageCheck(&g_GUIMessageList);
 	KeyMouseStateClear(&g_KeyMouseState);
 	while(SDL_PollEvent(&_Event) != 0) {
-		if(_Event.type == SDL_KEYUP || _Event.type == SDL_KEYDOWN) {
+		switch(_Event.type) {
+		case SDL_KEYUP:
+		case SDL_KEYDOWN:
 			g_KeyMouseState.KeyboardState = _Event.key.state;
 			g_KeyMouseState.KeyboardButton = _Event.key.keysym.sym;
 			g_KeyMouseState.KeyboardMod = _Event.key.keysym.mod;
-		} else if(_Event.type == SDL_MOUSEBUTTONUP || _Event.type == SDL_MOUSEBUTTONDOWN) {
+			break;
+		case SDL_MOUSEBUTTONUP:
+		case SDL_MOUSEBUTTONDOWN:
 			g_KeyMouseState.MouseButton = _Event.button.button;
 			g_KeyMouseState.MouseState = _Event.button.state;
 			g_KeyMouseState.MouseClicks = _Event.button.clicks;
+			g_KeyMouseState.MousePos.x = _Event.button.x;
+			g_KeyMouseState.MousePos.y = _Event.button.y;
+			break;
+		case SDL_MOUSEMOTION:
+			g_KeyMouseState.MouseMove = 1;
+			g_KeyMouseState.MousePos.x = _Event.motion.x;
+			g_KeyMouseState.MousePos.y = _Event.motion.y;
+			break;
 		}
-		if(_Event.type == SDL_KEYUP) {
+		 /*if(_Event.type == SDL_KEYUP) {
 			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
 
 			if(_Event.key.type == SDL_KEYUP)
@@ -164,7 +179,7 @@ void Events(void) {
 				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
 			}
 			for(i = 0; i < g_GUIEvents->Size; ++i) {
-				/* FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail. */
+				//FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail.
 				_Callback = NULL;
 				if(g_GUIEvents->Events[i].WidgetId == g_Focus->Id) {
 					_Callback = g_Focus->Parent->Children[g_Focus->Index];
@@ -184,11 +199,45 @@ void Events(void) {
 					}
 				}
 			}
-		}
+		}*/
 	}
-	if(g_GameWorld.IsPaused  == 0)
-	GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
-	return;
+	_Screen = GetScreen(g_LuaState);
+	if(g_KeyMouseState.MouseMove != 0) {
+		if(g_FocusWidget != NULL)
+			g_FocusWidget->OnUnfocus(g_FocusWidget);
+		g_FocusWidget = _Screen->OnFocus((struct Widget*)_Screen, &g_KeyMouseState.MousePos);
+	}
+	if(g_KeyMouseState.MouseState != SDL_RELEASED)
+		return;
+	if((_Widget = _Screen->OnClick((struct Widget*)_Screen, &g_KeyMouseState.MousePos)) != NULL) {
+		LuaGuiGetRef(g_LuaState);
+		lua_rawgeti(g_LuaState, -1, _Widget->LuaOnClickFunc);
+		LuaCallFunc(g_LuaState, 0, 0, 0);
+		/*for(i = 0; i < g_GUIEvents->Size; ++i) {
+			//FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail.
+			_Callback = NULL;
+			if(g_GUIEvents->Events[i].WidgetId == g_Focus->Id) {
+				_Callback = g_Focus->Parent->Children[g_Focus->Index];
+				goto event_check2;
+			}
+			if(g_GUIEvents->Events[i].WidgetId == g_Focus->Parent->Id) {
+				_Callback = (struct Widget*)g_Focus->Parent;
+				goto event_check2;
+			}
+			continue;
+			event_check2:
+			if(KeyEventCmp(&g_GUIEvents->Events[i].Event, &g_KeyMouseState) == 0) {
+				LuaCallEvent(g_LuaState, g_GUIEvents->Events[i].RefId, _Callback);
+				if(g_GUIMenuChange != 0) {
+					g_GUIMenuChange = 0;
+					return;
+				}
+			}
+		}*/
+	} else {
+		if(g_GameWorld.IsPaused  == 0)
+			GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
+	}
 }
 
 void Draw(void) {
@@ -269,8 +318,8 @@ int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _T
 		return _One->MouseButton - _Two->MouseButton;
 	if(_One->MouseClicks != _Two->MouseClicks)
 		return _One->MouseClicks - _Two->MouseClicks;
-	if((_One->MousePos.X != _Two->MousePos.X) || (_One->MousePos.Y != _Two->MousePos.Y))
-		return _One->MousePos.X - _Two->MousePos.X;
+	if((_One->MousePos.x != _Two->MousePos.x) || (_One->MousePos.y != _Two->MousePos.y))
+		return _One->MousePos.x - _Two->MousePos.x;
 	if(_One->MouseState != _Two->MouseState)
 		return _One->MouseState - _Two->MouseState;
 	return 0;
@@ -289,28 +338,6 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 	SDL_Texture* _Texture = SDL_CreateTextureFromSurface(g_Renderer, _Surface);
 	SDL_FreeSurface(_Surface);
 	return _Texture;
-}
-
-int FirstFocusable(const struct Container* _Parent) {
-	int i;
-
-	for(i = 0; i < _Parent->ChildrenSz; ++i) {
-		if(_Parent->Children[i] == NULL)
-			continue;
-		if(_Parent->Children[i]->CanFocus != 0)
-			return i;
-	}
-	return -1;
-}
-
-int NextFocusable(const struct Container* _Parent, int _Index, int _Pos) {
-	if(_Index < 0)
-		_Index = 0;
-	else if(_Index >= _Parent->ChildrenSz)
-		_Index = _Parent->ChildrenSz - 1;
-	while((_Index >= 0 && _Index < _Parent->ChildrenSz) && (_Parent->Children[_Index] == NULL || (_Parent->Children[_Index]->CanFocus == 0)))
-		_Index -= _Pos;
-	return _Index;
 }
 
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {

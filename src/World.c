@@ -47,6 +47,7 @@
 #include <string.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
+#include <SDL2/SDL.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -56,7 +57,7 @@ struct GameWorld g_GameWorld = {
 		1,
 		0,
 		NULL,
-		{NULL, NULL, NULL, NULL, {{0, 0}, {0, 0}}, NULL},
+		{NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL},
 		NULL,
 		NULL,
 		{NULL, 0, NULL, NULL},
@@ -219,13 +220,13 @@ void ArmyTest() {
 
 void GameWorldInit(int _Area) {
 	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
-	struct Point _ScreenSize = {(SDL_WIDTH / TILE_WIDTH) / 2, (SDL_HEIGHT / TILE_HEIGHT_THIRD) / 2};
+	struct Point _ScreenSize = {(SDL_WIDTH / TILE_WIDTH), (SDL_HEIGHT / TILE_HEIGHT_THIRD)};
 
 	g_GameWorld.MapRenderer = CreateMapRenderer(_Area, &_ScreenSize);
-	g_GameWorld.SettlementIndex.BoundingBox.Center.X = _ScreenSize.X;
-	g_GameWorld.SettlementIndex.BoundingBox.Center.Y = _ScreenSize.Y;
-	g_GameWorld.SettlementIndex.BoundingBox.HalfDimension.X = _ScreenSize.X;
-	g_GameWorld.SettlementIndex.BoundingBox.HalfDimension.Y = _ScreenSize.Y;
+	g_GameWorld.SettlementIndex.BoundingBox.x = 0;
+	g_GameWorld.SettlementIndex.BoundingBox.y = 0;
+	g_GameWorld.SettlementIndex.BoundingBox.w = _ScreenSize.X;
+	g_GameWorld.SettlementIndex.BoundingBox.h = _ScreenSize.Y;
 	g_GameWorld.SettlementIndex.Data = NULL;
 	g_GameWorld.SettlementIndex.NorthWest = NULL;
 	g_GameWorld.SettlementIndex.NorthEast = NULL;
@@ -364,18 +365,18 @@ void WorldQuit() {
 void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World) {
 	if(_State->KeyboardState == SDL_RELEASED) {
 		if(_State->KeyboardButton == SDLK_a)
-			g_GameWorld.MapRenderer->Screen.Center.X -= TILE_WIDTH;
+			g_GameWorld.MapRenderer->Screen.x -= TILE_WIDTH;
 		else if(_State->KeyboardButton == SDLK_d)
-			g_GameWorld.MapRenderer->Screen.Center.X += TILE_WIDTH;
+			g_GameWorld.MapRenderer->Screen.x += TILE_WIDTH;
 		else if(_State->KeyboardButton == SDLK_w)
-			g_GameWorld.MapRenderer->Screen.Center.Y -= TILE_HEIGHT;
+			g_GameWorld.MapRenderer->Screen.y -= TILE_HEIGHT;
 		else if(_State->KeyboardButton == SDLK_s)
-			g_GameWorld.MapRenderer->Screen.Center.Y += TILE_HEIGHT;
+			g_GameWorld.MapRenderer->Screen.y += TILE_HEIGHT;
 	}
 	if(_State->MouseState == SDL_RELEASED) {
 		struct LinkedList _List = {0, NULL, NULL};
 
-		QTAABBInRectangle(&g_GameWorld.SettlementIndex, &g_GameWorld.MapRenderer->Screen, (void(*)(const void*, struct AABB*))LocationGetArea, &_List);
+		QTAABBInRectangle(&g_GameWorld.SettlementIndex, &g_GameWorld.MapRenderer->Screen, (void(*)(const void*, SDL_Rect*))LocationGetArea, &_List);
 		if(_List.Size > 0) {
 			lua_settop(g_LuaState, 0);
 			lua_pushstring(g_LuaState, "ViewSettlementMenu");
@@ -395,7 +396,7 @@ void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World)
 	if(_World->MapRenderer->IsRendering != 0) {
 		MapRender(g_Renderer, g_GameWorld.MapRenderer);
 		if(_Tile != NULL) {
-			SDL_Rect _Rect = {_Tile->ScreenPos.X, _Tile->ScreenPos.Y, TILE_WIDTH, TILE_HEIGHT};
+			SDL_Rect _Rect = {_Tile->ScreenPos.x, _Tile->ScreenPos.y, TILE_WIDTH, TILE_HEIGHT};
 
 			SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
 		}

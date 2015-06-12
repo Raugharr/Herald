@@ -6,7 +6,7 @@ function Menu.Init(Menu, Width, Height, Data)
 	World.Pause(false)
 	World.Render(true)
 	Menu.DateCont:SetFocus(false)
-	Menu.MenuBar:CreateLabel("View Settlement"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateLabel("View Settlement"):OnClick(
 		function()
 			GUI.SetMenu("GovernmentMenu", {Settlement = World.GetSettlement()})
 		end)

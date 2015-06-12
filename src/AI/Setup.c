@@ -382,7 +382,7 @@ void AIInit(lua_State* _State) {
 	luaL_newlibtable(_State, g_LuaAIFuncs);
 	luaL_setfuncs(_State, g_LuaAIFuncs, 0);
 	lua_setglobal(_State, "AI");
-	if(LuaLoadFile(_State, "ai.lua") != LUA_OK) {
+	if(LuaLoadFile(_State, "ai.lua", NULL) != LUA_OK) {
 		exit(1);
 	}
 	lua_getglobal(_State, "AI");

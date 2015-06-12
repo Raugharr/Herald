@@ -33,8 +33,9 @@ struct Container;
 	(_State)->MouseClicks = 0;		\
 	(_State)->KeyboardButton = 0;	\
 	(_State)->KeyboardMod = 0;		\
-	(_State)->MousePos.X = 0;		\
-	(_State)->MousePos.Y = 0;		\
+	(_State)->MouseMove = 0;		\
+	(_State)->MousePos.x = -1;		\
+	(_State)->MousePos.y = -1;		\
 	(_State)->KeyboardState = 0;
 
 struct KeyMouseState {
@@ -43,7 +44,8 @@ struct KeyMouseState {
 	unsigned int MouseClicks;
 	unsigned int KeyboardButton; /* Which key is pressed. */
 	unsigned int KeyboardMod;
-	struct Point MousePos;
+	unsigned int MouseMove;
+	SDL_Point MousePos;
 	int KeyboardState; /* Pressed or released. */
 };
 
@@ -77,8 +79,6 @@ int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _T
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface);
 //void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
-int FirstFocusable(const struct Container* _Parent);
-int NextFocusable(const struct Container* _Parent, int _Index, int _Pos);
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
 //SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

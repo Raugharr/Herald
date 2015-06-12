@@ -12,16 +12,18 @@ typedef struct SDL_Surface SDL_Surface;
 typedef struct SDL_Rect SDL_Rect;
 typedef struct lua_State lua_State;
 
-#define DECLARE_WIDGET												\
-	int Id;															\
-	struct Container* Parent;										\
-	SDL_Rect Rect;													\
-	int LuaRef;														\
-	int CanFocus;													\
-	int (*OnDraw)(struct Widget*);									\
-	int (*OnFocus)(struct Widget*);									\
-	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);			\
-	int (*OnUnfocus)(struct Widget*);								\
+#define DECLARE_WIDGET														\
+	int Id;																	\
+	struct Container* Parent;												\
+	SDL_Rect Rect;															\
+	int LuaRef;																\
+	int CanFocus;															\
+	int LuaOnClickFunc;														\
+	int (*OnDraw)(struct Widget*);											\
+	struct Widget* (*OnClick)(struct Widget*, const SDL_Point*);			\
+	struct Widget* (*OnFocus)(struct Widget*, const SDL_Point*);			\
+	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);					\
+	int (*OnUnfocus)(struct Widget*);										\
 	void (*OnDestroy)(struct Widget*, lua_State*)
 
 #define DECLARE_CONTAINER											\
@@ -144,9 +146,10 @@ void DestroyGUIEvents(struct GUIEvents* _Events);
 void DestroyFocus(struct GUIFocus* _Focus);
 
 int ContainerOnDraw(struct Container* _Container);
-int ContainerOnFocus(struct Container* _Container);
+struct Widget* ContainerOnFocus(struct Container* _Container, const SDL_Point* _Point);
 int ContainerOnUnfocus(struct Container* _Container);
 int ContainerHorzFocChange(const struct Container* _Container);
+struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _Point);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
@@ -164,7 +167,7 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
 int LabelOnDraw(struct Widget* _Widget);
-int LabelOnFocus(struct Widget* _Widget);
+struct Widget* LabelOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
 int LabelOnUnfocus(struct Widget* _Widget);
 int WidgetSetText(struct Widget* _Widget, SDL_Texture* _Text);
 
@@ -177,8 +180,9 @@ int TableHorzFocChange(const struct Container* _Container);
  * GUI.EventIds which is needed in order for the callback to function.
  */
 void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
+struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
 
-int ContextItemOnFocus(struct ContextItem* _Widget);
+struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);
 int ContextHorzFocChange(const struct Container* _Container);
 

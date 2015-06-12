@@ -7,6 +7,8 @@
 
 #include "Point.h"
 
+#include <SDL2/SDL.h>
+
 typedef struct SDL_Texture SDL_Texture;
 struct MapRenderer;
 
@@ -21,8 +23,8 @@ enum {
 
 struct Tile {
 	SDL_Texture* Image;
-	struct Point TilePos;
-	struct Point ScreenPos;
+	SDL_Point TilePos;
+	SDL_Point ScreenPos;
 	float Forest;
 	float Unbuildable;
 	int Temperature;

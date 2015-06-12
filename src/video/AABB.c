@@ -5,17 +5,19 @@
 
 #include "AABB.h"
 
-int PointInAABB(const struct Point* _Point, const struct AABB* _AABB) {
-	return (_Point->X >= (_AABB->Center.X - _AABB->HalfDimension.X) && _Point->X <= (_AABB->Center.X + _AABB->HalfDimension.X)
-			&& _Point->Y >= (_AABB->Center.Y - _AABB->HalfDimension.Y) && _Point->Y <= (_AABB->Center.Y + _AABB->HalfDimension.Y));
+#include <SDL2/SDL.h>
+
+int PointInAABB(const SDL_Point* _Point, const SDL_Rect* _Rect) {
+	return ((_Point->x >= _Rect->x) && _Point->x <= (_Rect->x + _Rect->w)
+			&& _Point->y >= _Rect->y && _Point->y <= (_Rect->y + _Rect->h));
 }
 
-int AABBInsideAABB(const struct AABB* _Parent, const struct AABB* _Inside) {
-	return ((_Inside->Center.X - _Inside->HalfDimension.X) >= (_Parent->Center.X - _Parent->HalfDimension.X) && (_Inside->Center.X + _Inside->HalfDimension.X) <= (_Parent->Center.X + _Parent->HalfDimension.X)
-			&& (_Inside->Center.Y - _Inside->HalfDimension.Y) >= (_Parent->Center.Y - _Parent->HalfDimension.Y) && (_Inside->Center.Y + _Inside->HalfDimension.Y) <= (_Parent->Center.Y + _Parent->HalfDimension.Y));
+int AABBInsideAABB(const SDL_Rect* _Parent, const SDL_Rect* _Inside) {
+	return (_Inside->x >= _Parent->x && (_Inside->x + _Inside->w) <= (_Parent->x + _Parent->w)
+			&& _Inside->y >= _Parent->y && (_Inside->y + _Inside->h) <= (_Parent->y + _Parent->h));
 }
 
-int AABBIntersectsAABB(const struct AABB* _Parent, const struct AABB* _Inside) {
-	return ((_Parent->Center.X - _Parent->HalfDimension.X) <= (_Inside->Center.X + _Inside->HalfDimension.X) && ((_Parent->Center.X + _Parent->HalfDimension.X) >= (_Inside->Center.X - _Inside->HalfDimension.X))
-			&& (_Parent->Center.Y - _Parent->HalfDimension.Y) <= (_Inside->Center.Y + _Inside->HalfDimension.Y) && ((_Parent->Center.Y + _Parent->HalfDimension.Y) >= (_Inside->Center.Y - _Inside->HalfDimension.Y)));
+int AABBIntersectsAABB(const SDL_Rect* _Parent, const SDL_Rect* _Inside) {
+	return (_Parent->x <= (_Inside->x + _Inside->w) && ((_Parent->x + _Parent->w) >= (_Inside->x))
+			&& (_Parent->y) <= (_Inside->y + _Inside->h) && ((_Parent->y + _Parent->h) >= (_Inside->y)));
 }

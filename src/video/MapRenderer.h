@@ -8,6 +8,8 @@
 #include "QuadTree.h"
 #include "AABB.h"
 
+#include <SDL2/SDL.h>
+
 struct Tile;
 struct AABB;
 typedef struct SDL_Texture SDL_Texture;
@@ -25,7 +27,7 @@ struct MapRenderer {
 	int TileArea;
 	int IsRendering;
 	struct QuadTree RenderArea[MAPRENDER_LAYERS];
-	struct AABB Screen;
+	SDL_Rect Screen;
 	SDL_Texture* Grass;
 	SDL_Texture* OddGrass;
 	SDL_Texture* Selector;

@@ -10,7 +10,7 @@ $(OBJFLD)Trie.o $(OBJFLD)Rule.o $(OBJFLD)LuaCore.o $(OBJFLD)ResourceManager.o
 ODIR=
 
 $(OBJFLD)%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(CFLAGS) $(DEFS)
 all: $(OBJ)
 
 .PHONY: all

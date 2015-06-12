@@ -34,12 +34,12 @@ extern struct KDTree g_ObjPos;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
-#define GameWorldInsertSettlement(_GameWorld, _Settlement) 																							\
-{																																					\
-	struct AABB _AABB = {{((_Settlement)->StartPos.X + (_Settlement)->EndPos.X) / 2, ((_Settlement)->StartPos.Y + (_Settlement)->EndPos.Y) / 2}, 	\
-	{((_Settlement)->EndPos.X - (_Settlement)->StartPos.X) / 2, ((_Settlement)->EndPos.Y - (_Settlement)->StartPos.Y) / 2}};						\
-	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																						\
-	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &_AABB);																				\
+#define GameWorldInsertSettlement(_GameWorld, _Settlement) 																				\
+{																																		\
+	SDL_Rect _AABB = {(_Settlement)->StartPos.X, (_Settlement)->StartPos.Y, 															\
+	(_Settlement)->EndPos.X - (_Settlement)->StartPos.X, (_Settlement)->EndPos.Y - (_Settlement)->StartPos.Y};							\
+	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
+	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &_AABB);																\
 }
 
 struct GameWorld {

@@ -7,12 +7,11 @@
 
 #include "Point.h"
 
-struct AABB {
-	struct Point Center;
-	struct Point HalfDimension;
-};
+#include <SDL2/SDL.h>
 
-int PointInAABB(const struct Point* _Point, const struct AABB* _AABB);
-int AABBInsideAABB(const struct AABB* _Parent, const struct AABB* _Inside);
-int AABBIntersectsAABB(const struct AABB* _Parent, const struct AABB* _Inside);
+typedef struct SDL_Rect SDL_Rect;
+
+int PointInAABB(const SDL_Point* _Point, const SDL_Rect* _Rect);
+int AABBInsideAABB(const SDL_Rect* _Parent, const SDL_Rect* _Inside);
+int AABBIntersectsAABB(const SDL_Rect* _Parent, const SDL_Rect* _Inside);
 #endif

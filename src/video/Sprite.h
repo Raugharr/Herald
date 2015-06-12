@@ -7,6 +7,8 @@
 
 #include "Point.h"
 
+#include <SDL2/SDL.h>
+
 #define TILE_WIDTH (42)
 #define TILE_WIDTH_THIRD (TILE_WIDTH * 0.75)
 #define TILE_HEIGHT (48)
@@ -18,18 +20,18 @@ typedef struct SDL_Texture SDL_Texture;
 
 struct Sprite {
 	SDL_Texture* Image;
-	struct Point TilePos;
-	struct Point ScreenPos;
+	SDL_Point TilePos;
+	SDL_Point ScreenPos;
 };
 
-struct Sprite* CreateSprite(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const struct Point* _TilePos);
+struct Sprite* CreateSprite(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
 void DestroySprite(struct Sprite* _Sprite);
 
-static inline void SpriteGetScreenPos(const struct Sprite* _Sprite, struct Point* _Pos) {
+static inline void SpriteGetScreenPos(const struct Sprite* _Sprite, SDL_Point* _Pos) {
 	*_Pos = _Sprite->ScreenPos;
 }
 
-static inline void SpriteGetTilePos(const struct Sprite* _Sprite, struct Point* _Pos) {
+static inline void SpriteGetTilePos(const struct Sprite* _Sprite, SDL_Point* _Pos) {
 	*_Pos = _Sprite->TilePos;
 }
 

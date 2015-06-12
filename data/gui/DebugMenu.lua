@@ -1,6 +1,4 @@
-DebugMenu = { }
-
-function DebugMenu.Init(Width, Height, Data)
+function Menu.Init(Menu, Width, Height, Data)
 	local Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
 	local Columns = 16
@@ -8,7 +6,7 @@ function DebugMenu.Init(Width, Height, Data)
 	local PersonData = nil
 	local PersonInfo = ""
 	
-	DebugMenu.Screen = Screen
+	Menu.Screen = Screen
 	DTable:SetCellWidth(DTable:GetFont():FontWidth() * 8)
 	DTable:SetCellHeight(DTable:GetFont():FontHeight())
 	Screen:CreateLabel("Back"):OnKey("Enter", "Released", 

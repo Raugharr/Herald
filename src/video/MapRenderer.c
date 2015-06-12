@@ -57,15 +57,15 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize)
 		_Map->RenderArea[i].SouthWest = NULL;
 		_Map->RenderArea[i].SouthEast = NULL;
 		_Map->RenderArea[i].Data = NULL;
-		_Map->RenderArea[i].BoundingBox.Center.X = _Map->TileLength / 2 * TILE_WIDTH;
-		_Map->RenderArea[i].BoundingBox.Center.Y = _Map->TileLength / 2 * TILE_HEIGHT;
-		_Map->RenderArea[i].BoundingBox.HalfDimension.X = _Map->RenderArea[i].BoundingBox.Center.X;
-		_Map->RenderArea[i].BoundingBox.HalfDimension.Y = _Map->RenderArea[i].BoundingBox.Center.Y;
+		_Map->RenderArea[i].BoundingBox.x = 0;
+		_Map->RenderArea[i].BoundingBox.y = 0;
+		_Map->RenderArea[i].BoundingBox.w = _Map->TileLength * TILE_WIDTH;
+		_Map->RenderArea[i].BoundingBox.h = _Map->TileLength * TILE_HEIGHT;
 	}
-	_Map->Screen.Center.X = _RenderSize->X;
-	_Map->Screen.Center.Y = _RenderSize->Y;
-	_Map->Screen.HalfDimension.X = _RenderSize->X;
-	_Map->Screen.HalfDimension.Y = _RenderSize->Y;
+	_Map->Screen.x = 0;
+	_Map->Screen.y = 0;
+	_Map->Screen.w = _RenderSize->X * 2;
+	_Map->Screen.h = _RenderSize->Y * 2;
 	MapLoad(_Map);
 	return _Map;
 }
@@ -127,42 +127,42 @@ struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int 
 		return NULL;
 	}
 #endif
-	_Pos = ((_Tile->TilePos.Y & 1) == 1) ? (&g_TileOddOffsets[_TileDir]) : (&g_TileEvenOffsets[_TileDir]);
+	_Pos = ((_Tile->TilePos.y & 1) == 1) ? (&g_TileOddOffsets[_TileDir]) : (&g_TileEvenOffsets[_TileDir]);
 
 	return GetTile(_Map, _Pos);
 }
 
 void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
-	struct LinkedList _Data = {0, NULL, NULL};
+	struct LinkedList QuadList = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 	struct Sprite* _Sprite = NULL;
 	SDL_Rect _Rect;
 
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((void(*)(const void*, struct Point*))SpriteGetTilePos), &_Data);
-	_Itr = _Data.Front;
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((void(*)(const void*, SDL_Point*))SpriteGetTilePos), &QuadList);
+	_Itr = QuadList.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;
-		_Rect.x = _Sprite->ScreenPos.X - (_Map->Screen.Center.X - _Map->Screen.HalfDimension.X);
-		_Rect.y = _Sprite->ScreenPos.Y - (_Map->Screen.Center.Y - _Map->Screen.HalfDimension.Y);
+		_Rect.x = _Sprite->ScreenPos.x - _Map->Screen.x;
+		_Rect.y = _Sprite->ScreenPos.y - _Map->Screen.y;
 		_Rect.w = TILE_WIDTH;
 		_Rect.h = TILE_HEIGHT;
-		if((_Sprite->TilePos.Y & 1) == 1)
+		if((_Sprite->TilePos.y & 1) == 1)
 			SDL_RenderCopy(g_Renderer, _Map->OddGrass, NULL, &_Rect);
 		else
 		SDL_RenderCopy(g_Renderer, _Map->Grass, NULL, &_Rect);
 		_Itr = _Itr->Next;
 	}
-	LnkLstClear(&_Data);
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((void(*)(const void*, struct Point*))SpriteGetTilePos), &_Data);
-	_Itr = _Data.Front;
+	LnkLstClear(&QuadList);
+	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((void(*)(const void*, SDL_Point*))SpriteGetTilePos), &QuadList);
+	_Itr = QuadList.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;
-		_Rect.x = _Sprite->ScreenPos.X - (_Map->Screen.Center.X - _Map->Screen.HalfDimension.X);
-		_Rect.y = _Sprite->ScreenPos.Y - (_Map->Screen.Center.Y - _Map->Screen.HalfDimension.Y);
+		_Rect.x = _Sprite->ScreenPos.x - _Map->Screen.x;
+		_Rect.y = _Sprite->ScreenPos.y - _Map->Screen.y;
 		_Rect.w = TILE_WIDTH;
 		_Rect.h = TILE_HEIGHT;
 		SDL_RenderCopy(g_Renderer, _Map->Settlement, NULL, &_Rect);
 		_Itr = _Itr->Next;
 	}
-	LnkLstClear(&_Data);
+	LnkLstClear(&QuadList);
 }

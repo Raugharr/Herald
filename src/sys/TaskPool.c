@@ -21,7 +21,7 @@ int TaskPoolThread(struct TaskPool* _TaskPool) {
 
 	while(_TaskPool->IsAlive) {
 		if((_Task = TaskPoolNext(_TaskPool)) == NULL) {
-			SDL_Delay(5);
+			SDL_Delay(2);
 			continue;
 		}
 		//If the task is not completed continue it on the next tick.

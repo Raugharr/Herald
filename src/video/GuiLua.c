@@ -66,6 +66,7 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
+		{"OnClick", LuaWidgetOnCLick},
 		{"Destroy", LuaWidgetDestroy},
 		{NULL, NULL}
 };
@@ -215,8 +216,8 @@ struct Container* LuaContainer(lua_State* _State) {
 		++i;
 	}
 	luaL_argcheck(_State, (i == 4), 6, "Table requires 4 elements.");
-	lua_newtable(_State);
 	_Container = CreateContainer();
+	lua_newtable(_State);
 	if(lua_gettop(_State) > 7) {
 		struct Container* _Parent = LuaCheckClass(_State, 7, "Container");
 		if(_Parent == NULL) {
@@ -495,12 +496,6 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		lua_rawset(_State, -3);
 		lua_pop(_State, 5);
 	}
-	g_Focus->Parent = GetScreen(_State);
-	g_Focus->Index = FirstFocusable(g_Focus->Parent);
-	if(g_Focus->Index != -1) {
-		g_Focus->Id = g_Focus->Parent->Children[g_Focus->Index]->Id;
-		g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-	}
 	lua_pop(_State, 3);
 	g_VideoOk = 1;
 	return 0;
@@ -562,6 +557,16 @@ int LuaOnKey(lua_State* _State) {
 	lua_rawseti(_State, -2, _RefId);
 	lua_pop(_State, 2);
 	WidgetOnEvent(_Widget, _RefId, _Key, _KeyState, _KeyMod);
+	return 0;
+}
+
+int LuaWidgetOnCLick(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
+
+	luaL_argcheck(_State, lua_isfunction(_State, 2), 2, "Is not a function.");
+	LuaGuiGetRef(_State);
+	lua_pushvalue(_State, 2);
+	_Widget->LuaOnClickFunc = luaL_ref(_State, -2);
 	return 0;
 }
 
@@ -1208,24 +1213,35 @@ void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback) {
 	lua_pop(_State, 2);
 }
 
+void LuaGuiGetRef(lua_State* _State) {
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Widgets");
+	lua_rawget(_State, -2);
+	lua_remove(_State, -2);
+}
+
 int LuaWidgetRef(lua_State* _State) {
 	int _Ref = 0;
 
-	lua_getglobal(_State, "GUI");
-	lua_pushstring(_State, "Widgets");
-	lua_rawget(_State, -2);
+	LuaGuiGetRef(_State);
 	lua_pushvalue(_State, -3);
 	_Ref = luaL_ref(_State, -2);
-	lua_pop(_State, 2);
+	lua_pop(_State, 1);
 	return _Ref;
 }
 
-void LuaWidgetUnref(lua_State* _State, int _Ref) {
-	lua_getglobal(_State, "GUI");
-	lua_pushstring(_State, "Widgets");
-	lua_rawget(_State, -2);
-	luaL_unref(_State, -1, _Ref);
-	lua_pop(_State, 2);
+void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget) {
+	LuaGuiGetRef(_State);
+	luaL_unref(_State, -1, _Widget->LuaRef);
+	lua_pop(_State, 1);
+}
+
+void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget) {
+	if(_Widget->LuaOnClickFunc == -1)
+		return;
+	LuaGuiGetRef(_State);
+	luaL_unref(_State, -1, _Widget->LuaOnClickFunc);
+	lua_pop(_State, 1);
 }
 
 void LuaAddMenu(lua_State* _State, const char* _Name) {

@@ -68,6 +68,7 @@ int LuaSetUnfocusColor(lua_State* _State);
  */
 int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*));
 int LuaOnKey(lua_State* _State);
+int LuaWidgetOnCLick(lua_State* _State);
 //Please Comment.
 int LuaCloseMenu(lua_State* _State);
 int LuaPopMenu(lua_State* _State);
@@ -136,11 +137,13 @@ int QuitGUILua(lua_State* _State);
 struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
 void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback);
+void LuaGuiGetRef(lua_State* _State);
 /**
  * The table that contains the Widget must be on top of the stack.
  */
 int LuaWidgetRef(lua_State* _State);
-void LuaWidgetUnref(lua_State* _State, int _Ref);
+void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget);
+void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget);
 void LuaAddMenu(lua_State* _State, const char* _Name);
 
 #endif

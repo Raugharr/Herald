@@ -5,7 +5,9 @@
 #ifndef __QUADTREE_H
 #define __QUADTREE_H
 
-#include "../video/AABB.h"
+#include "AABB.h"
+
+#include <SDL2/SDL.h>
 
 struct LinkedList;
 
@@ -14,14 +16,14 @@ struct QuadTree {
 	struct QuadTree* NorthWest;
 	struct QuadTree* SouthWest;
 	struct QuadTree* SouthEast;
-	struct AABB BoundingBox;
+	SDL_Rect BoundingBox;
 	void* Data;
 };
 
 void QTSubdivide(struct QuadTree* _Node);
-int QTInsertAABB(struct QuadTree* _Node, void* _Data, struct AABB* _AABB);
-int QTInsertPoint(struct QuadTree* _Node, void* _Data, struct Point* _Point);
-void QTPointInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct Point*), struct LinkedList* _DataList);
-void QTAABBInRectangle(struct QuadTree* _Node, const struct AABB* _Rect, void (*_GetPos)(const void*, struct AABB*), struct LinkedList* _DataList);
+int QTInsertAABB(struct QuadTree* _Node, void* _Data, SDL_Rect* _AABB);
+int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point);
+void QTPointInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Point*), struct LinkedList* _DataList);
+void QTAABBInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, struct SDL_Rect*), struct LinkedList* _DataList);
 
 #endif

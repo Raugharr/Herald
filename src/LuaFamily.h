@@ -19,7 +19,6 @@ int LuaPersonGetNutrition(lua_State* _State);
 int LuaPersonGetAge(lua_State* _State);
 int LuaPersonGetName(lua_State* _State);
 int LuaPersonGetFamily(lua_State* _State);
-int LuaPersonGetParentFamily(lua_State* _State);
 
 int LuaGoodGetId(lua_State* _State);
 int LuaGoodGetQuantity(lua_State* _State);

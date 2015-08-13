@@ -19,6 +19,7 @@ struct Field;
 struct Constraint;
 struct FamilyType;
 struct Settlement;
+struct SettlementPart;
 typedef struct lua_State lua_State;
 
 struct Family {
@@ -31,13 +32,14 @@ struct Family {
 	struct Array* Buildings;
 	struct Array* Goods;
 	struct Array* Animals;
-	struct Settlement* HomeLoc;
+	struct SettlementPart* HomeLoc;
+	struct Family* Parent;
 };
 
 void Family_Init(struct Array* _Array);
 void Family_Quit();
-struct Family* CreateFamily(const char* _Name, struct Person* _Husband, struct Person* _Wife, struct Person** _Children, int _ChildrenSize, struct Settlement* _Location);
-struct Family* CreateRandFamily(const char* _Name, int _Size, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct Settlement* _Location);
+struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, int _FamilyId, struct Family* _Parent);
+struct Family* CreateRandFamily(const char* _Name, int _Size, int _FamilyId, struct Family* _Parent, struct Constraint** _AgeGroups, struct Constraint** _BabyAvg, int _X, int _Y, struct Settlement* _Location);
 void DestroyFamily(struct Family* _Family);
 struct Food* FamilyMakeFood(struct Family* _Family);
 void FamilyWorkField(struct Family* _Family);
@@ -49,10 +51,14 @@ int FamilySize(const struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
 void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct Settlement* _Location);
 struct Good* FamilyTakeGood(struct Family* _Family, int _Index);
+struct Population* FamilyTakeAnimal(struct Family* _Family, int _Index);
 /**
  * Returns the yearly requirement of nutrition needed to feed the people in the family _Family.
  */
-int FamilyNutReq(struct Family* _Family);
+int FamilyNutReq(const struct Family* _Family);
+int FamilyGetNutrition(const struct Family* _Family);
+struct Settlement* FamilyGetSettlement(struct Family* _Family);
+int FamilyNextId();
 
 #endif
 

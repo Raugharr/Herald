@@ -6,26 +6,22 @@ function Menu.Init(Menu, Width, Height, Data)
 	World.Pause(false)
 	World.Render(true)
 	Menu.DateCont:SetFocus(false)
-	Menu.MenuBar:CreateLabel("View Settlement"):OnClick(
+	Menu.MenuBar:CreateButton("View Settlement",
 		function()
 			GUI.SetMenu("GovernmentMenu", {Settlement = World.GetSettlement()})
 		end)
-	Menu.MenuBar:CreateLabel("Save")
 	Menu.Date = Menu.DateCont:CreateLabel(PrintDate(World.GetDate()))
 	Menu.Date:SetFocus(false)
-	Menu.MenuBar:CreateLabel("View Self"):OnKey("Enter", "Released",
+	Menu.DateCont:Shrink()
+	Menu.MenuBar:CreateButton("View Self",
 		function()
 			GUI.SetMenu("ViewPersonMenu", World.GetPlayer():GetPerson())
 		end)
-	Menu.MenuBar:CreateLabel("Advance Time"):OnKey("Enter", "Released",
-		function()
-			World.Tick()
-			Menu.Date:SetText(PrintDate(World.GetDate()))
-		end)
-	Menu.MenuBar:CreateLabel("Main Menu"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateButton("Main Menu",
 		function() 
 			GUI.PopMenu() 
 		end)
+	Menu.MenuBar:Shrink()
 	return false
 end
 

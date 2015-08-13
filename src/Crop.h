@@ -6,12 +6,15 @@
 #ifndef __CROP_H
 #define __CROP_H
 
+#include <SDL2/SDL.h>
+
 #define CROP_ROTATIONS (2)
 #define FieldTotalAcres(_Field) ((_Field)->Acres + (_Field)->UnusedAcres)
 #define GROWDEG_MAX (88)
 
 typedef struct lua_State lua_State;
 struct LinkedList;
+struct LnkLst_Node;
 struct Family;
 struct Good;
 struct Array;
@@ -45,9 +48,10 @@ struct Crop {
 struct Field {
 	int Id;
 	int Type;
-	int X;
-	int Y;
 	int(*Think)(struct Object*);
+	int LastThink;
+	struct LnkLst_Node* ThinkObj;
+	SDL_Point Pos;
 	int Width;
 	int Length;
 	const struct Crop* Crop;
@@ -74,7 +78,7 @@ void FieldReset(struct Field* _Field);
 int FieldPlant(struct Field* _Field, struct Good* _Seeds);
 void FieldWork(struct Field* _Field, int _Total);
 void FieldHarvest(struct Field* _Field, struct Array* _Goods);
-int FieldUpdate(struct Field* _Field);
+void FieldUpdate(struct Field* _Field);
 void FieldSetAcres(struct Field* _Field, int _Acres);
 void FieldRotateCrops(struct Field* _Field);
 /**

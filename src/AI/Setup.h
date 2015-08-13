@@ -13,6 +13,7 @@ struct Behavior;
 struct Person;
 struct HashTable;
 struct Array;
+struct GOAPPlanner;
 typedef struct lua_State lua_State;
 
 #define AI_MAKEGOOD "MakeGood"
@@ -29,7 +30,7 @@ typedef struct lua_State lua_State;
 extern struct Array g_BhvList;
 
 struct LuaBhvAction {
-	char* Name;
+	const char* Name;
 	BhvAction Action;
 };
 
@@ -55,6 +56,8 @@ int PAIIsMale(struct Person* _Person, struct HashTable* _Table);
 int BHVNothing(struct Person* _Person, struct HashTable* _Table);
 
 int LuaActionLen(const struct LuaBhvAction* _Action);
+
+const struct AgentUtility* GetBGPlanner();
 
 void AIInit(lua_State* _State);
 void AIQuit();

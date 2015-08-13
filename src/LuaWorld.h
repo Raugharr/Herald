@@ -15,5 +15,7 @@ int LuaWorldPause(lua_State* _State);
 int LuaWorldIsPaused(lua_State* _State);
 int LuaWorldRenderMap(lua_State* _State);
 int LuaWorldIsRendering(lua_State* _State);
+int LuaWorldSetOnClick(lua_State* _State);
+int LuaWorldGetBigGuy(lua_State* _State);
 
 #endif

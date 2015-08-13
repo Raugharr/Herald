@@ -5,19 +5,29 @@
 
 #include "StackAllocator.h"
 
-struct StackAllocator g_StackAllocator = {
-		{NULL, NULL},
-		{NULL, NULL},
-		0,
-		0
-};
-
-void* StackAllocNew(size_t _Size) {
+void* StackAllocNew(struct StackAllocator* _Alloc, size_t _Size) {
 	void* _Block = NULL;
 
-	if((g_StackAllocator.AllocPtr[g_StackAllocator.SelSide] + _Size) >= g_StackAllocator.AllocPtr[((~g_StackAllocator.SelSide) & 1)])
+	if((_Alloc.AllocPtr[_Alloc.SelSide] + _Size) >= _Alloc.AllocPtr[((~_Alloc.SelSide) & 1)])
 		return NULL;
-	_Block = g_StackAllocator.AllocPtr[g_StackAllocator.SelSide];
-	g_StackAllocator.AllocPtr[g_StackAllocator.SelSide] = g_StackAllocator.AllocPtr[g_StackAllocator.SelSide] + _Size;
+	_Block = _Alloc.AllocPtr[_Alloc.SelSide];
+	_Alloc.AllocPtr[_Alloc.SelSide] = _Alloc.AllocPtr[_Alloc.SelSide] + _Size;
 	return _Block;
+}
+
+void StackAllocFree(struct StackAllocator* _Alloc, size_t _Size) {
+	if(_Alloc.SelSide == STACKALLOC_LEFT) {
+		if(_Alloc->AllocPtr[_Alloc.SelSide] - _Size < _Alloc->AllocSide[_Alloc.SelSide]) {
+			_Alloc->AllocPtr[_Alloc.SelSide] = _Alloc->AllocPtr[_Alloc.SelSide] - _Size;
+			return;
+		}
+		_Alloc->AllocPtr[_Alloc.SelSide] = _Alloc->AllocPtr[_Alloc.SelSide] - _Size;
+	} else {
+		if(_Alloc->AllocPtr[_Alloc.SelSide] - _Size < _Alloc->AllocSide[_Alloc.SelSide]) {
+			_Alloc->AllocPtr[_Alloc.SelSide] = _Alloc->AllocPtr[_Alloc.SelSide] - _Size;
+			return;
+		}
+		_Alloc->AllocPtr[_Alloc.SelSide] = _Alloc->AllocPtr[_Alloc.SelSide] + _Size;
+	}
+
 }

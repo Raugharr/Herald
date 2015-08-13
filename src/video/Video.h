@@ -79,6 +79,7 @@ int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _T
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface);
 SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface);
 //void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
-int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
+void FocusableWidgetNull(void);
+const struct Widget* GetFocusableWidget(void);
 //SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
 #endif

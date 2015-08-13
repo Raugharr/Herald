@@ -18,12 +18,12 @@ function Menu.Init(Menu, Width, Height, Data)
 	
 	Menu.Screen:CreateLabel(Menu.Government:Rule() .. " " .. Menu.Government:Structure() .. " " .. Menu.Government:Type()):SetFocus(false)
 	for v in Menu.Government:PossibleReforms():Front() do
-		Menu.Screen:CreateLabel(v:GetName()):OnKey("Enter", "Released",
+		Menu.Screen:CreateButton(v:GetName(),
 			function()
 				Menu.Government:PassReform(v)
 			 end)
 	end
-	Menu.Screen:CreateLabel("Back"):OnKey("Enter", "Released",
+	Menu.Screen:CreateButton("Back",
 		function()
 			GUI.PopMenu()
 		end)

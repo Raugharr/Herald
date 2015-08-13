@@ -1,0 +1,41 @@
+CultureIdeas = {
+	{Name = "Raiding 1", Description = "",
+		Cost = 20, IdeaGroup = "Aggression",
+		Success = {"CanRaid", 1},
+		Requirement = {"YearlyRaids", 1},
+		Next = "Raiding 2"
+	},
+	{Name = "Raiding 2", Description = "",
+		Cost = 20, IdeaGroup = "Aggression",
+		Success = {"CanRaid", 1},
+		Requirement = {"YearlyRaids", 2},
+		Next = "Raiding 3"
+	},
+	{Name = "Raiding 3", Description = "",
+		Cost = 20, IdeaGroup = "Aggression",
+		Success = {"CanRaid", 1},
+		Requirement = {"YearlyRaids", 3},
+		Next = nil}
+	},
+	{Name = "Thralldom", Description = "",
+		Cost = 20, IdeaGroup = "Agression",
+		Success = {"SlaveOwner", 3},
+		Requirement = {"HasSlaves", 1}
+		Next = nil
+	},
+	{Name = "Freedmen", Description = "",
+		Cost = 5, IdeaGroup = "Agression",
+		
+	{Name = "Weak Military Leadership", Description = "",
+		Cost = 4, IdeaGroup = "Aggression",
+		Next = "Military Leadership"
+	},
+	{Name = "Military Leadership", Description = "",
+		Cost = 4, IdeaGroup = "Aggression",
+		Next = nil
+	},
+	{Name = "Warrior Culture", Description = "",
+		Cost = 4, IdeaGroup = "Agression",
+		Next = nil
+	},
+}

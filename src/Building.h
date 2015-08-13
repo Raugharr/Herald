@@ -6,31 +6,7 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
-#define HORIZONTAL_WALLS(_StartX, _StartY, _Length)	\
-	{														\
-		int __y = _StartY;									\
-		BUILD_WALL((_StartY), (_StartY) + (_Length), (_StartX), __y, __y);											\
-	}
-
-#define VERTICAL_WALLS(_StartX, _StartY, _Length)	\
-	{														\
-		int __x = _StartY;									\
-		BUILD_WALL((_StartX), (_StartX) + (_Length), __x, (_StartY), __x);											\
-	}
-
-#define BUILD_WALL(_Start, _End, _X, _Y, _Itr)	\
-	for((_Itr) = (_Start); (_Itr) < (_End); ++(_Itr)) { 									\
-		CreateObject(malloc(sizeof(struct Object)), OBJECT_WALL, (_X), (_Y), ObjNoThink);			\
-	}
-#define BUILD_FLOOR(_StartX, _StartY, _Width, _Length)		\
-	{														\
-															\
-		int __x = 0;										\
-		int __y = 0;										\
-		for(__x = 0; __x < (_Width); ++__x)					\
-			for(__y = 0; __y < (_Length); ++__y)			\
-				CreateObject(malloc(sizeof(struct Object)), OBJECT_FLOOR, __x, __y, ObjNoThink); \
-	}
+#include <SDL2/SDL.h>
 
 typedef struct lua_State lua_State;
 struct GoodBase;
@@ -38,6 +14,7 @@ struct HashTable;
 struct Array;
 struct Object;
 struct Zone;
+struct LnkLst_Node;
 
 enum {
 	ERES_HUMAN = (1 << 0),
@@ -58,29 +35,30 @@ enum {
 struct Building {
 	int Id;
 	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
+	SDL_Point Pos;
 	int ResidentType;
 	const struct BuildMat* Walls;
 	const struct BuildMat* Floor;
 	const struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
-	struct Zone** Zones;
 };
 
 struct Construction {
-	void* Prev;
-	void* Next;
+	int Id;
 	int Type;
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
 	struct Person* Worker;
 	struct Building* Building;
 	int DaysLeft;
 };
 
 struct BuildMat {
-	int Id;
 	int Type;
 	int BuildCost;
 	double MatCost;
@@ -88,14 +66,12 @@ struct BuildMat {
 };
 
 struct Construction* CreateConstruct(struct Building* _Building, struct Person* _Person);
-struct Construction* CopyConstruct(struct Construction* _Construct);
 void DestroyConstruct(struct Construction* _Construct);
 
-int ConstructUpdate(struct Construction* _Construct);
+void ConstructThink(struct Construction* _Construct);
 int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Area);
 
-struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones);
-struct Building* CopyBuilding(const struct Building* _Building);
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof);
 void DestroyBuilding(struct Building* _Building);
 
 int BuildingArea(const struct Building* _Building);
@@ -105,7 +81,6 @@ int BuildingArea(const struct Building* _Building);
  */
 struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
 struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt);
-void BuildingPlanSize(const struct Zone** _Zones, int* _Width, int* _Length);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat);
 

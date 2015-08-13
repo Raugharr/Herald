@@ -26,8 +26,11 @@ void BinaryHeapInsert(struct BinaryHeap* _Heap, void* _Data) {
 	int _Parent = BinaryHeapParent(_Heap->Size);
 	int _Index = _Heap->Size;
 
-	if(_Heap->Size >= _Heap->TblSz)
+	if(_Heap->Size > _Heap->TblSz) {
+		//_Heap->TblSz *= 2;
+		//_Heap->Table = realloc(_Heap->Table, _Heap->TblSz);
 		return;
+	}
 	_Heap->Table[_Heap->Size] = _Data;
 	while(_Parent != _Index) {
 		if(_Heap->Compare(_Data, _Heap->Table[_Parent]) > 0) {
@@ -42,22 +45,24 @@ void BinaryHeapInsert(struct BinaryHeap* _Heap, void* _Data) {
 	++_Heap->Size;
 }
 
-void* BinaryHeapPop(struct BinaryHeap* _Heap) {
+void* BinaryHeapRemove(struct BinaryHeap* _Heap, int _Index) {
 	void* _Top = _Heap->Table[0];
 	void* _Temp = NULL;
-	int _Index = 0;
 	int _Left = 0;
 	int _Right = 0;
 	int _LeftCmp = 0;
 	int _RightCmp = 0;
 	int _BestChild = 0;
 
-	_Heap->Table[0] = NULL;
+	if(_Index >= _Heap->Size)
+		return NULL;
+
+	_Heap->Table[_Index] = NULL;
 	if(_Heap->Size == 1) {
 		_Heap->Size = 0;
 		return _Top;
 	}
-	_Heap->Table[0] = _Heap->Table[_Heap->Size - 1];
+	_Heap->Table[_Index] = _Heap->Table[_Heap->Size - 1];
 	_Heap->Table[_Heap->Size - 1] = NULL;
 	--_Heap->Size;
 	while(1) {
@@ -83,6 +88,29 @@ void* BinaryHeapPop(struct BinaryHeap* _Heap) {
 		_Heap->Table[_BestChild] = _Temp;
 		_Index = _BestChild;
 	}
-
 	return _Top;
+}
+
+void* BinaryHeapTop(struct BinaryHeap* _Heap) {
+	return (_Heap->Size > 0) ? (_Heap->Table[0]) : (NULL);
+}
+
+void BinaryHeapIncrease(struct BinaryHeap* _Heap, int _Index) {
+	int _Min = BinaryHeapLeft(_Index);
+
+	if(_Index >= _Heap->Size)
+		return;
+	while(_Min < _Heap->Size) {
+		if(BinaryHeapRight(_Index) < _Heap->Size && _Heap->Compare(_Heap->Table[BinaryHeapRight(_Index)], _Heap->Table[_Min]) > 0)
+			_Min = BinaryHeapRight(_Index);
+		if(_Heap->Compare(_Heap->Table[_Min], _Heap->Table[_Index]) > 0) {
+			void* _Temp = _Heap->Table[_Min];
+
+			_Heap->Table[_Min] = _Heap->Table[_Index];
+			_Heap->Table[_Index] = _Temp;
+			_Index = _Min;
+		} else {
+			return;
+		}
+	}
 }

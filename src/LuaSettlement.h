@@ -19,6 +19,19 @@ int LuaArmyGetSize(lua_State* _State);
 
 int LuaBGGetPerson(lua_State* _State);
 int LuaBGSetAuthority(lua_State* _State);
+int LuaBGGetAdministration(lua_State* _State);
+int LuaBGGetIntrigue(lua_State* _State);
+int LuaBGGetStrategy(lua_State* _State);
+int LuaBGGetWarfare(lua_State* _State);
+int LuaBGGetTactics(lua_State* _State);
+int LuaBGGetCharisma(lua_State* _State);
+int LuaBGGetPiety(lua_State* _State);
+int LuaBGGetIntellegence(lua_State* _State);
+int LuaBGGetAgent(lua_State* _State);
+int LuaBGGetRelation(lua_State* _State);
+int LuaBGSetAction(lua_State* _State);
+
+int LuaBGRelationGetOpinion(lua_State* _State);
 
 int LuaGovernmentPossibleReforms(lua_State* _State);
 int LuaGovernmentStructure(lua_State* _State);
@@ -33,6 +46,10 @@ int LuaReformPassingGetMaxVotes(lua_State* _State);
 int LuaReformGetName(lua_State* _State);
 
 int LuaSettlementGetLeader(lua_State* _State);
+int LuaSettlementGetGovernment(lua_State* _State);
 int LuaSettlementRaiseArmy(lua_State* _State);
+int LuaSettlementGetPopulation(lua_State* _State);
+int LuaSettlementCountWarriors(lua_State* _State);
+int LuaSettlementGetBigGuys(lua_State* _State);
 
 #endif

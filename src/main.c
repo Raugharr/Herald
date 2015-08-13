@@ -21,6 +21,7 @@
 
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
+#include "AI/LuaAi.h"
 
 #include <SDL2/SDL_image.h>
 #include <lua/lua.h>
@@ -37,15 +38,18 @@ int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
+	LuaWorldInit();
+		WorldInit(300);
 	if(InitGUILua(g_LuaState) == 0)
 		return 0;
-	LuaWorldInit();
 	return 1;
 }
 
 void QuitLuaSystem() {
 	QuitGUILua(g_LuaState);
 	QuitLuaCore();
+	WorldQuit();
 	lua_close(g_LuaState);
 }
 
@@ -55,10 +59,10 @@ int main(int argc, char* args[]) {
 	int _DrawTimer = 0;
 	int _Ticks = 0;
 	struct System _Systems[] = {
-			{"Video", VideoInit, VideoQuit},
-			{"Lua", InitLuaSystem, QuitLuaCore},
-			{"Reform", InitReforms, QuitReforms},
 			{"Main", HeraldInit, HeraldDestroy},
+			{"Video", VideoInit, VideoQuit},
+			{"Reform", InitReforms, QuitReforms},
+			{"Lua", InitLuaSystem, QuitLuaCore},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;
@@ -72,8 +76,6 @@ int main(int argc, char* args[]) {
 		}
 	};
 	IMG_Init(IMG_INIT_PNG);
-	WorldInit(300);
-
 
 	_WorldTimer = 0;
 	while(g_VideoOk != 0) {
@@ -91,7 +93,6 @@ int main(int argc, char* args[]) {
 	}
 	quit:
 	IMG_Quit();
-	WorldQuit();
 	for(i = 0; _Systems[i].Name != NULL; ++i) {
 		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
 		_Systems[i].Quit();

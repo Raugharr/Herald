@@ -19,24 +19,12 @@
 #include <lua/lua.h>
 #include <malloc.h>
 
-char* g_PersonBodyStr[] = {
-		"Head",
-		"Neck",
-		"Upper Chest",
-		"Lower Chest",
-		"Upper Arms",
-		"Lower Arms",
-		"Wrists",
-		"Hands",
-		"Pelvis",
-		"Upper Legs",
-		"Lower Legs",
-		"Ankles",
-		"Feet",
-		NULL
-};
 struct GoodOutput** g_GoodOutputs = NULL;
 int g_GoodOutputsSz = 0;
+static int g_GoodId = 0;
+/*
+ * TODO: Replace with a simple GoodCopy.
+ */
 struct Good*(*g_GoodCopy[])(const struct Good*) = {
 	FoodGoodCopy,
 	GoodCopy,
@@ -112,13 +100,13 @@ void DestroyGoodBase(struct GoodBase* _Good) {
 }
 
 struct Good* GoodCopy(const struct Good* _Good) {
-	struct Good* _NewGood = CreateGood(_Good->Base, _Good->X, _Good->Y);
+	struct Good* _NewGood = CreateGood(_Good->Base, _Good->Pos.x, _Good->Pos.y);
 
 	return _NewGood;
 }
 
 struct Good* FoodGoodCopy(const struct Good* _Good) {
-	struct Good* _NewGood = (struct Good*) CreateFood((struct FoodBase*)_Good->Base, _Good->X, _Good->Y);
+	struct Good* _NewGood = (struct Good*) CreateFood((struct FoodBase*)_Good->Base, _Good->Pos.x, _Good->Pos.y);
 
 	((struct Food*)_NewGood)->Parts = ((struct Food*)_Good)->Parts;
 	return _NewGood;
@@ -144,7 +132,7 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	while(lua_next(_State, -2) != 0) {
 		if(lua_isstring(_State, -2)) {
 			if(!strcmp("Name", lua_tostring(_State, -2)))
-				_Return = AddString(_State, -1, &_Name);
+				_Return = LuaGetString(_State, -1, &_Name);
 			else if(!strcmp("Category", lua_tostring(_State, -2))) {
 					if(lua_isstring(_State, -1) == 1) {
 						_Temp = lua_tostring(_State, -1);
@@ -187,7 +175,7 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 		int _Function = 0;
 
 		lua_getfield(_State, -1, "Function");
-		if(AddString(_State, -1, &_Temp) == 0) {
+		if(LuaGetString(_State, -1, &_Temp) == 0) {
 			Log(ELOG_WARNING, "Tool requires Function field.");
 			goto fail;
 		}
@@ -274,7 +262,7 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 				lua_pop(_State, 1);
 				if(lua_next(_State, -2) == 0)
 					goto fail;
-				if(AddNumber(_State, -1, &_Req->Quantity) == -1) {
+				if(LuaGetNumber(_State, -1, &_Req->Quantity) == -1) {
 					goto fail;
 				}
 				LnkLst_PushBack(&_List, _Req);
@@ -372,7 +360,7 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 				++g_GoodOutputsSz;
 		}  else {
 			_Output->Makers = realloc(_Output->Makers, ArrayLen(_Output->Makers) + 1);
-			_Output->Makers[ArrayLen(_Output->Makers) - 2] = _Good;
+			_Output->Makers[ArrayLen(_Output->Makers) - 2]->Maker = _Good;
 		}
 		_Itr = _Itr->Next;
 	}
@@ -402,7 +390,7 @@ void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct L
 }
 
 void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations) {
-	_Locations = alloca(EBODY_SIZE * sizeof(int));
+	/*_Locations = alloca(EBODY_SIZE * sizeof(int));
 
 	lua_pushstring(_State, "Locations");
 	lua_rawget(_State, -2);
@@ -416,15 +404,14 @@ void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Good, int* _Locations
 			Log(ELOG_WARNING, "Warning: Good %s contains an invalid Location.", _Good->Name);
 			goto endloop;
 		}
-		BodyStrToBody(lua_tostring(_State, -1), _Locations);
 		endloop:
 		lua_pop(_State, 1);
 	}
-	lua_pop(_State, 1);
+	lua_pop(_State, 1);*/
 }
 
 int WeaponBaseLoad(lua_State* _State, struct WeaponBase* _Weapon) {
-	char* _Type = NULL;
+	const char* _Type = NULL;
 
 	lua_pushstring(_State, "Type");
 	lua_rawget(_State, -2);
@@ -458,23 +445,23 @@ int WeaponBaseLoad(lua_State* _State, struct WeaponBase* _Weapon) {
 	}
 	lua_pushstring(_State, "RangeAttack");
 	lua_rawget(_State, -2);
-	AddInteger(_State, -1, _Weapon->RangeAttack);
+	LuaGetInteger(_State, -1, &_Weapon->RangeAttack);
 	lua_pop(_State, 1);
 	if(_Weapon->WeaponType == EWEAPON_BOW)
 		return 1;
 	melee:
 	lua_pushstring(_State, "MeleeAttack");
 	lua_rawget(_State, -2);
-	AddInteger(_State, -1, &_Weapon->MeleeAttack);
+	LuaGetInteger(_State, -1, &_Weapon->MeleeAttack);
 	lua_pushstring(_State, "Charge");
 	lua_rawget(_State, -3);
-	AddInteger(_State, -1, &_Weapon->Charge);
+	LuaGetInteger(_State, -1, &_Weapon->Charge);
 	lua_pop(_State, 2);
 	return 1;
 }
 
 int ArmorBaseLoad(lua_State* _State, struct ArmorBase* _Armor) {
-	char* _Type = NULL;
+	const char* _Type = NULL;
 
 	lua_pushstring(_State, "Type");
 	lua_rawget(_State, -2);
@@ -513,7 +500,10 @@ struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y) {
 	if(_Base == NULL)
 		return NULL;
 	_Good = (struct Good*) malloc(sizeof(struct Good));
-	CreateObject((struct Object*)_Good, OBJECT_GOOD, _X, _Y, (int(*)(struct Object*))GoodThink);
+	CreateObject((struct Object*)_Good, OBJECT_GOOD, NULL);
+	_Good->Id = ++g_GoodId;
+	_Good->Pos.x = _X;
+	_Good->Pos.y = _Y;
 	_Good->Base = _Base;
 	_Good->Quantity = 0;
 	return _Good;
@@ -524,7 +514,6 @@ int GoodCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyGood(struct Good* _Good) {
-	//ObjectRmPos(_Good);
 	free(_Good);
 }
 
@@ -561,7 +550,9 @@ void DestroyFoodBase(struct FoodBase* _Food) {
 struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y) {
 	struct Food* _Food = (struct Food*) malloc(sizeof(struct Food));
 	
-	CreateObject((struct Object*)_Food, OBJECT_GOOD, _X, _Y, (int(*)(struct Object*))GoodThink);
+	CreateObject((struct Object*)_Food, OBJECT_GOOD, NULL);
+	_Food->Pos.x = _X;
+	_Food->Pos.y = _Y;
 	_Food->Base = _Base;
 	_Food->Quantity = 0;
 	_Food->Parts = FOOD_MAXPARTS;

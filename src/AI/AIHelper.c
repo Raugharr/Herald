@@ -67,6 +67,7 @@ int ActorJobEat(struct Actor* _Worker, struct ActorJobPair* _Pair) {
 	_Person->Nutrition += _Nut * (((double)3) / log10(_Person->Nutrition) + .15f);
 	_Worker->Action = NULL;
 	return 0;*/
+	return 0;
 }
 
 /*int ActorJobPlant(struct Actor* _Worker, struct ActorJobPair* _Pair) {

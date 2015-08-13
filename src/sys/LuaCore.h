@@ -16,16 +16,11 @@ struct Primitive;
 #define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
-	lua_getglobal((_State), (_Class));			\
-	if(lua_type((_State), -1) == LUA_TTABLE) {	\
-		lua_setmetatable((_State), -2);				\
-		lua_pushstring((_State), "__self");			\
-		lua_pushlightuserdata((_State), (_Ptr));	\
-		lua_rawset((_State), -3);					\
-	} else {										\
-		lua_pop((_State), 2);						\
-		Log(ELOG_WARNING, "Lua class %s does not exist", (_Class));	\
-	}
+	LuaInitClass(_State, _Class, _Ptr)
+
+#define LuaCreateLibrary(_State, _LuaReg, _Name)	\
+	luaL_newlib((_State), (_LuaReg));				\
+	lua_setglobal((_State), (_Name))
 
 #define ConstraintToLua(_State, _Constraint)			\
 	lua_createtable((_State), 0, 2);					\
@@ -64,6 +59,11 @@ int LuaRegisterObject(lua_State* _State, const char* _Class, const char* _BaseCl
  */
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
 
+/**
+ * Sets the table at the top of the stack to have _Class as its metatable, and an element __self with _Ptr as its value.
+ */
+void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr);
+
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
 int LuaArrayItrPrev(lua_State* _State);
@@ -71,7 +71,6 @@ int LuaArrayItrPrev(lua_State* _State);
 int LuaLnkLstFront(lua_State* _State);
 int LuaLnkLstBack(lua_State* _State);
 int LuaLnkLstSize(lua_State* _State);
-int LuaLnkLstIterate(lua_State* _State);
 int LuaLnkLstNodeNext(lua_State* _State);
 int LuaLnkLstNodePrev(lua_State* _State);
 int LuaLnkLstNodeItr(lua_State* _State);
@@ -109,20 +108,19 @@ int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);
 //FIXME: _Callback's second parameter is not used.
 int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*(*_Callback)(lua_State*, int), void(*_Insert)(struct LinkedList*, void*), struct LinkedList* _Return);
-//TODO: Rename Add* to Lua*.
-int AddInteger(lua_State* _State, int _Index, int* _Number);
-int AddString(lua_State* _State, int _Index, const char** _String);
-int AddNumber(lua_State* _State, int _Index, double* _Number);
-int LuaLudata(lua_State* _State, int _Index, void** _Data);
-int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
+int LuaGetInteger(lua_State* _State, int _Index, int* _Number);
+int LuaGetString(lua_State* _State, int _Index, const char** _String);
+int LuaGetNumber(lua_State* _State, int _Index, double* _Number);
+int LuaGetUData(lua_State* _State, int _Index, void** _Data);
+int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
 
 /**
  * _Table must be big enough to contain at least lua_gettop(_State) elements.
  */
 void LuaStackToTable(lua_State* _State, int* _Table);
 /**
- * Copies every element of the table at _Index into the table at the top of the stack.
- * The table at _Index will be removed.
+ * Copies every element of the table at the top of the stack into the table at _Index.
+ * The value at the top of the stack will be popped.
  */
 void LuaCopyTable(lua_State* _State, int _Index);
 /**

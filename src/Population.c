@@ -12,7 +12,7 @@
 #include "sys/HashTable.h"
 #include "sys/Array.h"
 #include "sys/Constraint.h"
-#include "sys/Random.h"
+#include "sys/Math.h"
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
 
@@ -165,19 +165,19 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		else
 			continue;
 		if (!strcmp("Nutrition", _Key))
-			_Return = AddInteger(_State, -1, &_Nutrition);
+			_Return = LuaGetInteger(_State, -1, &_Nutrition);
 		else if(!strcmp("Name", _Key))
-			_Return = AddString(_State, -1, &_Name);
+			_Return = LuaGetString(_State, -1, &_Name);
 		else if(!strcmp("MaleRatio", _Key))
-			_Return = AddNumber(_State, -1, &_MaleRatio);
+			_Return = LuaGetNumber(_State, -1, &_MaleRatio);
 		else if(!strcmp("Meat", _Key))
-			_Return = AddInteger(_State, -1, &_Meat);
+			_Return = LuaGetInteger(_State, -1, &_Meat);
 		else if(!strcmp("Milk", _Key))
-			_Return = AddInteger(_State, -1, &_Milk);
+			_Return = LuaGetInteger(_State, -1, &_Milk);
 		else if(!strcmp("MatureAge", _Key))
 			_Return = LuaIntPair(_State, -1, &_Young, &_Old);
 		else if(!strcmp("DeathAge", _Key)) {
-			_Return = AddInteger(_State, -1, &_Death);
+			_Return = LuaGetInteger(_State, -1, &_Death);
 		} else if(!strcmp("Eats", _Key)) {
 			_Return = 1;
 			lua_pushnil(_State);

@@ -10,6 +10,8 @@
 #include "sys/RBTree.h"
 #include "AI/AIHelper.h"
 
+#include <SDL2/SDL.h>
+
 #define NUTRITION_LOSS (16)
 #define ActorPerformJob(_Actor) (TaskPoolAdd(g_TaskPool, g_TaskPool->Time + (_Actor)->Action->TotalTime, (int(*)(void*, void*))(_Actor)->Action->Job->Callback, (_Actor)->Action->Owner, &(_Actor)->Action->Pair))
 
@@ -21,9 +23,10 @@ struct Path;
 struct Actor {
 	int Id;
 	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
+	SDL_Point Pos;
 	int Gender;
 	int Nutrition;
 	DATE Age;
@@ -40,7 +43,5 @@ void ActorDeath(struct Actor* _Actor);
 void ActorThink(struct Actor* _Actor);
 void ActorFeed(struct Actor* _Actor, int _Amount);
 int ActorWorkMult(struct Actor* _Actor);
-void ActorMove(struct Actor* _Actor, struct Path* _Path);
-int ActorMoveDir(struct Actor* _Actor, int _Direction);
 
 #endif

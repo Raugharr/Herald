@@ -6,7 +6,6 @@
 #ifndef __HERALD_H
 #define __HERALD_H
 
-#include "sys/ATimer.h"
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 #include "sys/LinkedList.h"
@@ -38,16 +37,16 @@
 #define DATAFLD "data/"
 #define DATE int
 #define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))
-#define ObjectMove(_Obj, _X, _Y)		\
-	ObjectRmPos((_Obj));				\
-	ObjectAddPos((_X), (_Y), (_Obj))
+#define FAMILYSIZE (5)
 
 typedef struct lua_State lua_State;
+typedef struct SDL_Color SDL_Color;
 struct StackNode;
 struct LinkedList;
 struct TaskPool;
 
 extern const char* g_ShortMonths[];
+extern struct Constraint** g_OpinionMods;
 
 enum {
 	BABY = 0,
@@ -63,12 +62,17 @@ enum {
 	OBJECT_ANIMAL,
 	OBJECT_BUILDING,
 	OBJECT_CROP,
-	OBJECT_WALL,
-	OBJECT_FLOOR
+	OBJECT_ACTOR,
+	OBJECT_ARMY,
+	OBJECT_BATTLE,
+	OBJECT_PREGANCY,
+	OBJECT_CONSTRUCT,
+	OBJECT_LOCATION,
+	OBJECT_BIGGUY
 };
 
 struct InputReq {
-	void* Req;
+	const void* Req;
 	double Quantity;
 };
 
@@ -81,21 +85,20 @@ struct System {
 struct Object {
 	int Id;
 	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
 };
 
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_BuildMats;
-extern struct HashTable g_Occupations;
 extern struct HashTable g_Populations;
 extern struct RBTree g_MissionTree;
-extern struct ATimer g_ATimer;
 extern struct RBTree g_MissionList;
 extern struct TaskPool* g_TaskPool;
 extern int g_ObjPosBal;
+
 
 extern struct Constraint** g_AgeConstraints;
 //TODO: g_FamilySize and g_AgeAvg are only used for generation of manor's and should only be exposed to the function that does this.
@@ -109,24 +112,25 @@ struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 int InputReqQtyCmp(const void* _One, const void* _Two);
 int InputReqCropCmp(const void* _One, const void* _Two);
-int NextId();
-int ObjCmp(const void* _One, const void* _Two);
+int ObjectCmp(const void* _One, const void* _Two);
 
 struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 
-void CreateObject(struct Object* _Obj, int _Type, int _X, int _Y, int (*_Think)(struct Object*));
-void ObjectAddPos(int _X, int _Y, struct Object* _Obj);
-void ObjectRmPos(struct Object* _Obj);
-int ObjNoThink(struct Object* _Obj);
+void CreateObject(struct Object* _Obj, int _Type, void (*_Think)(struct Object*));
+void DestroyObject(struct Object* _Object);
+void ObjectsThink();
+int NextId();
 
 DATE MonthToInt(const char* _Month);
 DATE DaysBetween(int _DateOne, int _DateTwo);
 DATE DateToDays(int _Date);
 DATE DaysToDate(int _Days);
+int IsNewMonth(int _Date);
 void NextDay(int* _Date);
 
 void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
+void NewZoneColor(SDL_Color* _Color);
 
 #endif

@@ -49,26 +49,23 @@ void DestroyConstrntBnds(struct Constraint** _Constraint) {
 
 struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Interval) {
 	int _CurrMin = _Min;
-	int _CurrMax = _Max;
+	int _CurrMax = _Min + _Interval;
 	int _SizeCt = 0;
 	struct Constraint** _List = NULL;
 	int i;
 
-	_SizeCt = _Max / _Interval;
+	_SizeCt = (_Max - _Min) / _Interval;
 	if(_Interval * _SizeCt < _Max)
 		++_SizeCt;
 	_List = (struct Constraint**) malloc(sizeof(struct Constraint) * _SizeCt);
-	while(1) {
-		for(i = 0; i < _SizeCt; ++i) {
-			if(_CurrMax > _Max) {
-				_List[i] = CreateConstraint(_CurrMin, _Max);
-				break;
-			}
-			_List[i] = CreateConstraint(_CurrMin, _CurrMax);
-			_CurrMin += _Interval;
-			_CurrMax += _Interval;
+	for(i = 0; i < _SizeCt; ++i) {
+		if(_CurrMax >= _Max) {
+			_List[i] = CreateConstraint(_CurrMin, _Max);
+			break;
 		}
-		break;
+		_List[i] = CreateConstraint(_CurrMin, _CurrMax - 1);
+		_CurrMin += _Interval;
+		_CurrMax += _Interval;
 	}
 	_List[i + 1] = NULL;
 	if(_Size != NULL)
@@ -81,7 +78,7 @@ struct Constraint** CreateConstrntBnds(int _Size, ...) {
 	struct Constraint** _List = NULL;
 
 	va_start(_Valist, _Size);
-	_List = CreateConstrntVaBnds(_Size, _Valist);
+	_List = CreateConstrntVaBnds(_Size + 1, _Valist);
 	_List[_Size] = NULL;
 	va_end(_Valist);
 	return _List;
@@ -105,7 +102,7 @@ struct Constraint** CreateConstrntVaBnds(int _Size, va_list _List) {
 	return _Constrnt;
 }
 
-int Fuzify(struct Constraint** _List, int _Value) {
+int Fuzify(struct Constraint* const * _List, int _Value) {
 	int i;
 	for(i = 0; *_List != NULL; ++i, ++_List)
 		if((*_List)->Min <= _Value && (*_List)->Max >= _Value)

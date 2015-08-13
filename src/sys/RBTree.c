@@ -438,17 +438,35 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	--_Tree->Size;
 	free(_OldNode);
 }
-
-struct RBItrStack* RBDepthFirst_Aux(struct RBNode* const _Node, struct RBItrStack* _Stack, int _Index) {
+/*
+ * FIXME: When the RBTree contains thousands of elements it would take to long to iterate through the thousands
+ * of elements put them into a stack and then give them to the caller. Instead we should do something like the
+ * commented code below where we use assembly to pass a variable amount of arguments to a callback function.
+ */
+struct RBItrStack* RBDepthFirst(struct RBNode* const _Node, struct RBItrStack* _Stack) {
 	if(_Node == NULL)
 		return _Stack;
 	(*_Stack).Prev = _Stack;
 	(*_Stack).Node = _Node;
 	++_Stack;
-	_Stack = RBDepthFirst_Aux(_Node->Left, _Stack, (2 * _Index) + 1);
-	_Stack = RBDepthFirst_Aux(_Node->Right, _Stack, (2 * _Index) + 2);
+	_Stack = RBDepthFirst(_Node->Left, _Stack);
+	_Stack = RBDepthFirst(_Node->Right, _Stack);
 	return _Stack;
 }
+
+/*
+ * void RBDepthFirst(struct RBNode* const _Node, void(*_Callback)(), void** _Args, int _ArgSize) {
+ * int i = 0;
+	if(_Node == NULL)
+		return;
+	__asm__("pushl $_Args[i]\n\t
+			addl $1, $i\n\t
+			call _Callback\n\t
+			");
+	_Stack = RBDepthFirst(_Node->Left, _Callback, _Args, _ArgSize);
+	_Stack = RBDepthFirst(_Node->Right _Callback, _Args, _ArgSize);
+}
+ */
 
 void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
 	int i = 0;

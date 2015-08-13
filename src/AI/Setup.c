@@ -8,6 +8,9 @@
 #include "BehaviorTree.h"
 #include "LuaLib.h"
 #include "AIHelper.h"
+#include "goap.h"
+#include "Utility.h"
+#include "../BigGuy.h"
 #include "../Actor.h"
 #include "../Population.h"
 #include "../Building.h"
@@ -17,10 +20,17 @@
 #include "../Family.h"
 #include "../sys/Array.h"
 #include "../Herald.h"
+#include "../Location.h"
+#include "../ArmyGoal.h"
+#include "../Government.h"
+#include "../Warband.h"
+
+#include "../sys/LinkedList.h"
 #include "../sys/HashTable.h"
 #include "../sys/Log.h"
 #include "../sys/Stack.h"
 #include "../sys/LuaCore.h"
+#include "../sys/Math.h"
 
 #include <math.h>
 #include <string.h>
@@ -48,6 +58,8 @@ struct LuaBhvAction g_BhvActions[] = {
 	{"WorkField", PAIWorkField},
 	{NULL, NULL}
 };
+
+static struct AgentUtility g_BigGuyPlanner;
 
 int g_BhvActionsSz = 0;
 
@@ -82,57 +94,17 @@ int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
 }
 
 int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
-	/*struct Family* _Family = _Person->Family;
-	struct Field* _Field = NULL;
-	struct Array* _Array = NULL;
-	int _FieldSize = _Family->Fields->Size;
-	int i = 0;
-	int j = 0;
-	
-	for(i = 0; i < _Family->Fields->Size; ++i) {
-		_Field = ((struct Field*)_Family->Fields->Table[i]);
-		if(_Field == NULL)
-			return 0;
-		if(_Field->Status == ENONE) {
-			SelectCrops(_Family, _Family->Fields);
-		} else if(_Field->Status == EFALLOW) {
-			_Array = _Family->Goods;
-			for(j = 0; j < _Array->Size; ++j) {
-				if(strcmp(((struct Good*)_Array->Table[j])->Base->Name, _Field->Crop->Name) == 0) {
-					ActorAddJob(ACTORJOB_PLANT, (struct Actor*)_Person, (struct Object*)_Field, _Array->Table[j]);
-					break;
-				}
-			}
-		} else {
-			int _Type = 0;
-			struct Good* _Tool = NULL;
-
-			if(_Field->Status == EPLOWING)
-				_Type = ETOOL_PLOW;
-			else if(_Field->Status == EHARVESTING)
-				_Type = ETOOL_REAP;
-			_Array = _Family->Goods;
-			for(j = 0; j < _Array->Size; ++j)
-				if(((struct Good*)_Array->Table[j])->Base->Category == ETOOL && (((struct ToolBase*)((struct Good*)_Array->Table[j])->Base)->Function & _Type) == _Type) {
-					_Tool = _Array->Table[j];
-					break;
-				}
-			FieldWork(_Field, ActorWorkMult((struct Actor*)_Person), _Tool);
-			if(_Field->Status == EHARVESTING && _Field->StatusTime <= 0)
-				ActorAddJob(ACTORJOB_HARVEST, (struct Actor*)_Person, (struct Object*)_Field, _Family->Goods);
-		}
-	}*/
 	return 1;
 }
 
 int PAIBuildHouse(struct Person* _Person, struct HashTable* _Table) {
-	struct Construction* _House = NULL;
+	/*struct Construction* _House = NULL;
 
 	if((_House = ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_CONSTRUCTION)) == NULL) {
 		ATimerInsert(&g_ATimer, CreateConstruct(NULL, _Person));
 	} else {
 		--_House->DaysLeft;
-	}
+	}*/
 	return 1;
 }
 
@@ -200,7 +172,7 @@ int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
 		_GoodIndxs[i]->Quantity -= ((struct InputReq*)_GoodTbl[i])->Quantity;
 	}
 	if((_OwnedGood = bsearch(_Good, _Family->Goods->Table, _Family->Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))IdISCallback)) == NULL) {
-		_OwnedGood = CreateGood(_Good, _Person->X, _Person->Y);
+		_OwnedGood = CreateGood(_Good, _Person->Pos.x, _Person->Pos.y);
 		_OwnedGood->Quantity = 1;
 	} else {
 		++_OwnedGood->Quantity;
@@ -333,7 +305,6 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 	if(_Foods == NULL)
 		return 1;
 
-	//TODO: Food should have to use a building to be created.
 	for(i = 0; i < _Size; ++i) {
 		_Food = ((struct FoodBase*)_Foods[i]->Req);
 		for(j = 0; j < _Food->IGSize; ++j) {
@@ -341,7 +312,7 @@ int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
 			_Good->Quantity -= _Foods[i]->Quantity * _Food->InputGoods[j]->Quantity;
 			_GoodsArray = _Family->Goods;
 			if((_FamFood = LinearSearch(_Food, _GoodsArray->Table, _GoodsArray->Size, GoodCmp)) == NULL) {
-				_FamFood =  CreateFood(_Food, _Person->X, _Person->Y);
+				_FamFood =  CreateFood(_Food, _Person->Pos.x, _Person->Pos.y);
 				ArrayInsert_S(_GoodsArray, _FamFood);
 			}
 			_FamFood->Quantity += _Foods[i]->Quantity;
@@ -370,6 +341,151 @@ int LuaActionLen(const struct LuaBhvAction* _Action) {
 	while(_Action[i].Name != NULL)
 		++i;
 	return i;
+}
+
+const struct AgentUtility* GetBGPlanner() {
+	return &g_BigGuyPlanner;
+}
+
+int BGImproveRelations(const void* _Data, const void* _Extra) {
+	return 120;
+}
+
+int BGImproveRelationsAction(struct BigGuy* _Guy) {
+	struct BigGuyRelation* _Relation = NULL;
+	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
+	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
+	struct BigGuy* _Person = NULL;
+	int _Rand = Random(0, _Settlement->BigGuys.Size - 1);
+	int _Ct = 0;
+
+	if(_Guy->Action.ActionFunc == NULL) {
+		while(_Itr != NULL) {
+			_Person = (struct BigGuy*)_Itr->Data;
+			if(_Person != _Guy) {
+				 if(_Ct >= _Rand)
+					 break;
+				++_Ct;
+			}
+			_Itr = _Itr->Next;
+		}
+		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Person);
+		return 0;
+	}
+	_Relation = BigGuyGetRelation((struct BigGuy*)_Guy->Action.Data, _Guy);
+	if(_Relation->Modifier >= BIGGUY_LIKEMIN) {
+		BigGuySetAction(_Guy, BGACT_NONE, NULL);
+		return 1;
+	}
+	return 0;
+}
+
+int UtilityMakeFriends(const struct BigGuy* _Guy, int* _Min, int* _Max, struct WorldState* _State) {
+	int _Friends = 0;
+	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
+	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
+	const struct BigGuy* _Person = NULL;
+	const struct BigGuyRelation* _Relation = NULL;
+
+	*_Min = 0;
+	*_Max = _Settlement->BigGuys.Size - 1;
+	while(_Itr != NULL) {
+		_Person = (struct BigGuy*)_Itr->Data;
+		if(_Person == _Guy)
+			goto end_loop;
+		if((_Relation = BigGuyGetRelation(_Guy, _Person)) != NULL && _Relation->Relation >= BGREL_LIKE)
+			++_Friends;
+		end_loop:
+		_Itr = _Itr->Next;
+	}
+	WorldStateSetAtom(_State, BGBYTE_IMPROVINGRELATION, 1);
+	return _Friends;
+}
+
+int BGRaiseFyrd(const void* _Data, const void* _Extra) {
+	return 1;
+}
+
+int BGRaiseFyrdAction(struct BigGuy* _Guy) {
+	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
+	struct ArmyGoal _Goal;
+	struct LinkedList _List = {0, NULL, NULL};
+
+	WorldSettlementsInRadius(&g_GameWorld, &_Settlement->FirstPart->Pos, 20, &_List);
+	if(_List.Size <= 0)
+		goto end;
+	ArmyGoalRaid(&_Goal, (struct Settlement*)&_List.Back->Data);
+	SettlementRaiseFyrd(_Settlement, &_Goal);
+	end:
+	LnkLstClear(&_List);
+	return 1;
+}
+
+int UtilityRaiseFyrdFood(const struct BigGuy* _Guy, int* _Min, int* _Max, struct WorldState* _State) {
+	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
+	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 12 * 3; //HOw much nutrition we need for 3 months.
+	int _Nutrition = SettlementGetNutrition(_Settlement);
+
+	if(_Nutrition >= _MaxNutrition)
+		return 0;
+	*_Min = 0;
+	*_Max = _MaxNutrition;
+	WorldStateSetAtom(_State, BGBYTE_FYRDRAISED, 1);
+	return _Nutrition;
+}
+
+int BGChallangeLeader(const void* _Data, const void* _Extra) {
+	return 1;
+}
+
+int BGChallangeLeaderAction(struct BigGuy* _Guy) {
+	struct Government* _Government = FamilyGetSettlement(_Guy->Person->Family)->Government;
+	struct BigGuy* _Leader = _Government->Leader;
+
+	if(_Guy->Stats.Warfare > _Leader->Stats.Warfare)
+		GovernmentSetLeader(_Government, _Guy);
+	return 1;
+}
+
+int UtilityChallangeLeader(const struct BigGuy* _Guy, int* _Min, int* _Max, struct WorldState* _State) {
+	struct BigGuy* _Leader =  FamilyGetSettlement(_Guy->Person->Family)->Government->Leader;
+	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Leader);
+	int _Utility = 0;
+
+	*_Min = 0;
+	*_Max = 255;
+	if(_Guy->Stats.Warfare < _Leader->Stats.Warfare || (_Relation != NULL && _Relation->Relation == BGREL_LOVE))
+		return 0;
+	_Utility = _Utility + ((_Guy->Stats.Warfare - _Leader->Stats.Warfare) * 5);
+	if(_Relation != NULL)
+		_Utility = _Utility + ((-_Relation->Modifier) * 2);
+	return (_Utility >= 255) ? (255) : (_Utility);
+}
+
+void BGSetup() {
+	struct GOAPPlanner* _Planner = AUtilityGetGoap(&g_BigGuyPlanner);
+
+	GoapClear(_Planner);
+	AUtilityClear(&g_BigGuyPlanner);
+
+	for(int i = 0; i < BGBYTE_SIZE; ++i)
+		GoapAddAtom(_Planner, g_BGStateStr[i]);
+	GoapAddPostcond(_Planner, "Improve Relations", "ImproveRelations", 1, WSOP_ADD);
+	GoapSetActionCost(_Planner, "Improve Relations", BGImproveRelations);
+	GoapSetAction(_Planner, "Improve Relations", (int(*)(void*))BGImproveRelationsAction);
+	AUtilityAdd(&g_BigGuyPlanner, "MakeFriends", (int(*)(const void*, int*, int*, struct WorldState*))UtilityMakeFriends, (UTILITY_INVERSE | UTILITY_LINEAR));
+
+	GoapAddPostcond(_Planner, "Challenge Leader", "IsLeader", 1, WSOP_SET);
+	GoapSetActionCost(_Planner, "Challenge Leader", BGChallangeLeader);
+	GoapSetAction(_Planner, "Challenge Leader", (int(*)(void*))BGChallangeLeaderAction);
+	AUtilityAdd(&g_BigGuyPlanner, "Challenge Leader", (int(*)(const void*, int*, int*, struct WorldState*))UtilityChallangeLeader, UTILITY_LINEAR);
+
+	GoapAddPrecond(_Planner, "Raid", "FyrdRaised", 0, WSOP_EQUAL);
+	GoapAddPostcond(_Planner, "Raid", "FyrdRaised", 1, WSOP_EQUAL);
+	GoapAddPostcond(_Planner, "Raid", "Prestige", 2, WSOP_ADD);
+	GoapSetActionCost(_Planner, "Raid", BGRaiseFyrd);
+	GoapSetAction(_Planner, "Raid", (int(*)(void*))BGRaiseFyrdAction);
+	AUtilityAdd(&g_BigGuyPlanner, "Raid", (int(*)(const void*, int*, int*, struct WorldState*))UtilityRaiseFyrdFood, (UTILITY_INVERSE | UTILITY_QUADRATIC));
 }
 
 void AIInit(lua_State* _State) {
@@ -435,6 +551,8 @@ void AIInit(lua_State* _State) {
 		_Bhv = NULL;
 	}
 	lua_pop(_State, 2);
+	GoapInit();
+	BGSetup();
 }
 
 void AIQuit() {
@@ -446,4 +564,5 @@ void AIQuit() {
 		free(g_BhvList.Table[i]);
 	}
 	g_BhvList.Size = 0;
+	GoapQuit();
 }

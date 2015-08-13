@@ -11,10 +11,9 @@
 #include "World.h"
 #include "Actor.h"
 
-#define PERSON_CLOTHMAX (16)
 #define EMALE (1)
 #define EFEMALE (2)
-#define AVKID (3)
+#define AVKID (3) //Average kids.
 #define MAX_NUTRITION (5000)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
@@ -30,113 +29,47 @@ struct Food;
 
 extern struct MemoryPool* g_PersonPool;
 
-enum {
-	EBODYPOS_NONE,
-	EBODYPOS_FRONT,
-	EBODYPOS_BACK
-};
-
-enum {
-	EBODY_HEAD,
-	EBODY_NECK,
-	EBODY_RWRIST,
-	EBODY_LWRIST,
-	EBODY_RHAND,
-	EBODY_LHAND,
-	EBODY_RANKLE,
-	EBODY_LANKLE,
-	EBODY_RFOOT,
-	EBODY_LFOOT,
-	EBODY_NOPOS = EBODY_LFOOT,
-	EBODY_UCHEST,
-	EBODY_LCHEST,
-	EBODY_URARM,
-	EBODY_ULARM,
-	EBODY_LRARM,
-	EBODY_LLARM,
-	EBODY_PELVIS,
-	EBODY_URLEG,
-	EBODY_ULLEG,
-	EBODY_LRLEG,
-	EBODY_LLLEG,
-	EBODY_BUCHEST,
-	EBODY_BLCHEST,
-	EBODY_BURARM,
-	EBODY_BULARM,
-	EBODY_BLRARM,
-	EBODY_BLLARM,
-	EBODY_BPELVIS,
-	EBODY_BURLEG,
-	EBODY_BULLEG,
-	EBODY_BLRLEG,
-	EBODY_BLLLEG,
-	EBODY_SIZE
-};
-
 struct Person {
 	int Id;
 	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
+	SDL_Point Pos;
 	int Gender;
 	int Nutrition;
 	DATE Age;
 	struct ActorJob* Action;
 	const char* Name;
-	struct Family* Family;
-	struct Family* Parent;
-	struct Person* Next;
+	struct Family* Family;	struct Person* Next;
 	struct Person* Prev;
-	struct Occupation* Occupation;
 	struct Behavior* Behavior;
-	struct Good* Clothing[PERSON_CLOTHMAX];
+	struct Pregnancy* Pregnancy;
 };
 
-struct Pregancy {
-	void* Prev;
-	void* Next;
+struct Pregnancy {
+	int Id;
 	int Type;
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
 	struct Person* Mother;
 	int TTP;//Time to pregancy
 };
 
-struct Pregancy* CreatePregancy(struct Person* _Person);
-void DestroyPregancy(struct Pregancy* _Pregancy);
-int PregancyUpdate(struct Pregancy* _Pregancy);
+struct Pregnancy* CreatePregnancy(struct Person* _Person);
+void DestroyPregnancy(struct Pregnancy* _Pregnancy);
+void PregnancyThink(struct Pregnancy* _Pregnancy);
 
-struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Settlement* _Location);
+struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Family* _Family);
+//FIXME: DestroyFamily should be called by DestroyPerson if _Person is the last Person in its family.
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 int PersonThink(struct Person* _Person);
 int PersonEat(struct Person* _Person, struct Food* _Food);
 void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
-/*
- * _Locations should be the size of g_PersonBodyStr.
- */
-void BodyStrToBody(const char* _BodyStr, int* _Locations);
-void WearClothing(struct Person* _Person, struct Good* _Clothing);
-/*
- * int* _Body should be 4 32 integers that are adjacent to each other.
- * There are 32 unique body locations each uses 4 bits to decide the status
- * it has. The body locations are ordered by their position in the
- * enumeration. For example the first 4 bits of the first integer would
- * contain the status of EBODY_HEAD, EBODY_LLANKLE would contain the first 
- * 4 bits of the second integer.
- */
 
-/*
- * Returns the life left in a specific body location.
- * _Location should be a EBODY_*.
- * _Position should be a EBODYPOS_*.
- */
-int BodyLocation(int* _Body, int _Location, int _Position);
-/*
- * Sets the life in a specific body location.
- * _Location should be a EBODY_*.
- * _Position should be a EBODYPOS_*.
- */
-void SetBodyLocationStatus(int* _Body, int _Location, int _Position, int _Health);
+int PersonIsWarrior(const struct Person* _Person);
 #endif
 

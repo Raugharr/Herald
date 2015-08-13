@@ -27,6 +27,8 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"IsPaused", LuaWorldIsPaused},
 		{"Render", LuaWorldRenderMap},
 		{"IsRendering", LuaWorldIsRendering},
+		{"SetOnClick", LuaWorldSetOnClick},
+		{"GetBigGuy", LuaWorldGetBigGuy},
 		{NULL, NULL}
 };
 
@@ -41,7 +43,7 @@ int LuaWorldGetPlayer(lua_State* _State) {
 }
 
 int LuaWorldGetSettlement(lua_State* _State) {
-	LuaCtor(_State, "Government", g_GameWorld.Player->Person->Family->HomeLoc->Government);
+	LuaCtor(_State, "Government", FamilyGetSettlement(g_GameWorld.Player->Person->Family)->Government);
 	return 1;
 }
 
@@ -71,5 +73,29 @@ int LuaWorldRenderMap(lua_State* _State) {
 
 int LuaWorldIsRendering(lua_State* _State) {
 	lua_pushboolean(_State, g_GameWorld.MapRenderer->IsRendering);
+	return 1;
+}
+
+int LuaWorldSetOnClick(lua_State* _State) {
+	luaL_checktype(_State, 1, LUA_TNUMBER);
+	luaL_checktype(_State, 2, LUA_TLIGHTUSERDATA);
+
+	int _ClickState = lua_tointeger(_State, 1);
+	//FIXME: Create a Lua binding for Objects.
+	struct Object* _Obj = lua_touserdata(_State, 2);
+
+	SetClickState(_Obj, _ClickState);
+	return 0;
+}
+
+int LuaWorldGetBigGuy(lua_State* _State) {
+	struct Person* _Person = LuaCheckClass(_State, 1, "Person");
+	struct BigGuy* _Guy = NULL;
+
+	if((_Guy = RBSearch(&g_GameWorld.BigGuys, _Person)) == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "BigGuy", _Guy);
 	return 1;
 }

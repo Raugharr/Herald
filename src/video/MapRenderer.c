@@ -9,32 +9,15 @@
 #include "Tile.h"
 #include "Point.h"
 #include "Video.h"
+#include "../sys/Math.h"
+#include "../Warband.h"
+#include "../Location.h"
 #include "../sys/Log.h"
 #include "../sys/LinkedList.h"
 
 #include <SDL2/SDL_image.h>
 #include <math.h>
 #include <stdlib.h>
-
-#define GetTile(_Map, _Pos) (_Map)->Tiles[(_Pos)->X + ((_Map)->TileLength * (_Pos)->Y)]
-
-static struct Point g_TileEvenOffsets[] = {
-		{-1, -1},
-		{0, -1},
-		{1, 0},
-		{0, 1},
-		{1, 1},
-		{-1, 0}
-};
-
-static struct Point g_TileOddOffsets[] = {
-		{0, -1},
-		{1, -1},
-		{1, 0},
-		{1, 1},
-		{0, 1},
-		{-1, 0}
-};
 
 struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize) {
 	struct MapRenderer* _Map = (struct MapRenderer*) malloc(sizeof(struct MapRenderer));
@@ -43,6 +26,7 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize)
 	_Map->Grass = IMG_LoadTexture(g_Renderer, "data/graphics/grass2.png");
 	_Map->Selector = IMG_LoadTexture(g_Renderer, "data/graphics/select.png");
 	_Map->Settlement = IMG_LoadTexture(g_Renderer, "data/graphics/settlement.png");
+	_Map->Warrior = IMG_LoadTexture(g_Renderer, "data/graphics/Warrior.png");
 
 	if(_Map->Grass == NULL)
 		Log(ELOG_WARNING, SDL_GetError());
@@ -64,8 +48,8 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize)
 	}
 	_Map->Screen.x = 0;
 	_Map->Screen.y = 0;
-	_Map->Screen.w = _RenderSize->X * 2;
-	_Map->Screen.h = _RenderSize->Y * 2;
+	_Map->Screen.w = _RenderSize->X;
+	_Map->Screen.h = _RenderSize->Y;
 	MapLoad(_Map);
 	return _Map;
 }
@@ -75,94 +59,157 @@ void DestroyMapRenderer(struct MapRenderer* _Map) {
 	SDL_DestroyTexture(_Map->OddGrass);
 	SDL_DestroyTexture(_Map->Selector);
 	SDL_DestroyTexture(_Map->Settlement);
+	SDL_DestroyTexture(_Map->Warrior);
 }
 
 void MapLoad(struct MapRenderer* _Map) {
-	int x = 0;
-	int y = 0;
-
-	for(y = 0; y < _Map->TileLength; ++y)
-		for(x = 0; x < _Map->TileLength; ++x)
+	for(int y = 0; y < _Map->TileLength; ++y)
+		for(int x = 0; x < _Map->TileLength; ++x)
 			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, _Map->Grass, x, y);
 }
 
-struct Tile* ScreenToTile(struct MapRenderer* _Map, struct Point* _Screen) {
-	struct Point _Hex = {0, 0};
-	struct Point _RelPos;
+struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen) {
+	SDL_Point _Hex = {0, 0};
+	SDL_Point _RelPos;
 	int _OddCol = 0;
 
-	_Hex.Y = _Screen->Y / TILE_HEIGHT_THIRD;
-	_RelPos.Y = _Screen->Y - (_Hex.Y * TILE_HEIGHT);
-	_OddCol = ((_Hex.Y & 1) == 1);
+	_Hex.y = _Screen->y / TILE_HEIGHT_THIRD;
+	_RelPos.y = _Screen->y - (_Hex.y * TILE_HEIGHT);
+	_OddCol = ((_Hex.y & 1) == 1);
 	if(_OddCol != 0) {
-		_Hex.X = (_Screen->X - (TILE_WIDTH / 2)) / TILE_WIDTH;
-		_RelPos.X = _Screen->X - (_Hex.X * TILE_WIDTH);
+		_Hex.x = (_Screen->x - (TILE_WIDTH / 2)) / TILE_WIDTH;
+		_RelPos.x = _Screen->x - (_Hex.x * TILE_WIDTH);
 	} else {
-		_Hex.X = _Screen->X / TILE_WIDTH;
-		_RelPos.X = _Screen->X - (_Hex.X * TILE_WIDTH) - (TILE_WIDTH / 2);
+		_Hex.x = _Screen->x / TILE_WIDTH;
+		_RelPos.x = _Screen->x - (_Hex.x * TILE_WIDTH) - (TILE_WIDTH / 2);
 	}
-	if(_RelPos.Y < 0) {
-		if(_RelPos.Y < (TILE_GRADIENT * _RelPos.X) + (TILE_HEIGHT / 2)) {
-			//--_Hex.Y;
+	if(_RelPos.y < 0) {
+		if(_RelPos.y < (TILE_GRADIENT * _RelPos.x) + (TILE_HEIGHT / 2)) {
+			//--_Hex.y;
 			//if(_OddCol != 0)
-			//	++_Hex.X;
-		} else if(_RelPos.Y < (TILE_GRADIENT * _RelPos.X) - (TILE_HEIGHT / 2)) {
-			--_Hex.Y;
+			//	++_Hex.x;
+		} else if(_RelPos.y < (TILE_GRADIENT * _RelPos.x) - (TILE_HEIGHT / 2)) {
+			--_Hex.y;
 			//if(_OddCol == 0)
-			//	++_Hex.X;
+			//	++_Hex.x;
 		}
 	}
-	if(_Hex.X < 0 || _Hex.X > _Map->TileLength
-			|| _Hex.Y < 0 || _Hex.Y > _Map->TileLength)
+	if(_Hex.x < 0 || _Hex.x > _Map->TileLength
+			|| _Hex.y < 0 || _Hex.y > _Map->TileLength)
 		return NULL;
-	return GetTile(_Map, &_Hex);
+	return MapGetTile(_Map, &_Hex);
 }
 
-struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int _TileDir) {
-	const struct Point* _Pos = NULL;
+void TilesInRange(const struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List) {
+	SDL_Point _Point = {_Pos->x - _Range, max(-_Range, -_Pos->x - _Range)};
+	const struct Tile* _Tile = NULL;
 
-#ifdef DEBUG
-	if(_TileDir < 0 || _TileDir > TILE_WEST) {
-		Log(ELOG_ERROR, "GetAdjTile passed an invalid tile direction %i.", _TileDir);
-		return NULL;
+	for(; _Point.x <= _Range; ++_Point.x)
+		for(; _Point.y <= min(_Range, -_Pos->x - _Range); ++_Point.y)
+			if((_Tile = MapGetTileConst(_Renderer, &_Point)) != NULL)
+				LnkLstPushBack(_List, _Tile);
+}
+
+void MapTileRenderRect(const struct MapRenderer* _Renderer, const SDL_Point* _TilePos, SDL_Rect* _Rect) {
+	_Rect->x = (_TilePos->x * TILE_WIDTH) - (_Renderer->Screen.x * TILE_WIDTH);
+	_Rect->y = (_TilePos->y * TILE_HEIGHT_THIRD) - (_Renderer->Screen.y * TILE_HEIGHT_THIRD);
+	if((_TilePos->y & 1) == 1) {
+		_Rect->x += (TILE_WIDTH / 2);
 	}
-#endif
-	_Pos = ((_Tile->TilePos.y & 1) == 1) ? (&g_TileOddOffsets[_TileDir]) : (&g_TileEvenOffsets[_TileDir]);
-
-	return GetTile(_Map, _Pos);
+	_Rect->w = TILE_WIDTH;
+	_Rect->h = TILE_HEIGHT;
 }
 
 void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
-	struct LinkedList QuadList = {0, NULL, NULL};
+	struct LinkedList _QuadList = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 	struct Sprite* _Sprite = NULL;
 	SDL_Rect _Rect;
 
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_TILE], &_Map->Screen, ((void(*)(const void*, SDL_Point*))SpriteGetTilePos), &QuadList);
-	_Itr = QuadList.Front;
+	MapObjectsInRect(_Map, MAPRENDER_TILE, &_Map->Screen, &_QuadList);
+	_Itr = _QuadList.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;
-		_Rect.x = _Sprite->ScreenPos.x - _Map->Screen.x;
-		_Rect.y = _Sprite->ScreenPos.y - _Map->Screen.y;
-		_Rect.w = TILE_WIDTH;
-		_Rect.h = TILE_HEIGHT;
+		MapTileRenderRect(_Map, &_Sprite->TilePos, &_Rect);
 		if((_Sprite->TilePos.y & 1) == 1)
 			SDL_RenderCopy(g_Renderer, _Map->OddGrass, NULL, &_Rect);
 		else
 		SDL_RenderCopy(g_Renderer, _Map->Grass, NULL, &_Rect);
 		_Itr = _Itr->Next;
 	}
-	LnkLstClear(&QuadList);
-	QTPointInRectangle(&_Map->RenderArea[MAPRENDER_UNIT], &_Map->Screen, ((void(*)(const void*, SDL_Point*))SpriteGetTilePos), &QuadList);
-	_Itr = QuadList.Front;
-	while(_Itr != NULL) {
-		_Sprite = (struct Sprite*)_Itr->Data;
-		_Rect.x = _Sprite->ScreenPos.x - _Map->Screen.x;
-		_Rect.y = _Sprite->ScreenPos.y - _Map->Screen.y;
-		_Rect.w = TILE_WIDTH;
-		_Rect.h = TILE_HEIGHT;
-		SDL_RenderCopy(g_Renderer, _Map->Settlement, NULL, &_Rect);
-		_Itr = _Itr->Next;
+	LnkLstClear(&_QuadList);
+	for(int _Layer = MAPRENDER_TILE + 1; _Layer < MAPRENDER_LAYERS; ++_Layer) {
+		MapObjectsInRect(_Map, _Layer, &_Map->Screen, &_QuadList);
+		_Itr = _QuadList.Front;
+		while(_Itr != NULL) {
+			_Sprite = (struct Sprite*)_Itr->Data;
+			MapTileRenderRect(_Map, &_Sprite->TilePos, &_Rect);
+			SDL_RenderCopy(g_Renderer, _Sprite->Image, NULL, &_Rect);
+			_Itr = _Itr->Next;
+		}
+		LnkLstClear(&_QuadList);
 	}
-	LnkLstClear(&QuadList);
+}
+
+void MapObjectsInRect(struct MapRenderer* _Renderer, int _Layer, const SDL_Rect* _Rect, struct LinkedList* _Data) {
+	if(_Layer < 0 || _Layer >= MAPRENDER_LAYERS)
+		return;
+	QTPointInRectangle(&_Renderer->RenderArea[_Layer], _Rect, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, _Data);
+}
+
+const struct Tile* MapGetTileConst(const struct MapRenderer* const _Renderer, const SDL_Point* _Point) {
+	return MapGetTile((struct MapRenderer*)_Renderer, _Point);
+}
+
+struct Tile* MapGetTile(struct MapRenderer* _Renderer, const SDL_Point* _Point) {
+	if(_Point->x < 0 || _Point->x >= _Renderer->TileLength || _Point->y < 0 || _Point->y >= _Renderer->TileLength)
+		return NULL;
+	return _Renderer->Tiles[(_Point->y * _Renderer->TileLength) + _Point->x];
+}
+
+void MapDrawColorOverlay(const struct MapRenderer* _Renderer, const SDL_Point* _Point, SDL_Color* _Color) {
+	SDL_Rect _Rect;
+
+	SDL_SetRenderDrawColor(g_Renderer, _Color->r, _Color->g, _Color->b, _Color->a);
+	MapTileRenderRect(_Renderer, _Point, &_Rect);
+	SDL_RenderFillRect(g_Renderer, &_Rect);
+}
+
+void MapGetUnitPos(const void* _Data, SDL_Point* _Pos) {
+	_Pos->x = ((struct Sprite*)_Data)->TilePos.x;
+	_Pos->y = ((struct Sprite*)_Data)->TilePos.y;
+}
+
+void MapGetSettlementPos(const void* _Data, SDL_Rect* _Rect) {
+	const struct Settlement* _Loc = (struct Settlement*) _Data;
+
+	_Rect->x = _Loc->Pos.x;
+	_Rect->y = _Loc->Pos.y;
+	_Rect->w = _Loc->Pos.w;
+	_Rect->h = _Loc->Pos.h;
+}
+
+struct Army* MapGetUnit(struct MapRenderer* _Renderer, const SDL_Point* _Point) {
+	if(_Point->x < 0 || _Point->x >= _Renderer->TileLength || _Point->y < 0 || _Point->y >= _Renderer->TileLength)
+		return NULL;
+	return (struct Army*) QTGetPoint(&_Renderer->RenderArea[MAPRENDER_UNIT], _Point, MapGetUnitPos);
+}
+
+int MapUnitCanMove(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Point* _Point) {
+	return ((!((int) (QTGetPoint(&_Renderer->RenderArea[MAPRENDER_UNIT], _Point, MapGetUnitPos)))) && _Army->InBattle == 0);
+}
+
+int MapMoveUnit(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Point* _Point) {
+	if(MapUnitCanMove(_Renderer, _Army, _Point)) {
+		QTRemovePoint(&_Renderer->RenderArea[MAPRENDER_UNIT], &_Army->Sprite.TilePos, MapGetUnitPos);
+		QTInsertPoint(&_Renderer->RenderArea[MAPRENDER_UNIT], &_Army->Sprite, _Point);
+		_Army->Sprite.TilePos.x = _Point->x;
+		_Army->Sprite.TilePos.y = _Point->y;
+		return 1;
+	}
+	return 0;
+}
+
+struct Settlement* MapGetSettlement(struct MapRenderer* _Renderer, SDL_Point* _Pos) {
+	return (struct Settlement*) QTGetAABB(&_Renderer->RenderArea[MAPRENDER_SETTLEMENT], _Pos, MapGetSettlementPos);
 }

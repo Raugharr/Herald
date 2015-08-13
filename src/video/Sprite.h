@@ -25,6 +25,7 @@ struct Sprite {
 };
 
 struct Sprite* CreateSprite(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
+struct Sprite* ConstructSprite(struct Sprite* _Sprite, struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
 void DestroySprite(struct Sprite* _Sprite);
 
 static inline void SpriteGetScreenPos(const struct Sprite* _Sprite, SDL_Point* _Pos) {

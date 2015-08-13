@@ -1,17 +1,36 @@
+function NonPlayerActions(Menu, Person)
+	Menu:CreateButton("Influence", 
+		function()
+			World.GetPlayer():SetAction(1, Person)
+		end)
+end
+
 function Menu.Init(Menu, Width, Height, Person)
 	Menu.Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Height, 0, {0, 0, 0, 0}, Menu.Screen)
 	Menu.Display = nil
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
+	local Guy = nil
+	
+	Guy = World.GetBigGuy(Person)
+	if World.GetPlayer():GetPerson() ~= Person and Guy ~= nil then
+		local Rel = Guy:GetRelation(World.GetPlayer())
+		if Rel == nil then
+			Rel = 0
+		else
+			Rel = Rel:GetOpinion()
+		end
+		String = String .. " Their opinion of us is " .. Rel
+	end
 	
 	Menu.MenuBar:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
 	Menu.MenuBar:CreateLabel("Skills")
-	Menu.MenuBar:CreateLabel("Agriculture"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateButton("Agriculture",
 		function()
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Screen:CreateTable(5, 16, 0, {0, 0, 0, 0})
+			Menu.Display = Menu.Screen:CreateTable(5, 16, 0, {0, 0, 0, 0})
 			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			
@@ -28,27 +47,27 @@ function Menu.Init(Menu, Width, Height, Person)
 				Menu.Display:CreateLabel(Field:GetStatusTime())
 			end
 		end)
-	Menu.MenuBar:CreateLabel("Goods"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateButton("Goods",
 		function()
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
-			Menu.Display:SetCellWidth(GetDefaultFont():FontWidth() * 8)
-			Menu.Display:SetCellHeight(GetDefaultFont():FontHeight())
+			Menu.Display = Menu.Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
+			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			Menu.Display:CreateLabel("Name"):SetFocus(false)
 			Menu.Display:CreateLabel("Quantity"):SetFocus(false)
-			for Good in Person:GetFamily():GetGoods():Next() do
-				Menu.Display:CreateLabel(Good:GetBase().Name)
-				Menu.Display:CreateLabel(Good:GetQuantity())
+			for val in Person:GetFamily():GetGoods():Next() do
+				Menu.Display:CreateLabel(val:GetBase().Name)
+				Menu.Display:CreateLabel(val:GetQuantity())
 			end
 		end)
-	Menu.MenuBar:CreateLabel("Animals"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateButton("Animals",
 		function()
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+			Menu.Display = Menu.Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
 			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			Menu.Display:CreateLabel("Name"):SetFocus(false)
@@ -60,22 +79,24 @@ function Menu.Init(Menu, Width, Height, Person)
 				Menu.Display:CreateLabel(PrintYears(An:GetAge()))
 			end
 		end)
-	Menu.MenuBar:CreateLabel("Buildings"):OnKey("Enter", "Released",
+	Menu.MenuBar:CreateButton("Buildings",
 	 function()
 		if(Menu.Display ~= nil) then
 			Menu.Display:Destroy()
 		end
-		Menu.Display = Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+		Menu.Display = Menu.Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
 		Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 		Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 		Menu.Display:CreateLabel("Width"):SetFocus(false)
 		Menu.Display:CreateLabel("Length"):SetFocus(false)
 	end)
-	Menu.MenuBar:CreateLabel("Back"):OnKey("Enter", "Released",
+	if World.GetPlayer() ~= Guy then
+		NonPlayerActions(Menu.MenuBar, Guy)
+	end
+	Menu.MenuBar:CreateButton("Back",
 		function()
-			GUI.PopMenu()
+			Menu.Screen:Close()
 		end)
-	
 	return false
 end
 

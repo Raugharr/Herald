@@ -5,10 +5,19 @@
 
 #include "Warband.h"
 
+#include "Herald.h"
 #include "Location.h"
 #include "Person.h"
 #include "Family.h"
+#include "Government.h"
+#include "BigGuy.h"
 #include "Good.h"
+#include "Battle.h"
+#include "World.h"
+
+#include "video/Tile.h"
+#include "video/Sprite.h"
+
 #include "sys/LinkedList.h"
 #include "sys/Array.h"
 
@@ -23,6 +32,45 @@ void InitUnitStats(struct UnitStats* _Stats) {
 	_Stats->Range = 0;
 	_Stats->RangeAttack = 0;
 	_Stats->Speed = 0;
+}
+
+void UnitStatsClear(struct UnitStats* _Stats) {
+	_Stats->Moral = 0;
+	_Stats->Weariness = 0;
+	_Stats->Charge = 0;
+	_Stats->Defence = 0;
+	_Stats->MeleeAttack = 0;
+	_Stats->Range = 0;
+	_Stats->RangeAttack = 0;
+	_Stats->Speed = 0;
+}
+
+void UnitStatsAdd(struct UnitStats* _To, const struct UnitStats* _From) {
+	_To->Charge += _From->Charge;
+	_To->Defence += _From->Defence;
+	_To->MeleeAttack += _From->MeleeAttack;
+	_To->Moral += _From->Moral;
+	_To->Range += _From->Range;
+	_To->RangeAttack += _From->RangeAttack;
+	_To->Speed += _From->Speed;
+	_To->Weariness += _From->Weariness;
+}
+
+void UnitStatsDiv(struct UnitStats* _Stats, int _Div) {
+	_Stats->Charge /= _Div;
+	_Stats->Defence /= _Div;
+	_Stats->MeleeAttack /= _Div;
+	_Stats->Moral /= _Div;
+	_Stats->Range /= _Div;
+	_Stats->RangeAttack /= _Div;
+	_Stats->Speed /= _Div;
+	_Stats->Weariness /= _Div;
+}
+
+void UnitStatsIncrMoral(struct UnitStats* _Stats, int _Moral) {
+	_Stats->Moral += _Moral;
+	if(_Stats->Moral < 0)
+		_Stats->Moral = 0;
 }
 
 void CreateWarrior(struct Warband* _Warband, struct Person* _Person, struct Good* _MeleeWeapon, struct Good* _RangeWeapon, struct Good* _Armor, struct Good* _Shield) {
@@ -46,7 +94,7 @@ void DestroyWarrior(struct Warrior* _Warrior, struct Warband* _Warband) {
 }
 
 void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
-	struct Warband* _Warband = (struct Warband*) malloc(sizeof(struct Warband));
+	struct Warband* _Warband = NULL;
 	struct Person* _Person = _Settlement->People;
 	struct Family* _Family = NULL;
 	struct Good* _Good = NULL;
@@ -54,20 +102,26 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 	struct Good* _RangeWeapon = NULL;
 	struct Good* _Armor = NULL;
 	struct Good* _Shield = NULL;
-	int i = 0;
 
+	if(_Settlement == NULL || _Army == NULL || PointInAABB(&_Army->Sprite.TilePos, &_Settlement->Pos) == 0)
+		return;
+
+	_Warband = (struct Warband*) malloc(sizeof(struct Warband));
 	_Warband->Warriors = NULL;
 	_Warband->WarriorCt = 0;
+	_Warband->Settlement = _Settlement;
+	_Warband->Parent = _Army;
 	_Warband->Next = NULL;
 	_Warband->Prev = NULL;
+	InitUnitStats(&_Warband->Stats);
 	while(_Person != NULL) {
-		if(_Person->Gender != EMALE || YEAR(_Person->Age) < 15)
+		if(PersonIsWarrior(_Person) == 0)
 			goto loop_end;
 		_Family = _Person->Family;
-		for(i = 0; i < _Family->Goods->Size; ++i) {
+		for(int i = 0; i < _Family->Goods->Size; ++i) {
 			_Good = (struct Good*) _Family->Goods->Table[i];
 			if(_Good->Base->Category == EWEAPON) {
-				if(((struct WeaponBase*)_Good->Base)->Range == 1)
+				if(((struct WeaponBase*)_Good->Base)->Range == MELEE_RANGE)
 					_MeleeWeapon = FamilyTakeGood(_Family, i);
 				else
 					_RangeWeapon = FamilyTakeGood(_Family, i);
@@ -78,18 +132,32 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 					_Shield = FamilyTakeGood(_Family, i);
 			}
 		}
+		ILL_DESTROY(_Settlement->People, _Person);
 		CreateWarrior(_Warband, _Person, _MeleeWeapon, _RangeWeapon, _Armor, _Shield);
 		loop_end:
 		_Person = _Person->Next;
 	}
+	_Warband->Stats.Charge = WarbandGetCharge(_Warband);
+	_Warband->Stats.MeleeAttack = WarbandGetAttack(_Warband);
 	ILL_CREATE(_Army->Warbands, _Warband);
 	++_Army->WarbandCt;
 }
 
-void DestroyWarband(struct Warband* _Warband, struct Army* _Army) {
-	ILL_DESTROY(_Army->Warbands, _Warband);
-	++_Army->WarbandCt;
+void DestroyWarband(struct Warband* _Warband) {
+	ILL_DESTROY(_Warband->Parent->Warbands, _Warband);
+	--_Warband->Parent->WarbandCt;
 	free(_Warband);
+}
+
+
+void DisbandWarband(struct Warband* _Warband) {
+	struct Warrior* _Warrior = _Warband->Warriors;
+
+	while(_Warrior != NULL) {
+		ILL_CREATE(_Warband->Settlement->People, _Warrior->Person);
+		_Warrior = _Warrior->Next;
+	}
+	DestroyWarband(_Warband);
 }
 
 int CountWarbandUnits(struct LinkedList* _Warbands) {
@@ -103,18 +171,68 @@ int CountWarbandUnits(struct LinkedList* _Warbands) {
 	return _Ct;
 }
 
-struct Army* CreateArmy(struct BigGuy* _Leader) {
+float WarbandGetAttack(struct Warband* _Warband) {
+	struct Warrior* _Warrior = _Warband->Warriors;
+	float _TotalAttack = 0.0f;
+
+	while(_Warrior != NULL) {
+		if(_Warrior->MeleeWeapon != NULL)
+			_TotalAttack += ((struct WeaponBase*)_Warrior->MeleeWeapon->Base)->MeleeAttack;
+		_Warrior = _Warrior->Next;
+	}
+	return _TotalAttack / _Warband->WarriorCt;
+}
+
+float WarbandGetCharge(struct Warband* _Warband) {
+	struct Warrior* _Warrior = _Warband->Warriors;
+	float _TotalCharge = 0.0f;
+
+	while(_Warrior != NULL) {
+		if(_Warrior->MeleeWeapon != NULL)
+			_TotalCharge += ((struct WeaponBase*)_Warrior->MeleeWeapon->Base)->Charge;
+		_Warrior = _Warrior->Next;
+	}
+	return _TotalCharge / _Warband->WarriorCt;
+}
+
+struct Army* CreateArmy(struct Settlement* _Settlement, const SDL_Point* _Pos, struct Government* _Government, struct BigGuy* _Leader, const struct ArmyGoal* _Goal) {
 	struct Army* _Army = (struct Army*) malloc(sizeof(struct Army));
 
+	CreateObject((struct Object*) _Army, OBJECT_ARMY, (void(*)(struct Object*))ArmyThink);
+	ConstructSprite(&_Army->Sprite, g_GameWorld.MapRenderer, g_GameWorld.MapRenderer->Warrior, MAPRENDER_UNIT, _Pos);
 	_Army->Leader = _Leader;
 	_Army->WarbandCt = 0;
 	_Army->Warbands = NULL;
+	_Army->Goal = *_Goal;
+	_Army->Path.Path.Direction = TILE_SIZE;
+	_Army->Path.Path.Tiles = 0;
+	_Army->Path.Path.Next = NULL;
+	_Army->Path.Next = NULL;
+	_Army->Path.Prev = NULL;
+	_Army->Path.Army = NULL;
+	_Army->InBattle = 0;
+	_Army->Government = _Government;
+	CreateWarband(_Settlement, _Army);
 	return _Army;
 }
 
 void DestroyArmy(struct Army* _Army) {
+	DestroyObject((struct Object*) _Army);
 	free(_Army->Warbands);
 	free(_Army);
+}
+
+int ArmyPathHeuristic(struct Tile* _One, struct Tile* _Two) {
+	return TileGetDistance(&_One->TilePos, &_Two->TilePos);
+}
+
+void ArmyThink(struct Army* _Army) {
+	_Army->Goal.Think(_Army);
+	if(_Army->WarbandCt == 0) {
+		DestroyArmy(_Army);
+		return;
+	}
+	//MapGetUnit(g_GameWorld.MapRenderer, &_Army->Sprite.TilePos);
 }
 
 int ArmyGetSize(const struct Army* _Army) {
@@ -137,103 +255,118 @@ void ArmyCreateFront(struct Army* _Army, struct LinkedList* _Warbands) {
 	}
 }
 
-int ArmyBattleDecision(struct Army* _Army, int _Status, int _Range) {
-	switch(_Status) {
-	case BATTLE_ORGANIZE:
-	case BATTLE_SKIRMISH:
-		return _Status - 1;
-	case BATTLE_ADVANCE:
-		if(_Range == 0)
-			return BATTLE_RETREAT;
-		return _Status;
-	case BATTLE_RETREAT:
-		return _Status;
+void ArmyMove(struct ArmyPath* _ArmyPath) {
+	struct Army* _Army = _ArmyPath->Army;
+	struct Path* _Path = &_Army->Path.Path;
+
+	if(_Army->Path.Path.Next == NULL)
+		return;
+	while(_Path->Direction == TILE_SIZE)
+		_Path = _Path->Next;
+	do {
+		if(_Path->Tiles > 0) {
+			if(ArmyMoveDir(_Army, _Path->Direction) != 0)
+				--_Path->Tiles;
+			return;
+		}
+		_Path = _Path->Next;
+	} while(_Path != NULL);
+
+	_Path = &_Army->Path.Path;
+	while(_Path->Next != NULL) {
+		_Path = _Path->Next;
+		DestroyPath(_Path);
 	}
-	return -1;
+	ArmyClearPath(_Army);
 }
 
-struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
-	struct Battle* _Battle = (struct Battle*) malloc(sizeof(struct Battle));
-	struct Front* _Front = NULL;
-	int i = 0;
+int ArmyMoveDir(struct Army* _Army, int _Direction) {
+	SDL_Point _Pos;
+	struct Settlement* _Settlement = NULL;
 
-	for(i = 0; i < BATTLE_MAXFRONTS; ++i)
-		_Battle->Fronts[i].IsAlive = 0;
-	_Front = &_Battle->Fronts[BATTLE_FIRSTFRONT];
-	_Front->IsAlive = 1;
-	_Front->Attacker.Size = 0;
-	_Front->Attacker.Front = NULL;
-	_Front->Attacker.Back = NULL;
-	_Front->Defender.Size = 0;
-	_Front->Defender.Front = NULL;
-	_Front->Defender.Back = NULL;
-	InitUnitStats(&_Front->AttackerStats);
-	_Front->AttackerStats.Charge = 2;
-	_Front->AttackerStats.MeleeAttack = 3;
-	InitUnitStats(&_Front->DefenderStats);
-	_Front->DefenderStats.Charge = 2;
-	_Front->DefenderStats.MeleeAttack = 3;
-	_Battle->Range = FRONT_STARTRANGE;
-	_Battle->Attacker = _Attacker;
-	_Battle->AttackerAction = BATTLE_ORGANIZE;
-	_Battle->Defender = _Defender;
-	_Battle->DefenderAction = BATTLE_ORGANIZE;
-	ArmyCreateFront(_Attacker, &_Front->Attacker);
-	ArmyCreateFront(_Defender, &_Front->Defender);
-	_Front->AttackerUnits = CountWarbandUnits(&_Front->Attacker);
-	_Front->DefenderUnits = CountWarbandUnits(&_Front->Defender);
-	return _Battle;
-}
+	TileAdjTileOffset(&_Army->Sprite.TilePos, _Direction, &_Pos);
+	if(_Pos.x == _Army->Sprite.TilePos.x && _Pos.y == _Army->Sprite.TilePos.y)
+		return 1;
+	if(MapMoveUnit(g_GameWorld.MapRenderer, _Army, &_Pos) != 0) {
+		if((_Settlement = MapGetSettlement(g_GameWorld.MapRenderer, &_Army->Sprite.TilePos)) != NULL) {
+			if(SettlementIsFriendly(_Settlement, _Army) == 0) {
+				if(_Army->Goal.IsRaid != 0) {
+					struct Army* _Enemy = NULL;
+					struct ArmyGoal _Goal;
 
-void BattleThink(struct Battle* _Battle) {
-	int _Result = ArmyBattleDecision(_Battle->Attacker, _Battle->AttackerAction, _Battle->Range);
-	if(_Result == BATTLE_ADVANCE)
-		--_Battle->Range;
-	else if(_Result == BATTLE_RETREAT)
-		++_Battle->Range;
-	else if(_Result == BATTLE_SKIRMISH)
-		_Battle->AttackerAction = BATTLE_ADVANCE;
-	_Result = ArmyBattleDecision(_Battle->Defender, _Battle->DefenderAction, _Battle->Range);
-	if(_Result == BATTLE_ADVANCE)
-		--_Battle->Range;
-	else if(_Result == BATTLE_RETREAT)
-		++_Battle->Range;
-	else if(_Result == BATTLE_SKIRMISH)
-			_Battle->DefenderAction = BATTLE_ADVANCE;
-	//if(_Battle->Range == 0)
-	//	BattleMelee(_Battle);
-}
-
-void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
-	struct Warrior* _Warrior = NULL;
-	struct Warband* _Warband = NULL;
-
-	while(_Amount >= 1) {
-		_Warband = (struct Warband*)_Warbands->Front->Data;
-		_Warrior = _Warband->Warriors;
-		DestroyPerson(_Warrior->Person);
-		DestroyWarrior(_Warrior, _Warband);
-		--_Amount;
+					_Enemy = CreateArmy(_Settlement, (struct SDL_Point*)&_Settlement->Pos, _Settlement->Government, _Settlement->Government->Leader, ArmyGoalDefend(&_Goal, _Settlement));
+					if(_Enemy != NULL) {
+						CreateBattle(_Army, _Enemy);
+					}
+				} else {
+					ArmyRaidSettlement(_Army, _Settlement);
+				}
+			}
+		}
 	}
+	return 1;
 }
 
-void BattleMelee(struct Battle* _Battle) {
-	int i = 0;
-	float _AttkCas = 0;
-	float _DefCas = 0;
-	struct Front* _Front = NULL;
+void ArmyUpdateStats(struct Army* _Army) {
+	struct Warband* _Warband = _Army->Warbands;
+	float _Charge = 0;
+	float _Melee = 0;
+	int _Moral = 0;
 
-	for(i = 0; i < BATTLE_MAXFRONTS; ++i) {
-		_AttkCas = 0;
-		_DefCas = 0;
-		_Front = &_Battle->Fronts[i];
-		if(_Front->IsAlive == 0)
-			continue;
-		_AttkCas += ((float)BATTLE_FORMULA(_Front->DefenderStats.MeleeAttack, _Front->DefenderStats.Moral, _Front->DefenderStats.Weariness, _Front->DefenderUnits))
-				/ ((float)BATTLE_FORMULA(_Front->AttackerStats.MeleeAttack, _Front->AttackerStats.Moral, _Front->AttackerStats.Weariness, _Front->AttackerUnits));
-		_DefCas += ((float)BATTLE_FORMULA(_Front->AttackerStats.MeleeAttack, _Front->AttackerStats.Moral, _Front->AttackerStats.Weariness, _Front->AttackerUnits))
-				/ ((float)BATTLE_FORMULA(_Front->DefenderStats.MeleeAttack, _Front->DefenderStats.Moral, _Front->DefenderStats.Weariness, _Front->DefenderUnits));
-		RemoveCasualties(&_Front->Attacker, _AttkCas);
-		RemoveCasualties(&_Front->Defender, _DefCas);
+	while(_Warband != NULL) {
+		_Charge += _Warband->Stats.Charge;
+		_Melee += _Warband->Stats.MeleeAttack;
+		_Moral += _Warband->Stats.Moral;
+		_Warband = _Warband->Next;
 	}
+	_Army->Stats.Charge = _Charge / _Army->WarbandCt;
+	_Army->Stats.MeleeAttack = _Melee / _Army->WarbandCt;
+	_Army->Stats.Moral = _Moral / _Army->WarbandCt;
+}
+
+void ArmyAddPath(struct Army* _Army, int _EndX, int _EndY) {
+	Pathfind(_Army->Sprite.TilePos.x, _Army->Sprite.TilePos.y, _EndX, _EndY, &_Army->Path.Path, _Army, (int(*)(const void*, const void*))&ArmyPathHeuristic, (void(*)(void*, struct Path*))WorldPathCallback);
+}
+
+int ArmyNoPath(const struct Army* _Army) {
+	return (_Army->Path.Next == NULL && _Army->Path.Path.Direction == TILE_SIZE);
+}
+
+void ArmyClearPath(struct Army* _Army) {
+	struct ArmyPath** _List = (struct ArmyPath**) SubTimeGetList(SUBTIME_ARMY);
+
+	_Army->Path.Next = NULL;
+	_Army->Path.Prev = NULL;
+	_Army->Path.Path.Next = NULL;
+	_Army->Path.Path.Direction = TILE_SIZE;
+	ILL_DESTROY(*_List, &_Army->Path);
+}
+
+void* ArmyPathNext(void* _Path) {
+	return ((struct ArmyPath*)_Path)->Next;
+}
+
+void* ArmyPathPrev(void* _Path) {
+	return ((struct ArmyPath*)_Path)->Prev;
+}
+
+/*
+ * FIXME: Not completed.
+ */
+void ArmyRaidSettlement(struct Army* _Army, struct Settlement* _Settlement) {
+	int _Max = ArmyGetSize(_Army) / 4;
+	int _Ct = 0;
+	struct SettlementPart* _Part = _Settlement->FirstPart;
+	struct LnkLst_Node* _Itr = _Part->Families.Front;
+	struct Family* _Family = NULL;
+
+	do {
+		do {
+			_Family = (struct Family*) _Itr->Data;
+			if((++_Ct) < _Max)
+				break;
+			_Itr = _Itr->Next;
+		} while(_Itr != NULL);
+		_Part = _Part->Next;
+	} while(_Part != NULL);
 }

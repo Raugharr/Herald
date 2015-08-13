@@ -17,7 +17,7 @@
 #include "video/Gui.h"
 #include "sys/Stack.h"
 #include "sys/Event.h"
-#include "sys/Random.h"
+#include "sys/Math.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +25,8 @@
 #include <lua/lauxlib.h>
 #include <dirent.h>
 #include <malloc.h>
+
+static struct Mission** g_LoadingMission = NULL;
 
 void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	int i = 0;
@@ -64,8 +66,9 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	int i = 0;
 	int _AbsIndex = 0;
 	struct Mission* _Mission = NULL;
-	int _MissionState = 0;
+	struct WorldState _MissionState;
 
+	WorldStateClear(&_MissionState);
 	lua_getglobal(_State, _TableName);
 	_AbsIndex = LuaAbsPos(_State, -1);
 	if(lua_type(_State, -1) != LUA_TTABLE) {
@@ -80,10 +83,10 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	}
 	lua_pushstring(_State, "Name");
 	lua_rawget(_State, _AbsIndex);
-	AddString(_State, -1, &_Name);
+	LuaGetString(_State, -1, &_Name);
 	lua_pushstring(_State, "Description");
 	lua_rawget(_State, _AbsIndex);
-	AddString(_State, -1, &_Description);
+	LuaGetString(_State, -1, &_Description);
 	lua_pushstring(_State, "Trigger");
 	lua_rawget(_State, _AbsIndex);
 	if(lua_type(_State, -1) != LUA_TTABLE) {
@@ -96,9 +99,9 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 			Log(ELOG_WARNING, "Mission Trigger contains a nonstring element.");
 			goto stateloop_end;
 		}
-		for(i = 0; i < BGSTATE_SIZE; ++i) {
+		for(i = 0; i < BGBYTE_SIZE; ++i) {
 			if(strcmp(g_BGStateStr[i], lua_tostring(_State, -2)) == 0) {
-				_MissionState = _MissionState | (1 << i);
+				WorldStateSetAtom(&_MissionState, i, lua_toboolean(_State, -1));
 				break;
 			}
 		}
@@ -114,7 +117,7 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	_OptionNames = calloc(lua_rawlen(_State, -1) + 1, sizeof(char*));
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
-		if(AddString(_State, -1, &_Temp) != 0) {
+		if(LuaGetString(_State, -1, &_Temp) != 0) {
 			_OptionNames[i] = calloc(strlen(_Temp) + 1, sizeof(char));
 			strcpy(_OptionNames[i], _Temp);
 		}
@@ -180,22 +183,46 @@ int CheckMissionOption(lua_State* _State, void* _None) {
 	return 1;
 }
 
+void GenerateMissions_Aux(struct BigGuy* _BigGuy, lua_State* _State, struct Mission* _Mission, const struct RBTree* _Missions) {
+	if(_BigGuy->IsDirty == 0)
+		return;
+	if((_Mission = RBSearch(_Missions, &_BigGuy->State)) == NULL)
+		return;
+	if(g_GameWorld.Player == _BigGuy/*strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0*/) {
+		lua_settop(_State, 0);
+		lua_pushstring(_State, "MissionMenu");
+		lua_createtable(_State, 0, 2);
+		lua_pushstring(_State, "Mission");
+		lua_getglobal(_State, _Mission->LuaTable);
+		lua_rawset(_State, -3);
+		lua_pushstring(_State, "BigGuy");
+		LuaCtor(_State, "BigGuy", (struct BigGuy*)_BigGuy);
+		lua_rawset(_State, -3);
+		lua_pushinteger(_State, 512);
+		lua_pushinteger(_State, 512);
+		LuaCreateWindow(_State);
+		GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
+	}
+}
+
+void FooTwo(int a, int b) {
+
+}
+
 void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
-	int i = 0;
 	struct Mission* _Mission = NULL;
 	struct RBItrStack _Stack[_BigGuys->Size];
 	struct BigGuy* _BigGuy = NULL;
-
 	if(_BigGuys->Table == NULL)
 		return;
 	RBDepthFirst(_BigGuys->Table, _Stack);
-	for(i = 0; i < _BigGuys->Size; ++i, _BigGuy->IsDirty = 0) {
-		_BigGuy = (struct BigGuy*) _Stack[i].Node;
+	for(int i = 0; i < _BigGuys->Size; ++i, _BigGuy->IsDirty = 0) {
+		_BigGuy = ((struct RBNode*) _Stack[i].Node)->Data;
 		if(_BigGuy->IsDirty == 0)
 			continue;
 		if((_Mission = RBSearch(_Missions, &_BigGuy->State)) == NULL)
 			continue;
-		if(strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0) {
+		if(g_GameWorld.Player == _BigGuy/*strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0*/) {
 			lua_settop(_State, 0);
 			lua_pushstring(_State, "MissionMenu");
 			lua_createtable(_State, 0, 2);
@@ -205,32 +232,53 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const st
 			lua_pushstring(_State, "BigGuy");
 			LuaCtor(_State, "BigGuy", (struct BigGuy*)_BigGuy);
 			lua_rawset(_State, -3);
-			LuaSetMenu(_State);
+			lua_pushinteger(_State, 512);
+			lua_pushinteger(_State, 512);
+			LuaCreateWindow(_State);
+			//LuaSetMenu(_State);
 			GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
 		}
 	}
 }
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
-	int _OneState = ffs(_One->Trigger);
-	int _TwoState = ffs(_Two->Trigger);
+	return WorldStateCmp(&_One->Trigger, &_Two->Trigger);
 
-	if(_OneState < _TwoState)
-		return -1;
-	return 1;
-	//return RuleEventCompare(_One->Trigger, _Two->Trigger);
 }
 
-int MissionTreeSearch(const int* _One, const struct Mission* _Two) {
-	int _OneState = ffs(*_One);
-	int _TwoState = ffs(_Two->Trigger);
+int MissionTreeSearch(const struct WorldState* _One, const struct Mission* _Two) {
+	return WorldStateCmp(_One, &_Two->Trigger);
+}
 
-	if(_OneState < _TwoState)
-		return -1;
-	else if(_OneState > _TwoState)
-			return 1;
+int LuaMissionSetName(lua_State* _State) {
+	const char* _Str = luaL_checkstring(_State, 1);
+
+	if(g_LoadingMission == NULL)
+		return 0;
+	if((*g_LoadingMission)->Name != NULL)
+		return luaL_error(_State, "Mission name is already set %s", (*g_LoadingMission)->Name);
+	(*g_LoadingMission)->Name = calloc(sizeof(char), strlen(_Str) + 1);
+	strcpy((*g_LoadingMission)->Name, _Str);
 	return 0;
-	/*if(_Two->Trigger->Type != RULE_EVENT)
-		return -1;
-	return _One->Type - ((struct RuleEvent*)_Two->Trigger)->Event;*/
+}
+
+int LuaMissionSetDesc(lua_State* _State) {
+	const char* _Str = luaL_checkstring(_State, 1);
+
+	if(g_LoadingMission == NULL)
+		return 0;
+	if((*g_LoadingMission)->Description != NULL)
+		return luaL_error(_State, "Mission description is already set %s", (*g_LoadingMission)->Description);
+	(*g_LoadingMission)->Description = calloc(sizeof(char), strlen(_Str) + 1);
+	strcpy((*g_LoadingMission)->Description, _Str);
+	return 0;
+}
+
+int LuaMissionAddOption(lua_State* _State) {
+	const char* _Str = luaL_checkstring(_State, 1);
+	struct Rule* _Condition = LuaCheckClass(_State, 2, "Rule");
+	struct Rule* _Action = LuaCheckClass(_State, 3, "Rule");
+
+
+	return 0;
 }

@@ -8,6 +8,8 @@
 
 #include "sys/LinkedList.h"
 
+#include <SDL2/SDL.h>
+
 #define MELEE_RANGE (0)
 #define OUNCE (16)
 #define TO_POUND(_Quantity) (_Quantity * OUNCE);
@@ -74,6 +76,9 @@ struct GoodBase {
 	int IGSize;
 };
 
+/*
+ * TODO: Remove is no longer necessary as Buildings no longer have a substantial role.
+ */
 struct GoodMaker {
 	struct GoodBase* Maker;
 	int Time;	
@@ -86,10 +91,7 @@ struct GoodOutput {
 
 struct Good {
 	int Id;
-	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	SDL_Point Pos;
 	const struct GoodBase* Base;
 	int Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
@@ -138,10 +140,7 @@ struct FoodBase {
 
 struct Food {
 	int Id;
-	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	SDL_Point Pos;
 	const struct FoodBase* Base;
 	int Quantity;
 	int Parts;
@@ -203,7 +202,6 @@ void DestroyClothingBase(struct ClothingBase* _Clothing);
 struct WeaponBase* CreateWeaponBase(const char* _Name, int _Category);
 void DestroyWeaponBase(struct WeaponBase* _Weapon);
 
-int GoodThink(struct Good* _Weapon);
 /**
  * @Brief Reads a table from _Index from _State that contains data about a Good.
  * @Return NULL if the table is invalid.

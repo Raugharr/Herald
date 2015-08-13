@@ -9,61 +9,95 @@
 #include "../sys/LinkedList.h"
 #include "../sys/TaskPool.h"
 #include "../World.h"
+#include "../video/MapRenderer.h"
+#include "../video/Tile.h"
+#include "../sys/BinaryHeap.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-#define PATH_PATHPOOLSZ (1024)
+#include <SDL2/SDL.h>
 
-struct MemoryPool* g_PathDataPool = NULL;
-struct MemoryPool* g_PathPool = NULL;
+#define PATH_PATHPOOLSZ (1024)
+#define PATH_PATHSCORESZ (2048)
+#define PATHFIND_OPENSIZE (256)
+#define PATHTABLE_SIZE (4)
+
+struct PathStack {
+	void* Stack[PATHTABLE_SIZE];
+	int Top;
+	SDL_mutex* Lock; //Ensures that when PathStackNext is called it cannot be called by another thread.
+	SDL_sem* Sem; //Ensures that only PATHTABLE_SIZE number of pointers from Stack are given out.
+};
+
+static struct MemoryPool* g_PathDataPool = NULL;
+static struct MemoryPool* g_PathPool = NULL;
+static struct MemoryPool* g_PathScorePool = NULL;
+static struct PathStack g_PathStack;
 
 struct PathData {
 	int (*Heuristic)(const void*, const void*);
-	void** (*Neighbors)(const void*);
-	void* (*GetTile)(int, int);
-	int NeighborCt;
-	int StartX;
-	int StartY;
-	int EndX;
-	int EndY;
+	void (*Callback)(void*, struct Path*); //void* is the PathData's Data element and the Path* is the completed path.
+	SDL_Point Start;
+	SDL_Point End;
 	struct Path* Path;
+	void* Data;
 };
 
 struct PathNodeScore {
-	int Score;
+	int g;
+	int h;
+	int f;
 	int Direction;
-	void* Node;
+	const struct Tile* Node;
+	const struct PathNodeScore* Parent;
 };
 
 void PathfindInit() {
 	g_PathDataPool = CreateMemoryPool(sizeof(struct PathData), PATH_PATHPOOLSZ);
 	g_PathPool = CreateMemoryPool(sizeof(struct Path), PATH_PATHPOOLSZ);
+	g_PathScorePool = CreateMemoryPool(sizeof(struct PathNodeScore), PATH_PATHSCORESZ);
+	for(int i = 0; i < PATHTABLE_SIZE; ++i)
+		g_PathStack.Stack[i] = calloc(PATHFIND_OPENSIZE, sizeof(struct PathNodeScore*));
+	g_PathStack.Lock = SDL_CreateMutex();
+	g_PathStack.Top = 0;
+	g_PathStack.Sem = SDL_CreateSemaphore(PATHTABLE_SIZE);
 }
 
 void PathfindQuit() {
 	DestroyMemoryPool(g_PathDataPool);
 	DestroyMemoryPool(g_PathPool);
+	DestroyMemoryPool(g_PathScorePool);
+	for(int i = 0; i < PATHTABLE_SIZE; ++i)
+		free(g_PathStack.Stack[i]);
+	SDL_DestroyMutex(g_PathStack.Lock);
+	SDL_DestroySemaphore(g_PathStack.Sem);
 }
 
-struct PathNodeScore* CreatePathNodeScore(void* _Node, int _Score, int _Direction) {
-	struct PathNodeScore* _NodeScore = (struct PathNodeScore*) malloc(sizeof(struct PathNodeScore));
+int PathNodeScoreCmp(const void* _One, const void* _Two) {
+	return ((struct PathNodeScore*)_Two)->f - ((struct PathNodeScore*)_One)->f;
+}
+
+struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int _h, int _Direction) {
+	struct PathNodeScore* _NodeScore = (struct PathNodeScore*) MemPoolAlloc(g_PathScorePool);
 
 	_NodeScore->Node = _Node;
-	_NodeScore->Score = _Score;
+	_NodeScore->g = _g;
+	_NodeScore->h = _h;
+	_NodeScore->f = _g + _h;
 	_NodeScore->Direction = _Direction;
 	return _NodeScore;
 }
 
 void DestroyPathNodeScore(struct PathNodeScore* _Path) {
-	free(_Path);
+	MemPoolFree(g_PathScorePool, _Path);
 }
 
-struct Path* CreatePath() {
+struct Path* CreatePath(int _Dir, int _Tiles) {
 	struct Path* _Path = MemPoolAlloc(g_PathPool);
 
-	_Path->Direction = 0;
-	_Path->Tiles = 0;
+	_Path->Direction = _Dir;
+	_Path->Tiles = _Tiles;
 	_Path->Next = NULL;
 	return _Path;
 }
@@ -72,88 +106,154 @@ void DestroyPath(struct Path* _Path) {
 	MemPoolFree(g_PathPool, _Path);
 }
 
-int PathfindNext(struct PathData* _Path, void* _None) {
-	struct LinkedList _ClosedList = {0, NULL, NULL};
-	struct PathNodeScore* _Tile = (struct PathNodeScore*) malloc(sizeof(struct PathNodeScore));
-	void* _StartTile = _Path->GetTile(_Path->StartX, _Path->StartY);
-	struct PathNodeScore* _HighTile = NULL;
-	int _GScore = 0;
-	int i = 0;
-	int _NeighborCt = _Path->NeighborCt;
-	struct PathNodeScore* _OpenList[_NeighborCt];
-	void** _Neighbors = NULL;
+void ListToPath(const struct LinkedList* _List, struct Path* _Path) {
+	struct LnkLst_Node* _Itr = _List->Front->Next;
+	struct PathNodeScore* _Node = NULL;
+	int _Ct = 0;
+	int _Dir = TILE_SIZE;
 
-	memset(_OpenList, 0, _NeighborCt);
-	_Tile->Score = 0;
-	_Tile->Node = _Path->GetTile(_Path->EndX, _Path->EndY);
-	_Tile->Direction = EDIR_NONE;
-	LnkLstPushBack(&_ClosedList, _Tile);
-	_OpenList[0] = _Tile;
-	while(_OpenList[0] != 0) {
-		_Tile = _OpenList[0];
+	_Path->Direction = TILE_SIZE;
+	_Path->Tiles = 1;
+	if(_Itr != NULL) {
+		_Node = ((struct PathNodeScore*)_Itr->Data);
+		_Dir = _Node->Direction;
+	} else
+		return;
+	do {
+		if(_Dir == _Node->Direction) {
+			++_Ct;
+		} else {
+			_Path->Next = CreatePath(_Dir, _Ct);
+			_Path = _Path->Next;
+			_Ct = 1;
+			_Dir = _Node->Direction;
+		}
+		_Itr = _Itr->Next;
+		if(_Itr == NULL)
+			break;
+		_Node = ((struct PathNodeScore*)_Itr->Data);
+	} while(1);
+	if(_Ct > 0)
+		_Path->Next = CreatePath(_Dir, _Ct);
+}
+
+void* PathStackNext() {
+	void* _Ptr = NULL;
+
+	SDL_SemWait(g_PathStack.Sem);
+	SDL_LockMutex(g_PathStack.Lock);
+	_Ptr = g_PathStack.Stack[g_PathStack.Top];
+	++g_PathStack.Top;
+	if(g_PathStack.Top >= PATHTABLE_SIZE)
+		g_PathStack.Top = 0;
+	SDL_UnlockMutex(g_PathStack.Lock);
+	return _Ptr;
+}
+
+void PathStackFree(void* _Ptr) {
+	SDL_SemPost(g_PathStack.Sem);
+	SDL_LockMutex(g_PathStack.Lock);
+	int _Size = PATHTABLE_SIZE - SDL_SemValue(g_PathStack.Sem);
+	int _Bottom = _Size + g_PathStack.Top;
+	void* _Temp = NULL;
+
+	if(_Bottom >= PATHTABLE_SIZE)
+		_Bottom -= PATHTABLE_SIZE;
+	for(int i = 0; i < PATHTABLE_SIZE; ++i)
+		if(g_PathStack.Stack[i] == _Ptr) {
+			_Temp = g_PathStack.Stack[i];
+			g_PathStack.Stack[i] = g_PathStack.Stack[_Bottom];
+			g_PathStack.Stack[_Bottom] = _Temp;
+			break;
+		}
+	SDL_UnlockMutex(g_PathStack.Lock);
+}
+
+int PathfindNext(struct PathData* _Path, void* _None) {
+	const struct Tile* _StartTile = MapGetTile(g_GameWorld.MapRenderer, &_Path->Start);
+	const struct Tile* _Goal = MapGetTile(g_GameWorld.MapRenderer, &_Path->End);
+	struct Tile* _Neighbors[TILE_SIZE];
+	/*
+	 * TODO: Remove LinkedList from PathfindNext to remove malloc calls from PathfindNext.
+	 */
+	struct LinkedList _ClosedList = {0, NULL, NULL};
+	struct LinkedList _CameFrom = {0, NULL, NULL}; //FIXME: it looks like _CameFrom is only inserted to and then later cleared.
+	struct LnkLst_Node* _Itr = NULL;
+	struct BinaryHeap _OpenList = {NULL, PATHFIND_OPENSIZE, 0, PathNodeScoreCmp};
+	struct PathNodeScore* _Current = NULL;
+
+	_OpenList.Table = PathStackNext();
+	BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_StartTile, 0, _Path->Heuristic(_StartTile, _Goal), TILE_SIZE));
+	while(_OpenList.Size > 0 && _OpenList.Size <= _OpenList.TblSz) {
+		_Current = BinaryHeapTop(&_OpenList);
+		LnkLstPushBack(&_ClosedList, BinaryHeapPop(&_OpenList));
+		if(_Current->Node->TilePos.x == _Goal->TilePos.x && _Current->Node->TilePos.y == _Goal->TilePos.y)
+			break;
 		/*
 		 * Fill the open list with _Tile's neighbors.
 		 */
-		_Neighbors = _Path->Neighbors(_OpenList[0]);
-		for(i = 0; i < _NeighborCt; ++i)
-			_OpenList[i] = CreatePathNodeScore(_Neighbors[i], _GScore + _Path->Heuristic(_Neighbors[i], _StartTile), i);
-
-		/*
-		 * Find the tile with the best score.
-		 */
-		_HighTile = _OpenList[0];
-		_OpenList[0] = NULL;
-		for(i = 1; i < _NeighborCt; ++i) {
-			if(_OpenList[i]->Score > _HighTile->Score) {
-				free(_HighTile);
-				_HighTile = _OpenList[i];
-				_OpenList[i] = NULL;
+		TileGetAdjTiles(g_GameWorld.MapRenderer, _Current->Node, _Neighbors);
+		for(int i = 0; i < TILE_SIZE; ++i) {
+			if(_Neighbors[i] != NULL) {
+				int _InList = 0;
+				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
+				while(CloseItr != NULL) {
+					const struct PathNodeScore* _Node = (struct PathNodeScore*)CloseItr->Data;
+					if(_Node->Node == _Neighbors[i]) {
+						_InList = 1;
+						break;
+					}
+					CloseItr = CloseItr->Next;
+				}
+				/*
+				 * Check if neighbors are already in open list.
+				 */
+				for(int j = 0; j < _OpenList.Size; ++j)  {
+					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
+					if(_OpenTemp->Node == _Neighbors[i]) {
+						int _gCost = _Current->g + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
+						if(_gCost < _OpenTemp->g) {
+							_OpenTemp->g = _gCost;
+							BinaryHeapIncrease(&_OpenList, j);
+						}
+						_InList = 2;
+						break;
+					}
+				}
+				if(_InList == 0) {
+					LnkLstPushBack(&_CameFrom, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i));
+					BinaryHeapInsert(&_OpenList, _CameFrom.Back->Data);
+				}
 			}
 		}
-		/*
-		 * Free unused tiles, add highest tile to list.
-		 */
-		for(i = 0; i < _NeighborCt; ++i)
-			free(_OpenList[i]);
-		LnkLstPushBack(&_ClosedList, _HighTile);
-		++_GScore;
-		memset(_OpenList, 0, _NeighborCt);
 	}
+	while(_OpenList.Size > 0) {
+		DestroyPathNodeScore((struct PathNodeScore*)BinaryHeapPop(&_OpenList));
+	}
+	PathStackFree(_OpenList.Table);
+	_Itr = _ClosedList.Front;
+	while(_Itr != NULL) {
+		DestroyPathNodeScore((struct PathNodeScore*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	ListToPath(&_ClosedList, _Path->Path);
+	LnkLstClear(&_ClosedList);
+	LnkLstClear(&_CameFrom);
+	_Path->Callback(_Path->Data, _Path->Path);
+	MemPool_Free(g_PathDataPool, _Path);
 	return 0;
 }
 
-void ListToPath(struct Path* _Path, struct LinkedList* _List) {
-	struct LnkLst_Node* _Itr = _List->Front->Next;
-	int _LastDir = ((struct PathNodeScore*)_Itr->Data)->Direction;
-	struct Path* _PathItr = NULL;
-
-	_PathItr = CreatePath();
-	_PathItr->Direction = _LastDir;
-	_PathItr->Tiles = 1;
-	_Path->Next = _PathItr;
-	DestroyPathNodeScore(_Itr->Data);
-	_Itr = _Itr->Next;
-	while(_Itr != NULL) {
-		if(((struct PathNodeScore*)_Itr->Data)->Direction == _PathItr->Direction)
-			++_PathItr->Tiles;
-		else {
-			_PathItr->Next = CreatePath();
-			_PathItr = _PathItr->Next;
-			_PathItr->Direction = ((struct PathNodeScore*)_Itr->Data)->Direction;
-			_PathItr->Tiles = 1;
-		}
-		_Itr = _Itr->Next;
-		DestroyPathNodeScore(_Itr->Data);
-	}
-}
-
-void Pathfind(int _StartX, int _StartY, int _EndX, int _EndY, struct Path* _Path) {
+void Pathfind(int _StartX, int _StartY, int _EndX, int _EndY, struct Path* _Path, void* _Data, int (*_Heuristic)(const void*, const void*), void(*_Callback)(void*, struct Path*)) {
 	struct PathData* _PData = MemPoolAlloc(g_PathDataPool);
 
-	_PData->StartX = _StartX;
-	_PData->StartY = _StartY;
-	_PData->EndX = _EndX;
-	_PData->EndY = _EndY;
+	_PData->Start.x = _StartX;
+	_PData->Start.y = _StartY;
+	_PData->End.x = _EndX;
+	_PData->End.y = _EndY;
 	_PData->Path = _Path;
+	_PData->Heuristic = _Heuristic;
+	_PData->Callback = _Callback;
+	_PData->Data = _Data;
 	TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (int(*)(void*, void*))PathfindNext, _PData, NULL);
 }

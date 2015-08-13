@@ -25,13 +25,6 @@ function AI.Init()
 							AI.PrimNode("FeedAnimals"),
 							}),
 					})
-	--[[local Lumberjack = AI.CompNode("Sequence", {
-					AI.CompNode("Selector", {
-						AI.PrimNode("HasLoggingTool"),
-						AI.PrimNode("MakeGood")
-					}),
-					AI.PrimNode("CollectResource")
-				})--]]
 	local Woman = AI.CompNode("Sequence", {
 					AI.PrimNode("MakeFood")
 					})

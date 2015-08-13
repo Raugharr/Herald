@@ -6,6 +6,8 @@
 #ifndef __MEMORYPOOL_H
 #define __MEMORYPOOL_H
 
+typedef struct SDL_mutex SDL_mutex;
+
 #define MemPoolAlloc(_MemPool) MemPool_Alloc(_MemPool)
 #define MemPoolFree(_MemPool, _Ptr) MemPool_Free(_MemPool, _Ptr)
 
@@ -32,6 +34,7 @@ struct MemoryPool {
 	int MaxSize;
 	int Size;
 #endif
+	SDL_mutex* Lock;
 };
 
 struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity);

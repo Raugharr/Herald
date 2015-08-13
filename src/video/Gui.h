@@ -12,18 +12,25 @@ typedef struct SDL_Surface SDL_Surface;
 typedef struct SDL_Rect SDL_Rect;
 typedef struct lua_State lua_State;
 
+/*
+ * TODO: Remove LuaOnClickFunc and and put function into the Lua table and use WEvents to handle click events.
+ */
 #define DECLARE_WIDGET														\
 	int Id;																	\
 	struct Container* Parent;												\
 	SDL_Rect Rect;															\
+	int IsDraggable;														\
 	int LuaRef;																\
 	int CanFocus;															\
+	int IsVisible;															\
 	int LuaOnClickFunc;														\
 	int (*OnDraw)(struct Widget*);											\
 	struct Widget* (*OnClick)(struct Widget*, const SDL_Point*);			\
 	struct Widget* (*OnFocus)(struct Widget*, const SDL_Point*);			\
 	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);					\
+	void (*SetPosition)(struct Widget*, const SDL_Point*);					\
 	int (*OnUnfocus)(struct Widget*);										\
+	void (*OnDebug)(const struct Widget*);									\
 	void (*OnDestroy)(struct Widget*, lua_State*)
 
 #define DECLARE_CONTAINER											\
@@ -35,11 +42,12 @@ typedef struct lua_State lua_State;
 	int ChildrenSz;													\
 	int ChildCt;													\
 	int Spacing;													\
+	SDL_Color Background;											\
 	int VertFocChange;												\
 	struct Margin Margins
 
 struct WEvent {
-	struct KeyMouseState Event;
+	struct KeyMouseState Event; //TODO: All the data is checked for an event not just relevant data. This means if we want to click a widget it will fail if we are clicking and pressing a button etc.
 	int WidgetId;
 	int RefId;
 };
@@ -106,13 +114,20 @@ struct Table {
 	struct Area CellMax; /* max area of a cell. */
 };
 
-
 struct ContextItem {
 	DECLARE_CONTAINER;
 	int ShowContexts;
 };
 
+struct Button {
+	DECLARE_WIDGET;
+	int (*SetText)(struct Widget*, SDL_Texture*);
+	SDL_Texture* Text;
+	SDL_Color Background;
+};
+
 struct Label* CreateLabel(void);
+struct Button* CreateButton(void);
 struct Container* CreateContainer(void);
 struct Table* CreateTable(void);
 struct ContextItem* CreateContextItem(void);
@@ -124,6 +139,7 @@ struct GUIFocus* CreateGUIFocus(void);
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
 void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
+struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
@@ -134,6 +150,7 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
+void WidgetSetVisibility(struct Widget* _Widget, int _Visibility);
 /**
  * Deconstructors
  */
@@ -146,14 +163,23 @@ void DestroyGUIEvents(struct GUIEvents* _Events);
 void DestroyFocus(struct GUIFocus* _Focus);
 
 int ContainerOnDraw(struct Container* _Container);
+void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point);
 struct Widget* ContainerOnFocus(struct Container* _Container, const SDL_Point* _Point);
 int ContainerOnUnfocus(struct Container* _Container);
 int ContainerHorzFocChange(const struct Container* _Container);
 struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _Point);
+void ContainerOnDebug(const struct Container* _Container);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child);
+void FixedConNewChild(struct Container* _Parent, struct Widget* _Child);
 void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child);
+void ContainerShrink(struct Container* _Container);
+/**
+ * Returns 1 if the container can grow else returns 0.
+ * _Width and _Height are how much the container needs to grow by.
+ */
+int WidgetGrow(struct Widget* _Widget, int _Width, int _Height);
 
 int ContextItemOnDraw(struct ContextItem* _Container);
 
@@ -169,7 +195,9 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 int LabelOnDraw(struct Widget* _Widget);
 struct Widget* LabelOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
 int LabelOnUnfocus(struct Widget* _Widget);
-int WidgetSetText(struct Widget* _Widget, SDL_Texture* _Text);
+int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
+
+int ButtonOnDraw(struct Widget* _Widget);
 
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 int TableHorzFocChange(const struct Container* _Container);
@@ -180,10 +208,13 @@ int TableHorzFocChange(const struct Container* _Container);
  * GUI.EventIds which is needed in order for the callback to function.
  */
 void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
+void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos);
 struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
+void WidgetOnDebug(const struct Widget* _Widget);
+int WidgetCheckVisibility(const struct Widget* _Widget);
 
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);
 int ContextHorzFocChange(const struct Container* _Container);
-
+int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
 #endif

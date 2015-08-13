@@ -31,9 +31,10 @@ struct Population {
 struct Animal {
 	int Id;
 	int Type;
-	int X;
-	int Y;
-	int(*Think)(struct Object*);
+	void (*Think)(struct Object*);
+	int LastThink; //In game ticks.
+	struct LnkLst_Node* ThinkObj;
+	SDL_Point Pos;
 	int Gender;
 	int Nutrition;
 	DATE Age;

@@ -31,12 +31,21 @@
 #endif
 
 #define LUA_EVENTIDSIZE (16)
+#define MENU_CHECKARG 			\
+	if(lua_gettop(_State) == 1)	\
+		lua_pushnil(_State);	\
+	else						\
+		luaL_checktype(_State, 2, LUA_TTABLE);	\
+	lua_getglobal(_State, _Name);				\
+	if(lua_type(_State, -1) == LUA_TNIL)		\
+		luaL_error(_State, "Menu %s not not exist", _Name)
 
 struct LinkedList g_GUIMessageList = {0, NULL, NULL};
 
 static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"HorizontalContainer", LuaHorizontalContainer},
 		{"VerticalContainer", LuaVerticalContainer},
+		{"FixedContainer", LuaFixedContainer},
 		{"CreateContextItem", LuaContextItem},
 		{"BackgroundColor", LuaBackgroundColor},
 		{"GetFont", LuaGetFont},
@@ -51,6 +60,7 @@ static const luaL_Reg g_LuaFuncsGUI[] = {
 		{"ScreenWidth", LuaScreenWidth},
 		{"ScreenHeight", LuaScreenHeight},
 		{"SendMessage", LuaSendMessage},
+		{"CreateWindow", LuaCreateWindow},
 		{NULL, NULL}
 };
 
@@ -71,6 +81,9 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{NULL, NULL}
 };
 
+/*
+ * TODO: Create a function to remove all children.
+ */
 static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"SetChild", LuaContainerSetChild},
 		{"GetChildCt", LuaContainerGetChildCt},
@@ -78,14 +91,21 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"Margins", LuaContainerGetMargins},
 		{"CreateLabel", LuaCreateLabel},
 		{"CreateTable", LuaCreateTable},
+		{"CreateButton", LuaCreateButton},
 		{"Children", LuaContainerGetChildren},
 		{"Paragraph", LuaContainerParagraph},
 		{"GetHorizontalCenter", LuaContainerHorizontalCenter},
+		{"Close", LuaContainerClose},
+		{"Shrink", LuaContainerShrink},
 		{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsLabel[] = {
 		{"SetText", LuaLabelSetText},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsButton[] = {
 		{NULL, NULL}
 };
 
@@ -108,9 +128,10 @@ static const struct LuaObjectReg g_GuiLuaObjects[] = {
 		{"Widget", NULL, g_LuaFuncsWidget},
 		{"Container", "Widget", g_LuaFuncsContainer},
 		{"Label", "Widget", g_LuaFuncsLabel},
-		{"Table", "Widget", g_LuaFuncsTable},
+		{"Table", "Container", g_LuaFuncsTable},
 		{"Surface", "Widget", NULL},
 		{"Font", NULL, g_LuaFuncsFont},
+		{"Button", "Label", g_LuaFuncsButton},
 		{NULL, NULL}
 };
 
@@ -161,11 +182,24 @@ int LuaCreateLabel(lua_State* _State) {
 	lua_newtable(_State);
 	_Label = CreateLabel();
 	ConstructLabel(_Label, _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
-	lua_getglobal(_State, "Label");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Label);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Label", _Label);
+	return 1;
+}
+
+int LuaCreateButton(lua_State* _State) {
+	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
+	const char* _Text = luaL_checkstring(_State, 2);
+	luaL_argcheck(_State, 3, lua_isfunction(_State, 3), "Third argument for CreateButton is not a functon");
+
+	struct Font* _Font = g_GUIDefs.Font;
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, _Surface->w, _Surface->h};
+	struct Button* _Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
+
+	LuaGuiGetRef(_State);
+	lua_pushvalue(_State, 3);
+	_Button->LuaOnClickFunc = luaL_ref(_State, -2);
+	LuaCtor(_State, "Button", _Button);
 	return 1;
 }
 
@@ -190,15 +224,11 @@ int LuaCreateTable(lua_State* _State) {
 		++i;
 	}
 	_Table = CreateTable();
+	lua_newtable(_State);
 	if(_Font == NULL)
 		luaL_error(_State, "No default font or font passed as argument.");
 	ConstructTable(_Table, _Parent, &_Rect,_State, _Spacing, &_Margins, _Columns, _Rows, _Font);
-	lua_newtable(_State);
-	lua_getglobal(_State, "Table");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Table);
-	lua_rawset(_State, -3);
+	LuaInitClass(_State, "Table", _Table);
 	return 1;
 }
 
@@ -211,7 +241,7 @@ struct Container* LuaContainer(lua_State* _State) {
 	luaL_checktype(_State, 6, LUA_TTABLE);
 	lua_pushnil(_State);
 	while(lua_next(_State, 6) != 0 && i <= 4) {
-		((int*)&_Margins)[i] = lua_tointeger(_State, 1);
+		((int*)&_Margins)[i] = lua_tointeger(_State, -1);
 		lua_pop(_State, 1);
 		++i;
 	}
@@ -228,19 +258,19 @@ struct Container* LuaContainer(lua_State* _State) {
 		ConstructContainer(_Container, _Parent, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	} else
 		ConstructContainer(_Container, NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
-	lua_getglobal(_State, "Container");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Container);
-	lua_rawset(_State, -3);
+	LuaInitClass(_State, "Container", _Container);
 
 	/* NOTE: Can this if statement be removed by
 	 * having more sound logic? */
 	if(_Container->Parent == NULL) {
 		struct Container* _Screen = GetScreen(_State);
 
-		if(_Screen != NULL)
-			_Screen->OnDestroy((struct Widget*)_Screen, _State);
+		if(_Screen != NULL) {
+			//_Screen->OnDestroy((struct Widget*)_Screen, _State);
+			WidgetSetParent(_Screen, (struct Widget*) _Container);
+			//_Container->Parent = _Screen;
+			return _Container;
+		}
 		lua_getglobal(_State, "GUI");
 		lua_pushstring(_State, "Screen");
 		lua_pushvalue(_State, -3);
@@ -261,6 +291,13 @@ int LuaVerticalContainer(lua_State* _State) {
 	struct Container* _Container = LuaContainer(_State);
 
 	_Container->NewChild = VertConNewChild;
+	return 1;
+}
+
+int LuaFixedContainer(lua_State* _State) {
+	struct Container* _Container = LuaContainer(_State);
+
+	_Container->NewChild = FixedConNewChild;
 	return 1;
 }
 
@@ -310,13 +347,7 @@ int LuaGetFont(lua_State* _State) {
 	}
 		_Font = CreateFont(_Name, _Size);
 	no_new_font:
-	lua_newtable(_State);
-	lua_getglobal(_State, "Font");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Font);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Font", _Font);
 	chdir("..");
 	return 1;
 }
@@ -326,12 +357,40 @@ int LuaDefaultFont(lua_State* _State) {
 		g_GUIDefs.Font->RefCt = -1;
 		DestroyFont(g_GUIDefs.Font);
 	}
-	g_GUIDefs.Font = LuaCheckClass(_State, 1, "Font");;
+	g_GUIDefs.Font = LuaCheckClass(_State, 1, "Font");
 	return 0;
 }
 
 int LuaGetDefaultFont(lua_State* _State) {
 	LuaCtor(_State, "Font", g_GUIDefs.Font);
+	return 1;
+}
+
+int LuaCreateWindow(lua_State* _State) {
+	const char* _Name = luaL_checkstring(_State, 1);
+	int w = luaL_checkinteger(_State, 3);
+	int h = luaL_checkinteger(_State, 4);
+	struct Container* _Container = NULL;
+	struct Container* _Parent = GetScreen(_State);
+	SDL_Rect _Rect = {0, 0, w, h};
+	struct Margin _Margins = {0, 0, 0, 0};
+
+	if(_Parent == NULL)
+		luaL_error(_State, "CreateWindow requires a screen.");
+	MENU_CHECKARG;
+	lua_pushstring(_State, "Init");
+	lua_rawget(_State, 5);
+	lua_pushvalue(_State, 5);
+	lua_pushinteger(_State, _Rect.w);
+	lua_pushinteger(_State, _Rect.h);
+	lua_pushvalue(_State, 2);
+	if(LuaCallFunc(_State, 4, 1, 0) == 0)
+		return luaL_error(_State, "%s.Init function call failed", _Name);
+	//_Container = CreateContainer();
+	//lua_newtable(_State);
+	//ConstructContainer(_Container, _Parent, &_Rect, _State, 0, &_Margins);
+	//_Container->IsDraggable = 1;
+	//LuaInitClass(_State, "Container", _Container);
 	return 1;
 }
 
@@ -353,13 +412,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	struct Font* _Prev = NULL;
 
 	//Check if the global _Name exists if it doesn't close the menu.
-	if(lua_gettop(_State) == 1)
-		lua_pushnil(_State);
-	else
-		luaL_checktype(_State, 2, LUA_TTABLE);
-	lua_getglobal(_State, _Name);
-	if(lua_type(_State, -1) == LUA_TNIL)
-		luaL_error(_State, "Menu %s not not exist", _Name);
+	MENU_CHECKARG;
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
 
@@ -503,18 +556,18 @@ int LuaSetMenu_Aux(lua_State* _State) {
 
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr) {
 	int _Red = luaL_checkint(_State, 1);
-	int _Blue = luaL_checkint(_State, 2);
-	int _Green = luaL_checkint(_State, 3);
+	int _Green = luaL_checkint(_State, 2);
+	int _Blue = luaL_checkint(_State, 3);
 
 	if(_Red < 0 || _Red > 255)
 		luaL_error(_State, "Red is not between 0 and 255");
-	if(_Blue < 0 || _Blue > 255)
-		luaL_error(_State, "Blue is not between 0 and 255");
-	if(_Green < 0 || _Red > 255)
+	if(_Green < 0 || _Green > 255)
 		luaL_error(_State, "Green is not between 0 and 255");
+	if(_Blue < 0 || _Red > 255)
+		luaL_error(_State, "Blue is not between 0 and 255");
 	*_RedPtr = _Red;
-	*_GreenPtr = _Blue;
-	*_BluePtr = _Green;
+	*_GreenPtr = _Green;
+	*_BluePtr = _Blue;
 }
 
 int LuaSetFocusColor(lua_State* _State) {
@@ -855,10 +908,11 @@ int LuaWidgetSetFocus(lua_State* _State) {
 int LuaWidgetDestroy(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
 
+	if(_Widget == NULL)
+		return 0;
 	lua_pushstring(_State, "__self");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
-	_Widget->Parent->RemChild(_Widget->Parent, _Widget);
 	_Widget->OnDestroy(_Widget, _State);
 	return 0;
 }
@@ -937,6 +991,32 @@ int LuaContainerHorizontalCenter(lua_State* _State) {
 	return 1;
 }
 
+int LuaContainerClose(lua_State* _State) {
+	struct Container* _Container = LuaToObject(_State, 1, "Container");
+	char* _String = NULL;
+
+	if(_Container == GetScreen(_State)) {
+		free(StackPop(&g_GUIStack));
+		if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
+			g_VideoOk = 0;
+			return 0;
+		}
+		lua_settop(_State, 0);
+		lua_pushstring(_State, _String);
+		LuaSetMenu_Aux(_State);
+		return 0;
+	}
+	_Container->OnDestroy((struct Widget*)_Container, _State);
+	return 0;
+}
+
+int LuaContainerShrink(lua_State* _State) {
+	struct Container* _Container = LuaToObject(_State, 1, "Container");
+
+	ContainerShrink(_Container);
+	return 0;
+}
+
 int LuaContainerParagraph(lua_State* _State) {
 	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
 	struct Container* _NewContainer = NULL;
@@ -953,8 +1033,10 @@ int LuaContainerParagraph(lua_State* _State) {
 	struct Margin _Margins = {0, 0, 0, 0};
 	int _Ct = 0;
 
-	_Rect.x = _Parent->Rect.x;
-	_Rect.y = _Parent->Rect.y;
+	_Rect.x = 0;
+	_Rect.y = 0;
+	_PRect.w = _Parent->Rect.w;
+	_PRect.h = _Parent->Rect.h;
 	_NewContainer = CreateContainer();
 	ConstructContainer(_NewContainer, _Parent, &_PRect, _State, 0, &_Margins);
 	_NewContainer->NewChild = VertConNewChild;
@@ -984,30 +1066,42 @@ int LuaContainerParagraph(lua_State* _State) {
 		_Rect.w += _WordWidth;
 		_WordSz = 0;
 		_WordWidth = 0;
+		if(_Ct > 0) {
 		char _Buffer[_Ct + 1];
-		strncpy(_Buffer, _String, _Ct);
-		_Buffer[_Ct + 1] = '\0';
-		_Label = CreateLabel();
-		_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GUIDefs.FontUnfocus);
-		_Rect.w = _Surface->w;
-		_Rect.h = _Surface->h;
-		_PRect.h += _Rect.h;
-		ConstructLabel(_Label, _NewContainer, &_Rect, _State, SurfaceToTexture(ConvertSurface(_Surface)), _Font);
+			strncpy(_Buffer, _String, _Ct);
+			_Buffer[_Ct + 1] = '\0';
+			_Label = CreateLabel();
+			_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GUIDefs.FontUnfocus);
+			_Rect.w = _Surface->w;
+			_Rect.h = _Surface->h;
+			_PRect.h += _Rect.h;
+			ConstructLabel(_Label, _NewContainer, &_Rect, _State, SurfaceToTexture(ConvertSurface(_Surface)), _Font);
 		_String = _Temp + 1;
 		_Label->CanFocus = 0;
+		}
 		_Rect.w = 0;
 		_Ct = 0;
+
 	}
-	_NewContainer->Rect.w = _Parent->Rect.w;
-	_NewContainer->Rect.h = _PRect.h;
+	ContainerShrink(_NewContainer);
 	return 0;
 }
 
 int LuaLabelSetText(lua_State* _State) {
 	struct Label* _Label = LuaCheckClass(_State, 1, "Label");
 	const char* _Text = luaL_checkstring(_State, 2);
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	//int _NewWidth = 0;
+	//int _NewHeight = 0;
 
-	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus))));
+	//_NewWidth = _Surface->w - _Label->Rect.w;
+	//_NewHeight = _Surface->h - _Label->Rect.h;
+	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(_Surface));
+	/*if(_NewWidth < 0)
+		_NewWidth = 0;
+	if(_NewHeight < 0)
+		_NewHeight = 0;
+	WidgetGrow((struct Widget*)_Label, _NewWidth, _NewHeight);*/
 	SDL_SetTextureBlendMode(_Label->Text, SDL_BLENDMODE_ADD);
 	return 0;
 }

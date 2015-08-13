@@ -48,7 +48,10 @@ void ArrayInsert_S(struct Array* _Array, void* _Data) {
 void ArrayRemove(struct Array* _Array, int _Index) {
 	if(_Index < 0 || _Index >= _Array->TblSize)
 		return;
-	_Array->Table[_Index] = _Array->Table[_Array->Size - 1];
+	if(_Array->Size > 1)
+		_Array->Table[_Index] = _Array->Table[_Array->Size - 1];
+	else
+		_Array->Table[_Index] = NULL;
 	_Array->Table[_Array->Size - 1] = NULL;
 	--_Array->Size;
 }

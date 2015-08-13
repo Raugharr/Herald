@@ -5,7 +5,7 @@ Crops = {
 		PoundsPerAcre = 120,
 		YieldPerSeed = 4.0,
 		NutritionalValue = 480,
-		GrowingDegree = 1680,
+		GrowingDegree = 2900,
 		GrowingBase = 41
 	},
 	
@@ -15,7 +15,7 @@ Crops = {
 		PoundsPerAcre = 168,
 		YieldPerSeed = 4.6,
 		NutritionalValue = 360,
-		GrowingDegree = 1400,
+		GrowingDegree = 2800,
 		GrowingBase = 32
 	},
 	
@@ -25,7 +25,7 @@ Crops = {
 		PoundsPerAcre = 144,
 		YieldPerSeed = 4.6,
 		NutritionalValue = 360,
-		GrowingDegree = 1540,
+		GrowingDegree = 2500,
 		GrowingBase = 41
 	},
 	
@@ -35,7 +35,7 @@ Crops = {
 		PoundsPerAcre = 112,
 		YieldPerSeed = 3.14,
 		NutritionalValue = 540,
-		GrowingDegree = 1750,
+		GrowingDegree = 2900,
 		GrowingBase = 41
 	}
 }

@@ -6,8 +6,6 @@
 #ifndef RBTREE_H
 #define RBTREE_H
 
-#define RBDepthFirst(_Tree, _Stack) RBDepthFirst_Aux((_Tree), (_Stack), 0)
-
 struct RBNode {
 	int Color;
 	void* Data;
@@ -54,7 +52,7 @@ struct RBNode* RBSearchNode(const struct RBTree* _Tree, const void* _Data);
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode);
 
-struct RBItrStack* RBDepthFirst_Aux(struct RBNode* const _Node, struct RBItrStack* _Stack, int _Index);
+struct RBItrStack* RBDepthFirst(struct RBNode* const _Node, struct RBItrStack* _Stack);
 /**
  * _Callback takes a single argument that will contain a pointer to an RBNode's Data field.
  * _Callback will remove the RBNode that contains _Callback's argument from the tree if _Callback returns 1

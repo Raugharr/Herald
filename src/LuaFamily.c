@@ -11,14 +11,13 @@
 #include "Population.h"
 #include "Person.h"
 #include "Family.h"
-#include "Zone.h"
 #include "Location.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
 #include "sys/Array.h"
 #include "sys/Constraint.h"
-#include "sys/Random.h"
+#include "sys/Math.h"
 
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
@@ -47,7 +46,6 @@ static const luaL_Reg g_LuaFuncsPerson[] = {
 		{"GetAge", LuaPersonGetAge},
 		{"GetName", LuaPersonGetName},
 		{"GetFamily", LuaPersonGetFamily},
-		{"GetParentFamily", LuaPersonGetParentFamily},
 		{NULL, NULL}
 };
 
@@ -125,14 +123,14 @@ int LuaPersonGetId(lua_State* _State) {
 int LuaPersonGetX(lua_State* _State) {
 	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");
 
-	lua_pushinteger(_State, _Person->X);
+	lua_pushinteger(_State, _Person->Pos.x);
 	return 1;
 }
 
 int LuaPersonGetY(lua_State* _State) {
 	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");
 
-	lua_pushinteger(_State, _Person->Y);
+	lua_pushinteger(_State, _Person->Pos.y);
 	return 1;
 }
 
@@ -167,26 +165,7 @@ int LuaPersonGetName(lua_State* _State) {
 int LuaPersonGetFamily(lua_State* _State) {
 	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "Family");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Person->Family);
-	lua_rawset(_State, -3);
-	return 1;
-}
-
-int LuaPersonGetParentFamily(lua_State* _State) {
-	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");
-
-	lua_newtable(_State);
-	lua_getglobal(_State, "Family");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Person->Parent);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Family", _Person->Family);
 	return 1;
 }
 
@@ -259,14 +238,7 @@ int LuaFamilyGetFields(lua_State* _State) {
 int LuaFamilyGetBuildings(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "ArrayIterator");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Family->Buildings);
-	lua_rawset(_State, -3);
-
+	LuaCtor(_State, "ArrayIterator", _Family->Buildings);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "Building");
 	lua_rawset(_State, -3);
@@ -283,14 +255,7 @@ int LuaFamilyGetBulidingCt(lua_State* _State) {
 int LuaFamilyGetGoods(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "ArrayIterator");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Family->Goods);
-	lua_rawset(_State, -3);
-
+	LuaCtor(_State, "ArrayIterator", _Family->Goods);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "Good");
 	lua_rawset(_State, -3);
@@ -307,14 +272,7 @@ int LuaFamilyGetGoodCt(lua_State* _State) {
 int LuaFamilyGetAnimals(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "ArrayIterator");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Family->Animals);
-	lua_rawset(_State, -3);
-
+	LuaCtor(_State, "ArrayIterator", _Family->Animals);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "Animal");
 	lua_rawset(_State, -3);
@@ -623,12 +581,7 @@ int LuaBuildMat(lua_State* _State) {
 	}
 	if((_BuildMat = HashSearch(&g_BuildMats, _Name)) == NULL)
 		return luaL_error(_State, "BuildMat not given a valid build mat.");
-	lua_newtable(_State);
-	lua_getglobal(_State, "BuildMat");
-	lua_setmetatable(_State, -2);
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _BuildMat);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "BuildMat", _BuildMat);
 	return 1;
 }
 
@@ -644,34 +597,23 @@ int LuaCreateGood(lua_State* _State) {
 		luaL_error(_State, "Cannot find GoodBase %s.", _Name);
 	_Good = CreateGood(_GoodBase, -1, -1);
 	_Good->Quantity = _Quantity;
-	lua_pushlightuserdata(_State, _Good);
+	LuaCtor(_State, "Good", _Good);
 	return 1;
 }
 
 int LuaCreateBuilding(lua_State* _State) {
-	int _X = 0;
-	int _Y = 0;
-	int i = 0;
-	int _Ct = 0;
 	int _ResType = 0;
-	int _Width = 0;
-	int _Length = 0;
 	const char* _Type = NULL;
-	const char* _Str = NULL;
-	struct ZoneBase* _ZoneBase = NULL;
-	struct Zone* _Zone = NULL;
-	struct Zone** _ZoneTbl = NULL;
 	struct BuildMat* _FloorMat = NULL;
 	struct BuildMat* _WallMat = NULL;
 	struct BuildMat* _RoofMat = NULL;
 	struct Location* _Location = NULL;
 
-	luaL_checktype(_State, 1, LUA_TTABLE);
-	_Location = lua_touserdata(_State, 5);
-	if(_Location->Type != ELOC_SETTLEMENT)
+	//luaL_checktype(_State, 1, LUA_TTABLE);
+	_Location = lua_touserdata(_State, 4);
+	if(_Location->LocType != ELOC_SETTLEMENT)
 		luaL_error(_State, "Location is not a settlement.");
-	_ZoneTbl = alloca((lua_rawlen(_State, 1) + 1) * sizeof(struct Zone*));
-	lua_pushvalue(_State, 1);
+	/*lua_pushvalue(_State, 1);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_type(_State, -1) != LUA_TTABLE)
@@ -681,48 +623,27 @@ int LuaCreateBuilding(lua_State* _State) {
 			lua_pop(_State, 1);
 			goto loop_end;
 		}
-		_Str = lua_tostring(_State, -1);
-		for(i = 0; i < g_ZoneCt; ++i) {
-			if(strcmp(_Str, g_Zones[i].Name) == 0) {
-				_ZoneBase = &g_Zones[i];
-				break;
-			}
-		}
 		lua_pop(_State, 1);
-		if(_ZoneBase == NULL)
-			goto loop_end;
 		lua_rawgeti(_State, -1, 2);
 		if(lua_type(_State, -1) != LUA_TNUMBER) {
 			lua_pop(_State, 1);
 			goto loop_end;
 		}
-		_Width = lua_tointeger(_State, -1);
 		lua_pop(_State, 1);
 		lua_rawgeti(_State, -1, 3);
 		if(lua_type(_State, -1) != LUA_TNUMBER) {
 			lua_pop(_State, 1);
 			goto loop_end;
 		}
-		_Length = lua_tointeger(_State, -1);
 		lua_pop(_State, 1);
-		_Zone = alloca(sizeof(struct Zone));
-		_Zone->Id = NextZoneId();
-		_Zone->X = 0;
-		_Zone->Y = 0;
-		_Zone->Width = _Width;
-		_Zone->Length = _Length;
-		_Zone->Owner = NULL;
-		_Zone->Base = _ZoneBase;
-		_ZoneTbl[_Ct++] = _Zone;
 		loop_end:
 		lua_pop(_State, 1);
 	}
-	_ZoneTbl[_Ct] = NULL;
-	lua_pop(_State, 1);
-	_FloorMat = (struct BuildMat*) LuaToObject(_State, 2, "BuildMat");
-	_WallMat = (struct BuildMat*) LuaToObject(_State, 3, "BuildMat");
-	_RoofMat = (struct BuildMat*) LuaToObject(_State, 4, "BuildMat");
-	_Type = luaL_optstring(_State, 6, "Human");
+	lua_pop(_State, 1);*/
+	_FloorMat = (struct BuildMat*) LuaToObject(_State, 1, "BuildMat");
+	_WallMat = (struct BuildMat*) LuaToObject(_State, 2, "BuildMat");
+	_RoofMat = (struct BuildMat*) LuaToObject(_State, 3, "BuildMat");
+	_Type = luaL_optstring(_State, 5, "Human");
 	if(strcmp(_Type, "Human") == 0)
 		_ResType = ERES_HUMAN;
 	else if(strcmp(_Type, "Animal") == 0)
@@ -731,17 +652,7 @@ int LuaCreateBuilding(lua_State* _State) {
 		_ResType = ERES_HUMAN | ERES_ANIMAL;
 	else
 		return luaL_error(_State, "%s is not a valid house type.", _Type);
-	_Width = 0;
-	_Length = 0;
-	BuildingPlanSize((const struct Zone**)_ZoneTbl, &_Width, &_Length);
-	PlaceBuilding((struct Settlement*) _Location, _Width, _Length, &_X, &_Y);
-	_ZoneTbl[0]->X = _X;
-	_ZoneTbl[0]->Y = _Y;
-	HORIZONTAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y - 1, _ZoneTbl[0]->Width);
-	HORIZONTAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y + _ZoneTbl[0]->Width + 1, _ZoneTbl[0]->Width);
-	VERTICAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y, _ZoneTbl[0]->Length);
-	VERTICAL_WALLS(_ZoneTbl[0]->X - 1, _ZoneTbl[0]->Y + _ZoneTbl[0]->Length, _ZoneTbl[0]->Length);
-	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _ZoneTbl))
+	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat));
 	return 1;
 }
 
@@ -752,7 +663,7 @@ int LuaCreateAnimal(lua_State* _State) {
 	_Name = luaL_checkstring(_State, 1);
 	if((_Population = HashSearch(&g_Populations, _Name)) == NULL)
 		return luaL_error(_State, "Cannot find Population %s.", _Name);
-	lua_pushlightuserdata(_State, CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), 1500, -1, -1));
+	LuaCtor(_State, "Animal", CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), 1500, -1, -1));
 	return 1;
 }
 

@@ -11,7 +11,7 @@
 #include "Log.h"
 #include "Array.h"
 #include "Constraint.h"
-#include "Random.h"
+#include "Math.h"
 
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
@@ -96,6 +96,7 @@ void InitLuaCore() {
 	lua_atpanic(g_LuaState, LogLua);
 	luaL_openlibs(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaCoreObjects);
+	LuaCreateLibrary(g_LuaState, g_LuaFuncsRule, "Rule");
 	LuaRegisterFunctions(g_LuaState, g_LuaCoreFuncs);
 	atexit(LogCloseFile);
 }
@@ -128,7 +129,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 	lua_rawset(_State, -3);
 	if(_BaseClass != NULL) {
 		lua_pushliteral(_State, "__baseclass");
-		lua_getglobal(_State, _BaseClass);
+		luaL_getmetatable(_State, _BaseClass);
 		if(lua_type(_State, -1) != LUA_TTABLE) {
 			luaL_error(_State, "Loading Lua class %s failed. Base class %s is not a class.", _Name, _BaseClass);
 			lua_pop(_State, 3);
@@ -142,7 +143,8 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 	if(_Funcs != NULL) {
 		luaL_setfuncs(_State, _Funcs, 0);
 	}
-	lua_setglobal(_State, _Name);
+	luaL_setmetatable(_State, _Name);
+	//lua_setglobal(_State, _Name);
 	return 1;
 }
 
@@ -153,17 +155,24 @@ void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
 		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
 }
 
+void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
+	luaL_getmetatable(_State, _Class);
+	if(lua_type(_State, -1) == LUA_TTABLE) {
+		lua_setmetatable(_State, -2);
+		lua_pushstring(_State, "__self");
+		lua_pushlightuserdata(_State, _Ptr);
+		lua_rawset(_State, -3);
+		return;
+	}
+	lua_pop(_State, 2);
+	Log(ELOG_WARNING, "Lua class %s does not exist", _Class);
+}
+
 int LuaArrayCreate(lua_State* _State) {
 	int _Size = luaL_checkinteger(_State, 1);
 	struct Array* _Array = CreateArray(_Size);
 
-	lua_newtable(_State);
-	lua_getglobal(_State, "Array");
-	lua_setmetatable(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Array);
-	lua_rawset(_State, -3);
+	LuaCtor(_State, "Array", _Array);
 	return 1;
 }
 
@@ -172,14 +181,15 @@ int LuaArrayItr_Aux(lua_State* _State) {
 	int _Index = lua_tointeger(_State, lua_upvalueindex(2));
 	int _Change = lua_tointeger(_State, lua_upvalueindex(3));
 	int i;
+	const char* _Class = NULL;
 
-	for(i = _Index; i < _Array->TblSize; i += _Change) {
+	for(i = _Index; i < _Array->Size; i += _Change) {
 		if(_Array->Table[_Index] != NULL)
 			break;
 		_Index += _Change;
 	}
 
-	if(_Index < 0 || _Index >= _Array->TblSize) {
+	if(_Index < 0 || _Index >= _Array->Size) {
 		lua_pushnil(_State);
 		lua_pushvalue(_State, 1);
 		lua_pushnil(_State);
@@ -191,14 +201,8 @@ int LuaArrayItr_Aux(lua_State* _State) {
 	if(lua_type(_State, -1) != LUA_TSTRING)
 		luaL_error(_State, "Iterator does not have a __classtype.");
 
-	lua_newtable(_State);
-	lua_getglobal(_State, lua_tostring(_State, -2));
-	lua_setmetatable(_State, -2);
-	lua_remove(_State, -2);
-
-	lua_pushstring(_State, "__self");
-	lua_pushlightuserdata(_State, _Array->Table[_Index]);
-	lua_rawset(_State, -3);
+	_Class = lua_tostring(_State, -1);
+	LuaCtor(_State, _Class, _Array->Table[_Index]);
 	lua_pushinteger(_State, _Index + _Change);
 	lua_replace(_State, lua_upvalueindex(2));
 	return 1;
@@ -223,10 +227,19 @@ int LuaArrayItrPrev(lua_State* _State) {
 int LuaLnkLstNodeIterate(lua_State* _State) {
 	struct LnkLst_Node* _Itr = LuaCheckClass(_State, lua_upvalueindex(1), "LinkedListNode");
 	int _Foward = lua_tointeger(_State, lua_upvalueindex(2));
+	const char* _ItrClass = NULL;
 
 	if(_Itr == NULL)
 		return 0;
-	LuaCtor(_State, "Reform", _Itr->Data);
+	lua_pushstring(_State, "__classtype");
+	lua_rawget(_State, lua_upvalueindex(1));
+	if(lua_isstring(_State, -1) == 0) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	_ItrClass = lua_tostring(_State, -1);
+	lua_pop(_State, 1);
+	LuaCtor(_State, _ItrClass, _Itr->Data);
 	if(_Foward != 0)
 		_Itr = _Itr->Next;
 	else
@@ -419,7 +432,7 @@ int LuaHook(lua_State* _State) {
 
 	_Name = luaL_checkstring(_State, 1);
 	if(!strcmp(_Name, "Age")) {
-		lua_pushlightuserdata(_State, CreateEventTime(NULL, luaL_checkinteger(_State, 2)));
+		lua_pushlightuserdata(_State, NULL/*CreateEventTime(NULL, luaL_checkinteger(_State, 2))*/);
 	} else {
 		luaL_error(_State, "Must be a valid hook type.");
 		return 0;
@@ -499,43 +512,43 @@ int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*
 	return 1;
 }
 
-int AddInteger(lua_State* _State, int _Index, int* _Number) {
+int LuaGetInteger(lua_State* _State, int _Index, int* _Number) {
 	if(lua_isnumber(_State, _Index)) {
 		*_Number = lua_tointeger(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "metafield is not a integer");
+	Log(ELOG_ERROR, "Lua index %i is not an integer", _Index);
 	return 0;
 }
 
-int AddString(lua_State* _State, int _Index, const char** _String) {
+int LuaGetString(lua_State* _State, int _Index, const char** _String) {
 	if(lua_isstring(_State, _Index)) {
 		*_String = lua_tostring(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "metafield is not a string");
+	Log(ELOG_ERROR, "Lua index %i is not a string", _Index);
 	return 0;
 }
 
-int AddNumber(lua_State* _State, int _Index, double* _Number) {
+int LuaGetNumber(lua_State* _State, int _Index, double* _Number) {
 	if(lua_isnumber(_State, _Index)) {
 		*_Number = lua_tonumber(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "metafield is not a number");
+	Log(ELOG_ERROR, "Lua index %i is not is not a number", _Index);
 	return 0;
 }
 
-int LuaLudata(lua_State* _State, int _Index, void** _Data) {
+int LuaGetUData(lua_State* _State, int _Index, void** _Data) {
 	if(lua_islightuserdata(_State, _Index)) {
 		*_Data = lua_touserdata(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "metafield is not user data");
+	Log(ELOG_ERROR, "Lua index %i is not user data", _Index);
 	return 0;
 }
 
-int LuaFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
+int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
 	if(lua_iscfunction(_State, _Index)) {
 		*_Function = lua_tocfunction(_State, _Index);
 		return 1;
@@ -553,22 +566,21 @@ void LuaStackToTable(lua_State* _State, int* _Table) {
 }
 
 void LuaCopyTable(lua_State* _State, int _Index) {
-	_Index = LuaAbsPos(_State, _Index);
+	_Index = lua_absindex(_State, _Index);
 
 	if(lua_type(_State, _Index) != LUA_TTABLE)
 		return;
 	if(lua_type(_State, -1) != LUA_TTABLE)
 		return;
-	lua_pushvalue(_State, _Index);
+	//lua_pushvalue(_State, _Index);
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		lua_pushvalue(_State, -2);
 		lua_pushvalue(_State, -2);
-		lua_rawset(_State, -6);
+		lua_rawset(_State, _Index);
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
-	lua_remove(_State, _Index);
 }
 
 void* LuaToClass(lua_State* _State, int _Index) {
@@ -603,7 +615,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	int _Pop = 4;
-	lua_getglobal(_State, _Class);
+	luaL_getmetatable(_State, _Class);
 	if(lua_getmetatable(_State, _Index) == 0) {
 		lua_pop(_State, 1);
 		return NULL;
@@ -622,7 +634,7 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	lua_pushliteral(_State, "__baseclass");
 	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) == LUA_TTABLE) {
-		lua_getglobal(_State, _Class);
+		luaL_getmetatable(_State, _Class);
 	if(!lua_rawequal(_State, -1, -2)) {
 			lua_copy(_State, -2, -4);
 			lua_pop(_State, 3);
@@ -643,12 +655,12 @@ int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {
 	lua_pushnil(_State);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(AddInteger(_State, -1, _One) == -1)
+	if(LuaGetInteger(_State, -1, _One) == -1)
 		goto fail;
 	lua_pop(_State, 1);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(AddInteger(_State, -1, _Two) == -1)
+	if(LuaGetInteger(_State, -1, _Two) == -1)
 		goto fail;
 	lua_pop(_State, 2);
 	return 1;
@@ -663,12 +675,12 @@ int LuaKeyValue(lua_State* _State, int _Index, const char** _Value, int* _Pair) 
 	lua_pushnil(_State);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(AddString(_State, -1, _Value) == -1)
+	if(LuaGetString(_State, -1, _Value) == -1)
 		goto fail;
 	lua_pop(_State, 1);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(AddInteger(_State, -1, _Pair) == -1)
+	if(LuaGetInteger(_State, -1, _Pair) == -1)
 		goto fail;
 	lua_pop(_State, 2);
 	return 1;

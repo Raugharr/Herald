@@ -9,10 +9,7 @@
 #include "Herald.h"
 
 #include "sys/LinkedList.h"
-#include "sys/KDTree.h"
 #include "video/MapRenderer.h"
-
-#define WorldGetTile(_X, _Y) ((_Y) / g_WorldSize + (_X))
 
 typedef struct lua_State lua_State;
 typedef struct SDL_Texture SDL_Texture;
@@ -25,40 +22,57 @@ struct BigGuy;
 struct WorldTile;
 struct GameWorld;
 struct KeyMouseState;
+struct Path;
+struct Actor;
 
 extern struct GameWorld g_GameWorld;
 extern struct RBTree* g_GoodDeps;
 extern struct Array* g_AnFoodDep;
-extern struct RBTree g_Families;
-extern struct KDTree g_ObjPos;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
 #define GameWorldInsertSettlement(_GameWorld, _Settlement) 																				\
 {																																		\
-	SDL_Rect _AABB = {(_Settlement)->StartPos.X, (_Settlement)->StartPos.Y, 															\
-	(_Settlement)->EndPos.X - (_Settlement)->StartPos.X, (_Settlement)->EndPos.Y - (_Settlement)->StartPos.Y};							\
 	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
-	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &_AABB);																\
+	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &(_Settlement)->Pos);													\
 }
+
+enum {
+	SUBTIME_ARMY,
+	SUBTIME_BATTLE,
+	SUBTIME_SIZE
+};
+
+enum {
+	TERRAIN_GRASS
+};
+
+enum {
+	MOUSESTATE_DEFAULT,
+	MOUSESTATE_RAISEARMY,
+	MOUSESTATE_SIZE
+};
+
+struct SubTimeObject {
+	void (*Callback)(void*);
+	void* (*Next)(void*);
+	void* (*Prev)(void*);
+	void* List;
+};
 
 struct GameWorld {
 	int IsPaused;
 	DATE Date;
 	struct MapRenderer* MapRenderer;
-	struct QuadTree SettlementIndex;
+	struct QuadTree SettlementMap;
 	struct RBTree* GoodDeps;
 	struct Array* AnFoodDeps;
 	struct RBTree Families;
-	struct KDTree ObjPos;
 	struct BigGuy* Player;
 	struct LinkedList Settlements;
 	struct RBTree BigGuys;
 	struct RBTree BigGuyStates;
-};
-
-enum {
-	TERRAIN_GRASS
+	struct RBTree Agents;
 };
 
 struct FamilyType {
@@ -74,15 +88,28 @@ struct WorldTile {
 };
 
 struct BigGuy* PickPlayer();
+int IsPlayerGovernment(const struct GameWorld* _World, const struct Settlement* _Settlement);
 
 struct WorldTile* CreateWorldTile();
 void DestroyWorldTile(struct WorldTile* _Tile);
+/*
+ * NOTE: Does this actually work or does it just return everything in a square distance away?
+ */
+void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point, int _Radius, struct LinkedList* _List);
 
 void WorldInit(int _Area);
 void WorldQuit();
+
+int GameDefaultClick(const struct Object* _One, const struct Object* _Two);
+int GameFyrdClick(const struct Object* _One, const struct Object* _Two);
 void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World);
 void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World);
 void CreateTempMap(int _Length);
 int World_Tick();
+
+void WorldPathCallback(struct Army* _Army, struct Path* _Path);
+
+void** SubTimeGetList(int _Type);
+void SetClickState(struct Object* _Data, int _State);
 
 #endif

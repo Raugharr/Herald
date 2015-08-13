@@ -7,8 +7,8 @@ function Menu.Init(Menu, Width, Height, Data)
 	local PersonInfo = ""
 	
 	Menu.Screen = Screen
-	DTable:SetCellWidth(DTable:GetFont():FontWidth() * 8)
-	DTable:SetCellHeight(DTable:GetFont():FontHeight())
+	Menu.DTable:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+	Menu.DTable:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 	Screen:CreateLabel("Back"):OnKey("Enter", "Released", 
 		function() 
 			GUI.PopMenu()

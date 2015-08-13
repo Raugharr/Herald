@@ -22,6 +22,10 @@
 
 static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
 static struct Widget* g_FocusWidget = NULL;
+static struct {
+	struct Widget* Widget;
+	SDL_Point Offset;
+} g_DraggableWidget;
 
 SDL_Window* g_Window = NULL;
 SDL_Renderer* g_Renderer = NULL;
@@ -42,6 +46,7 @@ int VideoInit(void) {
 		goto error;
 	g_WindowTexture = SDL_CreateTexture(g_Renderer, SDL_GetWindowPixelFormat(g_Window), SDL_TEXTUREACCESS_STREAMING, SDL_WIDTH, SDL_HEIGHT);
 	SDL_SetTextureBlendMode(g_WindowTexture, SDL_BLENDMODE_NONE);
+	SDL_SetRenderDrawBlendMode(g_Renderer, SDL_BLENDMODE_BLEND);
 	--g_Log.Indents;
 	return 1;
 	error:
@@ -134,6 +139,7 @@ void Events(void) {
 
 	GUIMessageCheck(&g_GUIMessageList);
 	KeyMouseStateClear(&g_KeyMouseState);
+	SDL_GetMouseState(&g_KeyMouseState.MousePos.x, &g_KeyMouseState.MousePos.y);
 	while(SDL_PollEvent(&_Event) != 0) {
 		switch(_Event.type) {
 		case SDL_KEYUP:
@@ -156,84 +162,30 @@ void Events(void) {
 			g_KeyMouseState.MousePos.y = _Event.motion.y;
 			break;
 		}
-		 /*if(_Event.type == SDL_KEYUP) {
-			struct Widget* _Widget = g_Focus->Parent->Children[g_Focus->Index];
-
-			if(_Event.key.type == SDL_KEYUP)
-				_Widget->OnKeyUp(_Widget, &_Event.key);
-			if(_Event.key.keysym.sym == SDLK_UP) {
-				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, -_Widget->Parent->VertFocChange);
-				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_DOWN) {
-				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->VertFocChange);
-				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_LEFT) {
-				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
-				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			} else if(_Event.key.keysym.sym == SDLK_RIGHT) {
-				_Widget->OnUnfocus(_Widget);
-				g_Focus = ChangeFocus(g_Focus, _Widget->Parent->HorzFocChange(g_Focus->Parent));
-				g_Focus->Parent->Children[g_Focus->Index]->OnFocus(g_Focus->Parent->Children[g_Focus->Index]);
-			}
-			for(i = 0; i < g_GUIEvents->Size; ++i) {
-				//FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail.
-				_Callback = NULL;
-				if(g_GUIEvents->Events[i].WidgetId == g_Focus->Id) {
-					_Callback = g_Focus->Parent->Children[g_Focus->Index];
-					goto event_check;
-				}
-				if(g_GUIEvents->Events[i].WidgetId == g_Focus->Parent->Id) {
-					_Callback = (struct Widget*)g_Focus->Parent;
-					goto event_check;
-				}
-				continue;
-				event_check:
-				if(KeyEventCmp(&g_GUIEvents->Events[i].Event, &g_KeyMouseState) == 0) {
-					LuaCallEvent(g_LuaState, g_GUIEvents->Events[i].RefId, _Callback);
-					if(g_GUIMenuChange != 0) {
-						g_GUIMenuChange = 0;
-						return;
-					}
-				}
-			}
-		}*/
 	}
 	_Screen = GetScreen(g_LuaState);
 	if(g_KeyMouseState.MouseMove != 0) {
 		if(g_FocusWidget != NULL)
 			g_FocusWidget->OnUnfocus(g_FocusWidget);
 		g_FocusWidget = _Screen->OnFocus((struct Widget*)_Screen, &g_KeyMouseState.MousePos);
+		if(g_DraggableWidget.Widget != NULL) {
+			SDL_Point _Pos = {g_KeyMouseState.MousePos.x - g_DraggableWidget.Offset.x, g_KeyMouseState.MousePos.y - g_DraggableWidget.Offset.y};
+			g_DraggableWidget.Widget->SetPosition(g_DraggableWidget.Widget, &_Pos);
+		}
 	}
-	if(g_KeyMouseState.MouseState != SDL_RELEASED)
-		return;
-	if((_Widget = _Screen->OnClick((struct Widget*)_Screen, &g_KeyMouseState.MousePos)) != NULL) {
+	if(g_KeyMouseState.MouseState == SDL_PRESSED) {
+		struct Widget* _Widget = _Screen->OnClick((struct Widget*)_Screen, &g_KeyMouseState.MousePos);
+
+		if(_Widget == NULL || _Widget->IsDraggable == 0)
+			return;
+		g_DraggableWidget.Widget = _Widget;
+		g_DraggableWidget.Offset.x = g_KeyMouseState.MousePos.x - _Widget->Rect.x;
+		g_DraggableWidget.Offset.y = g_KeyMouseState.MousePos.y - _Widget->Rect.y;
+	} else if(g_KeyMouseState.MouseState == SDL_RELEASED && (_Widget = _Screen->OnClick((struct Widget*)_Screen, &g_KeyMouseState.MousePos)) != NULL && _Widget != (struct Widget*)_Screen) {
 		LuaGuiGetRef(g_LuaState);
 		lua_rawgeti(g_LuaState, -1, _Widget->LuaOnClickFunc);
 		LuaCallFunc(g_LuaState, 0, 0, 0);
-		/*for(i = 0; i < g_GUIEvents->Size; ++i) {
-			//FIXME: If the Lua references are ever out of order because an event is deleted than this loop will fail.
-			_Callback = NULL;
-			if(g_GUIEvents->Events[i].WidgetId == g_Focus->Id) {
-				_Callback = g_Focus->Parent->Children[g_Focus->Index];
-				goto event_check2;
-			}
-			if(g_GUIEvents->Events[i].WidgetId == g_Focus->Parent->Id) {
-				_Callback = (struct Widget*)g_Focus->Parent;
-				goto event_check2;
-			}
-			continue;
-			event_check2:
-			if(KeyEventCmp(&g_GUIEvents->Events[i].Event, &g_KeyMouseState) == 0) {
-				LuaCallEvent(g_LuaState, g_GUIEvents->Events[i].RefId, _Callback);
-				if(g_GUIMenuChange != 0) {
-					g_GUIMenuChange = 0;
-					return;
-				}
-			}
-		}*/
+		g_DraggableWidget.Widget = NULL;
 	} else {
 		if(g_GameWorld.IsPaused  == 0)
 			GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
@@ -246,13 +198,16 @@ void Draw(void) {
 		return;
 	_Screen = GetScreen(g_LuaState);
 	SDL_RenderClear(g_Renderer);
+
+
 	GameWorldDraw(&g_KeyMouseState, &g_GameWorld);
-	if(_Screen != NULL) {
-		LuaMenuThink(g_LuaState);
-		_Screen->OnDraw((struct Widget*) _Screen);
-	} else {
-		g_VideoOk = 0;
-	}
+	LuaMenuThink(g_LuaState);
+	//_Screen->OnDraw((struct Widget*) _Screen);
+	for(int i = 0; i < _Screen->ChildCt; ++i)
+		_Screen->Children[i]->OnDraw(_Screen->Children[i]);
+	SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
+	_Screen->OnDebug((struct Widget*)_Screen);
+	SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderPresent(g_Renderer);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);
@@ -340,6 +295,10 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 	return _Texture;
 }
 
-int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
-	return ((_Parent->Rect.x + _Parent ->Rect.w) / 2) - ((_Widget->Rect.x + _Widget ->Rect.w) / 2);
+void FocusableWidgetNull(void) {
+	g_FocusWidget = NULL;
+}
+
+const struct Widget* GetFocusableWidget(void) {
+	return g_FocusWidget;
 }

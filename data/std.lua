@@ -1,4 +1,4 @@
-ManorConstraints = {Min = 50, Max = 800, Interval = 50}
+ManorConstraints = {Min = 350, Max = 600, Interval = 50}
 BabyAvg = {0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999}
 AgeGroups = {0, 2190, 4745, 5659, 21900, 36500}
 FamilyTypes = {{0.75, "Farmer"}, {0.2, "Herder"}, {0.05, "Lumberjack"}}
@@ -37,7 +37,7 @@ function Farmer(Size, Location)
 		CreateGood("Spear", 3)
 	}
 	Table.Field = {16, 16}
-	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "Human")}
+	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "Human")}
 	Table.Animals = {{"Chicken", Size * 2}}
 	Table.AI = Peasant
 	return Table
@@ -52,14 +52,14 @@ function Herder(Size, Location)
 	
 	Table.Goods = {CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt)), CreateGood("Spear", 3)}
 	Table.Field = {20}
-	Table.Buildings = {CreateBuilding({{"One Room House", 10, 15}}, GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "All")}
+	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}
 	Table.AI = Peasant			
 	return Table
 end
 
 function Lumberjack(Size, Location)
-	local Table = Farmer(Size)
+	local Table = Farmer(Size, Location)
 	
 	table.insert(Table, {"Axe", 1})
 	Table.AI = Peasant

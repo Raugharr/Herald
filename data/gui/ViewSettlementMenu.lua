@@ -1,19 +1,66 @@
+function RelationToStr(Guy, Target)
+	local Relation = Guy:GetRelation(Target)
+	if Relation == nil then
+		Relation = "0"
+	else
+		Relation = tostring(Relation:GetOpinion())
+	end
+	return Relation
+end
+
 function Menu.Init(Menu, Width, Height, Data)
-	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
+	Menu.Screen = GUI.FixedContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Menu.Screen)
-	Menu.Title = Menu.TitleCon:CreateLabel("Herald")
+	Menu.Left = GUI.VerticalContainer(0, 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.Right = GUI.VerticalContainer((Width / 2), 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
 	
 	Menu.TitleCon:SetFocus(false)
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	
-	Menu.Screen:CreateLabel("Raise Fyrd"):OnKey("Enter", "Released",
+	Menu.Left:CreateButton("Raise Fyrd",
 		function()
-			Data["Settlement"]:RaiseArmy()
+			World.SetOnClick(1, Data["Settlement"].__self)
+			--Data["Settlement"]:RaiseArmy()
+			Menu.Screen:Close()
 		end)
-	Menu.Screen:CreateLabel("Back"):OnKey("Enter", "Released",
+	Menu.Left:CreateButton("View Settlement",
 		function()
-			GUI.PopMenu()
+			--Menu.Right:
+			Menu.Right:CreateLabel(tostring(Data["Settlement"]:GetPopulation()))
+		end)
+	Menu.Left:CreateButton("View big guys",
+		function()
+			local Table = Menu.Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
+			local Agent = nil
+			local Player = World.GetPlayer()
+			local Relation = nil
+			
+			Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+			Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+			Table:CreateLabel("Name")
+			Table:CreateLabel("Action");
+			Table:CreateLabel("Our Opinion");
+			Table:CreateLabel("Their Opinion");
+			for Guy in Data["Settlement"]:GetBigGuys():Front() do
+			Table:CreateButton(Guy:GetPerson():GetName(),
+				function()
+					GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
+				end)
+			Agent = Guy:GetAgent()
+			if Agent ~= nil then
+				Table:CreateLabel(Agent:GetAction())
+				else
+					Table:CreateLabel("Player")
+			end
+			Table:CreateLabel(RelationToStr(Player, Guy))
+			Table:CreateLabel(RelationToStr(Guy, Player))
+			end
+		end)
+	Menu.Left:CreateButton("Close",
+		function()
+			Menu.Screen:Close()
 		end)
 	return false
 end

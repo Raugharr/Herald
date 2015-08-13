@@ -23,7 +23,7 @@ struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Inter
 struct Constraint** CreateConstrntBnds(int _Size, ...);
 struct Constraint** CreateConstrntVaBnds(int _Size, va_list _List);
 
-int Fuzify(struct Constraint** _List, int _Value);
+int Fuzify(struct Constraint* const * _List, int _Value);
 int ConstrntLen(struct Constraint** _List);
 
 #endif

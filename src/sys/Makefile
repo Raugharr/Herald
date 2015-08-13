@@ -1,11 +1,11 @@
 CC=gcc
 CFLAGS+=-Wall -std=c99 -pg
 OBJFLD=../obj/
-DEPS = Random.h MemoryPool.h HashTable.h LinkedList.h Queue.h Array.h RBTree.h Constraint.h Stack.h \
-ATimer.h Log.h KDTree.h Event.h BinaryHeap.h TaskPool.h Trie.h Rule.h LuaCore.h StackAllocator.h ResourceManager.h
-OBJ = $(OBJFLD)Random.o $(OBJFLD)MemoryPool.o $(OBJFLD)HashTable.o $(OBJFLD)LinkedList.o $(OBJFLD)Queue.o \
-$(OBJFLD)Array.o $(OBJFLD)RBTree.o $(OBJFLD)Constraint.o $(OBJFLD)Stack.o $(OBJFLD)ATimer.o \
-$(OBJFLD)Log.o $(OBJFLD)KDTree.o $(OBJFLD)Event.o $(OBJFLD)BinaryHeap.o $(OBJFLD)TaskPool.o \
+DEPS = Math.h MemoryPool.h HashTable.h LinkedList.h Queue.h Array.h RBTree.h Constraint.h Stack.h \
+Log.h Event.h BinaryHeap.h TaskPool.h Trie.h Rule.h LuaCore.h StackAllocator.h ResourceManager.h
+OBJ = $(OBJFLD)Math.o $(OBJFLD)MemoryPool.o $(OBJFLD)HashTable.o $(OBJFLD)LinkedList.o $(OBJFLD)Queue.o \
+$(OBJFLD)Array.o $(OBJFLD)RBTree.o $(OBJFLD)Constraint.o $(OBJFLD)Stack.o \
+$(OBJFLD)Log.o $(OBJFLD)Event.o $(OBJFLD)BinaryHeap.o $(OBJFLD)TaskPool.o \
 $(OBJFLD)Trie.o $(OBJFLD)Rule.o $(OBJFLD)LuaCore.o $(OBJFLD)ResourceManager.o
 ODIR=
 

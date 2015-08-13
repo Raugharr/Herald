@@ -7,6 +7,8 @@
 
 #include "sys/LinkedList.h"
 
+#include <SDL2/SDL.h>
+
 struct BigGuy;
 struct Settlement;
 struct Reform;
@@ -22,6 +24,11 @@ extern struct Reform** g_Reforms;
 #define REFORM_PASSVOTE (0.7f)
 
 struct Government;
+
+enum {
+	GOVREL_NONE,
+	GOVREL_TRIBUTE
+};
 
 enum {
 	GOVRULE_ELECTIVE = (1 << 0),
@@ -48,6 +55,9 @@ enum {
 	GOVTYPE_SIZE = 15
 };
 
+/*
+ * Used to sort all the reforms in the UI.
+ */
 enum {
 	GOVCAT_MILITARY = (1 << 0),
 	GOVCAT_DIPLOMANCY = (1 << 1),
@@ -93,6 +103,11 @@ struct ReformPassing {
 	int Escalation;
 };
 
+struct GovRelation {
+	struct Government* Government;
+	int Relation;
+};
+
 struct Government {
 	int GovType;
 	int GovRank;
@@ -100,15 +115,17 @@ struct Government {
 	int AllowedMilLeaders;
 	int AuthorityLevel;
 	int RulerGender;
+	int PublicOpinion; //How well the general public likes the current leader.
 	struct Settlement* Location;
 	struct BigGuy* Leader;
-	struct Government* ParentGovernment;
+	struct GovRelation Owner;
 	struct ReformPassing* Reform;
 	struct LinkedList SubGovernments;
 	struct LinkedList PossibleReforms;
 	struct LinkedList PassedReforms;
 	struct LinkedList Advisors;
-	void (*LeaderDeath)(struct Government*);
+	void (*NewLeader)(struct Government*);
+	SDL_Color ZoneColor;
 };
 
 struct RepublicGovernment {
@@ -122,6 +139,7 @@ struct RepublicGovernment {
 	int NextElection;
 };
 
+//TODO: Move InitReforms and QuitReforms to InitHerald or somewhere else more appropriate.
 int InitReforms(void);
 void QuitReforms(void);
 
@@ -142,15 +160,29 @@ int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform);
 void GovernmentThink(struct Government* _Gov);
 int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement);
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
+/**
+ * Sets _Gov's government rank to _NewRank. If _Gov cannot contain all of its subjects because of its new rank they will be
+ * popped from its SubGovernment list and then placed into _ReleasedSubjects.
+ */
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);
 
-void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject);
+/*
+ * Sets _Subject as a subject government of _Parent.
+ * If _Subject's government rank is equal to or higher than _Parent's rank GovernmentLowerRank will be called
+ * and the released subjects added to _Parent's subjects.
+ */
+void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject, int _Relation);
 void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
 void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);
 void GovernmentCreateLeader(struct Government* _Gov);
 
-void MonarchyLeaderDeath(struct Government* _Gov);
-void ElectiveLeaderDeath(struct Government* _Gov);
-void ElectiveMonarchyLeaderDeath(struct Government* _Gov);
+void MonarchyNewLeader(struct Government* _Gov);
+void ElectiveNewLeader(struct Government* _Gov);
+void ElectiveMonarchyNewLeader(struct Government* _Gov);
+/*
+ * Returns the top most parent of _Gov.
+ */
+struct Government* GovernmentTop(struct Government* _Gov);
+void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy);
 
 #endif

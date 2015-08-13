@@ -9,8 +9,7 @@
 #include "Good.h"
 #include "Person.h"
 #include "Family.h"
-#include "Zone.h"
-#include "sys/Random.h"
+#include "sys/Math.h"
 #include "sys/Array.h"
 #include "sys/LuaCore.h"
 #include "sys/LinkedList.h"
@@ -26,97 +25,39 @@ struct Construction* CreateConstruct(struct Building* _Building, struct Person* 
 	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, BuildingArea(_Building));
 	int _Percent = _BuildTime / 10;
 
-	_Construct->Prev = NULL;
-	_Construct->Next = NULL;
-	_Construct->Type = ATT_CONSTRUCTION;
+	CreateObject((struct Object*)_Construct, OBJECT_CONSTRUCT, (void(*)(struct Object*))ConstructThink);
 	_Construct->DaysLeft = _BuildTime - _Percent + Random(0, _Percent * 2);
 	_Construct->Building = _Building;
 	_Construct->Worker = _Person;
 	return _Construct;
 }
 
-struct Construction* CopyConstruct(struct Construction* _Construct) {
-	struct Construction* _NewConstruct = (struct Construction*) malloc(sizeof(struct Construction));
-
-	_NewConstruct->Type = 0;
-	_NewConstruct->DaysLeft = _Construct->DaysLeft;
-	_NewConstruct->Building = _Construct->Building;
-	_NewConstruct->Worker = _Construct->Worker;
-	return _NewConstruct;
-}
-
 void DestroyConstruct(struct Construction* _Construct) {
+	DestroyObject((struct Object*)_Construct);
 	free(_Construct);
 }
 
-int ConstructUpdate(struct Construction* _Construct) {
+void ConstructThink(struct Construction* _Construct) {
 	if(_Construct->DaysLeft <= 0)
-		return 1;
-	return 0;
+		DestroyConstruct(_Construct);
 }
 
 int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Area) {
 	return (_Walls->BuildCost * _Area) + (_Floor->BuildCost * _Area) + (_Roof->BuildCost * _Area);
 }
 
-struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, struct Zone** _Zones) {
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
 	int i = 0;
-	/*int x = 0;
-	int y = 0;
-	int _MidX = 0;
-	int _MidY = 0;*/
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
-	CreateObject((struct Object*)_Building, OBJECT_BUILDING, 0, 0, ObjNoThink);
+	CreateObject((struct Object*)_Building, OBJECT_BUILDING, NULL);
+	_Building->Pos.x = 0;
+	_Building->Pos.y = 0;
 	_Building->ResidentType = _ResType;
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
 	_Building->Roof = _Roof;
-	_Building->Zones = calloc(i, sizeof(struct Zone*));
-	/*for(i = 0; _Zones[i] != NULL; ++i) {
-		_Building->Zones[i] = _Zones[i];
-		_MidX = (_Zones[i]->X + (_Zones[i]->X + _Zones[i]->Width)) / 2;
-	
-		x = _Zones[i]->X;
-		BUILD_WALL(_Zones[i]->Y - 1, _Zones[i]->Y + _Zones[i]->Length, x, y, y, _MidY);
-		x = _Zones[i]->X + _Zones[i]->Length;
-		BUILD_WALL(_Zones[i]->Y - 1, _Zones[i]->Y + _Zones[i]->Length, x, y, y, _MidY);
-		y = _Zones[i]->Y - 1;
-		BUILD_WALL(_Zones[i]->X, _Zones[i]->X + _Zones[i]->Width, x, y, x _MidX);
-		y = _Zones[i]->Y + _Zones[i]->Length + 1;
-		BUILD_WALL(_Zones[i]->X, _Zones[i]->X + _Zones[i]->Width, x, y, x, _MidX);
-		for(x = _Zones[i]->X; x < _Zones[i]->X + _Zones[i]->Width; ++x) {
-			for(y = _Zones[i]->Y; y < _Zones[i]->Y + _Zones[i]->Length; ++y) {
-				CreateObject(malloc(sizeof(struct Object)), OBJECT_FLOOR, x, y, ObjNoThink);
-			}
-		}
-	}
-	_Zones[i] = NULL;*/
 	return _Building;
-}
-
-struct Building* CopyBuilding(const struct Building* _Building) {
-	struct Building* _NewBuilding = (struct Building*) malloc(sizeof(struct Building));
-	struct InputReq** _OutputGoods = _Building->OutputGoods;
-	struct InputReq** _BuildMats = _Building->BuildMats;
-	struct InputReq** _NewOutGoods = calloc(ArrayLen(_OutputGoods), sizeof(struct InputReq*));
-	struct InputReq** _NewBuildMats = calloc(ArrayLen(_BuildMats), sizeof(struct InputReq*));
-	int i;
-
-	_NewBuilding->Id = NextId();
-	_NewBuilding->ResidentType = _Building->ResidentType;
-	for(i = 0; _OutputGoods[i] != NULL; ++i) {
-		_NewOutGoods[i] = (struct InputReq*) malloc(sizeof(struct InputReq));
-		((struct InputReq*)_NewOutGoods[i])->Req = ((struct InputReq*)_OutputGoods[i])->Req;
-		((struct InputReq*)_NewOutGoods[i])->Quantity = ((struct InputReq*)_OutputGoods[i])->Quantity;
-	}
-	for(i = 0; _BuildMats[i] != NULL; ++i) {
-		_NewBuildMats[i] = malloc(sizeof(struct InputReq));
-		((struct InputReq*)_NewBuildMats[i])->Req = ((struct InputReq*)_BuildMats[i])->Req;
-		((struct InputReq*)_NewBuildMats[i])->Quantity = ((struct InputReq*)_BuildMats[i])->Quantity;
-	}
-
-	return _NewBuilding;
 }
 
 void DestroyBuilding(struct Building* _Building) {
@@ -128,9 +69,6 @@ void DestroyBuilding(struct Building* _Building) {
 	for(i = 0; _Building->BuildMats[i] != NULL; ++i)
 		free(_Building->BuildMats[i]);
 	free(_Building->BuildMats[i]);
-	for(i = 0; _Building->Zones[i] != NULL; ++i)
-		DestroyZone(_Building->Zones[i]);
-	free(_Building->Zones);
 	free(_Building);
 }
 
@@ -138,8 +76,6 @@ int BuildingArea(const struct Building* _Building) {
 	int _Area = 0;
 	int i = 0;
 
-	for(i = 0; _Building->Zones[i] != NULL; ++i)
-		_Area += _Building->Zones[i]->Width * _Building->Zones[i]->Length;
 	return _Area;
 }
 
@@ -160,11 +96,11 @@ struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {
 		}
 		_Key = lua_tostring(_State, -2);
 		if(strcmp(_Key, "Type") == 0)
-			_Return = AddString(_State, -1, &_Type);
+			_Return = LuaGetString(_State, -1, &_Type);
 		else if(strcmp(_Key, "GoodsPerFoot") == 0)
-			_Return = AddNumber(_State, -1, &_GPF);
+			_Return = LuaGetNumber(_State, -1, &_GPF);
 		else if(strcmp(_Key, "Cost") == 0)
-			_Return = AddInteger(_State, -1, &_Cost);
+			_Return = LuaGetInteger(_State, -1, &_Cost);
 		if(_Return <= 0)
 			return NULL;
 		_Return = 0;
@@ -181,7 +117,6 @@ struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {
 		return NULL;
 	}
 	_Mat = (struct BuildMat*) malloc(sizeof(struct BuildMat));
-	_Mat->Id = NextId();
 	_Mat->Type = _TypeId;
 	_Mat->BuildCost = _Cost;
 	_Mat->MatCost = _GPF;
@@ -220,18 +155,8 @@ struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _Room
 
 	if(_Type == EBT_HOME && _RoomCt == 1)
 		_ResType = (ERES_HUMAN | ERES_ANIMAL);
-	_Building = CreateBuilding(_ResType, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF), NULL);
+	_Building = CreateBuilding(_ResType, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF));
 	return _Building;
-}
-
-void BuildingPlanSize(const struct Zone** _Zones, int* _Width, int* _Length) {
-	int i = 0;
-
-	while(_Zones[i] != NULL) {
-		*_Width += _Zones[i]->Width + 2;
-		*_Length += _Zones[i]->Length;
-		++i;
-	}
 }
 
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
@@ -243,7 +168,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 
 	lua_pushnil(_State);
 	if(lua_next(_State, -2) != 0) {
-		if(AddString(_State, -1, &_Temp) != 0) {
+		if(LuaGetString(_State, -1, &_Temp) != 0) {
 			if((_Good = HashSearch(&g_Goods, _Temp)) == NULL) {
 				Log(ELOG_WARNING, "BuildMat table contains an invalid Object name: %s", _Temp);
 				lua_pop(_State, 2);

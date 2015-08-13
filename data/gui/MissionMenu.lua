@@ -9,10 +9,10 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	Menu.Screen:Paragraph(GUI.GetFont("Elementary_Gothic_Bookhand.ttf", 12), Menu.Mission.Description)
 	for k, v in pairs(Menu.Mission.OptionNames) do
-		Menu.Screen:CreateLabel(v):OnClick(
+		Menu.Screen:CreateButton(v,
 		function()
 			GUI.SendMessage("Mission", Menu.Mission.Options(Data["BigGuy"], World.GetDate())[k])
-			GUI.PopMenu()
+			Menu.Screen:Close()
 		end)
 	end
 	return false

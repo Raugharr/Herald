@@ -19,7 +19,10 @@
 #include <dirent.h>
 #include <malloc.h>
 
-#define PAK_VERSION (5)
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_rwops.h>
+
 #define PAK_SIG ("Pak02")
 
 #define READ(_Buffer, _Off, _Size) 	\
@@ -29,6 +32,21 @@
 #define FILE_ERROR "Cannot open file: %s, %s"
 
 #define ToUint(_DWord) ((Uint16)(((unsigned char)(_DWord)[3]) << 16)  | (((unsigned char)(_DWord)[2]) << 16)  | (((unsigned char)(_DWord)[1]) << 8) | (((unsigned char)(_DWord)[0])))
+
+struct ResourceManager g_RsrMgr;
+static struct ResourceType g_ResourceTypes[RESOURCE_SIZE] = {
+		//{IMG_LoadPNG_RW, SDL_FreeTexture, IMG_isPNG}
+};
+
+int ResourceManagementInit(const char* _Files[RSRMGR_PAKSIZE]) {
+	for(int i = 0; i < RSRMGR_PAKSIZE; ++i)
+		RsrMgrConstruct(g_RsrMgr.PakFiles[i], _Files[i]);
+	return 1;
+}
+
+void ResourceManagementQuit() {
+
+}
 
 char* GetFile(const char* _Filename, char* _Buffer, int* _Len) {
 	int _File = 0;
@@ -48,7 +66,7 @@ char* GetFile(const char* _Filename, char* _Buffer, int* _Len) {
 	return _Buffer;
 }
 
-int RsrMgrGenerateHFT(struct ResourceManager* _Mgr, const char* _Buffer) {
+int RsrMgrGenerateHFT(struct PakFile* _Mgr, const char* _Buffer) {
 	int i = 0;
 	int _SigLength = strlen(PAK_SIG) + 1;
 	char _PakSig[_SigLength];
@@ -65,9 +83,9 @@ int RsrMgrGenerateHFT(struct ResourceManager* _Mgr, const char* _Buffer) {
 }
 
 /*
- * We know how many files there are before we call CreateFileTableEntry, we could just malloc them all at once.
+ * TODO: We know how many files there are before we call CreateFileTableEntry, we could just malloc them all at once.
  */
-void RsrMgrConstruct(struct ResourceManager* _Mgr, const char* _Filename) {
+void RsrMgrConstruct(struct PakFile* _Mgr, const char* _Filename) {
 	struct FileTableEntry* _Root = NULL;
 	char _Buffer[sizeof(struct FileTableHeader) + 1];
 	int _Error = 0;
@@ -90,7 +108,7 @@ void RsrMgrConstruct(struct ResourceManager* _Mgr, const char* _Filename) {
 	_Mgr->CurrFolder = (struct Folder*)_Root;
 }
 
-void RsrMgrCreatePak(const char* _DirName) {
+void CreatePak(const char* _DirName) {
 	int _Ct = 0;
 	int _Offset = 0;
 	int _OutFile = 0;
@@ -143,7 +161,7 @@ void RsrMgrCreatePak(const char* _DirName) {
 	_Buffer = (char*) alloca(sizeof(char) * (_BufferLen + 1));
 	_FileTable = _FTHeader;
 	chdir(_DirName);
-		if(ResMgrWriteData(_OutFile, &_Header, _FileTable, _Buffer) == 0)
+		if(PakWriteData(_OutFile, &_Header, _FileTable, _Buffer) == 0)
 			goto end;
 	chdir("..");
 	end:
@@ -152,7 +170,7 @@ void RsrMgrCreatePak(const char* _DirName) {
 	close(_OutFile);
 }
 
-int ResMgrWriteData(int _Fd, const struct FileTableHeader* _Header, struct FileTableEntry* _FileTable, char* _Buffer) {
+int PakWriteData(int _Fd, const struct FileTableHeader* _Header, struct FileTableEntry* _FileTable, char* _Buffer) {
 	int _FileLen = 0;
 
 	if(_FileTable == NULL)
@@ -160,7 +178,7 @@ int ResMgrWriteData(int _Fd, const struct FileTableHeader* _Header, struct FileT
 	do {
 		if(((struct Folder*)_FileTable)->IsFile == 0) {
 			chdir(_FileTable->Filename);
-			ResMgrWriteData(_Fd, _Header, ((struct Folder*)_FileTable)->Child, _Buffer);
+			PakWriteData(_Fd, _Header, ((struct Folder*)_FileTable)->Child, _Buffer);
 			chdir("..");
 			continue;
 		}
@@ -169,6 +187,93 @@ int ResMgrWriteData(int _Fd, const struct FileTableHeader* _Header, struct FileT
 			return 0;
 	} while((_FileTable = _FileTable->Next) != NULL);
 	return 1;
+}
+
+int PakOpenFolder(struct PakFile* _Pak, const char* _Filename) {
+	char _Str[strlen(_Filename) + 1];
+	char* _Ptr = NULL;
+	struct FileTableEntry* _Table = 0;
+
+	if(_Pak->CurrFolder == 0)
+		return 0;
+	_Table = (struct FileTableEntry*)_Pak->CurrFolder;
+
+	strcpy(_Str, _Filename);
+	_Ptr = strtok(_Str, "/\\");
+	while(_Ptr != NULL) {
+		if(!strcmp(_Ptr, _Table->Filename)) {
+			if(((struct Folder*)_Table)->IsFile == 0) {
+				_Pak->CurrFolder = (struct Folder*)_Table;
+				_Table = ((struct Folder*)_Table)->Child;
+				goto file_found;
+			} else {
+				_Pak->CurrFolder = (struct Folder*)_Table->Parent;
+				return 1;
+			}
+		} else
+			_Table = _Table->Next;
+		if(_Table == NULL) {
+			return 0;
+		}
+		file_found:
+		_Ptr = strtok(NULL, "/\\");
+	}
+	_Pak->CurrFolder = (((struct Folder*)_Table)->IsFile == 0) ? ((struct Folder*)_Table) : (struct Folder*)_Table->Parent;
+	return 1;
+}
+
+struct Resource* PakOpenFile(struct HashTable* _Table, struct PakFile* _Pak, const char* _Path) {
+	char _Str[strlen(_Path) + 1];
+	char* _Ptr = NULL;
+	char* _Filename;
+	struct FileTableEntry* _Entry = NULL;
+	struct Resource* _File = NULL;
+	int _Found = 0;
+	struct Folder* _OrigDir = _Pak->CurrFolder;
+
+	if(_Path == NULL)
+		return NULL;
+
+	strcpy(_Str, _Path);
+	_Filename = strchr(_Path, '\\');
+	if(_Filename == NULL)
+		_Filename = _Str;
+	else
+		++_Filename;
+	_Ptr = strtok(_Str, "/\\");
+	while(PakOpenFolder(_Pak, _Ptr) != 0 && (_Ptr = strtok(NULL, "/\\")) != NULL);
+	_Entry = (struct FileTableEntry*)_Pak->CurrFolder->Child;
+	while(_Entry != NULL) {
+		if(!strcmp(_Filename, _Entry->Filename)) {
+			_Found = ((_File = HashSearch(_Table, _Path)) != 0);
+			if(_Found != 0) {
+				char* _Buffer = (char*) calloc(_Entry->FileSize + 1, sizeof(char)); //Done to not stack overflow with a several megabyte file.
+
+				PakReadFile(_Pak, _Entry, _Buffer);
+				_File = CreateResource(_Entry, _Buffer);
+				free(_Buffer);
+			}
+			_Pak->CurrFolder  = _OrigDir;
+			return _File;
+		}
+		_Entry = _Entry->Next;
+	}
+	_Pak->CurrFolder = _OrigDir;
+	return NULL;
+}
+
+void PakReadFile(struct PakFile* _Pak, const struct FileTableEntry* _FileTable, char* _Buffer) {
+
+	lseek(_Pak->PakFd, _FileTable->Offset, SEEK_SET);
+	if(read(_Pak->PakFd, _Buffer, _FileTable->FileSize) == -1)
+		Log(ELOG_WARNING, strerror(errno));
+	_Buffer[_FileTable->FileSize] = 0;
+}
+
+struct Resource* RsrMgrOpenFile(struct ResourceManager* _Mgr, int _Pak, const char* _File) {
+	if(_Pak >= RSRMGR_PAKSIZE || _Mgr->PakFiles[_Pak] == NULL)
+		return NULL;
+	return PakOpenFile(&_Mgr->ResourceTable, _Mgr->PakFiles[_Pak], _File);
 }
 
 struct FileTableEntry* CreateFileTableEntryBuff(const char* _Buffer) {
@@ -232,13 +337,13 @@ struct FileTableEntry* CreateFileTableChain(const char* _DirName, int* _Ct, stru
 	chdir(_DirName);
 	do {
 		while(_LastTable == NULL) {
-			_LastTable = ResMgrNextFile(_Dir);
+			_LastTable = NextFile(_Dir);
 			if(errno == EBADF)
 				break;
 		}
 		_FTHeader = _LastTable;
 		do {
-			_FileTable = ResMgrNextFile(_Dir);
+			_FileTable = NextFile(_Dir);
 			if(((struct Folder*)_LastTable)->IsFile == 0) {
 				int _CtTemp = *_Ct;
 				int _Size = strlen(_DirName) + strlen(_LastTable->Filename) + 2;
@@ -261,7 +366,7 @@ struct FileTableEntry* CreateFileTableChain(const char* _DirName, int* _Ct, stru
 	return _FTHeader;
 }
 
-struct FileTableEntry* RsrMgrLoadFile(struct ResourceManager* _Mgr, int _FileCt, char* _Buffer, struct Folder* _Parent) {
+struct FileTableEntry* RsrMgrLoadFile(struct PakFile* _Mgr, int _FileCt, char* _Buffer, struct Folder* _Parent) {
 	struct FileTableEntry* _Entry = NULL;
 	struct FileTableEntry* _Last = NULL;
 	struct FileTableEntry* _First = NULL;
@@ -311,7 +416,7 @@ struct FileTableEntry* NextFileEntry(struct FileTableEntry* _Table) {
 	return NULL;
 }
 
-struct FileTableEntry* ResMgrNextFile(DIR* _Dir) {
+struct FileTableEntry* NextFile(DIR* _Dir) {
 	struct stat _Stat;
 	struct dirent* _Dirent = readdir(_Dir);
 
@@ -321,7 +426,7 @@ struct FileTableEntry* ResMgrNextFile(DIR* _Dir) {
 				return NULL;
 		if(stat(_Dirent->d_name, &_Stat) == -1) {
 			Log(ELOG_ERROR, "Bad file %s", _Dirent->d_name);
-			return NULL;
+			goto fail;
 		}
 
 		if(S_ISDIR(_Stat.st_mode)) {
@@ -335,6 +440,33 @@ struct FileTableEntry* ResMgrNextFile(DIR* _Dir) {
 		}
 		return CreateFileTableEntry(_Dirent->d_name, _Stat.st_size);
 	}
+	return NULL;
+	fail:
 	errno = EBADF;
 	return NULL;
+}
+
+struct Resource* CreateResource(const struct FileTableEntry* _Entry, const char* _Data) {
+	struct Resource* _Resource = (struct Resource*) malloc(sizeof(struct Resource));
+
+	_Resource->RefCt = (int*) malloc(sizeof(int));
+	(*_Resource->RefCt) = 1;
+	_Resource->AlwaysCache = 1;
+	for(int i = 0; i < RESOURCE_SIZE; ++i) {
+		SDL_RWops* _Ops = SDL_RWFromConstMem(_Data, _Entry->FileSize);
+
+		if(g_ResourceTypes[i].IsResource(_Ops) && (_Resource->Data = g_ResourceTypes[i].Create(_Ops)) != NULL) {
+			_Resource->ResourceType = i;
+			SDL_RWclose(_Ops);
+			break;
+		}
+		SDL_RWclose(_Ops);
+	}
+	return _Resource;
+}
+
+void DestroyResource(struct Resource* _Resource) {
+	--(*_Resource->RefCt);
+	if((*_Resource->RefCt) <= 0)
+		free(_Resource);
 }

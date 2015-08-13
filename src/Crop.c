@@ -55,7 +55,6 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 		return NULL;
 	}
 	_Crop = (struct Crop*) malloc(sizeof(struct Crop));
-	_Crop->Id = NextId();
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Crop->Name, _Name);
 	_Crop->Type = _Type;
@@ -96,27 +95,27 @@ struct Crop* CropLoad(lua_State* _State, int _Index) {
 		else
 			continue;
 		if(!strcmp("PoundsPerAcre", _Key)) {
-			_Return = AddInteger(_State, -1, &_PerAcre);
+			_Return = LuaGetInteger(_State, -1, &_PerAcre);
 			_PerAcre *= OUNCE;
 		} else if(!strcmp("Type", _Key)) {
 			if(lua_isstring(_State, -1)) {
-				_Return = AddString(_State, -1, &_TypeStr);
+				_Return = LuaGetString(_State, -1, &_TypeStr);
 				if(!strcmp("Grass", _TypeStr))
 					_Type = EGRASS;
 				else
 					luaL_error(_State, "Type contains an invalid string.");
 			}
 		} else if(!strcmp("YieldPerSeed", _Key))
-			_Return = AddNumber(_State, -1, &_YieldMult);
+			_Return = LuaGetNumber(_State, -1, &_YieldMult);
 		else if(!strcmp("NutritionalValue", _Key))
-			_Return = AddInteger(_State, -1, &_NutValue);
+			_Return = LuaGetInteger(_State, -1, &_NutValue);
 		else if(!strcmp("Name", _Key))
-			_Return = AddString(_State, -1, &_Name);
+			_Return = LuaGetString(_State, -1, &_Name);
 		else if(!strcmp("GrowingDegree", _Key)) {
-			_Return = AddInteger(_State, -1, &_GrowingDegree);
+			_Return = LuaGetInteger(_State, -1, &_GrowingDegree);
 		}
 		else if(!strcmp("GrowingBase", _Key)) {
-			_Return = AddInteger(_State, -1, &_GrowBase);
+			_Return = LuaGetInteger(_State, -1, &_GrowBase);
 		}
 		else if(!strcmp("SurviveWinter", _Key)) {
 			if(lua_type(_State, -1) != LUA_TBOOLEAN)
@@ -137,7 +136,9 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres, 
 	struct Field* _Field = NULL;
 
 	_Field = (struct Field*) malloc(sizeof(struct Field));
-	CreateObject((struct Object*)_Field, OBJECT_CROP,_X, _Y, (int(*)(struct Object*))FieldUpdate);
+	CreateObject((struct Object*)_Field, OBJECT_CROP, (void(*)(struct Object*))FieldUpdate);
+	_Field->Pos.x = _X;
+	_Field->Pos.y = _Y;
 	_Field->Width = _Acres * ACRE_WIDTH;
 	_Field->Length = _Acres * ACRE_LENGTH;
 	_Field->Crop = _Crop;
@@ -155,7 +156,7 @@ int FieldCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyField(struct Field* _Field) {
-	ObjectRmPos((struct Object*)_Field);
+	DestroyObject((struct Object*)_Field);
 	free(_Field);
 }
 
@@ -188,7 +189,7 @@ int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
 }
 
 void FieldWork(struct Field* _Field, int _Total) {
-	int _Val = _Total;
+	//int _Val = _Total;
 
 	//if(_Field->Status == EGROWING)
 	//	_Field->YieldTotal += (double)_Val / (double)_Field->Crop->GrowingDegree;
@@ -207,11 +208,11 @@ void FieldHarvest(struct Field* _Field, struct Array* _Goods) {
 
 	if(_Field->Status != EHARVESTING)
 		return;
-	CheckGoodTbl(_Goods, _Field->Crop->Name, _Seeds, _Field->X, _Field->Y);
+	CheckGoodTbl(_Goods, _Field->Crop->Name, _Seeds, _Field->Pos.x, _Field->Pos.y);
 	if(_Field->Crop->Type == EGRASS) {
 		struct Good* _Straw = NULL;
 
-		CheckGoodTbl(_Goods, "Straw", _Straw, _Field->X, _Field->Y);
+		CheckGoodTbl(_Goods, "Straw", _Straw, _Field->Pos.x, _Field->Pos.y);
 		_Straw->Quantity += _Quantity * 4;
 	}
 	_Field->Acres = _Field->Acres - (_Field->Acres - _Field->StatusTime);
@@ -219,19 +220,16 @@ void FieldHarvest(struct Field* _Field, struct Array* _Goods) {
 	FieldReset(_Field);
 }
 
-int FieldUpdate(struct Field* _Field) {
+void FieldUpdate(struct Field* _Field) {
 	if(_Field->Status == EGROWING) {
-		int _Temp = g_TemperatureList[TO_MONTHS(g_GameWorld.Date)];//((struct WorldTile*)g_World->Table[WorldGetTile(_Field->X, _Field->Y)])->Temperature;
+		int _Temp = g_TemperatureList[TO_MONTHS(g_GameWorld.Date)];
 
 		_Field->StatusTime -= GrowingDegree(_Temp, _Temp, _Field->Crop->GrowingBase);
 		if(_Field->StatusTime <= 0) {
 			_Field->YieldTotal = 100;
 			++_Field->Status;
-			return 1;
 		}
-		return 0;
 	}
-	return 1;
 }
 
 void FieldSetAcres(struct Field* _Field, int _Acres) {
@@ -273,7 +271,7 @@ int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp) {
 	return (_Mean < _BaseTemp) ? (0) : (_Mean - 32);
 }
 /*
- * TODO: All fields that are adjacent to each other position wise should be put into one field.
+ * TODO: Families seem to get the same crop for both of their fields.
  */
 void SelectCrops(struct Family* _Family, struct Array* _Fields) {
 	int _TotalAcreage = FieldsGetAcreage(_Fields);
@@ -301,7 +299,7 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields) {
 		for(j = 0; j < ((struct Population*)_AnList[i]->Req)->EatsSize; ++j) {
 				struct FoodBase* _Eats = ((struct Population*)_AnList[i]->Req)->Eats[j];
 				struct Crop* _Crop = NULL;
-				struct Good* _CropGood = NULL;
+				struct GoodBase* _CropGood = NULL;
 				struct InputReq* _PairSearch = NULL;
 
 				if(strcmp(_Eats->Name, "Straw") == 0  || strcmp(_Eats->Name, "Hay") == 0)
@@ -319,8 +317,8 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields) {
 							LnkLstInsertPriority(&_Crops, &_Pair[_Ct++], InputReqQtyCmp);
 						else
 							_PairSearch->Quantity += _Pair[_Ct].Quantity;
+						break;
 					}
-					break;
 				}
 		}
 	}
@@ -373,7 +371,7 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Fam
 					if(((struct Field*)_Fields->Table[j])->Crop->Type == _NextCrop->Type)
 						goto skip_newfield;
 				}
-				ArrayInsert_S(_Fields, CreateField(_CurrField->X, _CurrField->Y + _CurrField->Width + 1, NULL, FieldTotalAcres(_CurrField) - _FieldSize, _Family));
+				ArrayInsert_S(_Fields, CreateField(_CurrField->Pos.x, _CurrField->Pos.y + _CurrField->Width + 1, NULL, FieldTotalAcres(_CurrField) - _FieldSize, _Family));
 			}
 			skip_newfield:
 			_CurrField->Acres = _FieldSize;
@@ -395,7 +393,7 @@ void FieldAbosrb(struct Array* _Fields) {
 	for(i = 0; i < _Fields->Size; ++i) {
 		_Parent = ((struct Field*)_Fields->Table[i]);
 		for(j = i + 1; j < _Fields->Size;) {
-			if(_Parent->X == ((struct Field*)_Fields->Table[j])->X && _Parent->Y == ((struct Field*)_Fields->Table[j])->Y - ((struct Field*)_Fields->Table[j])->Width - 1) {
+			if(_Parent->Pos.x == ((struct Field*)_Fields->Table[j])->Pos.x && _Parent->Pos.y == ((struct Field*)_Fields->Table[j])->Pos.y - ((struct Field*)_Fields->Table[j])->Width - 1) {
 				_Parent->Width += ((struct Field*)_Fields->Table[j])->Width;
 				_Parent->Acres += ((struct Field*)_Fields->Table[j])->Acres;
 				_Parent->UnusedAcres += ((struct Field*)_Fields->Table[j])->UnusedAcres;

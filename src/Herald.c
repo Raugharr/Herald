@@ -9,23 +9,22 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Building.h"
+#include "BigGuy.h"
 #include "World.h"
 #include "Good.h"
-#include "Occupation.h"
 #include "Population.h"
 #include "Mission.h"
 #include "AI/AIHelper.h"
 #include "AI/Pathfind.h"
 #include "sys/Stack.h"
 #include "sys/RBTree.h"
-#include "sys/Random.h"
+#include "sys/Math.h"
 #include "sys/LinkedList.h"
 #include "sys/TaskPool.h"
 #include "sys/MemoryPool.h"
 #include "sys/Array.h"
 #include "sys/LuaCore.h"
 #include "sys/Constraint.h"
-#include "sys/KDTree.h"
 #include "sys/Log.h"
 #include "sys/Rule.h"
 #include "sys/Event.h"
@@ -42,16 +41,25 @@
 struct HashTable g_Crops;
 struct HashTable g_Goods;
 struct HashTable g_BuildMats;
-struct HashTable g_Occupations;
 struct HashTable g_Populations;
 struct RBTree g_MissionList = {NULL, 0, (int(*)(const void*, const void*))MissionTreeInsert, (int(*)(const void*, const void*))MissionTreeSearch};
-struct ATimer g_ATimer;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 
+struct ObjectList {
+	struct RBTree SearchTree;
+	struct LinkedList ThinkList;
+};
+
+static struct ObjectList g_Objects = {
+	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
+	{0, NULL, NULL}
+};
+
 int g_Id = 0;
 const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+struct Constraint** g_OpinionMods = NULL;
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
@@ -70,28 +78,22 @@ int HeraldInit() {
 	g_BuildMats.Table = NULL;
 	g_BuildMats.Size = 0;
 
-	g_Occupations.TblSize = 0;
-	g_Occupations.Table = NULL;
-	g_Occupations.Size = 0;
-
 	g_Populations.TblSize = 0;
 	g_Populations.Table = NULL;
 	g_Populations.Size = 0;
 
 	g_TaskPool = CreateTaskPool();
-	g_ATimer.Tree = CreateRBTree((int(*)(const void*, const void*))ATimerICallback, (int(*)(const void*, const void*))ATimerSCallback);
-	g_ATimer.ATypes = calloc(ATT_SIZE, sizeof(struct ATType*));
-	ATimerAddType(&g_ATimer, CreateATType(ATT_PREGANCY, (int(*)(void*))PregancyUpdate, (void(*)(void*))DestroyPregancy));
-	ATimerAddType(&g_ATimer, CreateATType(ATT_CONSTRUCTION, (int(*)(void*))ConstructUpdate, (void(*)(void*))DestroyConstruct));
 
 	Log(ELOG_INFO, "Loading Missions");
 	++g_Log.Indents;
 	LoadAllMissions(g_LuaState, &g_MissionList);
 	--g_Log.Indents;
-	g_FamilySize = CreateConstrntBnds(5, 1, 5, 15, 40, 75, 100);
+	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
+	g_OpinionMods = CreateConstrntBnds(5, -BIGGUY_RELMAX, -76, -26, 25, 75, BIGGUY_RELMAX);
 	EventInit();
 	PathfindInit();
+	MathInit();
 	return 1;
 }
 
@@ -99,7 +101,7 @@ void HeraldDestroy() {
 	DestroyTaskPool(g_TaskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
-	ATTimerRmAll(&g_ATimer);
+	DestroyConstrntBnds(g_OpinionMods);
 	EventQuit();
 	PathfindQuit();
 }
@@ -220,58 +222,40 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	return _Return;
 }
 
-void CreateObject(struct Object* _Obj, int _Type, int _X, int _Y, int (*_Think)(struct Object*)) {
+void CreateObject(struct Object* _Obj, int _Type, void (*_Think)(struct Object*)) {
 	_Obj->Id = NextId();
 	_Obj->Type = _Type;
-	_Obj->X = _X;
-	_Obj->Y = _Y;
 	_Obj->Think = _Think;
-	ObjectAddPos(_X, _Y, _Obj);
-}
-
-void ObjectAddPos(int _X, int _Y, struct Object* _Obj) {
-	struct LinkedList* _List = NULL;
-	int _Pos[2];
-	
-	_Pos[0] = _X;
-	_Pos[1] = _Y;
-	if((_List = KDSearch(&g_ObjPos, _Pos)) == NULL) {
-		_List = CreateLinkedList();
-		KDInsert(&g_ObjPos, _List, _X, _Y);
-	}
-	LnkLstPushBack(_List, _Obj);
-	if(g_ObjPos.Size >= g_ObjPosBal) {
-		g_ObjPosBal *= 2;
-		KDBalance(&g_ObjPos);
+	_Obj->LastThink = 1;
+	RBInsert(&g_Objects.SearchTree, _Obj);
+	if(_Think != NULL) {
+		LnkLstPushBack(&g_Objects.ThinkList, _Obj);
+		_Obj->ThinkObj = g_Objects.ThinkList.Back;
 	}
 }
 
-void ObjectRmPos(struct Object* _Obj) {
-	struct LinkedList* _List = NULL;
-	int _Pos[2];
-	struct LnkLst_Node* _Itr = NULL;
+void DestroyObject(struct Object* _Object) {
+	RBDelete(&g_Objects.SearchTree, _Object);
+	if(_Object->Think != NULL)
+		LnkLstRemove(&g_Objects.ThinkList, _Object->ThinkObj);
+}
 
-	_Pos[0] = _Obj->X;
-	_Pos[1] = _Obj->Y;
-	_List = KDSearch(&g_ObjPos, _Pos);
-	assert(_List == NULL);
-	_Itr = _List->Front;
+void ObjectsThink() {
+	struct LnkLst_Node* _Itr = g_Objects.ThinkList.Front;
+	struct LnkLst_Node* _Next = NULL;
+	struct Object* _Object = NULL;
+
 	while(_Itr != NULL) {
-		if(ObjCmp(_Obj, _Itr->Data) == 0) {
-			LnkLst_Remove(_List, _Itr);
-			return;
-		}
-		_Itr = _Itr->Next;
+		_Object = ((struct Object*)_Itr->Data);
+		_Next = _Itr->Next;
+		_Object->Think(_Object);
+		_Itr = _Next;
 	}
-}
-
-int ObjNoThink(struct Object* _Obj) {
-	return 1;
 }
 
 int NextId() {return g_Id++;}
 
-int ObjCmp(const void* _One, const void* _Two) {
+int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
 }
 
@@ -327,6 +311,10 @@ DATE DaysToDate(int _Days) {
 	return (_Years << 9) | (_Months << 5) | (_Days);
 }
 
+int IsNewMonth(int _Date) {
+	return (DAY(_Date) == 0);
+}
+
 void NextDay(int* _Date) {
 	int _Day = DAY(*_Date);
 	int _Month = MONTH(*_Date);
@@ -376,4 +364,16 @@ void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {
 		_Avg = 0;
 	}
 	return _NewImg;
+}
+
+void NewZoneColor(SDL_Color* _Color) {
+	static SDL_Color _Colors[] = {
+			{0xFF, 0xFF, 0xFF, 0x40},
+			{0xFF, 0, 0, 0x40},
+			{0, 0xFF, 0, 0x40},
+			{0, 0, 0xFF, 0x40}
+	};
+	static int _Index = 0;
+
+	*_Color = _Colors[_Index++];
 }

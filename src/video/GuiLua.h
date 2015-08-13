@@ -28,24 +28,21 @@ struct GUIMessagePair {
 	void* Two;
 };
 
-int LuaRegisterWidget(lua_State* _State);
-int LuaRegisterContainer(lua_State* _State);
-int LuaRegisterLabel(lua_State* _State);
-int LuaRegisterTable(lua_State* _State);
-int LuaRegisterSurface(lua_State* _State);
-int LuaRegisterFont(lua_State* _State);
-
 int LuaCreateLabel(lua_State* _State);
+int LuaCreateButton(lua_State* _State);
 int LuaCreateTable(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
+int LuaFixedContainer(lua_State* _State);
 int LuaContextItem(lua_State* _State);
 
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
 int LuaDefaultFont(lua_State* _State);
 int LuaGetDefaultFont(lua_State* _State);
+
+int LuaCreateWindow(lua_State* _State);
 /**
  * Lua function that takes one argument of type string.
  * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.
@@ -108,6 +105,8 @@ int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
 int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
+int LuaContainerClose(lua_State* _State);
+int LuaContainerShrink(lua_State* _State);
 
 /**
  * Label functions

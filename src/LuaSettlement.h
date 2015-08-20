@@ -18,6 +18,7 @@ int LuaArmyGetLeader(lua_State* _State);
 int LuaArmyGetSize(lua_State* _State);
 
 int LuaBGGetPerson(lua_State* _State);
+int LuaBGGetAuthority(lua_State* _State);
 int LuaBGSetAuthority(lua_State* _State);
 int LuaBGGetAdministration(lua_State* _State);
 int LuaBGGetIntrigue(lua_State* _State);
@@ -29,6 +30,7 @@ int LuaBGGetPiety(lua_State* _State);
 int LuaBGGetIntellegence(lua_State* _State);
 int LuaBGGetAgent(lua_State* _State);
 int LuaBGGetRelation(lua_State* _State);
+int LuaBGSetOpinion(lua_State* _State);
 int LuaBGSetAction(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);

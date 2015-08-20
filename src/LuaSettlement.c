@@ -22,8 +22,6 @@
 #include <lua/lualib.h>
 #include <malloc.h>
 
-lua_State* g_LuaState = NULL;
-
 static luaL_Reg g_LuaFuncsArmy[] = {
 		{"GetLeader", LuaArmyGetLeader},
 		{"GetSize", LuaArmyGetSize},
@@ -53,6 +51,7 @@ static const luaL_Reg g_LuaFuncsGovernment[] = {
 
 static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"GetPerson", LuaBGGetPerson},
+		{"GetAuthority", LuaBGGetAuthority},
 		{"SetAuthority", LuaBGSetAuthority},
 		{"GetAdministration", LuaBGGetAdministration},
 		{"GetIntrigue", LuaBGGetIntrigue},
@@ -64,6 +63,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"GetIntellegence", LuaBGGetIntellegence},
 		{"GetAgent", LuaBGGetAgent},
 		{"GetRelation", LuaBGGetRelation},
+		{"SetOpinion", LuaBGSetOpinion},
 		{"SetAction", LuaBGSetAction},
 		{NULL, NULL}
 };
@@ -113,6 +113,13 @@ int LuaBGGetPerson(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
 	LuaCtor(_State, "Person", _Guy->Person);
+	return 1;
+}
+
+int LuaBGGetAuthority(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	lua_pushinteger(_State, _Guy->Authority);
 	return 1;
 }
 
@@ -204,6 +211,20 @@ int LuaBGGetRelation(lua_State* _State) {
 	}
 	LuaCtor(_State, "BigGuyRelation", _Relation);
 	return 1;
+}
+
+int LuaBGSetOpinion(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
+	int _Action = luaL_checkinteger(_State, 3);
+	int _Mod = luaL_checkinteger(_State, 4);
+	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Target);
+
+	if(_Relation == NULL)
+		CreateBigGuyRelation(_Guy, _Target, _Action, _Mod);
+	else
+		BigGuyAddRelation(_Guy, _Relation, _Action, _Mod);
+	return 0;
 }
 
 int LuaBGSetAction(lua_State* _State) {

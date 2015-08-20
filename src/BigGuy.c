@@ -41,7 +41,6 @@ const char* g_BGMission[BGACT_SIZE] = {
 
 void BigGuyActionImproveRel(struct BigGuy* _Guy, struct BigGuy* _Target) {
 	struct BigGuyRelation* _Relation = NULL;
-	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 
 	if((_Relation = BigGuyGetRelation(_Target, _Guy)) == NULL)
 		_Relation = CreateBigGuyRelation(_Target, _Guy, BGOPIN_IMPROVREL, RELATIONS_PER_TICK);
@@ -116,10 +115,16 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 
 void BigGuyThink(struct BigGuy* _Guy) {
 	struct BigGuyRelation* _Relation = _Guy->Relations;
+	struct BigGuyOpinion* _Opinion = NULL;
 
 	if(_Guy->Action.ActionFunc != NULL)
 		_Guy->Action.ActionFunc(_Guy, _Guy->Action.Data);
 	while(_Relation != NULL) {
+		_Opinion = _Relation->Opinions;
+		while(_Opinion != NULL) {
+			_Opinion->RelMod = _Opinion->RelMod - AbsAdd(_Opinion->RelMod, 1);
+			_Opinion = _Opinion->Next;
+		}
 		BigGuyRelationUpdate(_Relation);
 		_Relation = _Relation->Next;
 	}
@@ -180,7 +185,6 @@ void BigGuyRelationUpdate(struct BigGuyRelation* _Relation) {
 	int _Modifier = 0;
 
 	while(_Opinion != NULL) {
-		_Opinion->RelMod = _Opinion->RelMod - AbsAdd(_Opinion->RelMod, 1);
 		_Modifier += _Opinion->RelMod;
 		_Opinion = _Opinion->Next;
 	}

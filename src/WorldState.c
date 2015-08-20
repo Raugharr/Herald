@@ -146,6 +146,44 @@ int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two) 
 	return 0;
 }
 
+int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State) {
+	int _Check = 0;
+
+	for(int i = 0; i < WORLDSTATESZ; ++i) {
+		for(int j = 0; j < sizeof(WorldState_t); ++j) {
+			if(StateAtomDontCare(_State, i, j) != 0)
+				continue;
+			/*
+			 * NOTE: Will fail because the other opcodes have not been masked out.
+			 */
+			switch(StateAtomOpCode(_State, i, j)) {
+			case WSOP_EQUAL:
+				_Check = StateToByte(_Input, i, j) - StateToByte(_State, i, j);
+				break;
+			case WSOP_GREATERTHAN:
+				_Check = StateToByte(_Input, i, j) > StateToByte(_State, i, j);
+				_Check = (_Check == 0);
+				break;
+			case WSOP_GREATERTHANEQUAL:
+				_Check = StateToByte(_Input, i, j) >= StateToByte(_State, i, j);
+				_Check = (_Check == 0);
+				break;
+			case WSOP_LESSTHAN:
+				_Check = StateToByte(_Input, i, j) < StateToByte(_State, i, j);
+				_Check = (_Check == 0);
+				break;
+			case WSOP_LESSTHANEQUAL:
+				_Check = StateToByte(_Input, i, j) <= StateToByte(_State, i, j);
+				_Check = (_Check == 0);
+				break;
+			}
+			if(_Check != 0)
+				return _Check;
+		}
+	}
+	return 0;
+}
+
 int WorldStateFirstAtom(const struct WorldState* _State) {
 	int _Ct = 0;
 	int _ffs = 0;

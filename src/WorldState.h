@@ -62,6 +62,7 @@ int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two
  * Compares _One and _Two. Returns -1 if _One is less than _Two, 1 if _Two is less than _One, and 0 if they are equal.
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two);
+int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State);
 /*
  * Returns the index of the first atom that is not masked by _State's DontCare variable.
  */

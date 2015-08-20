@@ -13,6 +13,9 @@ struct LinkedList;
 struct Rule;
 struct Primitive;
 
+/*
+ * FIXME: Remove and use the standard lua abspos function
+ */
 #define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
@@ -114,6 +117,7 @@ int LuaGetNumber(lua_State* _State, int _Index, double* _Number);
 int LuaGetUData(lua_State* _State, int _Index, void** _Data);
 int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
 
+void LuaPrintTable(lua_State* _State, int _Index);
 /**
  * _Table must be big enough to contain at least lua_gettop(_State) elements.
  */
@@ -138,6 +142,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
  * If the element is not the correct _Class LuaCheckClass will recursively
  * load the global table with the name of the element's __baseclass until
  * __baseclass is nil or the __baseclass is equal to _Class.
+ * Will raise an error if the table at _Index is not of type _Class.
  */
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 /*
@@ -153,12 +158,18 @@ int LuaRuleGreaterThan(lua_State* _State);
 int LuaRuleLessThan(lua_State* _State);
 int LuaRuleTrue(lua_State* _State);
 int LuaRuleFalse(lua_State* _State);
+int LuaRuleIfThenElse(lua_State* _State);
 int LuaRuleEventFired(lua_State* _State);
+int LuaRuleBlock(lua_State* _State);
+
+int LuaMissionGetName(lua_State* _State);
+int LuaMissionGetDesc(lua_State* _State);
+int LuaMissionGetOptions(lua_State* _State);
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 
 void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive);
-struct Primitive* LuaToPrimitive(lua_State* _State, int _Index);
+void LuaToPrimitive(lua_State* _State, int _Index, struct Primitive* _Primitive);
 
 /*
  * Set the environment _Env to the table at the top of the stack.

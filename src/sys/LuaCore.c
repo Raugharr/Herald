@@ -13,10 +13,14 @@
 #include "Constraint.h"
 #include "Math.h"
 
+#include "../Mission.h"
+
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
 #include <stdlib.h>
 #include <string.h>
+
+lua_State* g_LuaState = NULL;
 
 const char* g_LuaGlobals[] = {
 		"Environments",
@@ -61,7 +65,9 @@ static const luaL_Reg g_LuaFuncsRule[] = {
 		{"LessThan", LuaRuleLessThan},
 		{"True", LuaRuleTrue},
 		{"False", LuaRuleFalse},
+		{"IfThenElse", LuaRuleIfThenElse},
 		{"EventFired", LuaRuleEventFired},
+		{"Block", LuaRuleBlock},
 		{NULL, NULL}
 };
 
@@ -77,6 +83,13 @@ static const luaL_Reg g_LuaFuncsArray[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsMission[] = {
+		{"GetName", LuaMissionGetName},
+		{"GetDescription", LuaMissionGetDesc},
+		{"GetOptions", LuaMissionGetOptions},
+		{NULL, NULL}
+};
+
 static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Iterator", NULL, g_LuaFuncsIterator},
 		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
@@ -84,11 +97,12 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Rule", NULL, g_LuaFuncsRule},
 		{"Array", NULL, g_LuaFuncsArray},
 		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
+		{"Mission", NULL, g_LuaFuncsMission},
 		{NULL, NULL, NULL}
 };
 
 void InitLuaCore() {
-	//g_LuaState = luaL_newstate();
+	g_LuaState = luaL_newstate();
 	for(int i = 0; g_LuaGlobals[i] != NULL; ++i) {
 		lua_newtable(g_LuaState);
 		lua_setglobal(g_LuaState, g_LuaGlobals[i]);
@@ -102,7 +116,7 @@ void InitLuaCore() {
 }
 
 void QuitLuaCore() {
-	//lua_close(g_LuaState);
+	lua_close(g_LuaState);
 }
 
 /*
@@ -557,6 +571,21 @@ int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
 	return 0;
 }
 
+void LuaPrintTable(lua_State* _State, int _Index) {
+	struct Primitive _Key;
+	struct Primitive _Value;
+
+	_Index = lua_absindex(_State, _Index);
+	lua_pushnil(_State);
+	while(lua_next(_State, _Index) != 0) {
+		LuaToPrimitive(_State, -2, &_Key);
+		LuaToPrimitive(_State, -1, &_Value);
+		PrimitivePrint(&_Key);
+		PrimitivePrint(&_Value);
+		lua_pop(_State, 1);
+	}
+}
+
 void LuaStackToTable(lua_State* _State, int* _Table) {
 	int _Top = lua_gettop(_State);
 	int i;
@@ -602,7 +631,7 @@ void* LuaToClass(lua_State* _State, int _Index) {
 
 void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 	if(lua_getmetatable(_State, _Index) == 0)
-		 luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaTestClass"));
+		 luaL_error(_State, LUA_TYPERROR(_State, _Index, _Class, "LuaTestClass"));
 	lua_pushstring(_State, "__class");
 	lua_rawget(_State, -2);
 	if(!lua_isstring(_State, -1) || strcmp(_Class, lua_tostring(_State, -1)) != 0) {
@@ -694,11 +723,11 @@ int LuaRuleLuaCall(lua_State* _State) {
 	int _Args = lua_gettop(_State);
 	struct RuleLuaCall* _Rule = NULL;
 
-	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	luaL_checktype(_State, 1, LUA_TFUNCTION);
 	lua_createtable(_State, _Args, 0);
-	for(i = 1; i <= _Args; ++i) {
-		lua_pushvalue(_State, i);
-		lua_rawseti(_State, -2, i);
+	for(i = 0; i < _Args; ++i) {
+		lua_pushvalue(_State, i + 1);
+		lua_rawseti(_State, -2, i + 1);
 	}
 	_Rule = CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX));
 	LuaCtor(_State, "Rule", _Rule);
@@ -741,6 +770,25 @@ int LuaRuleFalse(lua_State* _State) {
 	return 1;
 }
 
+int LuaRuleIfThenElse(lua_State* _State) {
+	struct RuleComparator* _Comparator = LuaCheckClass(_State, 1, "Rule");
+	struct Rule* _OnTrue = LuaCheckClass(_State, 2, "Rule");
+	struct Rule* _OnFalse = LuaCheckClass(_State, 3, "Rule");
+	struct Rule* _Rule = NULL;
+
+	switch(_Comparator->Type) {
+	case RULE_BOOLEAN:
+	case RULE_GREATERTHAN:
+	case RULE_LESSTHAN:
+		break;
+	default:
+		return luaL_error(_State, "First argument must be a rule comparator.");
+	}
+	_Rule = (struct Rule*) CreateRuleIfThenElse(_Comparator, _OnTrue, _OnFalse);
+	LuaCtor(_State, "Rule", _Rule);
+	return 1;
+}
+
 int LuaRuleEventFired(lua_State* _State) {
 	int i = 0;
 	struct Rule* _Rule = NULL;
@@ -757,6 +805,48 @@ int LuaRuleEventFired(lua_State* _State) {
 	return 0;
 }
 
+int LuaRuleBlock(lua_State* _State) {
+	struct RuleBlock* _Rule =  NULL;
+	int _Args = lua_gettop(_State);
+
+	if(_Args == 0)
+		return luaL_error(_State, "LuaRuleBlock must have at least one argument.");
+	for(int i = 0; i < _Args; ++i) {
+		if(LuaCheckClass(_State, i + 1, "Rule") == NULL)
+			return luaL_error(_State, "LuaRuleBlock's %i argument is not a Rule.", i + 1);
+	}
+	_Rule = CreateRuleBlock(_Args);
+	for(int i = 0; i < _Args; ++i)
+		_Rule->RuleList[i] = LuaCheckClass(_State, i + 1, "Rule");
+	LuaCtor(_State, "Rule", _Rule);
+	return 1;
+}
+
+int LuaMissionGetName(lua_State* _State) {
+	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+
+	lua_pushstring(_State, _Mission->Name);
+	return 1;
+}
+
+int LuaMissionGetDesc(lua_State* _State) {
+	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+
+	lua_pushstring(_State, _Mission->Description);
+	return 1;
+}
+
+int LuaMissionGetOptions(lua_State* _State) {
+	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+
+	lua_createtable(_State, 0, _Mission->OptionCt);
+	for(int i = 0; i < _Mission->OptionCt; ++i) {
+		lua_pushstring(_State, _Mission->Options[i].Name);
+		lua_rawseti(_State, -2, i + 1);
+	}
+	return 1;
+}
+
 struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
 	struct RulePrimitive* _Rule = NULL;
 
@@ -765,8 +855,11 @@ struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
 			luaL_error(_State, LUA_TYPERROR(_State, _Index, "Rule", "LuaRuleGreaterThan"));
 			return NULL;
 		}
-	} else
-		_Rule = CreateRulePrimitive(LuaToPrimitive(_State, 1));
+	} else {
+		struct Primitive* _Prim = CreatePrimitive();
+		LuaToPrimitive(_State, _Index, _Prim);
+		_Rule = CreateRulePrimitive(_Prim);
+	}
 	return (struct Rule*) _Rule;
 }
 
@@ -790,9 +883,7 @@ void PrimitiveLuaPush(lua_State* _State, struct Primitive* _Primitive) {
 	}
 }
 
-struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
-	struct Primitive* _Primitive = CreatePrimitive();
-
+void LuaToPrimitive(lua_State* _State, int _Index, struct Primitive* _Primitive) {
 	switch(lua_type(_State, _Index)) {
 		case LUA_TBOOLEAN:
 			_Primitive->Type = PRIM_BOOLEAN;
@@ -807,8 +898,17 @@ struct Primitive* LuaToPrimitive(lua_State* _State, int _Index) {
 			_Primitive->Type = PRIM_INTEGER;
 			_Primitive->Value.Int = lua_tointeger(_State, _Index);
 			break;
+		case LUA_TTABLE:
+			_Primitive->Type = PRIM_STRING;
+			_Primitive->Value.String = calloc(6, sizeof(char));
+			strcpy(_Primitive->Value.String, "Table");
+			break;
+		case LUA_TFUNCTION:
+			_Primitive->Type = PRIM_STRING;
+			_Primitive->Value.String = calloc(9, sizeof(char));
+			strcpy(_Primitive->Value.String, "Function");
+			break;
 	}
-	return _Primitive;
 }
 
 void LuaSetEnv(lua_State* _State, const char* _Env) {

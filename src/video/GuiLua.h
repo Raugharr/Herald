@@ -6,6 +6,7 @@ typedef struct _TTF_Font TTF_Font;
 typedef struct SDL_Surface SDL_Surface;
 
 #include "../sys/LinkedList.h"
+#include "../sys/Rule.h"
 
 /**
  * GuiLua uses a table on the global space called GUI.
@@ -17,11 +18,20 @@ typedef struct SDL_Surface SDL_Surface;
 		LuaSetMenu_Aux((_State))
 
 struct Widget;
+struct GUIMessagePacket;
+typedef int(*GUIMessageFunc)(struct GUIMessagePacket*);
 
 extern struct LinkedList g_GUIMessageList;
 
+struct GUIMessagePacket {
+	void* One;
+	void* Two;
+	struct Primitive RecvPrim;
+	lua_State* State;
+};
+
 struct GUIMessagePair {
-	int(*Callback)(void*, void*);
+	GUIMessageFunc Callback;
 	lua_State* State;
 	const char* Key;
 	void* One;
@@ -74,7 +84,7 @@ int LuaScreenWidth(lua_State* _State);
 int LuaScreenHeight(lua_State* _State);
 
 int LuaSendMessage(lua_State* _State);
-void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(void*, void*), void* _One, void* _Two);
+void GUIMessageCallback(lua_State* _State, const char* _Key, GUIMessageFunc _Callback, void* _One, void* _Two);
 void GUIMessageCheck(struct LinkedList* _List);
 
 /**

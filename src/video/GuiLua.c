@@ -70,8 +70,8 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"GetX", LuaWidgetGetX},
 		{"SetY", LuaWidgetSetY},
 		{"GetY", LuaWidgetGetY},
-		{"Width", LuaWidgetGetWidth},
-		{"Height", LuaWidgetGetHeight},
+		{"GetWidth", LuaWidgetGetWidth},
+		{"GetHeight", LuaWidgetGetHeight},
 		{"Parent", LuaWidgetGetParent},
 		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
@@ -784,21 +784,30 @@ int LuaCheckMessage_Aux(void* _One, void* _Two) {
 	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) (*((struct LnkLst_Node**)_One))->Data;
 	struct LnkLst_Node** _Curr = ((struct LnkLst_Node**)_One);
 	struct LnkLst_Node* _Next = NULL;
+	struct GUIMessagePacket _Packet;
+	lua_State* _State = _Pair->State;
 
-	lua_getglobal(_Pair->State, "GUI");
-	lua_pushstring(_Pair->State, "Messages");
-	lua_rawget(_Pair->State, -2);
-	lua_pushstring(_Pair->State, _Pair->Key);
-	lua_rawget(_Pair->State, -2);
-	if(lua_type(_Pair->State, -1) == LUA_TNIL) {
-		lua_pop(_Pair->State, 3);
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Messages");
+	lua_rawget(_State, -2);
+	lua_pushstring(_State, _Pair->Key);
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) == LUA_TNIL) {
+		lua_pop(_State, 3);
 		return 1;
 	}
-	_Pair->Callback(_Pair->One, _Pair->Two);
-	lua_pushstring(_Pair->State, _Pair->Key);
-	lua_pushnil(_Pair->State);
-	lua_rawset(_Pair->State, -4);
-	lua_pop(_Pair->State, 3);
+	_Packet.One = _Pair->One;
+	_Packet.Two = _Pair->Two;
+	LuaToPrimitive(_State, -1, &_Packet.RecvPrim);
+	_Packet.State = _State;
+	/*
+	 * FIXME: If the return value is 0 then do not remove the message from the queue.
+	 */
+	_Pair->Callback(&_Packet);
+	lua_pushstring(_State, _Pair->Key);
+	lua_pushnil(_State);
+	lua_rawset(_State, -4);
+	lua_pop(_State, 3);
 	_Next = (*_Curr)->Next;
 	LnkLstRemove((struct LinkedList*)_Two, *_Curr);
 	*_Curr = _Next;
@@ -806,13 +815,14 @@ int LuaCheckMessage_Aux(void* _One, void* _Two) {
 	return 0;
 }
 
-void GUIMessageCallback(lua_State* _State, const char* _Key, int(*_Callback)(void*, void*), void* _One, void* _Two) {
+void GUIMessageCallback(lua_State* _State, const char* _Key, GUIMessageFunc _Callback, void* _One, void* _Two) {
 	struct GUIMessagePair* _Pair = (struct GUIMessagePair*) malloc(sizeof(struct GUIMessagePair));
 
 	_Pair->Callback = _Callback;
 	_Pair->State = _State;
 	_Pair->Key = _Key;
 	_Pair->One = _One;
+	_Pair->Two = _Two;
 	LnkLstPushBack(&g_GUIMessageList, _Pair);
 }
 

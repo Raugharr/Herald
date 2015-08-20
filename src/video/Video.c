@@ -47,6 +47,8 @@ int VideoInit(void) {
 	g_WindowTexture = SDL_CreateTexture(g_Renderer, SDL_GetWindowPixelFormat(g_Window), SDL_TEXTUREACCESS_STREAMING, SDL_WIDTH, SDL_HEIGHT);
 	SDL_SetTextureBlendMode(g_WindowTexture, SDL_BLENDMODE_NONE);
 	SDL_SetRenderDrawBlendMode(g_Renderer, SDL_BLENDMODE_BLEND);
+	if(InitGUILua(g_LuaState) == 0)
+		goto error;
 	--g_Log.Indents;
 	return 1;
 	error:
@@ -68,6 +70,7 @@ void VideoQuit(void) {
 		g_Focus = g_Focus->Prev;
 		free(_Focus);
 	}
+	QuitGUILua(g_LuaState);
 }
 
 struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos) {

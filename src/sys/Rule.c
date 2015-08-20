@@ -22,7 +22,9 @@ int(*g_RuleFuncLookup[])(const struct Rule*) = {
 		(int(*)(const struct Rule*))RuleLessThan,
 		(int(*)(const struct Rule*))RuleLuaCall,
 		(int(*)(const struct Rule*))RulePrimitive,
-		RuleTrue
+		(int(*)(const struct Rule*))RuleIfThenElse,
+		RuleTrue,
+		(int(*)(const struct Rule*))RuleBlock
 };
 
 struct Primitive* CreatePrimitive() {
@@ -49,6 +51,24 @@ int PrimitiveToBoolean(struct Primitive* _Primitive) {
 			return _Primitive->Value.String != ((char*)0);
 	}
 	return 0;
+}
+
+void PrimitivePrint(const struct Primitive* _Primitive) {
+	switch(_Primitive->Type) {
+		case PRIM_FLOAT:
+			Log(ELOG_INFO, "%f", _Primitive->Value.Float);
+			break;
+		case PRIM_INTEGER:
+		case PRIM_BOOLEAN:
+			Log(ELOG_INFO, "%i", _Primitive->Value.Int);
+			break;
+		case PRIM_PTR:
+			Log(ELOG_INFO, "%X", _Primitive->Value.Ptr);
+			break;
+		case PRIM_STRING:
+			Log(ELOG_INFO, "%s", _Primitive->Value.String);
+			break;
+	}
 }
 
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*)) {
@@ -96,6 +116,21 @@ void DestroyRuleComparator(struct RuleComparator* _Rule) {
 	free(_Rule);
 }
 
+struct RuleIfThenElse* CreateRuleIfThenElse(struct RuleComparator* _Comparator, struct Rule* _OnTrue, struct Rule* _OnFalse) {
+	struct RuleIfThenElse* _Rule = (struct RuleIfThenElse*) malloc(sizeof(struct RuleIfThenElse));
+
+	_Rule->Type = RULE_IFTHENELSE;
+	_Rule->Destroy = (void(*)(struct Rule*))DestroyRuleIfThenElse;
+	_Rule->Comparator = _Comparator;
+	_Rule->OnFalse = _OnFalse;
+	_Rule->OnTrue = _OnTrue;
+	return _Rule;
+}
+
+void DestroyRuleIfThenElse(struct RuleIfThenElse* _Rule) {
+	free(_Rule);
+}
+
 struct RuleBoolean* CreateRuleBoolean(int _Boolean) {
 	struct RuleBoolean* _Rule = (struct RuleBoolean*) malloc(sizeof(struct RuleBoolean));
 
@@ -137,6 +172,20 @@ void DestroyRuleEvent(struct RuleEvent* _Rule) {
 	free(_Rule);
 }
 
+struct RuleBlock* CreateRuleBlock(int _Size) {
+	struct RuleBlock* _Rule = (struct RuleBlock*) malloc(sizeof(struct RuleBlock));
+
+	_Rule->Type = RULE_BLOCK;
+	_Rule->Destroy = (void(*)(struct Rule*))DestroyRuleBlock;
+	_Rule->RuleList = calloc(_Size, sizeof(struct Rule*));
+	_Rule->ListSz = _Size;
+	return _Rule;
+}
+
+void DestroyRuleBlock(struct RuleBlock* _Rule) {
+	free(_Rule->RuleList);
+	free(_Rule);
+}
 
 int RuleTrue(const struct Rule* _Rule) {
 	return 1;
@@ -159,17 +208,32 @@ int RuleLuaCall(const struct RuleLuaCall* _Rule) {
 	int i = 0;
 	int _Len = 0;
 	int _Table = 0;
+	struct RuleLuaCall* _RuleArg = NULL;
 
 	lua_rawgeti(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
 	_Table = LuaAbsPos(_Rule->State, -1);
-	_Len = lua_rawlen(_Rule->State, -1);
-	for(i = 1; i <= _Len; ++i)
+	_Len = lua_rawlen(_Rule->State, _Table);
+	//int _Stack[20];
+	for(i = 1; i <= _Len; ++i) {
 		lua_rawgeti(_Rule->State, _Table, i);
+		//LuaStackToTable(_Rule->State, _Stack);
+		if(lua_type(_Rule->State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_Rule->State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
+			RuleLuaCall(_RuleArg);
+			lua_remove(_Rule->State, -2);
+		}
+		//lua_pop(_Rule->State, 1);
+	}
+	//LuaStackToTable(_Rule->State, _Stack);
+	/*lua_pushvalue(_Rule->State, 2);
+	lua_getmetatable(_Rule->State, -1);
+	lua_pushstring(_Rule->State, "__class");
+	lua_rawget(_Rule->State, -2);
+	const char* _Foo = lua_tostring(_Rule->State, -2);*/
 	LuaCallFunc(_Rule->State, _Len - 1, 1, 0);
-	if(lua_isboolean(_Rule->State, -1) != 0)
-		return lua_toboolean(_Rule->State, -1);
-	else if(lua_isnumber(_Rule->State, -1) != 0)
+	lua_remove(_Rule->State, _Table);//pop _Rule->TblRef.
+	if(lua_isnumber(_Rule->State, -1) != 0) {
 		return lua_tointeger(_Rule->State, -1);
+	}
 	return 0;
 }
 
@@ -179,8 +243,22 @@ int RulePrimitive(const struct RulePrimitive* _Primitive) {
 	return 0;
 }
 
+int RuleIfThenElse(const struct RuleIfThenElse* _Rule) {
+	if(RuleEval((struct Rule*) _Rule->Comparator) != 0)
+		RuleEval(_Rule->OnTrue);
+	else
+		RuleEval(_Rule->OnFalse);
+	return 0;
+}
+
 int RuleBoolean(const struct RuleBoolean* _Rule) {
 	return _Rule->Boolean != 0;
+}
+
+int RuleBlock(const struct RuleBlock* _Block) {
+	for(int i = 0; i < _Block->ListSz; ++i)
+		RuleEval(_Block->RuleList[i]);
+	return 0;
 }
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two) {

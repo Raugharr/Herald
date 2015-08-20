@@ -25,7 +25,9 @@ enum {
 	RULE_LESSTHAN,
 	RULE_LUACALL,
 	RULE_PRIMITIVE,
-	RULE_EVENT
+	RULE_IFTHENELSE,
+	RULE_EVENT,
+	RULE_BLOCK
 };
 
 union UPrimitive {
@@ -51,6 +53,14 @@ struct RuleComparator {
 	void (*Destroy)(struct Rule*);
 	struct Rule* Left;
 	struct Rule* Right;
+};
+
+struct RuleIfThenElse {
+	int Type;
+	void(*Destroy)(struct Rule*);
+	struct RuleComparator* Comparator;
+	struct Rule* OnTrue;
+	struct Rule* OnFalse;
 };
 
 struct RuleBoolean {
@@ -79,10 +89,18 @@ struct RuleEvent {
 	int Event;
 };
 
+struct RuleBlock {
+	int Type;
+	void (*Destroy)(struct Rule*);
+	struct Rule** RuleList;
+	int ListSz;
+};
+
 struct Primitive* CreatePrimitive();
 void DestroyPrimitive(struct Primitive* _Primitive);
 
 int PrimitiveToBoolean(struct Primitive* _Primitive);
+void PrimitivePrint(const struct Primitive* _Primitive);
 
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*));
 void DestroyRule(struct Rule* _Rule);
@@ -95,6 +113,9 @@ void DestroyRulePrimitive(struct RulePrimitive* _Rule);
 struct RuleComparator* CreateRuleComparator(int _Type, struct Rule* _Left, struct Rule* _Right);
 void DestroyRuleComparator(struct RuleComparator* _Rule);
 
+struct RuleIfThenElse* CreateRuleIfThenElse(struct RuleComparator* _Comparator, struct Rule* _OnTrue, struct Rule* _OnFalse);
+void DestroyRuleIfThenElse(struct RuleIfThenElse* _Rule);
+
 struct RuleBoolean* CreateRuleBoolean(int _Boolean);
 void DestroyRuleBoolean(struct RuleBoolean* _Rule);
 
@@ -103,13 +124,19 @@ void DestroyRuleLuaCall(struct RuleLuaCall* _Rule);
 struct RuleEvent* CreateRuleEvent(int _Event);
 void DestroyRuleEvent(struct RuleEvent* _Rule);
 
+struct RuleBlock* CreateRuleBlock(int _Size);
+void DestroyRuleBlock(struct RuleBlock* _Rule);
+
 int RuleTrue(const struct Rule* _Rule);
 int RuleFalse(const struct Rule* _Rule);
 int RuleGreaterThan(const struct RuleComparator* _Rule);
 int RuleLessThan(const struct RuleComparator* _Rule);
+
 int RuleLuaCall(const struct RuleLuaCall* _Rule);
 int RulePrimitive(const struct RulePrimitive* _Primitive);
+int RuleIfThenElse(const struct RuleIfThenElse* _Rule);
 int RuleBoolean(const struct RuleBoolean* _Rule);
+int RuleBlock(const struct RuleBlock* _Block);
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);
 

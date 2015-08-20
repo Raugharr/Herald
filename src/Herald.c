@@ -84,10 +84,6 @@ int HeraldInit() {
 
 	g_TaskPool = CreateTaskPool();
 
-	Log(ELOG_INFO, "Loading Missions");
-	++g_Log.Indents;
-	LoadAllMissions(g_LuaState, &g_MissionList);
-	--g_Log.Indents;
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_OpinionMods = CreateConstrntBnds(5, -BIGGUY_RELMAX, -76, -26, 25, 75, BIGGUY_RELMAX);

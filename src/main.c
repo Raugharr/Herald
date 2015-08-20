@@ -10,6 +10,7 @@
 #include "LuaFamily.h"
 #include "LuaSettlement.h"
 #include "LuaWorld.h"
+#include "Mission.h"
 
 #include "video/GuiLua.h"
 #include "video/Video.h"
@@ -34,47 +35,69 @@
 	#include <sys/io.h>
 #endif
 
+static const luaL_Reg g_LuaFuncsMission[] = {
+		{"SetName", LuaMissionSetName},
+		{"SetDesc", LuaMissionSetDesc},
+		{"AddOption", LuaMissionAddOption},
+		{"AddTrigger", LuaMissionAddTrigger},
+		{"Owner", LuaMissionGetOwner},
+		{"GetRandomPerson", LuaMissionGetRandomPerson},
+		{NULL, NULL},
+};
+
 int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
+
+	luaL_newlib(g_LuaState, g_LuaFuncsMission);
+	lua_createtable(g_LuaState, 0, 0);
+	luaL_getmetatable(g_LuaState, "BigGuy");
+	LuaCopyTable(g_LuaState, -2);
+	//lua_pushstring(g_LuaState, "__call");
+	//lua_pushcfunction(g_LuaState, LuaMissionCall);
+	//lua_rawset(g_LuaState, -3);
+	lua_setmetatable(g_LuaState, -2);
+	lua_pushstring(g_LuaState, "LessThan");
+	lua_pushinteger(g_LuaState, WSOP_LESSTHAN);
+	lua_rawset(g_LuaState, -3);
+	lua_setglobal(g_LuaState, "Mission");
+
 	LuaWorldInit();
-		WorldInit(300);
-	if(InitGUILua(g_LuaState) == 0)
-		return 0;
+	Log(ELOG_INFO, "Loading Missions");
+	++g_Log.Indents;
+	LoadAllMissions(g_LuaState, &g_MissionList);
+	--g_Log.Indents;
 	return 1;
 }
 
 void QuitLuaSystem() {
-	QuitGUILua(g_LuaState);
 	QuitLuaCore();
-	WorldQuit();
-	lua_close(g_LuaState);
 }
 
 int main(int argc, char* args[]) {
-	int i = 0;
 	int _WorldTimer = 0;
 	int _DrawTimer = 0;
 	int _Ticks = 0;
+	int _SysCt = 0;
 	struct System _Systems[] = {
+			{"Lua", InitLuaSystem, QuitLuaCore},
 			{"Main", HeraldInit, HeraldDestroy},
 			{"Video", VideoInit, VideoQuit},
 			{"Reform", InitReforms, QuitReforms},
-			{"Lua", InitLuaSystem, QuitLuaCore},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;
 	LogSetFile("Log.txt");
-	g_LuaState = luaL_newstate();
-	for(i = 0; _Systems[i].Name != NULL; ++i) {
-		Log(ELOG_INFO, "Initializing %s system.", _Systems[i].Name);
-		if(_Systems[i].Init() == 0) {
-			Log(ELOG_INFO, "System %s could not be loaded.", _Systems[i].Name);
+	for(_SysCt = 0; _Systems[_SysCt].Name != NULL; ++_SysCt) {
+		Log(ELOG_INFO, "Initializing %s system.", _Systems[_SysCt].Name);
+		if(_Systems[_SysCt].Init() == 0) {
+			Log(ELOG_INFO, "System %s could not be loaded.", _Systems[_SysCt].Name);
 			goto quit;
 		}
-	};
+	}
+	WorldInit(300);
 	IMG_Init(IMG_INIT_PNG);
 
 	_WorldTimer = 0;
@@ -92,10 +115,11 @@ int main(int argc, char* args[]) {
 		++g_TaskPool->Time;
 	}
 	quit:
+	WorldQuit();
 	IMG_Quit();
-	for(i = 0; _Systems[i].Name != NULL; ++i) {
-		Log(ELOG_INFO, "Quitting %s system.", _Systems[i].Name);
-		_Systems[i].Quit();
+	for(_SysCt = _SysCt - 1;_SysCt >= 0; --_SysCt) {
+		Log(ELOG_INFO, "Quitting %s system.", _Systems[_SysCt].Name);
+		_Systems[_SysCt].Quit();
 	}
 	return 0;
 }

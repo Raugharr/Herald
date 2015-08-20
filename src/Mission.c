@@ -8,6 +8,8 @@
 #include "Location.h"
 #include "World.h"
 #include "BigGuy.h"
+#include "Family.h"
+#include "Person.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Rule.h"
@@ -25,8 +27,33 @@
 #include <lua/lauxlib.h>
 #include <dirent.h>
 #include <malloc.h>
+#include <assert.h>
+
+#define MISSION_STACKSZ (8)
+
+static struct {
+	struct BigGuy* Triggerer;
+	struct BigGuy* Stack[MISSION_STACKSZ];
+	int StackSz;
+} g_MissionData;
 
 static struct Mission** g_LoadingMission = NULL;
+
+void MissionDataClear() {
+	g_MissionData.Triggerer = NULL;
+	g_MissionData.StackSz = 0;
+}
+
+struct Mission* CreateMission() {
+	struct Mission* _Mission = (struct Mission*) malloc(sizeof(struct Mission));
+
+	_Mission->Name = NULL;
+	_Mission->Description = NULL;
+	_Mission->LuaTable = NULL;
+	_Mission->OptionCt = 0;
+	WorldStateClear(&_Mission->Trigger);
+	return _Mission;
+}
 
 void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	int i = 0;
@@ -34,6 +61,7 @@ void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	struct dirent* _Dirent = NULL;
 	char* _TableName = NULL;
 	char* _SubString = NULL;
+	struct Mission* _Mission = NULL;
 
 	chdir("data/missions");
 	_Dir = opendir("./");
@@ -41,8 +69,11 @@ void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
 			continue;
+		_Mission = CreateMission();
+		g_LoadingMission = &_Mission;
 		if(LuaLoadFile(_State, _Dirent->d_name, NULL) != LUA_OK)
 			goto error;
+
 		_SubString = strrchr(_Dirent->d_name, '.');
 		_TableName = alloca(sizeof(char) * (strlen(_Dirent->d_name) + 1));
 		while(&_Dirent->d_name[i] != _SubString) {
@@ -50,16 +81,22 @@ void LoadAllMissions(lua_State* _State, struct RBTree* _List) {
 			++i;
 		}
 		_TableName[i] = '\0';
-		RBInsert(_List, LoadMission(_State, _TableName));
+		_Mission->LuaTable = calloc(sizeof(char), strlen(_TableName) + 1);
+		strcpy(_Mission->LuaTable, _TableName);
+		RBInsert(_List, _Mission/*LoadMission(_State, _TableName*/);
 		Log(ELOG_INFO, "Loaded mission %s", _TableName);
 		i = 0;
 	}
+	goto end;
 	error:
+	free(_Mission);
+	end:
+	g_LoadingMission = NULL;
 	chdir("../..");
 }
 
 struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
-	const char* _Name = NULL;
+	/*const char* _Name = NULL;
 	const char* _Description = NULL;
 	char** _OptionNames = NULL;
 	const char* _Temp = NULL;
@@ -134,7 +171,8 @@ struct Mission* LoadMission(lua_State* _State, const char* _TableName) {
 	strcpy(_Mission->Name, _Name);
 	strcpy(_Mission->Description, _Description);
 	strcpy(_Mission->LuaTable, _TableName);
-	return _Mission;
+	return _Mission;*/
+	return NULL;
 }
 
 void DestroyMission(struct Mission* _Mission) {
@@ -145,7 +183,7 @@ void DestroyMission(struct Mission* _Mission) {
 }
 
 struct MissionOption* LoadMissionOption(lua_State* _State, int _Index) {
-	int _AbsIndex = LuaAbsPos(_State, _Index);
+	/*int _AbsIndex = LuaAbsPos(_State, _Index);
 	int i = 1;
 	struct Rule* _Rules[4];
 	struct MissionOption* _Option = NULL;
@@ -168,45 +206,17 @@ struct MissionOption* LoadMissionOption(lua_State* _State, int _Index) {
 	_Option->SuccessRwrd = _Rules[1];
 	_Option->FailureCon = _Rules[2];
 	_Option->FailureRwrd = _Rules[3];
-	return _Option;
+	return _Option;*/
+	return NULL;
 }
 
-int CheckMissionOption(lua_State* _State, void* _None) {
-	struct MissionOption* _Mission = LoadMissionOption(_State, -1);
+int CheckMissionOption(struct GUIMessagePacket* _Packet) {
+	int _Top = lua_gettop(_Packet->State);
 
-	if(_Mission == NULL)
-		return 0;
-	if(RuleEval(_Mission->SuccessCon) != 0)
-		RuleEval(_Mission->SuccessRwrd);
-	else if(RuleEval(_Mission->FailureCon))
-		RuleEval(_Mission->FailureRwrd);
+	RuleEval(((struct Mission*)_Packet->One)->Options[_Packet->RecvPrim.Value.Int].Action);
+	lua_settop(_Packet->State, _Top);
+	MissionDataClear();
 	return 1;
-}
-
-void GenerateMissions_Aux(struct BigGuy* _BigGuy, lua_State* _State, struct Mission* _Mission, const struct RBTree* _Missions) {
-	if(_BigGuy->IsDirty == 0)
-		return;
-	if((_Mission = RBSearch(_Missions, &_BigGuy->State)) == NULL)
-		return;
-	if(g_GameWorld.Player == _BigGuy/*strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0*/) {
-		lua_settop(_State, 0);
-		lua_pushstring(_State, "MissionMenu");
-		lua_createtable(_State, 0, 2);
-		lua_pushstring(_State, "Mission");
-		lua_getglobal(_State, _Mission->LuaTable);
-		lua_rawset(_State, -3);
-		lua_pushstring(_State, "BigGuy");
-		LuaCtor(_State, "BigGuy", (struct BigGuy*)_BigGuy);
-		lua_rawset(_State, -3);
-		lua_pushinteger(_State, 512);
-		lua_pushinteger(_State, 512);
-		LuaCreateWindow(_State);
-		GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
-	}
-}
-
-void FooTwo(int a, int b) {
-
 }
 
 void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const struct RBTree* _Missions) {
@@ -223,11 +233,12 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const st
 		if((_Mission = RBSearch(_Missions, &_BigGuy->State)) == NULL)
 			continue;
 		if(g_GameWorld.Player == _BigGuy/*strcmp((char*)g_GUIStack.Top->Data, "MissionMenu") != 0*/) {
+			g_MissionData.Triggerer = _BigGuy;
 			lua_settop(_State, 0);
 			lua_pushstring(_State, "MissionMenu");
 			lua_createtable(_State, 0, 2);
 			lua_pushstring(_State, "Mission");
-			lua_getglobal(_State, _Mission->LuaTable);
+			LuaCtor(_State, "Mission", _Mission);
 			lua_rawset(_State, -3);
 			lua_pushstring(_State, "BigGuy");
 			LuaCtor(_State, "BigGuy", (struct BigGuy*)_BigGuy);
@@ -235,19 +246,18 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, const st
 			lua_pushinteger(_State, 512);
 			lua_pushinteger(_State, 512);
 			LuaCreateWindow(_State);
-			//LuaSetMenu(_State);
-			GUIMessageCallback(_State, "Mission", (int(*)(void*, void*))CheckMissionOption, _State, NULL);
+			GUIMessageCallback(_State, "Mission", CheckMissionOption, _Mission, NULL);
 		}
 	}
 }
 
 int MissionTreeInsert(const struct Mission* _One, const struct Mission* _Two) {
-	return WorldStateCmp(&_One->Trigger, &_Two->Trigger);
+	return WorldStateAtomCmp(&_One->Trigger, &_Two->Trigger);
 
 }
 
 int MissionTreeSearch(const struct WorldState* _One, const struct Mission* _Two) {
-	return WorldStateCmp(_One, &_Two->Trigger);
+	return WorldStateAtomCmp(_One, &_Two->Trigger);
 }
 
 int LuaMissionSetName(lua_State* _State) {
@@ -279,6 +289,108 @@ int LuaMissionAddOption(lua_State* _State) {
 	struct Rule* _Condition = LuaCheckClass(_State, 2, "Rule");
 	struct Rule* _Action = LuaCheckClass(_State, 3, "Rule");
 
+	if(g_LoadingMission == NULL)
+		return 0;
+	if((*g_LoadingMission)->OptionCt >= MISSION_MAXOPTIONS)
+		return luaL_error(_State, "Mission has already exceded the maximum amount of options.");
 
+	(*g_LoadingMission)->Options[(*g_LoadingMission)->OptionCt].Name = calloc(sizeof(char), strlen(_Str) + 1);
+	strcpy((*g_LoadingMission)->Options[(*g_LoadingMission)->OptionCt].Name, _Str);
+	(*g_LoadingMission)->Options[(*g_LoadingMission)->OptionCt].Condition = _Condition;
+	(*g_LoadingMission)->Options[(*g_LoadingMission)->OptionCt].Action = _Action;
+	++(*g_LoadingMission)->OptionCt;
 	return 0;
+}
+
+int LuaMissionAddTrigger(lua_State* _State) {
+	const char* _Str = luaL_checkstring(_State, 1);
+	int _OpCode = luaL_checkinteger(_State, 2);
+	int _Value = luaL_checkinteger(_State, 3);
+	int _Atom = 0;
+
+	if(g_LoadingMission == NULL)
+		return 0;
+	if(_OpCode < WSOP_NOT || _OpCode > WSOP_LESSTHANEQUAL)
+		return 0;
+	for(_Atom = 0; _Atom < BGBYTE_SIZE; ++_Atom) {
+		if(strcmp(_Str, g_BGStateStr[_Atom]) == 0) {
+			goto opcodes;
+		}
+	}
+	return 0;
+	opcodes:
+	WorldStateSetOpCode(&(*g_LoadingMission)->Trigger, _Atom, _OpCode);
+	WorldStateSetAtom(&(*g_LoadingMission)->Trigger, _Atom, _Value);
+	return 0;
+}
+
+int LuaMissionGetOwner_Aux(lua_State* _State) {
+	if(g_MissionData.Triggerer == NULL)
+		lua_pushnil(_State);
+	else {
+		LuaCtor(_State, "BigGuy", g_MissionData.Triggerer);
+	}
+	return 1;
+}
+
+int LuaMissionGetOwner(lua_State* _State) {
+	lua_pushcfunction(_State, LuaMissionGetOwner_Aux);
+	LuaRuleLuaCall(_State);
+	return 1;
+}
+
+int LuaMissionGetRandomPerson_Aux(lua_State* _State) {
+	int _IsUnique = 0;
+	struct Settlement* _Settlement = NULL;
+	struct LnkLst_Node* _Itr = NULL;
+	struct BigGuy* _Guy = NULL;
+	int _Ct = 0;
+	int _SkipedGuys = 0;
+
+	luaL_checktype(_State, 1, LUA_TBOOLEAN);
+	if(g_MissionData.StackSz >= MISSION_STACKSZ)
+		return luaL_error(_State, "LuaMissionGetRandomPerson: Stack is full.");
+	_Settlement = FamilyGetSettlement(g_MissionData.Triggerer->Person->Family);
+	assert(_Settlement->BigGuys.Size != 0 && "LuaMissionGetRandomPerson: Settlement has no BigGuys.");
+	_IsUnique = lua_toboolean(_State, 1);
+	_Itr = _Settlement->BigGuys.Front;
+	_Ct = Random(0, _Settlement->BigGuys.Size);
+	while(_Itr != NULL && _Ct > 0) {
+		loop_start:
+		_Guy = (struct BigGuy*)_Itr->Data;
+		if(_Guy == g_MissionData.Triggerer) {
+			++_SkipedGuys;
+			goto loop_end;
+		}
+		if(_IsUnique != 0) {
+			for(int i = 0; i < g_MissionData.StackSz; ++i) {
+				if(_Guy == g_MissionData.Stack[i]) {
+					++_SkipedGuys;
+					goto loop_end;
+				}
+			}
+		}
+		--_Ct;
+		loop_end:
+		_Itr = _Itr->Next;
+	}
+	if(_SkipedGuys >= _Settlement->BigGuys.Size)
+		goto error;
+	if(_Itr == NULL && _Ct > 0) {
+		_Itr = _Settlement->BigGuys.Front;
+		goto loop_start;
+	}
+	g_MissionData.Stack[g_MissionData.StackSz] = _Guy;
+	++g_MissionData.StackSz;
+	LuaCtor(_State, "BigGuy", _Guy);
+	return 1;
+	error:
+	return luaL_error(_State, "LuaMissionGetRandomPerson: No avaliable person to select.");
+}
+
+int LuaMissionGetRandomPerson(lua_State* _State) {
+	lua_pushcfunction(_State, LuaMissionGetRandomPerson_Aux);
+	lua_insert(_State, 1);
+	LuaRuleLuaCall(_State);
+	return 1;
 }

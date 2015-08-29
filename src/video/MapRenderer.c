@@ -14,6 +14,8 @@
 #include "../Location.h"
 #include "../sys/Log.h"
 #include "../sys/LinkedList.h"
+#include "../World.h"
+#include "../sys/ResourceManager.h"
 
 #include <SDL2/SDL_image.h>
 #include <math.h>
@@ -65,7 +67,7 @@ void DestroyMapRenderer(struct MapRenderer* _Map) {
 void MapLoad(struct MapRenderer* _Map) {
 	for(int y = 0; y < _Map->TileLength; ++y)
 		for(int x = 0; x < _Map->TileLength; ++x)
-			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, _Map->Grass, x, y);
+			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, ResourceGet("grass.png"), x, y);
 }
 
 struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen) {
@@ -124,17 +126,13 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 	struct LinkedList _QuadList = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
 	struct Sprite* _Sprite = NULL;
-	SDL_Rect _Rect;
+	//SDL_Rect _Rect;
 
 	MapObjectsInRect(_Map, MAPRENDER_TILE, &_Map->Screen, &_QuadList);
 	_Itr = _QuadList.Front;
 	while(_Itr != NULL) {
 		_Sprite = (struct Sprite*)_Itr->Data;
-		MapTileRenderRect(_Map, &_Sprite->TilePos, &_Rect);
-		if((_Sprite->TilePos.y & 1) == 1)
-			SDL_RenderCopy(g_Renderer, _Map->OddGrass, NULL, &_Rect);
-		else
-		SDL_RenderCopy(g_Renderer, _Map->Grass, NULL, &_Rect);
+		SpriteOnDraw(_Sprite);
 		_Itr = _Itr->Next;
 	}
 	LnkLstClear(&_QuadList);
@@ -143,8 +141,7 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 		_Itr = _QuadList.Front;
 		while(_Itr != NULL) {
 			_Sprite = (struct Sprite*)_Itr->Data;
-			MapTileRenderRect(_Map, &_Sprite->TilePos, &_Rect);
-			SDL_RenderCopy(g_Renderer, _Sprite->Image, NULL, &_Rect);
+			SpriteOnDraw(_Sprite);
 			_Itr = _Itr->Next;
 		}
 		LnkLstClear(&_QuadList);
@@ -203,8 +200,7 @@ int MapMoveUnit(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Poi
 	if(MapUnitCanMove(_Renderer, _Army, _Point)) {
 		QTRemovePoint(&_Renderer->RenderArea[MAPRENDER_UNIT], &_Army->Sprite.TilePos, MapGetUnitPos);
 		QTInsertPoint(&_Renderer->RenderArea[MAPRENDER_UNIT], &_Army->Sprite, _Point);
-		_Army->Sprite.TilePos.x = _Point->x;
-		_Army->Sprite.TilePos.y = _Point->y;
+		SpriteSetTilePos(&_Army->Sprite, g_GameWorld.MapRenderer, _Point);
 		return 1;
 	}
 	return 0;

@@ -10,6 +10,7 @@
 #include <SDL2/SDL.h>
 
 typedef struct SDL_Texture SDL_Texture;
+struct Resource;
 struct MapRenderer;
 
 enum {
@@ -23,15 +24,16 @@ enum {
 };
 
 struct Tile {
-	SDL_Texture* Image;
+	struct Resource* Image;
+	SDL_Rect Rect; //Area of sprite to render.
+	SDL_Rect SpritePos;//Where to render sprite.
 	SDL_Point TilePos;
-	SDL_Point ScreenPos;
 	float Forest;
 	float Unbuildable;
 	int Temperature;
 };
 
-struct Tile* CreateTile(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _X, int _Y);
+struct Tile* CreateTile(struct MapRenderer* _Renderer, struct Resource* _Image, int _X, int _Y);
 void DestroyTile(struct Tile* _Tile);
 void GetAdjPos(const SDL_Point* _Pos, SDL_Point* _Adj, int _TileDir);
 struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int _TileDir);

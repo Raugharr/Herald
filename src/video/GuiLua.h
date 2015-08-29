@@ -53,6 +53,8 @@ int LuaDefaultFont(lua_State* _State);
 int LuaGetDefaultFont(lua_State* _State);
 
 int LuaCreateWindow(lua_State* _State);
+
+int LuaCreateImage(lua_State* _State);
 /**
  * Lua function that takes one argument of type string.
  * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.

@@ -43,6 +43,9 @@ void MapLoad(struct MapRenderer* _Map);
  */
 struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen);
 void TilesInRange(const struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List);
+/*
+ * Inserts into _Rect the position and area of a game object at position _TilePos.
+ */
 void MapTileRenderRect(const struct MapRenderer* _Renderer, const SDL_Point* _TilePos, SDL_Rect* _Rect);
 void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map);
 void MapObjectsInRect(struct MapRenderer* _Renderer, int _Layer, const SDL_Rect* _Rect, struct LinkedList* _Data);

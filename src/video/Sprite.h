@@ -9,6 +9,11 @@
 
 #include <SDL2/SDL.h>
 
+struct Resource;
+
+/*
+ * TODO: Move to a new file called GameSprite.
+ */
 #define TILE_WIDTH (42)
 #define TILE_WIDTH_THIRD (TILE_WIDTH * 0.75)
 #define TILE_HEIGHT (48)
@@ -19,18 +24,26 @@ struct MapRenderer;
 typedef struct SDL_Texture SDL_Texture;
 
 struct Sprite {
-	SDL_Texture* Image;
+	struct Resource* Image;
+	/*
+	 * TODO: Rect is currently not implemented.
+	 */
+	SDL_Rect Rect; //Area of sprite to render.
+	SDL_Rect SpritePos;//Where to render sprite.
+	/*
+	 * FIXME: TilePos should no longer be here and instead in an abstraction that uses Sprite.
+	 */
 	SDL_Point TilePos;
-	SDL_Point ScreenPos;
 };
 
-struct Sprite* CreateSprite(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
-struct Sprite* ConstructSprite(struct Sprite* _Sprite, struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
+struct Sprite* CreateSprite(struct Resource* _Image, int _Layer, const SDL_Point* _TilePos);
+struct Sprite* ConstructSprite(struct Sprite* _Sprite, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
+struct Sprite* CreateGameObject(struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
+struct Sprite* ConstructGameObject(struct Sprite* _Sprite, struct MapRenderer* _Renderer, SDL_Texture* _Image, int _Layer, const SDL_Point* _TilePos);
 void DestroySprite(struct Sprite* _Sprite);
 
-static inline void SpriteGetScreenPos(const struct Sprite* _Sprite, SDL_Point* _Pos) {
-	*_Pos = _Sprite->ScreenPos;
-}
+int SpriteOnDraw(const struct Sprite* _Sprite);
+void SpriteSetTilePos(struct Sprite* _Sprite, const struct MapRenderer* _Renderer, const SDL_Point* _TilePos);
 
 static inline void SpriteGetTilePos(const struct Sprite* _Sprite, SDL_Point* _Pos) {
 	*_Pos = _Sprite->TilePos;

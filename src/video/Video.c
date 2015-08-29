@@ -205,12 +205,16 @@ void Draw(void) {
 
 	GameWorldDraw(&g_KeyMouseState, &g_GameWorld);
 	LuaMenuThink(g_LuaState);
-	//_Screen->OnDraw((struct Widget*) _Screen);
-	for(int i = 0; i < _Screen->ChildCt; ++i)
-		_Screen->Children[i]->OnDraw(_Screen->Children[i]);
-	SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
-	_Screen->OnDebug((struct Widget*)_Screen);
-	SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+	/*TODO: After menu creation check if screen is NULL then throw an error and
+	 *prevent the menu from being displayed instead of checking every draw call here.
+	 */
+	if(_Screen != NULL) {
+		for(int i = 0; i < _Screen->ChildCt; ++i)
+			_Screen->Children[i]->OnDraw(_Screen->Children[i]);
+		SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
+		_Screen->OnDebug((struct Widget*)_Screen);
+		SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+	}
 	SDL_RenderPresent(g_Renderer);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);

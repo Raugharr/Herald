@@ -6,7 +6,10 @@
 #include "GuiLua.h"
 
 #include "Gui.h"
+#include "GuiAux.h"
 #include "Video.h"
+#include "ImageWidget.h"
+#include "Sprite.h"
 #include "../sys/LuaCore.h"
 #include "../sys/Array.h"
 #include "../sys/Log.h"
@@ -92,6 +95,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"CreateLabel", LuaCreateLabel},
 		{"CreateTable", LuaCreateTable},
 		{"CreateButton", LuaCreateButton},
+		{"CreateImage", LuaCreateImage},
 		{"Children", LuaContainerGetChildren},
 		{"Paragraph", LuaContainerParagraph},
 		{"GetHorizontalCenter", LuaContainerHorizontalCenter},
@@ -124,6 +128,10 @@ static const luaL_Reg g_LuaFuncsFont[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsImageWidget[] = {
+		{NULL, NULL}
+};
+
 static const struct LuaObjectReg g_GuiLuaObjects[] = {
 		{"Widget", NULL, g_LuaFuncsWidget},
 		{"Container", "Widget", g_LuaFuncsContainer},
@@ -132,6 +140,7 @@ static const struct LuaObjectReg g_GuiLuaObjects[] = {
 		{"Surface", "Widget", NULL},
 		{"Font", NULL, g_LuaFuncsFont},
 		{"Button", "Label", g_LuaFuncsButton},
+		{"ImageWidget", "Widget", g_LuaFuncsImageWidget},
 		{NULL, NULL}
 };
 
@@ -391,6 +400,24 @@ int LuaCreateWindow(lua_State* _State) {
 	//ConstructContainer(_Container, _Parent, &_Rect, _State, 0, &_Margins);
 	//_Container->IsDraggable = 1;
 	//LuaInitClass(_State, "Container", _Container);
+	return 1;
+}
+
+int LuaCreateImage(lua_State* _State) {
+	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
+	struct Sprite* _Sprite = LuaCheckClass(_State, 2, "Sprite");
+	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, 0, 0};
+	struct ImageWidget* _Widget = CreateImageWidget();
+
+	//SDL_QueryTexture(_Sprite->Image, NULL, NULL, &_Rect.w, &_Rect.h);
+	_Rect.w = _Sprite->Rect.w;
+	_Rect.h = _Sprite->Rect.h;
+	ConstructImageWidget(_Widget, _Parent, &_Rect, _State, _Sprite);
+	_Sprite->SpritePos.x = _Widget->Rect.x;
+	_Sprite->SpritePos.y = _Widget->Rect.y;
+	_Sprite->SpritePos.w = _Widget->Rect.w;
+	_Sprite->SpritePos.h = _Widget->Rect.h;
+	LuaCtor(_State, "ImageWidget", _Widget);
 	return 1;
 }
 

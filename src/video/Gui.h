@@ -97,53 +97,19 @@ struct Widget {
 	DECLARE_WIDGET;
 };
 
-struct Label {
-	DECLARE_WIDGET;
-	int (*SetText)(struct Widget*, SDL_Texture*);
-	SDL_Texture* Text;
-};
-
 struct Container {
 	DECLARE_CONTAINER;
 };
 
-struct Table {
-	DECLARE_CONTAINER;
-	int Rows;
-	int Columns;
-	struct Area CellMax; /* max area of a cell. */
-};
-
-struct ContextItem {
-	DECLARE_CONTAINER;
-	int ShowContexts;
-};
-
-struct Button {
-	DECLARE_WIDGET;
-	int (*SetText)(struct Widget*, SDL_Texture*);
-	SDL_Texture* Text;
-	SDL_Color Background;
-};
-
-struct Label* CreateLabel(void);
-struct Button* CreateButton(void);
 struct Container* CreateContainer(void);
-struct Table* CreateTable(void);
-struct ContextItem* CreateContextItem(void);
 struct GUIEvents* CreateGUIEvents(void);
 struct GUIFocus* CreateGUIFocus(void);
 
 /**
  * Constructors
  */
-void ConstructWidget(struct Widget* _Widget, struct Container* _Parent,SDL_Rect* _Rect, lua_State* _State);
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
-struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
+void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
-void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
@@ -155,9 +121,7 @@ void WidgetSetVisibility(struct Widget* _Widget, int _Visibility);
  * Deconstructors
  */
 void DestroyWidget(struct Widget* _Widget, lua_State* _State);
-void DestroyLabel(struct Label* _Text, lua_State* _State);
 void DestroyContainer(struct Container* _Container, lua_State* _State);
-void DestroyTable(struct Table* _Table, lua_State* _State);
 void DestroyFont(struct Font* _Font);
 void DestroyGUIEvents(struct GUIEvents* _Events);
 void DestroyFocus(struct GUIFocus* _Focus);
@@ -181,8 +145,6 @@ void ContainerShrink(struct Container* _Container);
  */
 int WidgetGrow(struct Widget* _Widget, int _Width, int _Height);
 
-int ContextItemOnDraw(struct ContextItem* _Container);
-
 /*
  * Remove the child from the parent's children leaving a gap in the array.
  */
@@ -191,16 +153,6 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
  * Remove the child and slide all children above to fill the hole in the array.
  */
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
-
-int LabelOnDraw(struct Widget* _Widget);
-struct Widget* LabelOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
-int LabelOnUnfocus(struct Widget* _Widget);
-int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
-
-int ButtonOnDraw(struct Widget* _Widget);
-
-void TableNewChild(struct Container* _Parent, struct Widget* _Child);
-int TableHorzFocChange(const struct Container* _Container);
 
 /*
  * Base for LuaOnKey.
@@ -213,8 +165,5 @@ struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
 void WidgetOnDebug(const struct Widget* _Widget);
 int WidgetCheckVisibility(const struct Widget* _Widget);
 
-struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
-int ContextItemOnUnfocus(struct ContextItem* _Widget);
-int ContextHorzFocChange(const struct Container* _Container);
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
 #endif

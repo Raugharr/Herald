@@ -82,6 +82,9 @@ struct System {
 	void(*Quit)(void);
 };
 
+/*
+ * TODO: Have objects think in order of their type.
+ */
 struct Object {
 	int Id;
 	int Type;

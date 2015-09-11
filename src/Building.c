@@ -47,7 +47,6 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 }
 
 struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
-	int i = 0;
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, NULL);
@@ -73,10 +72,7 @@ void DestroyBuilding(struct Building* _Building) {
 }
 
 int BuildingArea(const struct Building* _Building) {
-	int _Area = 0;
-	int i = 0;
-
-	return _Area;
+	return 0;
 }
 
 struct BuildMat* BuildingLoad_Aux(lua_State* _State, int _Index) {

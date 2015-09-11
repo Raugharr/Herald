@@ -6,6 +6,10 @@
 #ifndef __HASHTABLE_H
 #define __HASHTABLE_H
 
+/*
+ * FIXME: HashItr and HashItrCons should store their HashTable as a variable
+ * instead of it always being passed.
+ */
 struct HashItr {
 	int Index;
 	struct HashNode* Node;

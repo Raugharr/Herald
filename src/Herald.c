@@ -28,6 +28,7 @@
 #include "sys/Log.h"
 #include "sys/Rule.h"
 #include "sys/Event.h"
+#include "video/Animation.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -42,7 +43,7 @@ struct HashTable g_Crops;
 struct HashTable g_Goods;
 struct HashTable g_BuildMats;
 struct HashTable g_Populations;
-struct RBTree g_MissionList = {NULL, 0, (int(*)(const void*, const void*))MissionTreeInsert, (int(*)(const void*, const void*))MissionTreeSearch};
+struct HashTable g_Animations;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
@@ -51,14 +52,18 @@ struct ObjectList {
 	struct RBTree SearchTree;
 	struct LinkedList ThinkList;
 };
-
+struct MissionEngine g_MissionEngine = {
+		{NULL, 0, 0, (int(*)(const void*, const void*))MissionHeapInsert},
+		{NULL, 0, 0, (int(*)(const void*, const void*))UsedMissionHeapInsert},
+		{NULL, 0, (int(*)(const void*, const void*))MissionTreeInsert, (int(*)(const void*, const void*))MissionTreeSearch},
+		{NULL, 0, (int(*)(const void*, const void*))UsedMissionInsert, (int(*)(const void*, const void*))UsedMissionSearch}
+};
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
 	{0, NULL, NULL}
 };
 
 int g_Id = 0;
-const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 struct Constraint** g_OpinionMods = NULL;
 
 int IdISCallback(const int* _One, const int* _Two) {
@@ -66,6 +71,9 @@ int IdISCallback(const int* _One, const int* _Two) {
 }
 
 int HeraldInit() {
+	/*FIXME:
+	 * Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
+	 */
 	g_Crops.TblSize = 0;
 	g_Crops.Table = NULL;
 	g_Crops.Size = 0;
@@ -82,6 +90,10 @@ int HeraldInit() {
 	g_Populations.Table = NULL;
 	g_Populations.Size = 0;
 
+	g_Animations.TblSize = 0;
+	g_Animations.Table = NULL;
+	g_Animations.Size = 0;
+
 	g_TaskPool = CreateTaskPool();
 
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
@@ -90,16 +102,29 @@ int HeraldInit() {
 	EventInit();
 	PathfindInit();
 	MathInit();
+	g_MissionEngine.MissionQueue.Table = calloc(1024, sizeof(void*));
+	g_MissionEngine.MissionQueue.TblSz = 1024;
+	g_MissionEngine.UsedMissionQueue.Table = calloc(1024, sizeof(void*));
+	g_MissionEngine.UsedMissionQueue.TblSz = 1024;
+	InitMissions();
 	return 1;
 }
 
 void HeraldDestroy() {
+	struct HashItr* _Itr = HashCreateItr(&g_Animations);
+
+	while(_Itr != NULL) {
+		DestroyAnimation(_Itr->Node->Pair);
+		HashNext(&g_Animations, _Itr);
+	}
 	DestroyTaskPool(g_TaskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_OpinionMods);
 	EventQuit();
 	PathfindQuit();
+	DestroyMissionEngine(&g_MissionEngine);
+	QuitMissions();
 }
 
 struct InputReq* CreateInputReq() {
@@ -253,89 +278,6 @@ int NextId() {return g_Id++;}
 
 int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
-}
-
-DATE MonthToInt(const char* _Month) {
-	int i;
-
-	for(i = 0; i < MONTHS; ++i)
-		if(strcmp(_Month, g_ShortMonths[i]) == 0)
-			return i;
-	return -1;
-}
-
-DATE DaysBetween(int _DateOne, int _DateTwo) {
-	if(_DateTwo < _DateOne)
-		return 0;
-	return DateToDays(_DateTwo) - DateToDays(_DateOne);
-}
-
-DATE DateToDays(int _Date) {
-	int _Total = 0;
-	int _Years = YEAR(_Date);
-	int _Months = MONTH(_Date);
-	int _Result = 0;
-
-	_Total = _Years * YEAR_DAYS;
-	_Result = _Months / 2;
-	_Total += (_Result + 1) * 31;
-	_Total += _Result * 30;
-	if(_Months >= 1) {
-		if(_Years % 4 == 0)
-			_Total += 28;
-		else
-			_Total += 29;
-	}
-	if(_Months >= 8)
-		++_Total;
-	return _Total;
-}
-
-DATE DaysToDate(int _Days) {
-	int _Years = 0;
-	int _Months = 0;
-
-	while(_Days >= YEAR_DAYS) {
-		_Days -= YEAR_DAYS;
-		++_Years;
-	}
-
-	while(_Days >= MONTH_DAYS) {
-		_Days -= MONTH_DAYS;
-		++_Months;
-	}
-	return (_Years << 9) | (_Months << 5) | (_Days);
-}
-
-int IsNewMonth(int _Date) {
-	return (DAY(_Date) == 0);
-}
-
-void NextDay(int* _Date) {
-	int _Day = DAY(*_Date);
-	int _Month = MONTH(*_Date);
-	int _Year = YEAR(*_Date);
-
-	if((_Month & 1) == 0 || _Month == 7) {
-		if(_Day == 31)
-			goto new_month;
-	} else if(_Month == 1) {
-		if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29))
-			goto new_month;
-	} else if(_Day == 30)
-		goto new_month;
-	++_Day;
-	if(_Month >= 12) {
-		++_Year;
-		_Month = 0;
-	}
-	end:
-	*_Date = TO_DATE(_Year, _Month, _Day);
-	return;
-	new_month:
-	_Day = 0;
-	++_Month;
-	goto end;
 }
 
 void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {

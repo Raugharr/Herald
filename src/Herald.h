@@ -6,6 +6,8 @@
 #ifndef __HERALD_H
 #define __HERALD_H
 
+#include "Mission.h"
+
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 #include "sys/LinkedList.h"
@@ -16,16 +18,6 @@
 #define ACRE_LENGTH (660)
 #define ACRE_SQFEET (43560)
 #define MILE_FEET (5280)
-#define YEAR_DAYS (365)
-#define MONTH_DAYS (30)
-#define TO_YEARS(_Months) ((_Months) * 12)
-#define TO_MONTHS(_Days) ((int)((_Days) / 30))
-#define TO_DAYS(_Months) ((_Months) * 30)
-#define YEAR(__Date) ((__Date) >> 9)
-#define MONTH(__Date) (((__Date) >> 5) & 15)
-#define MONTHS (12)
-#define DAY(__Date) (__Date & 31)
-#define TO_DATE(__Year, __Month, __Day) (DAY(__Day) | (_Month << 5) | (_Year << 9))
 #define LISTTOHASH(_List, _Itr, _Hash, _Key)				\
 	(_Itr) = (_List)->Front;								\
 	while((_Itr) != NULL) {									\
@@ -35,7 +27,6 @@
 #define WORKMULT (1000)
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
 #define DATAFLD "data/"
-#define DATE int
 #define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))
 #define FAMILYSIZE (5)
 
@@ -45,8 +36,11 @@ struct StackNode;
 struct LinkedList;
 struct TaskPool;
 
-extern const char* g_ShortMonths[];
+extern struct MissionEngine g_MissionEngine;
 extern struct Constraint** g_OpinionMods;
+/*
+ * TODO: Object should be given its own file as well as DATE.
+ */
 
 enum {
 	BABY = 0,
@@ -97,6 +91,7 @@ extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_BuildMats;
 extern struct HashTable g_Populations;
+extern struct HashTable g_Animations;
 extern struct RBTree g_MissionTree;
 extern struct RBTree g_MissionList;
 extern struct TaskPool* g_TaskPool;
@@ -126,13 +121,9 @@ void DestroyObject(struct Object* _Object);
 void ObjectsThink();
 int NextId();
 
-DATE MonthToInt(const char* _Month);
-DATE DaysBetween(int _DateOne, int _DateTwo);
-DATE DateToDays(int _Date);
-DATE DaysToDate(int _Days);
-int IsNewMonth(int _Date);
-void NextDay(int* _Date);
-
+/*
+ * TODO: Move to Video.h
+ */
 void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
 void NewZoneColor(SDL_Color* _Color);
 

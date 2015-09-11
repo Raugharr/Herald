@@ -11,6 +11,7 @@
 #include "Warband.h"
 
 #include "sys/Math.h"
+#include "sys/ResourceManager.h"
 
 #include "video/Sprite.h"
 #include "video/Tile.h"
@@ -34,7 +35,7 @@ struct SettlementPart* CreateSettlementPart(struct Settlement* _Settlement, cons
 	_Part->People = NULL;
 	_Part->Next = NULL;
 	_Part->Prev = NULL;
-	LnkLstPushBack(&_Settlement->Sprites, CreateSprite(g_GameWorld.MapRenderer, g_GameWorld.MapRenderer->Settlement, MAPRENDER_SETTLEMENT, _Pos));
+	LnkLstPushBack(&_Settlement->Sprites, CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, _Pos));
 	return _Part;
 }
 
@@ -90,10 +91,11 @@ void DestroySettlement(struct Settlement* _Location) {
 void SettlementThink(struct Settlement* _Settlement) {
 	struct Family* _Families[_Settlement->NumFamilies];
 
-	if(_Settlement->NumFamilies > 0)
+	if(_Settlement->NumFamilies > 0) {
 		SettlementGetFamilies(_Settlement, _Families);
-	for(int i = 0; i < _Settlement->NumFamilies; ++i) {
-		FamilyThink((struct Family*)_Families[i]);
+		for(int i = 0; i < _Settlement->NumFamilies; ++i) {
+			FamilyThink((struct Family*)_Families[i]);
+		}
 	}
 	GovernmentThink(_Settlement->Government);
 }
@@ -106,7 +108,6 @@ void SettlementDraw(const struct MapRenderer* _Renderer, struct Settlement* _Set
 	for(_Point.x = _Settlement->Pos.x; _Point.x <= _Settlement->Pos.x + _Settlement->Pos.w; ++_Point.x)
 		for(_Point.y = _Settlement->Pos.y; _Point.y <= _Settlement->Pos.y + _Settlement->Pos.h; ++_Point.y)
 			LnkLstPushBack(&_List, MapGetTileConst(_Renderer, &_Point));
-	//TilesInRange(_Renderer, &_Center, _Center.y, &_List);
 	_Itr = _List.Front;
 	while(_Itr != NULL) {
 		MapDrawColorOverlay(_Renderer, &((struct Tile*)_Itr->Data)->TilePos, &_Settlement->Government->ZoneColor);

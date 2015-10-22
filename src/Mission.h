@@ -8,9 +8,16 @@
 #include "WorldState.h"
 
 #include "sys/BinaryHeap.h"
+#include "sys/LinkedList.h"
 #include "sys/RBTree.h"
 
 #define MISSION_MAXOPTIONS (6)
+
+enum {
+	//MISSIONCAT_SETTLEMENT,
+	MISSIONCAT_CRISIS,
+	MISSIONCAT_SIZE
+};
 
 typedef struct lua_State lua_State;
 struct Rule;
@@ -19,7 +26,10 @@ struct Event;
 struct BinaryHeap;
 struct GUIMessagePacket;
 struct LinkedList;
+struct BigGuy;
 struct QueuedMission;
+struct UsedMissionSearch;
+struct MissionData;
 
 /*
  * Each mission has a variable named Trigger that represents the state the world must be in for the Mission to be fired.
@@ -46,39 +56,56 @@ struct MissionOption {
 };
 
 struct Mission {
+	int Id;
+	int Type;
 	char* Name;
 	char* Description;
 	char* LuaTable;
 	struct WorldState Trigger;
 	struct MissionOption Options[MISSION_MAXOPTIONS];
+	struct Rule* OnTrigger;
 	int OptionCt;
 	int MeanTime;
+};
+
+struct MissionCat {
+	void* (*GetObj)(struct BigGuy*);
+	struct WorldState* (*GetState)(void*);
+	const char** StateStr;
 };
 
 struct MissionEngine {
 	struct BinaryHeap MissionQueue; //Queue of when missions should fire.
 	struct BinaryHeap UsedMissionQueue; //Queue for when mission types go off cooldown.
-	struct RBTree Missions;
+	struct RBTree Missions; //Tree of linked lists comprised of missions that have the same trigger.
 	struct RBTree UsedMissionTree; //Tree for missions that have been used for lookup.
+	struct RBTree MissionId; //Tree sorted by Mission id.
+	struct MissionCat Categories[MISSIONCAT_SIZE];
+	struct LinkedList MissionList[WORLDSTATE_ATOMSZ];
 };
 
 void InitMissions(void);
 void QuitMissions(void);
 
-int UsedMissionInsert(struct QueuedMission* _One, struct QueuedMission* _Two);
-int UsedMissionSearch(int* _One, struct QueuedMission* _Two);
-void LoadAllMissions(lua_State* _State, struct RBTree* _List);
+int UsedMissionInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
+int UsedMissionSearch(const struct UsedMissionSearch* _One, const struct QueuedMission* _Two);
+void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine);
 void DestroyMission(struct Mission* _Mission);
-int CheckMissionOption(struct GUIMessagePacket* _Packet);
+//int CheckMissionOption(struct GUIMessagePacket* _Packet);
+void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionData* _Data, int _Option);
+void MissionCall(lua_State* _State, struct Mission* _Mission, struct BigGuy* _Guy);
 
 void DestroyMissionEngine(struct MissionEngine* _Engine);
 void MissionEngineThink(struct MissionEngine* _Engine, lua_State* _State, const struct RBTree* _BigGuys);
 
+int MissionIdInsert(const int* _One, const struct Mission* _Two);
+int MissionIdSearch(const int* _Id, const struct Mission* _Mission);
 int MissionTreeInsert(const struct Mission* _One, const struct LinkedList* _Two);
 int MissionTreeSearch(const struct WorldState* _One, const struct LinkedList* _Two);
 int MissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
 int UsedMissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
 
+//FIXME: These should be seperated into a header for Lua functions.
 int LuaMissionSetName(lua_State* _State);
 int LuaMissionSetDesc(lua_State* _State);
 int LuaMissionAddOption(lua_State* _State);
@@ -86,6 +113,9 @@ int LuaMissionAddTrigger(lua_State* _State);
 int LuaMissionGetOwner(lua_State* _State);
 int LuaMissionGetRandomPerson(lua_State* _State);
 int LuaMissionSetMeanTime(lua_State* _State);
+int LuaMissionSetId(lua_State* _State);
+int LuaMissionOnTrigger(lua_State* _State);
+int LuaMissionCallById(lua_State* _State);
 
 void MissionDataGetVal(lua_State* _State, int _Index);
 

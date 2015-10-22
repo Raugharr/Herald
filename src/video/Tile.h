@@ -5,8 +5,6 @@
 #ifndef __TILE_H
 #define __TILE_H
 
-#include "Point.h"
-
 #include <SDL2/SDL.h>
 
 typedef struct SDL_Texture SDL_Texture;

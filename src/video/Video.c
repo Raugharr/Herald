@@ -19,6 +19,7 @@
 #include <string.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 
 static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
 static struct Widget* g_FocusWidget = NULL;
@@ -50,6 +51,10 @@ int VideoInit(void) {
 	if(InitGUILua(g_LuaState) == 0)
 		goto error;
 	--g_Log.Indents;
+	if(IMG_Init(IMG_INIT_PNG) == 0) {
+		Log(ELOG_ERROR, IMG_GetError());
+		goto error;
+	}
 	return 1;
 	error:
 	g_VideoOk = 0;
@@ -288,8 +293,14 @@ int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _T
 }
 
 SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
-	SDL_Surface* _Temp = SDL_ConvertSurface(_Surface, SDL_GetWindowSurface(g_Window)->format, 0);
+	SDL_Surface* _Window = SDL_GetWindowSurface(g_Window);
+	SDL_Surface* _Temp = NULL;
 
+	if(_Window == NULL) {
+		Log(ELOG_ERROR, SDL_GetError());
+		return NULL;
+	}
+	_Temp = SDL_ConvertSurface(_Surface, _Window->format, 0);
 	if(_Temp == NULL)
 		Log(ELOG_ERROR, SDL_GetError());
 	SDL_FreeSurface(_Surface);
@@ -299,6 +310,8 @@ SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
 SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 	SDL_Texture* _Texture = SDL_CreateTextureFromSurface(g_Renderer, _Surface);
 	SDL_FreeSurface(_Surface);
+	if(_Texture == NULL)
+		Log(ELOG_ERROR, "Cannot convert SDL surface: %s", SDL_GetError());
 	return _Texture;
 }
 
@@ -308,4 +321,42 @@ void FocusableWidgetNull(void) {
 
 const struct Widget* GetFocusableWidget(void) {
 	return g_FocusWidget;
+}
+
+void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {
+	int _NewWidth = (_Width / _ScaleArea);
+	int _NewSize = _NewWidth * (_Height / _ScaleArea);
+	int x = 0;
+	int y = 0;
+	int i = 0;
+	int _Ct = 0;
+	int _Avg = 0;
+	int _AvgCt = _ScaleArea * _ScaleArea;
+	void* _NewImg = calloc(sizeof(int), _NewSize);
+
+	for(i = 0; i < _NewSize; ++i) {
+		for(x = 0; x < _ScaleArea; ++x)
+			for(y = 0; y < _ScaleArea; ++y)
+				_Avg += ((int*)_Image)[y * _ScaleArea + (_Ct * _ScaleArea + x)];
+		++_Ct;
+		if(_Ct > _NewWidth)
+			_Ct = 0;
+		((int*)_NewImg)[i] = _Avg / _AvgCt;
+		_Avg = 0;
+	}
+	return _NewImg;
+}
+
+void NewZoneColor(SDL_Color* _Color) {
+	static SDL_Color _Colors[] = {
+			{0xFF, 0xFF, 0xFF, 0x40},
+			{0xFF, 0, 0, 0x40},
+			{0, 0xFF, 0, 0x40},
+			{0, 0, 0xFF, 0x40}
+	};
+	static int _Index = 0;
+
+	if(_Index > 3)
+		_Index = 0;
+	*_Color = _Colors[_Index++];
 }

@@ -10,6 +10,9 @@
 
 #include "../sys/ResourceManager.h"
 #include "../sys/LuaCore.h"
+#include "../sys/Log.h"
+
+#include "../Herald.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -17,17 +20,17 @@
 #include <lua/lauxlib.h>
 
 #define ANIM_LUASTR ("AnimationLoading")
-#define ANIM_MAXFRAMES (128)
-#define ANIM_MAXKEYS (32)
 
+//Should have same variables as AnimationBase and in the same order.
 struct AnimationLoading {
-	int y;
-	int DefaultSpeed;
+	const char* ImageName;
 	struct AnimationFrame Frames[ANIM_MAXFRAMES];
 	int FrameSz;
 	struct AnimationFrameKey Keys[ANIM_MAXKEYS];
 	int KeySz;
-	const char* ImageName;
+	int y;
+	int DefaultSpeed;
+	SDL_Point Dims;
 };
 
 static const luaL_Reg g_LuaFuncsSprite[] = {
@@ -35,6 +38,7 @@ static const luaL_Reg g_LuaFuncsSprite[] = {
 };
 
 static const luaL_Reg g_LuaFuncsAnimation[] = {
+		{"SetImage", LuaAnimationSetImage},
 		{"CreateFrames", LuaAnimationCreateFrames},
 		{"SetSpeed", LuaAnimationSetSpeed},
 		{NULL, NULL}
@@ -68,7 +72,7 @@ int LuaCreateSprite(lua_State* _State) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	_Sprite = CreateSprite(ResourceGetData(_Resource), 0, &_Pos);
+	_Sprite = CreateSprite(_Resource, 0, &_Pos);
 	LuaCtor(_State, "Sprite", _Sprite);
 	return 1;
 }
@@ -87,7 +91,9 @@ int LuaCreateAnimation(lua_State* _State) {
 
 void AnimationLoad(lua_State* _State, const char* _AnimFile) {
 	struct AnimationLoading _Data;
+	struct AnimationBase* _Base = NULL;
 
+	_Data.ImageName = NULL;
 	_Data.y = 0;
 	_Data.DefaultSpeed = 20;
 	_Data.FrameSz = 0;
@@ -97,21 +103,54 @@ void AnimationLoad(lua_State* _State, const char* _AnimFile) {
 	lua_pushlightuserdata(_State, &_Data);
 	lua_rawset(_State, -3);
 	LuaLoadFile(_State, _AnimFile, "Animation");
-	//luaL_loadbufferx(_State, _Resource->Data, _Resource->Size, "main", NULL);
-	//lua_pcall(_State, 0, 0, 0);
+	_Base = (struct AnimationBase*) malloc(sizeof(struct AnimationBase));
+	*_Base = *((struct AnimationBase*)&_Data);
+	//HashInsert(&g_Animations, _Base->ImageName, _Base);
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_pushstring(_State, ANIM_LUASTR);
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+	Log(ELOG_INFO, "Loaded animation %s", _AnimFile);
 }
 
-int LuaAnimationCreateFrames(lua_State* _State) {
-	int _Width = luaL_checkinteger(_State, 1);
-	int _Height = luaL_checkinteger(_State, 2);
-	int _FrameCt = luaL_checkinteger(_State, 3);
-	const char* _Temp = luaL_checkstring(_State, 4);
+int LuaAnimationSetImage(lua_State* _State) {
+	const char* _Name = luaL_checkstring(_State, 1);
 	struct AnimationLoading* _Data = NULL;
 
 	lua_pushvalue(_State, LUA_REGISTRYINDEX);
 	lua_pushstring(_State, ANIM_LUASTR);
 	lua_rawget(_State, -2);
 	_Data = lua_touserdata(_State, -1);
+	if(ResourceExists(_Name) == 0)
+		return luaL_error(_State, "Resource %s cannot be found", _Name);
+	_Data->ImageName = calloc(strlen(_Name) + 1, sizeof(char));
+	strcpy((char*)_Data->ImageName, _Name);
+	return 0;
+}
+
+int LuaAnimationCreateFrames(lua_State* _State) {
+	int _Width = luaL_checkinteger(_State, 1);
+	int _Height = luaL_checkinteger(_State, 2);
+	int _FrameCt = luaL_checkinteger(_State, 3);
+	const char* _KeyName = luaL_checkstring(_State, 4);
+	struct AnimationLoading* _Data = NULL;
+	struct Resource* _Image = NULL;
+
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_pushstring(_State, ANIM_LUASTR);
+	lua_rawget(_State, -2);
+	_Data = lua_touserdata(_State, -1);
+	if(_Data->ImageName == NULL)
+		return luaL_error(_State, "Animation has no image loaded.");
+	_Image = ResourceGet(_Data->ImageName);
+	if(SDL_QueryTexture(ResourceGetData(_Image), NULL, NULL, &_Data->Dims.x, &_Data->Dims.y) != 0) {
+		luaL_error(_State, SDL_GetError());
+		DestroyResource(_Image);
+		return 0;
+	}
+	DestroyResource(_Image);
+	if(_FrameCt * _Width > _Data->Dims.x || _FrameCt * _Height > _Data->Dims.y)
+		return luaL_error(_State, "Frame exceeds dimensions.");
 	for(int i = _Data->FrameSz; i < _FrameCt && i < ANIM_MAXFRAMES; ++i) {
 		_Data->Frames[i + _Data->FrameSz].Speed = _Data->DefaultSpeed;
 		_Data->Frames[i + _Data->FrameSz].Rect.x = i * _Width;
@@ -121,8 +160,8 @@ int LuaAnimationCreateFrames(lua_State* _State) {
 		++_Data->FrameSz;
 	}
 	_Data->y = _Data->y + _Height;
-	_Data->Keys[_Data->KeySz].Name = calloc(strlen(_Temp) + 1, sizeof(char));
-	strcpy((char*)_Data->Keys[_Data->KeySz].Name, _Temp);
+	_Data->Keys[_Data->KeySz].Name = calloc(strlen(_KeyName) + 1, sizeof(char));
+	strcpy((char*)_Data->Keys[_Data->KeySz].Name, _KeyName);
 	++_Data->KeySz;
 	return 0;
 }

@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include <SDL2/SDL.h>
 
@@ -78,7 +79,7 @@ int PathNodeScoreCmp(const void* _One, const void* _Two) {
 	return ((struct PathNodeScore*)_Two)->f - ((struct PathNodeScore*)_One)->f;
 }
 
-struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int _h, int _Direction) {
+struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int _h, int _Direction, struct PathNodeScore* _Parent) {
 	struct PathNodeScore* _NodeScore = (struct PathNodeScore*) MemPoolAlloc(g_PathScorePool);
 
 	_NodeScore->Node = _Node;
@@ -86,6 +87,7 @@ struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int 
 	_NodeScore->h = _h;
 	_NodeScore->f = _g + _h;
 	_NodeScore->Direction = _Direction;
+	_NodeScore->Parent = _Parent;
 	return _NodeScore;
 }
 
@@ -108,7 +110,7 @@ void DestroyPath(struct Path* _Path) {
 
 void ListToPath(const struct LinkedList* _List, struct Path* _Path) {
 	struct LnkLst_Node* _Itr = _List->Front->Next;
-	struct PathNodeScore* _Node = NULL;
+	const struct PathNodeScore* _Node = NULL;
 	int _Ct = 0;
 	int _Dir = TILE_SIZE;
 
@@ -169,6 +171,9 @@ void PathStackFree(void* _Ptr) {
 	SDL_UnlockMutex(g_PathStack.Lock);
 }
 
+/*
+ * Pathfind takes ownership of _Path and then releases ownership of _Path when it calls _Path's callback.
+ */
 int PathfindNext(struct PathData* _Path, void* _None) {
 	const struct Tile* _StartTile = MapGetTile(g_GameWorld.MapRenderer, &_Path->Start);
 	const struct Tile* _Goal = MapGetTile(g_GameWorld.MapRenderer, &_Path->End);
@@ -177,13 +182,12 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 	 * TODO: Remove LinkedList from PathfindNext to remove malloc calls from PathfindNext.
 	 */
 	struct LinkedList _ClosedList = {0, NULL, NULL};
-	struct LinkedList _CameFrom = {0, NULL, NULL}; //FIXME: it looks like _CameFrom is only inserted to and then later cleared.
 	struct LnkLst_Node* _Itr = NULL;
 	struct BinaryHeap _OpenList = {NULL, PATHFIND_OPENSIZE, 0, PathNodeScoreCmp};
 	struct PathNodeScore* _Current = NULL;
 
 	_OpenList.Table = PathStackNext();
-	BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_StartTile, 0, _Path->Heuristic(_StartTile, _Goal), TILE_SIZE));
+	BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_StartTile, 0, _Path->Heuristic(_StartTile, _Goal), TILE_SIZE, NULL));
 	while(_OpenList.Size > 0 && _OpenList.Size <= _OpenList.TblSz) {
 		_Current = BinaryHeapTop(&_OpenList);
 		LnkLstPushBack(&_ClosedList, BinaryHeapPop(&_OpenList));
@@ -195,13 +199,11 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 		TileGetAdjTiles(g_GameWorld.MapRenderer, _Current->Node, _Neighbors);
 		for(int i = 0; i < TILE_SIZE; ++i) {
 			if(_Neighbors[i] != NULL) {
-				int _InList = 0;
 				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
 				while(CloseItr != NULL) {
 					const struct PathNodeScore* _Node = (struct PathNodeScore*)CloseItr->Data;
 					if(_Node->Node == _Neighbors[i]) {
-						_InList = 1;
-						break;
+						goto loop_end;
 					}
 					CloseItr = CloseItr->Next;
 				}
@@ -216,14 +218,12 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 							_OpenTemp->g = _gCost;
 							BinaryHeapIncrease(&_OpenList, j);
 						}
-						_InList = 2;
-						break;
+						goto loop_end;
 					}
 				}
-				if(_InList == 0) {
-					LnkLstPushBack(&_CameFrom, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i));
-					BinaryHeapInsert(&_OpenList, _CameFrom.Back->Data);
-				}
+					BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
+					loop_end:
+					continue;
 			}
 		}
 	}
@@ -232,15 +232,21 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 	}
 	PathStackFree(_OpenList.Table);
 	_Itr = _ClosedList.Front;
+	//ListToPath(&_ClosedList, _Path->Path);
+	const struct PathNodeScore* _Temp = _Current;
+	struct LinkedList _TempList = {0, NULL, NULL};
+	while(_Temp != NULL) {
+		LnkLstPushFront(&_TempList, (struct PathNodeScore*)_Temp);
+		_Temp = _Temp->Parent;
+	}
+	ListToPath(&_TempList, _Path->Path);
 	while(_Itr != NULL) {
 		DestroyPathNodeScore((struct PathNodeScore*)_Itr->Data);
 		_Itr = _Itr->Next;
 	}
-	ListToPath(&_ClosedList, _Path->Path);
 	LnkLstClear(&_ClosedList);
-	LnkLstClear(&_CameFrom);
 	_Path->Callback(_Path->Data, _Path->Path);
-	MemPool_Free(g_PathDataPool, _Path);
+	MemPoolFree(g_PathDataPool, _Path);
 	return 0;
 }
 

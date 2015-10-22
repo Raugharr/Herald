@@ -39,6 +39,7 @@ struct Front {
 
 struct BattleSide {
 	struct Army* Army;
+	int StartingSize; //How many soldiers are in the army before the battle starts.
 	int Action;
 	int Pos;
 };

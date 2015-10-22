@@ -57,6 +57,7 @@
 struct GameWorld g_GameWorld = {
 		1,
 		0,
+		0,
 		NULL,
 		{NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL},
 		NULL,
@@ -66,7 +67,9 @@ struct GameWorld g_GameWorld = {
 		{0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL}
+		{NULL, 0, NULL, NULL},
+		{NULL, 0, NULL, NULL},
+		{0, NULL, NULL}
 };
 
 static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
@@ -116,6 +119,8 @@ int FamilyTypeCmp(const void* _One, const void* _Two) {
 	return (((struct FamilyType*)_One)->Percent * 1000) - (((struct FamilyType*)_Two)->Percent * 1000);
 }
 
+#include "Feud.h"
+
 void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType** _FamilyTypes, int _X, int _Y) {
 	int _FamilySize = -1;
 	struct Family* _Family = NULL;
@@ -138,7 +143,7 @@ void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType*
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateSettlement(_X, _Y, 1, 1, "Test Settlement", (GOVSTCT_TRIBAL | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
+	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
 	while(_Population > 0) {
 		_FamilySize = Random(g_FamilySize[0]->Min, g_FamilySize[FAMILYSIZE - 1]->Max);
 		_Parent = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, FamilyNextId(), NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
@@ -219,11 +224,11 @@ int PopulateWorld(struct GameWorld* _World) {
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
 	_FamilyTypes[i] = NULL;
-	//PopulateManor(_World, (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, 0,  4);
-	//g_GameWorld.Player = PickPlayer();
-	//PopulateManor(_World, (Fuzify(_ManorSize, Random(_ManorMin, _ManorMax)) * _ManorInterval) + _ManorInterval, _FamilyTypes, 4,  8);
-	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 8,  4);
-	g_GameWorld.Player = PickPlayer(); //Remove when the Settlement placement function is completed for settlements on the edge of the map.
+	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 2,  4);
+	g_GameWorld.Player = PickPlayer();
+	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 4,  8);
+	//g_GameWorld.Player = PickPlayer(); //Remove when the Settlement placement function is completed for settlements on the edge of the map.
+	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 8,  4);
 	DestroyConstrntBnds((struct Constraint**)_ManorSize);
 	return 1;
 	end:
@@ -255,7 +260,7 @@ void DestroyWorldTile(struct WorldTile* _Tile) {
 void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point, int _Radius, struct LinkedList* _List) {
 	SDL_Rect _Rect = {_Point->x - _Radius, _Point->y - _Radius, _Radius, _Radius};
 
-	QTAABBInRectangle(&_World->SettlementMap, &_Rect, (void(*)(const void*, SDL_Rect*))LocationGetArea, _List);
+	QTPointInRectangle(&_World->SettlementMap, &_Rect, (void(*)(const void*, SDL_Point*))LocationGetPoint, _List);
 }
 
 void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
@@ -291,6 +296,18 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->Agents.Size = 0;
 	_GameWorld->Agents.ICallback = (int(*)(const void*, const void*))AgentICallback;
 	_GameWorld->Agents.SCallback = (int(*)(const void*, const void*))AgentSCallback;
+
+	_GameWorld->Crisis.Table = NULL;
+	_GameWorld->Crisis.Size = 0;
+	_GameWorld->Crisis.ICallback = (int(*)(const void*, const void*))CrisisSearch;
+	_GameWorld->Crisis.SCallback = (int(*)(const void*, const void*))CrisisInsert;
+
+	_GameWorld->MissionData.Size = 0;
+	_GameWorld->MissionData.Front = NULL;
+	_GameWorld->MissionData.Back = NULL;
+
+	_GameWorld->Date = 0;
+	_GameWorld->Tick = 0;
 }
 void WorldInit(int _Area) {
 	int i;
@@ -437,7 +454,7 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 			return;
 		SDL_Rect _TileRect = {_Tile->TilePos.x, _Tile->TilePos.y, 1, 1};
 
-		QTRectangleInPoint(&g_GameWorld.SettlementMap, &_Tile->TilePos, (void(*)(const void*, SDL_Rect*))LocationGetArea, &_List);
+		QTPointInRectangle(&g_GameWorld.SettlementMap, &_TileRect, (void(*)(const void*, SDL_Point*))LocationGetPoint, &_List);
 		if(_List.Size > 0)
 			GameOnClick((struct Object*)_List.Front->Data);
 		LnkLstClear(&_List);
@@ -453,11 +470,8 @@ void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World)
 	_Tile = ScreenToTile(g_GameWorld.MapRenderer, &_State->MousePos);
 	_Settlement = g_GameWorld.Settlements.Front;
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
-	if(_Tile != NULL) {
-		SDL_Rect _Rect = {_Tile->ScreenPos.x, _Tile->ScreenPos.y, TILE_WIDTH, TILE_HEIGHT};
-
-		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Rect);
-	}
+	if(_Tile != NULL)
+		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Tile->SpritePos);
 	while(_Settlement != NULL) {
 		SettlementDraw(g_GameWorld.MapRenderer, (struct Settlement*)_Settlement->Data);
 		_Settlement = _Settlement->Next;
@@ -488,11 +502,7 @@ int World_Tick() {
 		AgentThink((struct Agent*)_Stack[i].Node->Data);
 	}
 	ObjectsThink();
-		/*while(_Settlement != NULL) {
-			SettlementThink((struct Settlement*)_Settlement->Data);
-			_Settlement = _Settlement->Next;
-		}*/
-			while((_Event = HandleEvents()) != NULL) {
+		while((_Event = HandleEvents()) != NULL) {
 			EventHookUpdate(_Event);
 			if(_Event->Type == EVENT_FARMING) {
 				struct Array* _Field = g_GameWorld.Player->Person->Family->Fields;
@@ -503,15 +513,15 @@ int World_Tick() {
 					}
 			}
 		}
-		GenerateMissions(g_LuaState, &g_GameWorld.BigGuyStates, &g_MissionList);
+		MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuyStates);
 		escape_events:
 		NextDay(&g_GameWorld.Date);
+		++g_GameWorld.Tick;
 		if(MONTH(g_GameWorld.Date) != _OldMonth) {
 			for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
 				g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
 			}
 		}
-		//_Settlement = g_GameWorld.Settlements.Front;
 		--_Ticks;
 	} while(_Ticks > 0);
 	LnkLstClear(&_QueuedPeople);
@@ -541,4 +551,8 @@ void SetClickState(struct Object* _Data, int _State) {
 		g_GameOnClick.OnClick = g_GameOnClickFuncs[_State];
 		g_GameOnClick.Data = _Data;
 	}
+}
+
+struct Settlement* WorldGetSettlement(struct GameWorld* _World, SDL_Point* _Pos) {
+		return (struct Settlement*) QTGetPoint(&_World->SettlementMap, _Pos, (void (*)(const void *, struct SDL_Point *))LocationGetPoint);
 }

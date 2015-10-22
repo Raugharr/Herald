@@ -79,7 +79,7 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"GetFocus", LuaWidgetGetFocus},
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
-		{"OnClick", LuaWidgetOnCLick},
+		{"OnClick", LuaWidgetOnClick},
 		{"Destroy", LuaWidgetDestroy},
 		{NULL, NULL}
 };
@@ -379,14 +379,14 @@ int LuaCreateWindow(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 	int w = luaL_checkinteger(_State, 3);
 	int h = luaL_checkinteger(_State, 4);
-	struct Container* _Container = NULL;
 	struct Container* _Parent = GetScreen(_State);
 	SDL_Rect _Rect = {0, 0, w, h};
-	struct Margin _Margins = {0, 0, 0, 0};
 
 	if(_Parent == NULL)
 		luaL_error(_State, "CreateWindow requires a screen.");
 	MENU_CHECKARG;
+	lua_createtable(_State, 0, 0);
+	LuaCopyTable(_State, -2);
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, 5);
 	lua_pushvalue(_State, 5);
@@ -421,6 +421,35 @@ int LuaCreateImage(lua_State* _State) {
 	return 1;
 }
 
+/*void LuaWindowCtor(lua_State* _State, struct Container* _Container) {
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_pushstring(_State, "WindowTables");
+	lua_rawget(_State, -2);
+
+	lua_pushvalue(_State, _Container->Id);
+	lua_pushlightuserdata(_State, _Container);
+	lua_rawset(_State, -3);
+}
+
+void LuaWindowDtor(lua_State* _State, struct Container* _Container) {
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_pushstring(_State, "WindowTables");
+	lua_rawget(_State, -2);
+
+	lua_pushvalue(_State, _Container->Id);
+	lua_pushnil(_State);
+	lua_rawset(_State, -3);
+}*/
+
+/*void LuaWindowGetTable(lua_State* _State, int _Id) {
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	lua_pushstring(_State, "WindowTables");
+	lua_rawget(_State, -2);
+
+	lua_pushvalue(_State, _Id);
+	lua_rawget(_State, -2);
+}*/
+
 int LuaSetMenu(lua_State* _State) {
 	const char* _Name = luaL_checkstring(_State, 1);
 	char* _NameCopy = NULL;
@@ -443,6 +472,8 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	if(GetScreen(_State) != NULL)
 		LuaCloseMenu(_State);
 
+	lua_newtable(_State);
+	LuaCopyTable(_State, -2);
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Menu");
 	lua_pushvalue(_State, 3); //Get the new table.
@@ -488,8 +519,8 @@ int LuaSetMenu_Aux(lua_State* _State) {
 				lua_getglobal(_State, "GUI");
 				lua_pushstring(_State, "Screen");
 				lua_pushstring(_State, "__screen");
-				lua_rawget(_State, -5);
-				lua_rawset(_State, -3);
+				lua_rawget(_State, -5); //GUI.ScreenStack ?
+				lua_rawset(_State, -3); //GUI.__screen.
 				lua_pop(_State, 1);
 
 				lua_pushstring(_State, "__focus");
@@ -532,7 +563,6 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	}
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, 3);
-	//lua_remove(_State, -2);
 	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0) {
 		if(g_GUIStack.Top != NULL) {
 			RestoreScreen(_State);
@@ -543,15 +573,22 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pushinteger(_State, SDL_WIDTH);
 	lua_pushinteger(_State, SDL_HEIGHT);
 	lua_pushvalue(_State, 2);
-	if(LuaCallFunc(_State, 4, 1, 0) == 0) {
+	if(LuaCallFunc(_State, 4, 0, 0) == 0) {
 		if(g_GUIStack.Size > 0) {
 			RestoreScreen(_State);
 		}
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	}
+	/*
+	 * FIXME: Instead of using a return value from the Init function to set the value of __savestate,
+	 * instead have the table have a variable to declare the value of __savestate.
+	 */
+	lua_getglobal(_State, _Name);
+	lua_pushstring(_State, "__savestate");
+	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) != LUA_TBOOLEAN) {
 		RestoreScreen(_State);
-		return luaL_error(_State, "%s.Init function did not return a boolean", _Name);
+		return luaL_error(_State, "Menu %s's __savestate field is not a boolean.", _Name);
 	}
 	if(lua_toboolean(_State, -1) > 0) {
 		int _Ref = 0;
@@ -578,75 +615,6 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	}
 	lua_pop(_State, 3);
 	g_VideoOk = 1;
-	return 0;
-}
-
-void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr) {
-	int _Red = luaL_checkint(_State, 1);
-	int _Green = luaL_checkint(_State, 2);
-	int _Blue = luaL_checkint(_State, 3);
-
-	if(_Red < 0 || _Red > 255)
-		luaL_error(_State, "Red is not between 0 and 255");
-	if(_Green < 0 || _Green > 255)
-		luaL_error(_State, "Green is not between 0 and 255");
-	if(_Blue < 0 || _Red > 255)
-		luaL_error(_State, "Blue is not between 0 and 255");
-	*_RedPtr = _Red;
-	*_GreenPtr = _Green;
-	*_BluePtr = _Blue;
-}
-
-int LuaSetFocusColor(lua_State* _State) {
-	LuaSetColor(_State, &g_GUIDefs.FontFocus.r, &g_GUIDefs.FontFocus.g, &g_GUIDefs.FontFocus.b);
-	return 0;
-}
-
-int LuaSetUnfocusColor(lua_State* _State) {
-	LuaSetColor(_State, &g_GUIDefs.FontUnfocus.r, &g_GUIDefs.FontUnfocus.g, &g_GUIDefs.FontUnfocus.b);
-	return 0;
-}
-
-int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*)) {
-	int _RefId = 0;
-
-	lua_getglobal(_State, "GUI");
-	lua_pushstring(_State, "EventIds");
-	lua_rawget(_State, -2);
-	lua_pushlightuserdata(_State, _Callback);
-	_RefId = luaL_ref(_State, -2);
-	lua_pop(_State, 2);
-	return _RefId;
-}
-
-int LuaOnKey(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
-	int _Key = SDLK_RETURN; //LuaStringToKey(_State, 2);
-	int _KeyState = LuaKeyState(_State, 3);
-	int _KeyMod = KMOD_NONE;
-	int _RefId = 0;
-
-	luaL_argcheck(_State, (lua_isfunction(_State, 4) == 1 || lua_iscfunction(_State, 4) == 1), 4, "Is not a function");
-	luaL_argcheck(_State, (_KeyState != -1), 3, "Is not a valid key state");
-
-	lua_getglobal(_State, "GUI");
-	lua_pushstring(_State, "EventIds");
-	lua_rawget(_State, -2);
-	lua_pushvalue(_State, 4);
-	_RefId = luaL_ref(_State, -2);
-	lua_rawseti(_State, -2, _RefId);
-	lua_pop(_State, 2);
-	WidgetOnEvent(_Widget, _RefId, _Key, _KeyState, _KeyMod);
-	return 0;
-}
-
-int LuaWidgetOnCLick(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
-
-	luaL_argcheck(_State, lua_isfunction(_State, 2), 2, "Is not a function.");
-	LuaGuiGetRef(_State);
-	lua_pushvalue(_State, 2);
-	_Widget->LuaOnClickFunc = luaL_ref(_State, -2);
 	return 0;
 }
 
@@ -755,6 +723,75 @@ int LuaCloseMenu(lua_State* _State) {
 	return 0;
 }
 
+void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr) {
+	int _Red = luaL_checkint(_State, 1);
+	int _Green = luaL_checkint(_State, 2);
+	int _Blue = luaL_checkint(_State, 3);
+
+	if(_Red < 0 || _Red > 255)
+		luaL_error(_State, "Red is not between 0 and 255");
+	if(_Green < 0 || _Green > 255)
+		luaL_error(_State, "Green is not between 0 and 255");
+	if(_Blue < 0 || _Red > 255)
+		luaL_error(_State, "Blue is not between 0 and 255");
+	*_RedPtr = _Red;
+	*_GreenPtr = _Green;
+	*_BluePtr = _Blue;
+}
+
+int LuaSetFocusColor(lua_State* _State) {
+	LuaSetColor(_State, &g_GUIDefs.FontFocus.r, &g_GUIDefs.FontFocus.g, &g_GUIDefs.FontFocus.b);
+	return 0;
+}
+
+int LuaSetUnfocusColor(lua_State* _State) {
+	LuaSetColor(_State, &g_GUIDefs.FontUnfocus.r, &g_GUIDefs.FontUnfocus.g, &g_GUIDefs.FontUnfocus.b);
+	return 0;
+}
+
+int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*)) {
+	int _RefId = 0;
+
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "EventIds");
+	lua_rawget(_State, -2);
+	lua_pushlightuserdata(_State, _Callback);
+	_RefId = luaL_ref(_State, -2);
+	lua_pop(_State, 2);
+	return _RefId;
+}
+
+int LuaOnKey(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
+	int _Key = SDLK_RETURN; //LuaStringToKey(_State, 2);
+	int _KeyState = LuaKeyState(_State, 3);
+	int _KeyMod = KMOD_NONE;
+	int _RefId = 0;
+
+	luaL_argcheck(_State, (lua_isfunction(_State, 4) == 1 || lua_iscfunction(_State, 4) == 1), 4, "Is not a function");
+	luaL_argcheck(_State, (_KeyState != -1), 3, "Is not a valid key state");
+
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "EventIds");
+	lua_rawget(_State, -2);
+	lua_pushvalue(_State, 4);
+	_RefId = luaL_ref(_State, -2);
+	lua_rawseti(_State, -2, _RefId);
+	lua_pop(_State, 2);
+	WidgetOnEvent(_Widget, _RefId, _Key, _KeyState, _KeyMod);
+	return 0;
+}
+
+int LuaWidgetOnClick(lua_State* _State) {
+	struct Widget* _Widget = LuaCheckClass(_State, 1, "Widget");
+
+	luaL_argcheck(_State, lua_isfunction(_State, 2), 2, "Is not a function.");
+	LuaGuiGetRef(_State);
+	lua_pushvalue(_State, 2);
+	_Widget->LuaOnClickFunc = luaL_ref(_State, -2);
+	return 0;
+}
+
 int LuaPopMenu(lua_State* _State) {
 	char* _String = NULL;
 
@@ -792,6 +829,9 @@ int LuaScreenHeight(lua_State* _State) {
 	return 1;
 }
 
+/*
+ * NOTE: Do we need the GUI message code still?
+ */
 int LuaSendMessage(lua_State* _State) {
 	luaL_checkstring(_State, 1);
 	if(lua_gettop(_State) != 2) {
@@ -1099,6 +1139,8 @@ int LuaContainerParagraph(lua_State* _State) {
 			++_Temp;
 		} while((*_Temp) != '\0');
 		create_buffer:
+		if(_WordSz == 0)
+			break;
 		_Ct += _WordSz;
 		_Rect.w += _WordWidth;
 		_WordSz = 0;

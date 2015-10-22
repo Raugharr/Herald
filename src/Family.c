@@ -46,7 +46,6 @@ void Family_Quit() {
 
 struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, int _FamilyId, struct Family* _Parent) {
 	struct Family* _Family = (struct Family*) malloc(sizeof(struct Family));
-	int _X, _Y = 0;
 
 	_Family->Name = _Name;
 	_Family->Id = NextId();
@@ -57,7 +56,8 @@ struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, int
 	_Family->Buildings = CreateArray(2);
 	_Family->Goods = CreateArray(16);
 	_Family->Animals = CreateArray(0);
-	_Family->HomeLoc = SettlementPlaceFamily(_Location, _Family, &_X, &_Y);
+	SettlementPlaceFamily(_Location, _Family);
+	_Family->HomeLoc = _Location;
 	_Family->Parent = _Parent;
 	return _Family;
 }
@@ -309,7 +309,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				}
 				if(lua_isstring(_State, -1) == 0)
 					luaL_error(_State, "string expected, got %s.", lua_typename(_State, lua_type(_State, -1)));
-				_Cmp.Name = lua_tostring(_State, -1);
+				_Cmp.Name = (char*) lua_tostring(_State, -1);
 				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
 					--g_Log.Indents;
 					Log(ELOG_WARNING, "%s is not a behavior", _Cmp.Name);
@@ -318,6 +318,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 				_Family->People[j]->Behavior = _Behavior->Behavior;
 				lua_pop(_State, 1);
 			}
+			_Cmp.Name = NULL;
 			lua_pop(_State, 2);
 			--g_Log.Indents;
 			break;
@@ -331,14 +332,26 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 	luaL_error(_State, "In function %s the %s table does not contain a valid element.", _FamilyTypes[i]->LuaFunc, _Error);
 }
 
-struct Good* FamilyTakeGood(struct Family* _Family, int _Index) {
+void FamilyGetGood(struct Family* _Family, struct Good* _Good) {
+	int i = 0;
+
+	for(i = 0; i < _Family->Goods->Size; ++i)
+		if(_Good->Base == ((struct Good*)_Family->Goods->Table[i])->Base) {
+			((struct Good*)_Family->Goods->Table[i])->Quantity += _Good->Quantity;
+			DestroyGood(_Good);
+			return;
+		}
+	ArrayInsert(_Family->Goods, _Good);
+}
+
+struct Good* FamilyTakeGood(struct Family* _Family, int _Index, int _Quantity) {
 	struct Good* _Good = NULL;
 
 	if(_Index < 0 || _Index >= _Family->Goods->Size)
 		return NULL;
 	_Good = _Family->Goods->Table[_Index];
-	if(_Good->Quantity > 1) {
-		--_Good->Quantity;
+	if(_Good->Quantity > _Quantity) {
+		_Good->Quantity = _Good->Quantity - _Quantity;;
 		_Good = g_GoodCopy[_Good->Base->Category](_Good);
 	} else {
 		ArrayRemove(_Family->Goods, _Index);
@@ -387,7 +400,7 @@ int FamilyGetNutrition(const struct Family* _Family) {
 }
 
 struct Settlement* FamilyGetSettlement(struct Family* _Family) {
-	return _Family->HomeLoc->Owner;
+	return _Family->HomeLoc;
 }
 
 int FamilyNextId() {return g_FamilyId++;}

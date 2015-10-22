@@ -33,6 +33,7 @@ int CropStatusGrow(struct Field* _Field) {
 }
 
 int (*g_CropStatusFuncs[])(struct Field* _Field) = {CropStatusGen, CropStatusGen, CropStatusGen, CropStatusGen, CropStatusGrow, CropStatusGen};
+static int g_CropId = 0;
 
 #define NextStatus(_Crop)															\
 {																					\
@@ -55,6 +56,7 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal,
 		return NULL;
 	}
 	_Crop = (struct Crop*) malloc(sizeof(struct Crop));
+	_Crop->Id = ++g_CropId;
 	_Crop->Name = (char*) calloc(strlen(_Name) + 1, sizeof(char));
 	strcpy(_Crop->Name, _Name);
 	_Crop->Type = _Type;

@@ -12,11 +12,14 @@
 #include "Array.h"
 #include "Constraint.h"
 #include "Math.h"
+#include "ResourceManager.h"
 
 #include "../Mission.h"
+#include "../Date.h"
 
 #include <lua/lauxlib.h>
 #include <lua/lualib.h>
+#include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -87,6 +90,13 @@ static const luaL_Reg g_LuaFuncsMission[] = {
 		{"GetName", LuaMissionGetName},
 		{"GetDescription", LuaMissionGetDesc},
 		{"GetOptions", LuaMissionGetOptions},
+		{"ChooseOption", LuaMissionChooseOption},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsMissionOption[] = {
+		{"GetName", LuaMissionOptionGetName},
+		{"ConditionSatisfied", LuaMissionOptionConditionSatisfied},
 		{NULL, NULL}
 };
 
@@ -98,6 +108,7 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Array", NULL, g_LuaFuncsArray},
 		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
 		{"Mission", NULL, g_LuaFuncsMission},
+		{"MissionOption", NULL, g_LuaFuncsMissionOption},
 		{NULL, NULL, NULL}
 };
 
@@ -158,7 +169,6 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 		luaL_setfuncs(_State, _Funcs, 0);
 	}
 	luaL_setmetatable(_State, _Name);
-	//lua_setglobal(_State, _Name);
 	return 1;
 }
 
@@ -180,6 +190,7 @@ void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
 	}
 	lua_pop(_State, 2);
 	Log(ELOG_WARNING, "Lua class %s does not exist", _Class);
+	lua_pushnil(_State);
 }
 
 int LuaArrayCreate(lua_State* _State) {
@@ -459,6 +470,14 @@ int LuaRandom(lua_State* _State) {
 	return 1;
 }
 
+int LuaLoadError(lua_State* _State) {
+	lua_Debug _Debug;
+
+	lua_getstack(_State, 0 , &_Debug);
+	//lua_getinfo(_State, "Snl", &_Debug);
+	return 1;
+}
+
 int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) {
 	int _Error = luaL_loadfile(_State, _File);
 
@@ -468,6 +487,7 @@ int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) 
 		LuaGetEnv(_State, _Environment);
 		lua_setupvalue(_State, -2, 1);
 	}
+	//lua_pushcfunction(_State, LuaLoadError);
 	if((_Error = lua_pcall(_State, 0, LUA_MULTRET, 0)) != 0)
 		goto error;
 	const char* _Test = lua_getupvalue(_State, -1, 1);
@@ -603,18 +623,18 @@ void LuaCopyTable(lua_State* _State, int _Index) {
 		return;
 	//lua_pushvalue(_State, _Index);
 	lua_pushnil(_State);
-	while(lua_next(_State, -2) != 0) {
+	while(lua_next(_State, _Index) != 0) {
 		lua_pushvalue(_State, -2);
 		lua_pushvalue(_State, -2);
-		lua_rawset(_State, _Index);
+		lua_rawset(_State, -5);
 		lua_pop(_State, 1);
 	}
-	lua_pop(_State, 1);
+	lua_remove(g_LuaState, _Index);
 }
 
 void* LuaToClass(lua_State* _State, int _Index) {
 	void* _Pointer = NULL;
-	int _Pos = LuaAbsPos(_State, _Index);
+	int _Pos = lua_absindex(_State, _Index);
 
 	if((_Pointer = lua_touserdata(_State, _Pos)) == NULL) {
 		if(lua_type(_State, _Pos) == LUA_TNIL)
@@ -841,9 +861,37 @@ int LuaMissionGetOptions(lua_State* _State) {
 
 	lua_createtable(_State, 0, _Mission->OptionCt);
 	for(int i = 0; i < _Mission->OptionCt; ++i) {
-		lua_pushstring(_State, _Mission->Options[i].Name);
+		LuaCtor(_State, "MissionOption", &_Mission->Options[i]);
 		lua_rawseti(_State, -2, i + 1);
 	}
+	return 1;
+}
+
+int LuaMissionChooseOption(lua_State* _State) {
+	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+	struct MissionData* _Data = NULL;
+	int _Option = luaL_checkinteger(_State, 3);
+
+	luaL_checktype(_State, 2, LUA_TLIGHTUSERDATA);
+	_Data = lua_touserdata(_State, 2);
+	MissionCheckOption(_State, _Mission, _Data, _Option);
+	return 0;
+}
+
+int LuaMissionOptionGetName(lua_State* _State) {
+	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
+
+	lua_pushstring(_State, _Option->Name);
+	return 1;
+}
+
+int LuaMissionOptionConditionSatisfied(lua_State* _State) {
+	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
+
+	if(RuleEval(_Option->Condition) != 0)
+		lua_pushboolean(_State, 1);
+	else
+		lua_pushboolean(_State, 0);
 	return 1;
 }
 
@@ -940,6 +988,5 @@ int LuaClassIndex(lua_State* _State) {
 			break;
 		lua_replace(_State, 3);
 	}
-
 	return 1;
 }

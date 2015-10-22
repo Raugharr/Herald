@@ -21,3 +21,7 @@ int AABBIntersectsAABB(const SDL_Rect* _Parent, const SDL_Rect* _Inside) {
 	return (_Parent->x <= (_Inside->x + _Inside->w) && ((_Parent->x + _Parent->w) >= (_Inside->x))
 			&& (_Parent->y) <= (_Inside->y + _Inside->h) && ((_Parent->y + _Parent->h) >= (_Inside->y)));
 }
+
+int PointEqual(const SDL_Point* _One, const SDL_Point* _Two) {
+	return (_One->x == _Two->x && _One->y == _Two->y);
+}

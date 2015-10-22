@@ -61,7 +61,7 @@ void PregnancyThink(struct Pregnancy* _Pregnancy) {
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Family* _Family) {
 	struct Person* _Person = NULL;
 
-	_Person = (struct Person*) MemPool_Alloc(g_PersonPool);
+	_Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (int(*)(struct Object*))PersonThink, _Gender, _Nutrition, _Age);
 	_Person->Name = _Name;
 	_Person->Age = _Age;
@@ -78,7 +78,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 void DestroyPerson(struct Person* _Person) {
 	DtorActor((struct Actor*)_Person);
 	SettlementRemovePerson(_Person->Family->HomeLoc, _Person);
-	MemPool_Free(g_PersonPool, _Person);
+	MemPoolFree(g_PersonPool, _Person);
 }
 
 struct Person* CreateChild(struct Family* _Family) {
@@ -108,22 +108,34 @@ int PersonThink(struct Person* _Person) {
 }
 
 int PersonEat(struct Person* _Person, struct Food* _Food) {
-	/*int _Size = _Person->Family->Goods->Size;
-	struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
+	/*struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
 	int _NutReq = NUTRITION_LOSS;*/
 	struct Food* _FoodPtr = NULL;
 	int _Nut = 0;
-	int i = 0;
+	int _FoodAmt = 0;
 	struct Family* _Family = _Person->Family;
+	int _GoodSz = _Family->Goods->Size;
 
-		for(i = 0; i < _Family->Goods->Size; ++i) {
+		for(int i = 0; i < _GoodSz; ++i) {
+			if(_Nut >= NUTRITION_DAILY)
+				break;
 			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == EFOOD) {
 				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
+				while(_FoodAmt < _FoodPtr->Quantity && _Nut < NUTRITION_DAILY) {
+					_Nut += _FoodPtr->Base->Nutrition;
+					++_FoodAmt;
+				}
+				if(_FoodPtr->Quantity - _FoodAmt <= 0) {
+					free(_FoodPtr);
+					ArrayRemove(_Family->Goods, i);
+					i = i - 1;
+				}
+				_FoodAmt = 0;
 			}
 		}
 	if(_Nut == 0)
 		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_GameWorld.Date), _Person->Id);
-	_Person->Nutrition += _Nut;
+	ActorFeed((struct Actor*)_Person, _Nut);
 	return _Nut;
 }
 
@@ -153,4 +165,14 @@ int PersonIsWarrior(const struct Person* _Person) {
 	if(_Person->Gender != EMALE || YEAR(_Person->Age) < 15)
 		return 0;
 	return 1;
+}
+
+struct Person* GetFather(struct Person* _Person) {
+	struct Family* _Family = _Person->Family;
+
+	if(_Family->People[HUSBAND] != _Person)
+		return _Family->People[HUSBAND];
+	if(_Family->Parent != NULL)
+		return _Family->Parent->People[HUSBAND];
+	return NULL;
 }

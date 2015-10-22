@@ -33,13 +33,13 @@ void ArmyGoalDisbandThink(struct Army* _Army) {
 void ArmyGoalRaidThink(struct Army* _Army) {
 	struct Settlement* _Settlement = (struct Settlement*) _Army->Goal.Data;
 
-	if(PointInAABB(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0) {
+	if(PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0) {
 		_Army->Goal.Type = AGOAL_DISBAND;
 		_Army->Goal.Data = _Army->Warbands[0].Settlement;
 		_Army->Goal.Think = ArmyGoalDisbandThink;
 		return;
 	}
-	if(PointInAABB(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0)
+	if(PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0)
 		return;
 	if(_Army->Path.Path.Next == NULL)
 		ArmyAddPath(_Army, _Settlement->Pos.x, _Settlement->Pos.y);

@@ -253,10 +253,10 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 				}
 				_Food->Quantity -= _TotalNut;
 			} else {
-				struct StackNode _Top;
+				//struct StackNode _Top;
 
-				_Top.Prev = &_Stack;
-				_Top.Data = _Dep;
+				//_Top.Prev = &_Stack;
+				//_Top.Data = _Dep;
 			}
 		}
 	}
@@ -352,14 +352,14 @@ int BGImproveRelations(const void* _Data, const void* _Extra) {
 }
 
 int BGImproveRelationsAction(struct BigGuy* _Guy) {
-	struct BigGuyRelation* _Relation = NULL;
+	//struct BigGuyRelation* _Relation = NULL;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
 	struct BigGuy* _Person = NULL;
 	int _Rand = Random(0, _Settlement->BigGuys.Size - 1);
 	int _Ct = 0;
 
-	if(_Guy->Action.ActionFunc == NULL) {
+	if(_Guy->ActionFunc == NULL) {
 		while(_Itr != NULL) {
 			_Person = (struct BigGuy*)_Itr->Data;
 			if(_Person != _Guy) {
@@ -369,14 +369,15 @@ int BGImproveRelationsAction(struct BigGuy* _Guy) {
 			}
 			_Itr = _Itr->Next;
 		}
-		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Person);
+		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Person, NULL);
 		return 0;
 	}
-	_Relation = BigGuyGetRelation((struct BigGuy*)_Guy->Action.Data, _Guy);
+	//Commented out as BigGuySetAction will most likely be removed.
+	/*_Relation = BigGuyGetRelation((struct BigGuy*)_Guy->Action.Target, _Guy);
 	if(_Relation->Modifier >= BIGGUY_LIKEMIN) {
-		BigGuySetAction(_Guy, BGACT_NONE, NULL);
+		BigGuySetAction(_Guy, BGACT_NONE, NULL, NULL);
 		return 1;
-	}
+	}*/
 	return 0;
 }
 
@@ -411,7 +412,7 @@ int BGRaiseFyrdAction(struct BigGuy* _Guy) {
 	struct ArmyGoal _Goal;
 	struct LinkedList _List = {0, NULL, NULL};
 
-	WorldSettlementsInRadius(&g_GameWorld, &_Settlement->FirstPart->Pos, 20, &_List);
+	WorldSettlementsInRadius(&g_GameWorld, &_Settlement->Pos, 20, &_List);
 	if(_List.Size <= 0)
 		goto end;
 	ArmyGoalRaid(&_Goal, (struct Settlement*)&_List.Back->Data);
@@ -423,7 +424,7 @@ int BGRaiseFyrdAction(struct BigGuy* _Guy) {
 
 int UtilityRaiseFyrdFood(const struct BigGuy* _Guy, int* _Min, int* _Max, struct WorldState* _State) {
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
-	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 12 * 3; //HOw much nutrition we need for 3 months.
+	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 4; //HOw much nutrition we need for 3 months.
 	int _Nutrition = SettlementGetNutrition(_Settlement);
 
 	if(_Nutrition >= _MaxNutrition)

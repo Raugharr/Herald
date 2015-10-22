@@ -59,4 +59,5 @@ void* LnkLstSearch(struct LinkedList* _List, const void* _Data, int (*_Compare)(
  * @brief adds all nodes that _Node can point to including _Node to _List and then deletes them.
  */
 void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node);
+void* LnkLstRandom(struct LinkedList* _List);
 #endif

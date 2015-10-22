@@ -12,6 +12,7 @@
 
 struct Tile;
 struct Army;
+struct Settlement;
 typedef struct SDL_Texture SDL_Texture;
 typedef struct SDL_Renderer SDL_Renderer;
 
@@ -42,7 +43,7 @@ void MapLoad(struct MapRenderer* _Map);
  * Finds the tile that corrisponds with the screen position given by _Screen.
  */
 struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen);
-void TilesInRange(const struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List);
+void TilesInRange(struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List);
 /*
  * Inserts into _Rect the position and area of a game object at position _TilePos.
  */
@@ -58,7 +59,6 @@ struct Army* MapGetUnit(struct MapRenderer* _Renderer, const SDL_Point* _Point);
 int MapUnitCanMove(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Point* _Point);
 int MapMoveUnit(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Point* _Point);
 
-struct Settlement* MapGetSettlement(struct MapRenderer* _Renderer, SDL_Point* _Pos);
 void MapDrawSettlementOverlay(struct MapRenderer* _Renderer, const struct Settlement* _Settlement);
 
 #endif

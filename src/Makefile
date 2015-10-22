@@ -2,11 +2,11 @@ CC=gcc
 CFLAGS+= -Wall -std=c99 -pg -ggdb
 OBJFLD=obj/
 DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h World.h Actor.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
-WorldState.h Date.h
+WorldState.h Date.h Feud.h
 OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)World.o \
 $(OBJFLD)Actor.o $(OBJFLD)Location.o $(OBJFLD)Mission.o $(OBJFLD)BigGuy.o $(OBJFLD)Warband.o $(OBJFLD)Government.o \
-$(OBJFLD)LuaFamily.o $(OBJFLD)LuaSettlement.o $(OBJFLD)LuaWorld.o $(OBJFLD)ArmyGoal.o $(OBJFLD)Battle.o $(OBJFLD)WorldState.o $(OBJFLD)Date.o
+$(OBJFLD)LuaFamily.o $(OBJFLD)LuaSettlement.o $(OBJFLD)LuaWorld.o $(OBJFLD)ArmyGoal.o $(OBJFLD)Battle.o $(OBJFLD)WorldState.o $(OBJFLD)Date.o $(OBJFLD)Feud.o
 ODIR=.
 DEFS=
 export DEFS

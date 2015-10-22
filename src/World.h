@@ -7,8 +7,11 @@
 #define __WORLD_H
 
 #include "Herald.h"
+#include "Date.h"
 
 #include "sys/LinkedList.h"
+#include "sys/RBTree.h"
+
 #include "video/MapRenderer.h"
 
 typedef struct lua_State lua_State;
@@ -63,6 +66,7 @@ struct SubTimeObject {
 struct GameWorld {
 	int IsPaused;
 	DATE Date;
+	int Tick;
 	struct MapRenderer* MapRenderer;
 	struct QuadTree SettlementMap;
 	struct RBTree* GoodDeps;
@@ -71,8 +75,13 @@ struct GameWorld {
 	struct BigGuy* Player;
 	struct LinkedList Settlements;
 	struct RBTree BigGuys;
+	/*
+	 * NOTE: Is only inserted into and not searched, should be removed as it has no apparent use.
+	 */
 	struct RBTree BigGuyStates;
 	struct RBTree Agents;
+	struct RBTree Crisis;
+	struct LinkedList MissionData;
 };
 
 struct FamilyType {
@@ -111,5 +120,6 @@ void WorldPathCallback(struct Army* _Army, struct Path* _Path);
 
 void** SubTimeGetList(int _Type);
 void SetClickState(struct Object* _Data, int _State);
+struct Settlement* WorldGetSettlement(struct GameWorld* _World, SDL_Point* _Pos);
 
 #endif

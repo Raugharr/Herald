@@ -65,6 +65,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"GetRelation", LuaBGGetRelation},
 		{"SetOpinion", LuaBGSetOpinion},
 		{"SetAction", LuaBGSetAction},
+		{"ImproveRelationTarget", LuaBGImproveRelationTarget},
 		{NULL, NULL}
 };
 
@@ -220,26 +221,42 @@ int LuaBGSetOpinion(lua_State* _State) {
 	int _Mod = luaL_checkinteger(_State, 4);
 	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Target);
 
-	if(_Relation == NULL)
-		CreateBigGuyRelation(_Guy, _Target, _Action, _Mod);
-	else
+	if(_Relation == NULL) {
+		_Relation = CreateBigGuyRelation(_Guy, _Target);
+		CreateBigGuyOpinion(_Relation, _Action, _Mod);
+		BigGuyRelationUpdate(_Relation);
+	} else {
 		BigGuyAddRelation(_Guy, _Relation, _Action, _Mod);
+	}
 	return 0;
 }
 
 int LuaBGSetAction(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 	int _Action = luaL_checkint(_State, 2);
-	void* _Data = NULL;
+	struct BigGuy* _Target = NULL;
+	void* _Data;
 
 	luaL_checktype(_State, 3, LUA_TTABLE);
 	lua_pushstring(_State, "__self");
 	lua_rawget(_State, 3);
-	if(lua_isnil(_State, 4) == 1)
+	if(lua_isnil(_State, 3) == 1)
 		return luaL_error(_State, "BigGuy:SetAction's 3rd argument is not an object");
+	_Target = LuaCheckClass(_State, 3, "BigGuy");
 	_Data = lua_touserdata(_State, 4);
-	BigGuySetAction(_Guy, _Action, _Data);
+	BigGuySetAction(_Guy, _Action, _Target, _Data);
 	return 0;
+}
+
+int LuaBGImproveRelationTarget(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	if(_Guy->Action.Type == BGACT_IMRPOVEREL) {
+		LuaCtor(_State, "BigGuy", _Guy->Action.Target);
+	} else {
+		return luaL_error(_State, "ImproveRelationTarget argument #1 is not improving relations.");
+	}
+	return 1;
 }
 
 int LuaBGRelationGetOpinion(lua_State* _State) {

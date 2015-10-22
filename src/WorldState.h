@@ -10,6 +10,15 @@
 #define WORLDSTATE_ATOMSZ (16)
 #define WORLDSTATESZ (WORLDSTATE_ATOMSZ / sizeof(WorldState_t))
 
+#define WSToByte(_State, _Idx, AtomIdx) ((((_State)->State[(_Idx)] & (~(_State)->DontCare[(_Idx)]))) >> ((AtomIdx) * CHAR_BITS) & 0xFF)
+#define WSAtomOffset(_Atom) (((_Atom) % sizeof(WorldState_t)) * CHAR_BITS)
+#define WSAtomOpCode(_State, _Idx, _Atom) ((((_State)->OpCode[(_Idx)]) & (STATEOPCODE_MAX << (_Atom * STATEOPCODE_BITS))) >> (_Atom * STATEOPCODE_BITS))
+#define WSGetIndex(_Atom) ((_Atom) / sizeof(WorldState_t))
+#define WSAtomDontCare(_State, _Idx, _Atom) ((0xFF << ((_Atom) * CHAR_BITS)) & ((_State)->DontCare[_Idx]))
+#define WSAtomIdxToInt(_Idx, _Atom) ((_Idx * sizeof(WorldState_t)) + _Atom)
+#define STATEOPCODE_BITS (8)
+#define STATEOPCODE_MAX (0xFF)
+
 typedef int /*int64_t*/ WorldState_t;
 typedef int8_t WorldStateAtom_t;
 
@@ -59,6 +68,10 @@ void WorldStateSetOpCode(struct WorldState* _State, int _Atom, int _OpCode);
 int WorldStateGetOpCode(const struct WorldState* _State, int _Atom);
 int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two);
 /*
+ * Returns 1 if all of _State's dont care bytes are equal to 1 otherwise returns 0.
+ */
+int WorldStateEmpty(const struct WorldState* _State);
+/*
  * Compares _One and _Two. Returns -1 if _One is less than _Two, 1 if _Two is less than _One, and 0 if they are equal.
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two);
@@ -74,5 +87,7 @@ void WorldStateClearAtom(struct WorldState* _State, int _Atom);
 int WorldStateDist(const struct WorldState* _One, const struct WorldState* _Two);
 int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _State);
 int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState* _State, int _Atom);
+
+int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two);
 
 #endif

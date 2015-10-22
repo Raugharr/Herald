@@ -12,6 +12,7 @@
 
 #include <SDL2/SDL.h>
 
+//FIXME: Remove this as humans and animals have different nutritional requirements.
 #define NUTRITION_LOSS (16)
 #define ActorPerformJob(_Actor) (TaskPoolAdd(g_TaskPool, g_TaskPool->Time + (_Actor)->Action->TotalTime, (int(*)(void*, void*))(_Actor)->Action->Job->Callback, (_Actor)->Action->Owner, &(_Actor)->Action->Pair))
 

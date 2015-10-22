@@ -21,7 +21,7 @@ int TaskPoolThread(struct TaskPool* _TaskPool) {
 
 	while(_TaskPool->IsAlive) {
 		if((_Task = TaskPoolNext(_TaskPool)) == NULL) {
-			SDL_Delay(2);
+			SDL_Delay(2); //FIXME: Instead of being delayed go to sleep until waken by a thread condition.
 			continue;
 		}
 		//If the task is not completed continue it on the next tick.

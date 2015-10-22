@@ -48,13 +48,14 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 }
 void DestroyMemoryPool(struct MemoryPool* _MemPool) {
 #ifdef DEBUG
-	assert(_MemPool->MaxSize == _MemPool->Size);
+	if(_MemPool != NULL)
+		assert(_MemPool->MaxSize == _MemPool->Size);
 #endif
 	free(_MemPool->BlockPool);
 	SDL_DestroyMutex(_MemPool->Lock);
 	free(_MemPool);
 }
-void* MemPool_Alloc(struct MemoryPool* _MemPool) {
+void* MemPoolAlloc(struct MemoryPool* _MemPool) {
 	struct MemPoolNode* _Node = NULL;
 
 	SDL_LockMutex(_MemPool->Lock);
@@ -75,7 +76,7 @@ void* MemPool_Alloc(struct MemoryPool* _MemPool) {
 	SDL_UnlockMutex(_MemPool->Lock);
 	return (void*)((char*)_Node + sizeof(struct MemPoolNode));
 }
-void MemPool_Free(struct MemoryPool* _MemPool, void* _Ptr) {
+void MemPoolFree(struct MemoryPool* _MemPool, void* _Ptr) {
 	struct MemPoolNode* _Node = NULL;
 
 	SDL_LockMutex(_MemPool->Lock);

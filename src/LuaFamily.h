@@ -75,6 +75,8 @@ int LuaFoodBase(lua_State* _State);
  */
 int LuaPopulation(lua_State* _State);
 int LuaPushPerson(lua_State* _State, int _Index);
+int LuaFamilyCountAnimal(lua_State* _State);
+int LuaFamillyKillAnimal(lua_State* _State);
 /*!
  * Creates a table containing information about a Person.
  * Requires one parameter that is a light user data that contains a pointer to a Person.
@@ -89,6 +91,5 @@ int LuaBuildMat(lua_State* _State);
 int LuaCreateGood(lua_State* _State);
 int LuaCreateBuilding(lua_State* _State);
 int LuaCreateAnimal(lua_State* _State);
-
 
 #endif

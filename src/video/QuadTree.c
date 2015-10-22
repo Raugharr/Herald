@@ -103,7 +103,8 @@ int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point) 
 		return 1;
 	}
 	_Node->Data = _Data;
-	QTSubdivide(_Node);
+	if(_Node->NorthEast == NULL)
+		QTSubdivide(_Node);
 	return 1;
 }
 

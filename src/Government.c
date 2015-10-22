@@ -9,6 +9,8 @@
 #include "Family.h"
 #include "Location.h"
 #include "BigGuy.h"
+
+#include "video/Video.h"
 #include "sys/Log.h"
 
 #include <stdlib.h>
@@ -132,6 +134,7 @@ struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlemen
 	_Gov->Owner.Government = NULL;
 	_Gov->Owner.Relation = GOVREL_NONE;
 	_Gov->Reform = NULL;
+	_Gov->Leader = NULL;
 
 	for(int i = 0; g_Reforms[i] != NULL; ++i) {
 		if(g_Reforms[i]->Prev == NULL
@@ -412,7 +415,7 @@ struct Government* GovernmentTop(struct Government* _Gov) {
 
 void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
 	if(_Gov->Leader != NULL)
-		BigGuySetState(_Guy, BGBYTE_PASSREFORM, 0);
+		BigGuySetState(_Gov->Leader, BGBYTE_ISLEADER, 0);
 	_Gov->Leader = _Guy;
-	BigGuySetState(_Guy, BGBYTE_PASSREFORM, 1);
+	BigGuySetState(_Guy, BGBYTE_ISLEADER, 1);
 }

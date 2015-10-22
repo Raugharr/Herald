@@ -29,6 +29,8 @@ static const luaL_Reg g_LuaFamilyFuncs[] = {
 		{"Good", LuaGoodBase},
 		{"Food", LuaFoodBase},
 		{"GetAnimal", LuaPopulation},
+		{"CountAnimal", LuaFamilyCountAnimal},
+		{"KillAnimal", LuaFamillyKillAnimal},
 		{"GetPerson", LuaPerson},
 		{"CreateGood", LuaCreateGood},
 		{"CreateBuilding", LuaCreateBuilding},
@@ -556,12 +558,49 @@ int LuaPopulation(lua_State* _State) {
 }
 
 int LuaPushPerson(lua_State* _State, int _Index) {
-	int _Pos = LuaAbsPos(_State, _Index);
+	int _Pos = lua_absindex(_State, _Index);
 
 	if(lua_type(_State, _Pos) != LUA_TLIGHTUSERDATA)
 		luaL_error(_State, LUA_TYPERROR(_State, 1, "Person", "LuaPushPerson"));
 	LuaCtor(_State, "Person", lua_touserdata(_State, _Pos));
 	return 1;
+}
+
+int LuaFamilyCountAnimal(lua_State* _State) {
+	struct Family* _Family = LuaToObject(_State, 1, "Family");
+	const char* _Animal = luaL_checkstring(_State, 2);
+	struct Population* _AnimalType = NULL;
+	int _AnimalCt = 0;
+
+	if((_AnimalType = HashSearch(&g_Populations, _Animal)) == NULL)
+		goto end;
+	for(int i = 0; i < _Family->Animals->Size; ++i) {
+		if(_AnimalType->Id == ((struct Animal*)_Family->Animals->Table[i])->PopType->Id)
+			++_AnimalCt;
+	}
+	end:
+	lua_pushinteger(_State, _AnimalCt);
+	return 1;
+}
+
+int LuaFamillyKillAnimal(lua_State* _State) {
+	struct Family* _Family = LuaToObject(_State, 1, "Family");
+	const char* _Animal = luaL_checkstring(_State, 2);
+	struct Population* _AnimalType = NULL;
+	int _KillAmount = luaL_checkinteger(_State, 3);
+	int _KillCt = 0;
+
+	if((_AnimalType = HashSearch(&g_Populations, _Animal)) == NULL)
+		return 0;
+	for(int i = 0; i < _Family->Animals->Size && _KillCt < _KillAmount; ++i) {
+		if(_AnimalType->Id == ((struct Animal*)_Family->Animals->Table[i])->PopType->Id) {
+			DestroyAnimal(_Family->Animals->Table[i]);
+			ArrayRemove(_Family->Animals, i);
+			--i;
+			++_KillCt;
+		}
+	}
+	return 0;
 }
 
 int LuaPerson(lua_State* _State) {

@@ -211,24 +211,15 @@ int RuleLuaCall(const struct RuleLuaCall* _Rule) {
 	struct RuleLuaCall* _RuleArg = NULL;
 
 	lua_rawgeti(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
-	_Table = LuaAbsPos(_Rule->State, -1);
+	_Table = lua_absindex(_Rule->State, -1);
 	_Len = lua_rawlen(_Rule->State, _Table);
-	//int _Stack[20];
 	for(i = 1; i <= _Len; ++i) {
 		lua_rawgeti(_Rule->State, _Table, i);
-		//LuaStackToTable(_Rule->State, _Stack);
 		if(lua_type(_Rule->State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_Rule->State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
 			RuleLuaCall(_RuleArg);
 			lua_remove(_Rule->State, -2);
 		}
-		//lua_pop(_Rule->State, 1);
 	}
-	//LuaStackToTable(_Rule->State, _Stack);
-	/*lua_pushvalue(_Rule->State, 2);
-	lua_getmetatable(_Rule->State, -1);
-	lua_pushstring(_Rule->State, "__class");
-	lua_rawget(_Rule->State, -2);
-	const char* _Foo = lua_tostring(_Rule->State, -2);*/
 	LuaCallFunc(_Rule->State, _Len - 1, 1, 0);
 	lua_remove(_Rule->State, _Table);//pop _Rule->TblRef.
 	if(lua_isnumber(_Rule->State, -1) != 0) {

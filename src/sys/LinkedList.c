@@ -5,6 +5,8 @@
 
 #include "LinkedList.h"
 
+#include "Math.h"
+
 #include <stdlib.h>
 
 struct LnkLst_Node* CreateLnkLstNode(void* _Data) {
@@ -214,4 +216,16 @@ void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 		LnkLst_PushBack(_List, _Node->Data);
 		_Node = _Node->Next;
 	}
+}
+
+void* LnkLstRandom(struct LinkedList* _List) {
+	struct LnkLst_Node* _Itr = _List->Front;
+	int _RndIdx = Random(0, _List->Size - 1);
+	int _Ct = 0;
+
+	while(_Itr != NULL && _Ct < _RndIdx) {
+		++_Ct;
+		_Itr = _Itr->Next;
+	}
+	return (_Itr == NULL) ? (NULL) : (_Itr->Data);
 }

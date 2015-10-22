@@ -12,11 +12,8 @@ struct Constraint;
 struct LinkedList;
 struct Rule;
 struct Primitive;
+struct Resource;
 
-/*
- * FIXME: Remove and use the standard lua abspos function
- */
-#define LuaAbsPos(_State, _Index) ((_Index > 0) ? (_Index) : (((_Index < -(lua_gettop(_State))) ? (_Index) : lua_gettop(_State) + (_Index) + 1)))
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
 	LuaInitClass(_State, _Class, _Ptr)
@@ -34,6 +31,9 @@ struct Primitive;
 	lua_pushinteger((_State), (_Constraint)->Max);		\
 	lua_rawset((_State), -3)
 
+/*
+ * FIXME: Remove _Func and instead use luaL_where to retrieve where in the Lua code the error occurred instead of an arbitrary function name.
+ */
 #define LUA_TYPERROR(_State, _Arg, _Type, _Func) "bad argument %d to '%s' (%s expected got %s)", (_Arg), (_Func), (_Type), lua_typename((_State), lua_type((_State), (_Arg)))
 
 extern lua_State* g_LuaState;
@@ -41,6 +41,11 @@ extern lua_State* g_LuaState;
 struct LuaObjectReg {
 	const char* Name;
 	const char* BaseClass;
+	const luaL_Reg* Funcs;
+};
+
+struct LuaModuleReg {
+	const char* Name;
 	const luaL_Reg* Funcs;
 };
 
@@ -123,7 +128,7 @@ void LuaPrintTable(lua_State* _State, int _Index);
  */
 void LuaStackToTable(lua_State* _State, int* _Table);
 /**
- * Copies every element of the table at the top of the stack into the table at _Index.
+ * Copies every element of the table at index _Index into the table at the top of the stack
  * The value at the top of the stack will be popped.
  */
 void LuaCopyTable(lua_State* _State, int _Index);
@@ -151,8 +156,6 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two);
 int LuaKeyValue(lua_State* _State, int _Index, const char** _Value, int* _Pair);
 
-struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef);
-
 int LuaRuleLuaCall(lua_State* _State);
 int LuaRuleGreaterThan(lua_State* _State);
 int LuaRuleLessThan(lua_State* _State);
@@ -165,6 +168,9 @@ int LuaRuleBlock(lua_State* _State);
 int LuaMissionGetName(lua_State* _State);
 int LuaMissionGetDesc(lua_State* _State);
 int LuaMissionGetOptions(lua_State* _State);
+int LuaMissionChooseOption(lua_State* _State);
+int LuaMissionOptionGetName(lua_State* _State);
+int LuaMissionOptionConditionSatisfied(lua_State* _State);
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index);
 

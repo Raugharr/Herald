@@ -14,12 +14,14 @@
 #define EMALE (1)
 #define EFEMALE (2)
 #define AVKID (3) //Average kids.
-#define MAX_NUTRITION (5000)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonMature(__Person) (TO_YEARS(__Person->Age) > 13)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
+#define MAX_NUTRITION (5000)
 #define NUTRITION_REQ (3000)
 #define NUTRITON_CHLDREQ (NUTRITION_REQ / 2)
+#define NUTRITION_DAILY (3000 / YEAR_DAYS)
+#define NUTRITION_CHILDDAILY (NUTRITION_DAILY / 2);
 #define ADULT_AGE (15 * YEAR_DAYS)
 
 struct HashTable;
@@ -41,9 +43,11 @@ struct Person {
 	DATE Age;
 	struct ActorJob* Action;
 	const char* Name;
-	struct Family* Family;	struct Person* Next;
+	struct Family* Family;
+	struct Person* Next;
 	struct Person* Prev;
 	struct Behavior* Behavior;
+	//FIXME: Should be placed in a different spot most people will no be pregnant.
 	struct Pregnancy* Pregnancy;
 };
 
@@ -71,5 +75,6 @@ void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 
 int PersonIsWarrior(const struct Person* _Person);
+struct Person* GetFather(struct Person* _Person);
 #endif
 

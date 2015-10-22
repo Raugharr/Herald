@@ -62,7 +62,8 @@ enum {
 	OBJECT_PREGANCY,
 	OBJECT_CONSTRUCT,
 	OBJECT_LOCATION,
-	OBJECT_BIGGUY
+	OBJECT_BIGGUY,
+	OBJECT_FEUD
 };
 
 struct InputReq {
@@ -83,6 +84,9 @@ struct Object {
 	int Id;
 	int Type;
 	void (*Think)(struct Object*);
+	/*
+	 * LastThink is not used by Object and should be removed.
+	 */
 	int LastThink; //In game ticks.
 	struct LnkLst_Node* ThinkObj;
 };
@@ -120,11 +124,5 @@ void CreateObject(struct Object* _Obj, int _Type, void (*_Think)(struct Object*)
 void DestroyObject(struct Object* _Object);
 void ObjectsThink();
 int NextId();
-
-/*
- * TODO: Move to Video.h
- */
-void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
-void NewZoneColor(SDL_Color* _Color);
 
 #endif

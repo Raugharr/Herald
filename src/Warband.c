@@ -14,12 +14,15 @@
 #include "Good.h"
 #include "Battle.h"
 #include "World.h"
+#include "Population.h"
 
 #include "video/Tile.h"
 #include "video/Sprite.h"
 
 #include "sys/LinkedList.h"
 #include "sys/Array.h"
+#include "sys/Math.h"
+#include "sys/ResourceManager.h"
 
 #include <stdlib.h>
 
@@ -103,7 +106,7 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 	struct Good* _Armor = NULL;
 	struct Good* _Shield = NULL;
 
-	if(_Settlement == NULL || _Army == NULL || PointInAABB(&_Army->Sprite.TilePos, &_Settlement->Pos) == 0)
+	if(_Settlement == NULL || _Army == NULL || PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) == 0)
 		return;
 
 	_Warband = (struct Warband*) malloc(sizeof(struct Warband));
@@ -122,14 +125,14 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 			_Good = (struct Good*) _Family->Goods->Table[i];
 			if(_Good->Base->Category == EWEAPON) {
 				if(((struct WeaponBase*)_Good->Base)->Range == MELEE_RANGE)
-					_MeleeWeapon = FamilyTakeGood(_Family, i);
+					_MeleeWeapon = FamilyTakeGood(_Family, i, 1);
 				else
-					_RangeWeapon = FamilyTakeGood(_Family, i);
+					_RangeWeapon = FamilyTakeGood(_Family, i, 1);
 			} else if(_Good->Base->Category == EARMOR) {
 				if(((struct ArmorBase*)_Good->Base)->ArmorType == EARMOR_BODY)
-					_Armor = FamilyTakeGood(_Family, i);
+					_Armor = FamilyTakeGood(_Family, i, 1);
 				else
-					_Shield = FamilyTakeGood(_Family, i);
+					_Shield = FamilyTakeGood(_Family, i, 1);
 			}
 		}
 		ILL_DESTROY(_Settlement->People, _Person);
@@ -199,7 +202,12 @@ struct Army* CreateArmy(struct Settlement* _Settlement, const SDL_Point* _Pos, s
 	struct Army* _Army = (struct Army*) malloc(sizeof(struct Army));
 
 	CreateObject((struct Object*) _Army, OBJECT_ARMY, (void(*)(struct Object*))ArmyThink);
-	ConstructSprite(&_Army->Sprite, g_GameWorld.MapRenderer, g_GameWorld.MapRenderer->Warrior, MAPRENDER_UNIT, _Pos);
+	ConstructGameObject(&_Army->Sprite, g_GameWorld.MapRenderer, ResourceGet("Warrior.png"), MAPRENDER_UNIT, _Pos);
+	_Army->Sprite.Rect.x = 0;
+	_Army->Sprite.Rect.y = 0;
+
+	_Army->Sprite.Rect.w = 42;
+	_Army->Sprite.Rect.h = 48;
 	_Army->Leader = _Leader;
 	_Army->WarbandCt = 0;
 	_Army->Warbands = NULL;
@@ -212,12 +220,23 @@ struct Army* CreateArmy(struct Settlement* _Settlement, const SDL_Point* _Pos, s
 	_Army->Path.Army = NULL;
 	_Army->InBattle = 0;
 	_Army->Government = _Government;
+
+	_Army->LootedAnimals.Size = 0;
+	_Army->LootedAnimals.Front = NULL;
+	_Army->LootedAnimals.Back = NULL;
 	CreateWarband(_Settlement, _Army);
 	return _Army;
 }
 
 void DestroyArmy(struct Army* _Army) {
+	struct LnkLst_Node* _Itr = _Army->LootedAnimals.Front;
+
+	while(_Itr != NULL) {
+		DestroyAnimal((struct Animal*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
 	DestroyObject((struct Object*) _Army);
+	LnkLstClear(&_Army->LootedAnimals);
 	free(_Army->Warbands);
 	free(_Army);
 }
@@ -288,7 +307,7 @@ int ArmyMoveDir(struct Army* _Army, int _Direction) {
 	if(_Pos.x == _Army->Sprite.TilePos.x && _Pos.y == _Army->Sprite.TilePos.y)
 		return 1;
 	if(MapMoveUnit(g_GameWorld.MapRenderer, _Army, &_Pos) != 0) {
-		if((_Settlement = MapGetSettlement(g_GameWorld.MapRenderer, &_Army->Sprite.TilePos)) != NULL) {
+		if((_Settlement = WorldGetSettlement(&g_GameWorld, &_Army->Sprite.TilePos)) != NULL) {
 			if(SettlementIsFriendly(_Settlement, _Army) == 0) {
 				if(_Army->Goal.IsRaid != 0) {
 					struct Army* _Enemy = NULL;
@@ -351,22 +370,15 @@ void* ArmyPathPrev(void* _Path) {
 }
 
 /*
- * FIXME: Not completed.
+ * FIXME: Take a random amount of goods from a random amount of families.
  */
 void ArmyRaidSettlement(struct Army* _Army, struct Settlement* _Settlement) {
-	int _Max = ArmyGetSize(_Army) / 4;
-	int _Ct = 0;
-	struct SettlementPart* _Part = _Settlement->FirstPart;
-	struct LnkLst_Node* _Itr = _Part->Families.Front;
+	int _AnimalsTaken = ArmyGetSize(_Army) / 10;
 	struct Family* _Family = NULL;
 
-	do {
-		do {
-			_Family = (struct Family*) _Itr->Data;
-			if((++_Ct) < _Max)
-				break;
-			_Itr = _Itr->Next;
-		} while(_Itr != NULL);
-		_Part = _Part->Next;
-	} while(_Part != NULL);
+	while(_AnimalsTaken > 0) {
+		_Family = (struct Family*) LnkLstRandom(&_Settlement->Families);
+		LnkLstPushBack(&_Army->LootedAnimals, FamilyTakeAnimal(_Family, Random(0, _Family->Animals->Size - 1)));
+		--_AnimalsTaken;
+	}
 }

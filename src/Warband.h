@@ -77,6 +77,7 @@ struct Army {
 	struct ArmyPath Path; //TODO: might no longer be a needed parameter should be removed.
 	struct UnitStats Stats;
 	struct Government* Government;
+	struct LinkedList LootedAnimals;
 };
 
 void InitUnitStats(struct UnitStats* _Stats);

@@ -9,6 +9,8 @@
 #include "Person.h"
 #include "BigGuy.h"
 #include "Government.h"
+#include "Family.h"
+#include "Location.h"
 
 #include <stdlib.h>
 
@@ -69,9 +71,12 @@ struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
 	_Battle->Attacker.Army = _Attacker;
 	_Battle->Attacker.Action = BATTLE_ORGANIZE;
 	_Battle->Attacker.Pos = FRONT_STARTRANGE;
+	_Battle->Attacker.StartingSize = ArmyGetSize(_Battle->Attacker.Army);
+
 	_Battle->Defender.Army = _Defender;
 	_Battle->Defender.Action = BATTLE_ORGANIZE;
 	_Battle->Defender.Pos = FRONT_STARTRANGE;
+	_Battle->Defender.StartingSize = ArmyGetSize(_Battle->Defender.Army);
 	ILL_CREATE(*_List, _Battle);
 	ArmyUpdateStats(_Battle->Attacker.Army);
 	ArmyUpdateStats(_Battle->Defender.Army);
@@ -90,8 +95,9 @@ void DestroyBattle(struct Battle* _Battle) {
 void BattleEnd(int _Victor, struct Battle* _Battle) {
 	int _AttackSize = ArmyGetSize(_Battle->Attacker.Army);
 	int _DefendSize = ArmyGetSize(_Battle->Defender.Army);
-	_Battle->Attacker.Army->Leader->Prestige += _AttackSize / _DefendSize;
-	_Battle->Defender.Army->Leader->Prestige += _DefendSize / _AttackSize;
+
+	_Battle->Attacker.Army->Leader->Prestige += (((float)_AttackSize) / _Battle->Attacker.StartingSize) / (((float)_DefendSize) / _Battle->Defender.StartingSize);
+	_Battle->Defender.Army->Leader->Prestige += (((float)_DefendSize) / _Battle->Defender.StartingSize) / (((float)_AttackSize) / _Battle->Attacker.StartingSize);
 	if(_Victor == BATTLE_ATTACKER)
 		GovernmentLesserJoin(_Battle->Attacker.Army->Government, _Battle->Defender.Army->Government, GOVREL_TRIBUTE);
 	DestroyBattle(_Battle);
@@ -179,12 +185,27 @@ void BattleThink(struct Battle* _Battle) {
 void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 	struct Warrior* _Warrior = NULL;
 	struct Warband* _Warband = NULL;
+	struct Person* _Father = NULL;
+	struct BigGuy* _BGFather = NULL;
+	struct BigGuyRelation* _Relation = NULL;
 
-	while(_Amount >= 1) {
+	while(_Amount > 0) {
 		_Warband = (struct Warband*)_Warbands->Front->Data;
 		_Warrior = _Warband->Warriors;
 		if(_Warband->Warriors == NULL)
 			return;
+		if((_Father = GetFather(_Warrior->Person)) != NULL
+				&& ((_BGFather = RBSearch(&g_GameWorld.BigGuys, _Father)) != 0)) {
+			if((_Relation = BigGuyGetRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader)) == NULL) {
+				struct Crisis* _Crisis = CreateCrisis(CRISIS_WARDEATH, _BGFather->Id);
+
+				_Relation = CreateBigGuyRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader);
+				CreateBigGuyOpinion(_Relation, BGOPIN_NONE, -20);
+				if(RBSearch(&g_GameWorld.Crisis, &_BGFather->Id) == NULL)
+					RBInsert(&g_GameWorld.Crisis, _Crisis);
+			} else
+				BigGuyAddRelation(_BGFather, _Relation, BGOPIN_NONE, -20);
+		}
 		DestroyPerson(_Warrior->Person);
 		DestroyWarrior(_Warrior, _Warband);
 		--_Amount;

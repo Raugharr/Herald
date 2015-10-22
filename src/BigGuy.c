@@ -9,6 +9,8 @@
 #include "Family.h"
 #include "World.h"
 #include "Location.h"
+#include "Feud.h"
+#include "Good.h"
 
 #include "ai/Utility.h"
 #include "ai/goap.h"
@@ -32,6 +34,7 @@ const char* g_BGStateStr[BGBYTE_SIZE] = {
 		"ImproveRelations",
 		"Authority",
 		"Prestige",
+		"Feud",
 		"FyrdRaised"
 };
 
@@ -39,13 +42,34 @@ const char* g_BGMission[BGACT_SIZE] = {
 		"Improve Relations"
 };
 
-void BigGuyActionImproveRel(struct BigGuy* _Guy, struct BigGuy* _Target) {
-	struct BigGuyRelation* _Relation = NULL;
+const char* g_CrisisStateStr[CRISIS_SIZE] = {
+	"WarDeath"
+};
 
-	if((_Relation = BigGuyGetRelation(_Target, _Guy)) == NULL)
-		_Relation = CreateBigGuyRelation(_Target, _Guy, BGOPIN_IMPROVREL, RELATIONS_PER_TICK);
-	else if(_Relation->Relation < BGREL_LIKE)
-		BigGuyAddRelation(_Target, _Relation, BGOPIN_IMPROVREL, RELATIONS_PER_TICK);
+void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
+	struct BigGuyRelation* _Relation = NULL;
+	int _Mod = _Action->Modifier;
+
+	if(_Mod > 0 && Random(BIGGUYSTAT_MIN, BIGGUYSTAT_MAX) > _Guy->Stats.Charisma)
+		--_Mod;
+	if((_Relation = BigGuyGetRelation(_Action->Target, _Guy)) == NULL) {
+		_Relation = CreateBigGuyRelation(_Action->Target, _Guy);
+		CreateBigGuyOpinion(_Relation, BGOPIN_IMPROVREL, _Mod);
+		BigGuyRelationUpdate(_Relation);
+	} else if(_Relation->Relation < BGREL_LIKE) {
+		BigGuyAddRelation(_Action->Target, _Relation, BGOPIN_IMPROVREL, _Mod);
+	}
+}
+
+void BigGuyActionGift(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
+	struct Family* _Family = _Action->Target->Person->Family;
+	struct Good* _Good = (struct Good*) _Action->Data;
+	int i = 0;
+
+	for(i = 0; i < _Family->Goods->Size; ++i)
+		if(_Good->Base == ((struct Good*)_Family->Goods->Table[i])->Base) {
+			FamilyGetGood(_Guy->Person->Family, FamilyTakeGood(_Family, i, _Action->Modifier));
+		}
 }
 
 void BGOnObserve(const struct EventDeath* _Event, struct BigGuy* _Guy) {
@@ -63,15 +87,38 @@ struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int 
 	return _Opinion;
 }
 
-struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor, int _Action, int _Modifier) {
+struct Crisis* CreateCrisis(int _Type, int _Id) {
+	struct Crisis* _Crisis = (struct Crisis*) malloc(sizeof(struct Crisis));
+
+	WorldStateClear(&_Crisis->State);
+	WorldStateSetAtom(&_Crisis->State, _Type, 1);
+	_Crisis->BigGuyId = _Id;
+	return _Crisis;
+}
+
+void DestroyCrisis(struct Crisis* _Crisis) {
+	free(_Crisis);
+}
+
+int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two) {
+	//if(_One->BigGuyId - _Two->BigGuyId == 0)
+	//	return _One->Type - _Two->Type;
+	return _One->BigGuyId - _Two->BigGuyId;
+}
+
+int CrisisInsert(const int* _One, const struct Crisis* _Two) {
+	return ((*_One) - _Two->BigGuyId);
+}
+
+struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor) {
 	struct BigGuyRelation* _Relation = (struct BigGuyRelation*) malloc(sizeof(struct BigGuyRelation));
 
+	_Relation->Relation = BGREL_NEUTURAL;
+	_Relation->Modifier = 0;
 	_Relation->Next = _Guy->Relations;
 	_Guy->Relations = _Relation;
 	_Relation->Opinions = NULL;
-	CreateBigGuyOpinion(_Relation, _Action, _Modifier);
 	_Relation->Person = _Actor;
-	BigGuyRelationUpdate(_Relation);
 	return _Relation;
 }
 
@@ -80,19 +127,25 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats) 
 
 	_BigGuy->Person = _Person;
 	WorldStateClear(&_BigGuy->State);
+	WorldStateCare(&_BigGuy->State);
 	_BigGuy->Authority = 0;
 	_BigGuy->Prestige = 0;
 	_BigGuy->IsDirty = 1;
 	_BigGuy->Relations = NULL;
 	_BigGuy->Stats = *_Stats;
-	_BigGuy->Action.ActionFunc = NULL;
-	_BigGuy->Action.Data = NULL;
+	_BigGuy->ActionFunc = NULL;
+	_BigGuy->TriggerMask = 0;
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	RBInsert(&g_GameWorld.Agents, CreateAgent(_BigGuy));
 	LnkLstPushBack(&FamilyGetSettlement(_Person->Family)->BigGuys, _BigGuy);
 	EventHook(EVENT_DEATH, _Person->Id, ((void(*)(const void*, void*))BGOnObserve), _BigGuy);
 	CreateObject((struct Object*)_BigGuy, OBJECT_BIGGUY, (void(*)(struct Object*))BigGuyThink);
+
+	_BigGuy->Feuds.Size = 0;
+	_BigGuy->Feuds.Front = NULL;
+	_BigGuy->Feuds.Back = NULL;
+	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
 	return _BigGuy;
 }
 
@@ -107,6 +160,7 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 		}
 		_Itr = _Itr->Next;
 	}
+	LnkLstClear(&_BigGuy->Feuds);
 	RBDelete(&g_GameWorld.BigGuys, _BigGuy);
 	RBDelete(&g_GameWorld.BigGuyStates, _BigGuy);
 	DestroyObject((struct Object*)_BigGuy);
@@ -117,8 +171,8 @@ void BigGuyThink(struct BigGuy* _Guy) {
 	struct BigGuyRelation* _Relation = _Guy->Relations;
 	struct BigGuyOpinion* _Opinion = NULL;
 
-	if(_Guy->Action.ActionFunc != NULL)
-		_Guy->Action.ActionFunc(_Guy, _Guy->Action.Data);
+	if(_Guy->ActionFunc != NULL)
+		_Guy->ActionFunc(_Guy, &_Guy->Action);
 	while(_Relation != NULL) {
 		_Opinion = _Relation->Opinions;
 		while(_Opinion != NULL) {
@@ -126,6 +180,8 @@ void BigGuyThink(struct BigGuy* _Guy) {
 			_Opinion = _Opinion->Next;
 		}
 		BigGuyRelationUpdate(_Relation);
+		if(_Relation->Relation < BGREL_NEUTURAL)
+			CreateFeud(_Guy, _Relation->Person);
 		_Relation = _Relation->Next;
 	}
 }
@@ -176,7 +232,7 @@ void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, in
 	}
 	CreateBigGuyOpinion(_Relation, _Action, _Modifier);
 	add_mods:
-	_Relation->Modifier = _Relation->Modifier + _Modifier;
+	_Relation->Modifier = _Relation->Modifier + (((float)_Modifier) * BigGuyOpinionMod(_Guy, _Relation->Person));
 	_Relation->Relation = Fuzify(g_OpinionMods, _Relation->Modifier);
 }
 
@@ -256,15 +312,56 @@ void BGSetPrestige(struct BigGuy* _Guy, float _Prestige) {
 	_Guy->IsDirty = 1;
 }
 
-void BigGuySetAction(struct BigGuy* _Guy, int _Action, void* _Data) {
+void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data) {
+	_Guy->Action.Target = _Target;
+	_Guy->Action.Data = _Data;
+	_Guy->Action.Type = _Action;
+
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
-		_Guy->Action.ActionFunc = BigGuyActionImproveRel;
-		_Guy->Action.Data = _Data;
+		_Guy->ActionFunc = BigGuyActionImproveRel;
+		_Guy->Action.Modifier = RELATIONS_PER_TICK;
+		break;
+	case BGACT_SABREL:
+		_Guy->ActionFunc = BigGuyActionImproveRel;
+		_Guy->Action.Modifier = -RELATIONS_PER_TICK;
+		break;
+	case BGACT_GIFT:
+		_Guy->ActionFunc = BigGuyActionGift;
+		_Guy->Action.Modifier = 1;
 		break;
 	default:
-		_Guy->Action.ActionFunc = NULL;
-		_Guy->Action.Data = NULL;
+		_Guy->ActionFunc = NULL;
 		break;
 	}
+}
+
+void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud) {
+	LnkLstPushBack(&_Guy->Feuds, _Feud);
+}
+
+int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
+	switch(_Guy->Personality) {
+	case 0:
+	case 1:
+		if(_Target->Personality > 1)
+			return 0;
+		return 1;
+	case 2:
+	case 3:
+		if(_Target->Personality < 2)
+			return 0;
+		return 1;
+	}
+	return 0;
+}
+
+double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
+	static double _TableMod[][4] = {{2, 1.5, 1, .5}, {1.5, 2, .5, 1}, {.5, 1, 2, 1.5}, {1, .5, 1.5, 2}};
+
+	return _TableMod[_Guy->Personality][_Target->Personality];
+}
+
+void* BigGuyGetCrisis(struct BigGuy* _Guy) {
+	return RBSearch(&g_GameWorld.Crisis, &_Guy->Id);
 }

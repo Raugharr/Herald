@@ -7,13 +7,7 @@
 
 #include "sys/Math.h"
 
-#define StateToByte(_State, _Idx, AtomIdx) ((((_State)->State[(_Idx)] & (~(_State)->DontCare[(_Idx)]))) >> ((AtomIdx) * CHAR_BITS) & 0xFF)
-#define StateAtomOffset(_Atom) (((_Atom) % sizeof(WorldState_t)) * CHAR_BITS)
-#define StateAtomOpCode(_State, _Idx, _Atom) ((((_State)->OpCode[(_Idx)]) & (STATEOPCODE_MAX << (_Atom * STATEOPCODE_BITS))) >> (_Atom * STATEOPCODE_BITS))
-#define StateGetIndex(_Atom) ((_Atom) / sizeof(WorldState_t))
-#define StateAtomDontCare(_State, _Idx, _Atom) ((0xFF << ((_Atom) * CHAR_BITS)) & (_State->DontCare[_Idx]))
-#define STATEOPCODE_BITS (8)
-#define STATEOPCODE_MAX (0xFF)
+#include <limits.h>
 
 void WorldStateCopy(struct WorldState* _To, const struct WorldState* _From) {
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
@@ -59,8 +53,8 @@ void WorldStateAdd(struct WorldState* _To, const struct WorldState* _From) {
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
 			if(((_From->DontCare[i] >> (j * CHAR_BITS)) & 0xFF) == 0) {
-				_FromAtom = StateToByte(_From, i, j);
-				_ToAtom = StateToByte(_To, i, j);
+				_FromAtom = WSToByte(_From, i, j);
+				_ToAtom = WSToByte(_To, i, j);
 				switch(((_To->OpCode[i] >> STATEOPCODE_BITS) & STATEOPCODE_MAX)) {
 				case WSOP_ADD:
 					_ToAtom = _ToAtom + _FromAtom;
@@ -82,8 +76,8 @@ void WorldStateAdd(struct WorldState* _To, const struct WorldState* _From) {
 }
 
 void WorldStateSetAtom(struct WorldState* _State, int _Atom, int _Value) {
-	int _Idx = StateGetIndex(_Atom);
-	int _Offset = StateAtomOffset(_Atom);
+	int _Idx = WSGetIndex(_Atom);
+	int _Offset = WSAtomOffset(_Atom);
 
 	if(_Idx >= WORLDSTATESZ)
 		return;
@@ -92,19 +86,19 @@ void WorldStateSetAtom(struct WorldState* _State, int _Atom, int _Value) {
 }
 
 void WorldStateAddAtom(struct WorldState* _State, int _Atom, int _Value) {
-	int _Idx = StateGetIndex(_Atom);
-	int _Offset = StateAtomOffset(_Atom);
+	int _Idx = WSGetIndex(_Atom);
+	int _Offset = WSAtomOffset(_Atom);
 
 	if(_Idx >= WORLDSTATESZ)
 		return;
 	_State->DontCare[_Idx] = _State->DontCare[_Idx] ^ (0xFF << _Offset);
-	_Value += StateToByte(_State, _Idx, _Atom);
+	_Value += WSToByte(_State, _Idx, _Atom);
 	_State->State[_Idx] = (_Value == 0) ? (_State->State[_Idx] & (~(0xFF << _Idx))) : (_State->State[_Idx] | ((0xFF & _Value) << _Offset));
 }
 
 void WorldStateSetOpCode(struct WorldState* _State, int _Atom, int _OpCode) {
-	int _Idx = StateGetIndex(_Atom);
-	int _Offset = StateAtomOffset(_Atom);
+	int _Idx = WSGetIndex(_Atom);
+	int _Offset = WSAtomOffset(_Atom);
 	int _Temp = 0;
 
 	if(_Idx >= WORLDSTATESZ)
@@ -115,11 +109,11 @@ void WorldStateSetOpCode(struct WorldState* _State, int _Atom, int _OpCode) {
 }
 
 int WorldStateGetOpCode(const struct WorldState* _State, int _Atom) {
-	int _Idx = StateGetIndex(_Atom);
+	int _Idx = WSGetIndex(_Atom);
 
 	if(_Idx >= WORLDSTATESZ)
 		return 0;
-	return StateAtomOpCode(_State, _Idx, _Atom);
+	return WSAtomOpCode(_State, _Idx, _Atom);
 }
 
 int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two) {
@@ -129,9 +123,19 @@ int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two
 	return 1;
 }
 
+int WorldStateEmpty(const struct WorldState* _State) {
+	for(int i = 0; i < WORLDSTATESZ; ++i) {
+		if(_State->DontCare[i] != INT_MIN)
+			return 0;
+	}
+	return 1;
+}
+
 /*
  * FIXME: Instead of _State being a composite of the two ffs, Check if the two WorldState's WorldStateFirstAtom are equal,
  * if they are then compare the values of the atom by encasing them into a byte sized variable.
+ * Comparing by (_One->State[i] & (~_One->DontCare[i])) - (_Two->State[i] & (~_Two->DontCare[i])); might give undisered results as
+ * if _One's state is 0 and its ~DontCare is 1 while _Two's State is 0 and its ~DontCare is 0 they will be considered equal.
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two) {
 	int _State = 0;
@@ -151,29 +155,29 @@ int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* 
 
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
-			if(StateAtomDontCare(_State, i, j) != 0)
+			if(WSAtomDontCare(_State, i, j) != 0)
 				continue;
 			/*
 			 * NOTE: Will fail because the other opcodes have not been masked out.
 			 */
-			switch(StateAtomOpCode(_State, i, j)) {
+			switch(WSAtomOpCode(_State, i, j)) {
 			case WSOP_EQUAL:
-				_Check = StateToByte(_Input, i, j) - StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) - WSToByte(_State, i, j);
 				break;
 			case WSOP_GREATERTHAN:
-				_Check = StateToByte(_Input, i, j) > StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) > WSToByte(_State, i, j);
 				_Check = (_Check == 0);
 				break;
 			case WSOP_GREATERTHANEQUAL:
-				_Check = StateToByte(_Input, i, j) >= StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) >= WSToByte(_State, i, j);
 				_Check = (_Check == 0);
 				break;
 			case WSOP_LESSTHAN:
-				_Check = StateToByte(_Input, i, j) < StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) < WSToByte(_State, i, j);
 				_Check = (_Check == 0);
 				break;
 			case WSOP_LESSTHANEQUAL:
-				_Check = StateToByte(_Input, i, j) <= StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) <= WSToByte(_State, i, j);
 				_Check = (_Check == 0);
 				break;
 			}
@@ -200,8 +204,8 @@ int WorldStateFirstAtom(const struct WorldState* _State) {
 }
 
 void WorldStateClearAtom(struct WorldState* _State, int _Atom) {
-	int _Idx = StateGetIndex(_Atom);
-	int _Offset = StateAtomOffset(_Atom);
+	int _Idx = WSGetIndex(_Atom);
+	int _Offset = WSAtomOffset(_Atom);
 
 	if(_Idx >= WORLDSTATESZ)
 		return;
@@ -214,9 +218,9 @@ int WorldStateDist(const struct WorldState* _One, const struct WorldState* _Two)
 
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
-			if(StateAtomDontCare(_One, i, j) != 0 || StateAtomDontCare(_Two, i, j) != 0)
+			if(WSAtomDontCare(_One, i, j) != 0 || WSAtomDontCare(_Two, i, j) != 0)
 				continue;
-			if(StateToByte(_One, i, j) == StateToByte(_Two, i, j))
+			if(WSToByte(_One, i, j) == WSToByte(_Two, i, j))
 				++_Ct;
 		}
 	}
@@ -228,26 +232,26 @@ int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _S
 
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
-			if(StateAtomDontCare(_State, i, j) != 0)
+			if(WSAtomDontCare(_State, i, j) != 0)
 				continue;
 			/*
 			 * NOTE: Will fail because the other opcodes have not been masked out.
 			 */
-			switch(StateAtomOpCode(_State, i, j)) {
+			switch(WSAtomOpCode(_State, i, j)) {
 			case WSOP_EQUAL:
-				_Check = StateToByte(_Input, i, j) == StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) == WSToByte(_State, i, j);
 				break;
 			case WSOP_GREATERTHAN:
-				_Check = StateToByte(_Input, i, j) > StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) > WSToByte(_State, i, j);
 				break;
 			case WSOP_GREATERTHANEQUAL:
-				_Check = StateToByte(_Input, i, j) >= StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) >= WSToByte(_State, i, j);
 				break;
 			case WSOP_LESSTHAN:
-				_Check = StateToByte(_Input, i, j) < StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) < WSToByte(_State, i, j);
 				break;
 			case WSOP_LESSTHANEQUAL:
-				_Check = StateToByte(_Input, i, j) <= StateToByte(_State, i, j);
+				_Check = WSToByte(_Input, i, j) <= WSToByte(_State, i, j);
 				break;
 			}
 			if(_Check == 0)
@@ -258,28 +262,45 @@ int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _S
 }
 
 int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState* _State, int _Atom) {
-	int _Idx = StateGetIndex(_Atom);
+	int _Idx = WSGetIndex(_Atom);
 	int _Check = 0;
 
 	_Atom = _Atom % sizeof(WorldState_t);
 	if(_Idx >= WORLDSTATESZ)
 		return 0;
-	switch(StateAtomOpCode(_State, _Idx, _Atom)) {
+	switch(WSAtomOpCode(_State, _Idx, _Atom)) {
 		case WSOP_EQUAL:
-			_Check = StateToByte(_Input, _Idx, _Atom) == StateToByte(_State, _Idx, _Atom);
+			_Check = WSToByte(_Input, _Idx, _Atom) == WSToByte(_State, _Idx, _Atom);
 			break;
 		case WSOP_GREATERTHAN:
-			_Check = StateToByte(_Input, _Idx, _Atom) > StateToByte(_State, _Idx, _Atom);
+			_Check = WSToByte(_Input, _Idx, _Atom) > WSToByte(_State, _Idx, _Atom);
 			break;
 		case WSOP_GREATERTHANEQUAL:
-			_Check = StateToByte(_Input, _Idx, _Atom) >= StateToByte(_State, _Idx, _Atom);
+			_Check = WSToByte(_Input, _Idx, _Atom) >= WSToByte(_State, _Idx, _Atom);
 			break;
 		case WSOP_LESSTHAN:
-			_Check = StateToByte(_Input, _Idx, _Atom) < StateToByte(_State, _Idx, _Atom);
+			_Check = WSToByte(_Input, _Idx, _Atom) < WSToByte(_State, _Idx, _Atom);
 			break;
 		case WSOP_LESSTHANEQUAL:
-			_Check = StateToByte(_Input, _Idx, _Atom) <= StateToByte(_State, _Idx, _Atom);
+			_Check = WSToByte(_Input, _Idx, _Atom) <= WSToByte(_State, _Idx, _Atom);
 			break;
 		}
 	return _Check;
+}
+
+int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two) {
+	int _DCOne = 0;
+	int _DCTwo = 0;
+
+	for(int i = 0; i < WORLDSTATESZ; ++i) {
+		for(int j = 0; j < sizeof(WorldState_t); ++j) {
+			_DCOne = WSAtomDontCare(_One, i, j);
+			_DCTwo = WSAtomDontCare(_Two, i, j);
+			if(_DCOne == 0 && _DCTwo != 0)
+				return -1;
+			else if(_DCTwo == 0 && _DCOne != 0)
+				return 1;
+		}
+	}
+	return 0;
 }

@@ -52,12 +52,8 @@ struct ObjectList {
 	struct RBTree SearchTree;
 	struct LinkedList ThinkList;
 };
-struct MissionEngine g_MissionEngine = {
-		{NULL, 0, 0, (int(*)(const void*, const void*))MissionHeapInsert},
-		{NULL, 0, 0, (int(*)(const void*, const void*))UsedMissionHeapInsert},
-		{NULL, 0, (int(*)(const void*, const void*))MissionTreeInsert, (int(*)(const void*, const void*))MissionTreeSearch},
-		{NULL, 0, (int(*)(const void*, const void*))UsedMissionInsert, (int(*)(const void*, const void*))UsedMissionSearch}
-};
+struct MissionEngine g_MissionEngine;
+
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
 	{0, NULL, NULL}
@@ -71,8 +67,7 @@ int IdISCallback(const int* _One, const int* _Two) {
 }
 
 int HeraldInit() {
-	/*FIXME:
-	 * Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
+	/*FIXME: Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
 	 */
 	g_Crops.TblSize = 0;
 	g_Crops.Table = NULL;
@@ -102,10 +97,39 @@ int HeraldInit() {
 	EventInit();
 	PathfindInit();
 	MathInit();
+	g_MissionEngine.MissionQueue.Size = 0;
+	g_MissionEngine.MissionQueue.Compare = (int(*)(const void*, const void*))MissionHeapInsert;
 	g_MissionEngine.MissionQueue.Table = calloc(1024, sizeof(void*));
 	g_MissionEngine.MissionQueue.TblSz = 1024;
+	g_MissionEngine.UsedMissionQueue.Size = 0;
+	g_MissionEngine.UsedMissionQueue.Compare = (int(*)(const void*, const void*))UsedMissionHeapInsert;
 	g_MissionEngine.UsedMissionQueue.Table = calloc(1024, sizeof(void*));
 	g_MissionEngine.UsedMissionQueue.TblSz = 1024;
+
+	g_MissionEngine.Missions.Table = NULL;
+	g_MissionEngine.Missions.Size = 0;
+	g_MissionEngine.Missions.ICallback = (int(*)(const void*, const void*))MissionTreeInsert;
+	g_MissionEngine.Missions.SCallback = (int(*)(const void*, const void*))MissionTreeSearch;
+
+	g_MissionEngine.UsedMissionTree.Table = NULL;
+	g_MissionEngine.UsedMissionTree.Size = 0;
+	g_MissionEngine.UsedMissionTree.ICallback = (int(*)(const void*, const void*))UsedMissionInsert;
+	g_MissionEngine.UsedMissionTree.SCallback = (int(*)(const void*, const void*))UsedMissionSearch;
+
+	g_MissionEngine.MissionId.Table = NULL;
+	g_MissionEngine.MissionId.Size = 0;
+	g_MissionEngine.MissionId.ICallback = (int(*)(const void*, const void*))MissionIdSearch;
+	g_MissionEngine.MissionId.SCallback = (int(*)(const void*, const void*))MissionIdInsert;
+
+	g_MissionEngine.Categories[0].GetObj = BigGuyGetCrisis;
+	g_MissionEngine.Categories[0].StateStr = g_CrisisStateStr;
+	g_MissionEngine.Categories[0].GetState = NULL;
+
+	for(int i = 0; i < WORLDSTATE_ATOMSZ; ++i) {
+		g_MissionEngine.MissionList[i].Size = 0;
+		g_MissionEngine.MissionList[i].Front = NULL;
+		g_MissionEngine.MissionList[i].Back = NULL;
+	}
 	InitMissions();
 	return 1;
 }
@@ -278,40 +302,4 @@ int NextId() {return g_Id++;}
 
 int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
-}
-
-void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {
-	int _NewWidth = (_Width / _ScaleArea);
-	int _NewSize = _NewWidth * (_Height / _ScaleArea);
-	int x = 0;
-	int y = 0;
-	int i = 0;
-	int _Ct = 0;
-	int _Avg = 0;
-	int _AvgCt = _ScaleArea * _ScaleArea;
-	void* _NewImg = calloc(sizeof(int), _NewSize);
-
-	for(i = 0; i < _NewSize; ++i) {
-		for(x = 0; x < _ScaleArea; ++x)
-			for(y = 0; y < _ScaleArea; ++y)
-				_Avg += ((int*)_Image)[y * _ScaleArea + (_Ct * _ScaleArea + x)];
-		++_Ct;
-		if(_Ct > _NewWidth)
-			_Ct = 0;
-		((int*)_NewImg)[i] = _Avg / _AvgCt;
-		_Avg = 0;
-	}
-	return _NewImg;
-}
-
-void NewZoneColor(SDL_Color* _Color) {
-	static SDL_Color _Colors[] = {
-			{0xFF, 0xFF, 0xFF, 0x40},
-			{0xFF, 0, 0, 0x40},
-			{0, 0xFF, 0, 0x40},
-			{0, 0, 0xFF, 0x40}
-	};
-	static int _Index = 0;
-
-	*_Color = _Colors[_Index++];
 }

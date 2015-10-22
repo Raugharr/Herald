@@ -81,5 +81,7 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface);
 //void ChangeColor(SDL_Surface* _Surface, SDL_Color* _Prev, SDL_Color* _To);
 void FocusableWidgetNull(void);
 const struct Widget* GetFocusableWidget(void);
-//SDL_Surface* CreateLine(int _X1, int _Y1, int _X2, int _Y2);
+
+void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
+void NewZoneColor(SDL_Color* _Color);
 #endif

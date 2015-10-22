@@ -13,6 +13,7 @@ int LuaCreateSprite(lua_State* _State);
 
 int LuaCreateAnimation(lua_State* _State);
 void AnimationLoad(lua_State* _State, const char* _AnimFile);
+int LuaAnimationSetImage(lua_State* _State);
 int LuaAnimationCreateFrames(lua_State* _State);
 int LuaAnimationSetSpeed(lua_State* _State);
 

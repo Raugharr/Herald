@@ -18,8 +18,8 @@ struct Array;
 struct Field;
 struct Constraint;
 struct FamilyType;
+struct Good;
 struct Settlement;
-struct SettlementPart;
 typedef struct lua_State lua_State;
 
 struct Family {
@@ -32,7 +32,7 @@ struct Family {
 	struct Array* Buildings;
 	struct Array* Goods;
 	struct Array* Animals;
-	struct SettlementPart* HomeLoc;
+	struct Settlement* HomeLoc;
 	struct Family* Parent;
 };
 
@@ -50,7 +50,8 @@ int FamilyThink(struct Family* _Family);
 int FamilySize(const struct Family* _Family);
 void Marry(struct Person* _Male, struct Person* _Female);
 void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct Settlement* _Location);
-struct Good* FamilyTakeGood(struct Family* _Family, int _Index);
+void FamilyGetGood(struct Family* _Family, struct Good* _Good);
+struct Good* FamilyTakeGood(struct Family* _Family, int _Index, int _Quantity);
 struct Population* FamilyTakeAnimal(struct Family* _Family, int _Index);
 /**
  * Returns the yearly requirement of nutrition needed to feed the people in the family _Family.

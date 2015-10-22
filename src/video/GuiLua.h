@@ -14,8 +14,10 @@ typedef struct SDL_Surface SDL_Surface;
  */
 
 #define RestoreScreen(_State) lua_settop((_State), 0);					\
+		if(g_GUIStack.Top != NULL) {									\
 		lua_pushstring((_State), (const char*)g_GUIStack.Top->Data);	\
-		LuaSetMenu_Aux((_State))
+		LuaSetMenu_Aux((_State));										\
+		}
 
 struct Widget;
 struct GUIMessagePacket;
@@ -55,6 +57,10 @@ int LuaGetDefaultFont(lua_State* _State);
 int LuaCreateWindow(lua_State* _State);
 
 int LuaCreateImage(lua_State* _State);
+
+//void LuaWindowCtor(lua_State* _State, struct Container* _Container);
+//void LuaWindowDtor(lua_State* _State, struct Container* _Container);
+//void LuaWindowGetTable(lua_State* _State, int _Id);
 /**
  * Lua function that takes one argument of type string.
  * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.
@@ -67,6 +73,7 @@ int LuaSetMenu(lua_State* _State);
  * as the third argument to the menu's Init function.
  */
 int LuaSetMenu_Aux(lua_State* _State);
+int LuaCloseMenu(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);
 int LuaSetFocusColor(lua_State* _State);
 int LuaSetUnfocusColor(lua_State* _State);
@@ -77,9 +84,8 @@ int LuaSetUnfocusColor(lua_State* _State);
  */
 int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*));
 int LuaOnKey(lua_State* _State);
-int LuaWidgetOnCLick(lua_State* _State);
+int LuaWidgetOnClick(lua_State* _State);
 //Please Comment.
-int LuaCloseMenu(lua_State* _State);
 int LuaPopMenu(lua_State* _State);
 void LuaMenuThink(lua_State* _State);
 int LuaScreenWidth(lua_State* _State);

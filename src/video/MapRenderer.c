@@ -102,13 +102,13 @@ struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen) {
 	return MapGetTile(_Map, &_Hex);
 }
 
-void TilesInRange(const struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List) {
+void TilesInRange(struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List) {
 	SDL_Point _Point = {_Pos->x - _Range, max(-_Range, -_Pos->x - _Range)};
 	const struct Tile* _Tile = NULL;
 
 	for(; _Point.x <= _Range; ++_Point.x)
 		for(; _Point.y <= min(_Range, -_Pos->x - _Range); ++_Point.y)
-			if((_Tile = MapGetTileConst(_Renderer, &_Point)) != NULL)
+			if((_Tile = MapGetTile(_Renderer, &_Point)) != NULL)
 				LnkLstPushBack(_List, _Tile);
 }
 
@@ -177,13 +177,11 @@ void MapGetUnitPos(const void* _Data, SDL_Point* _Pos) {
 	_Pos->y = ((struct Sprite*)_Data)->TilePos.y;
 }
 
-void MapGetSettlementPos(const void* _Data, SDL_Rect* _Rect) {
+void MapGetSettlementPos(const void* _Data, SDL_Point* _Point) {
 	const struct Settlement* _Loc = (struct Settlement*) _Data;
 
-	_Rect->x = _Loc->Pos.x;
-	_Rect->y = _Loc->Pos.y;
-	_Rect->w = _Loc->Pos.w;
-	_Rect->h = _Loc->Pos.h;
+	_Point->x = _Loc->Pos.x;
+	_Point->y = _Loc->Pos.y;
 }
 
 struct Army* MapGetUnit(struct MapRenderer* _Renderer, const SDL_Point* _Point) {
@@ -204,8 +202,4 @@ int MapMoveUnit(struct MapRenderer* _Renderer, struct Army* _Army, const SDL_Poi
 		return 1;
 	}
 	return 0;
-}
-
-struct Settlement* MapGetSettlement(struct MapRenderer* _Renderer, SDL_Point* _Pos) {
-	return (struct Settlement*) QTGetAABB(&_Renderer->RenderArea[MAPRENDER_SETTLEMENT], _Pos, MapGetSettlementPos);
 }

@@ -7,11 +7,14 @@
 
 #include "WorldState.h"
 
+#include "sys/LinkedList.h"
+
 #include <inttypes.h>
 
 struct Person;
 struct Mission;
 struct Object;
+struct Feud;
 
 #define BIGGUYSTAT_MIN (0)
 #define BIGGUYSTAT_MAX (100)
@@ -22,6 +25,8 @@ struct Object;
 #define BIGGUY_LIKEMIN (25)
 #define BIGGUY_LOVEMIN (75)
 
+#define BIGGUY_PERSONALITIES (4)
+
 enum {
 	BGBYTE_PASSREFORM = 0,
 	BGBYTE_ISLEADER,
@@ -29,6 +34,7 @@ enum {
 	BGBYTE_AUTHORITY,
 	BGBYTE_PRESTIGE,
 	BGBYTE_FYRDRAISED,
+	BGBYTE_FEUDCOUNT,
 	BGBYTE_SIZE
 };
 
@@ -41,17 +47,27 @@ enum {
 };
 
 enum {
-	BGOPIN_IMPROVREL
+	BGOPIN_NONE,
+	BGOPIN_IMPROVREL,
+	BGOPIN_GIFT
 };
 
 enum {
 	BGACT_NONE,
 	BGACT_IMRPOVEREL,
+	BGACT_SABREL,
+	BGACT_GIFT,
 	BGACT_SIZE
+};
+
+enum {
+	CRISIS_WARDEATH,
+	CRISIS_SIZE
 };
 
 extern const char* g_BGStateStr[BGBYTE_SIZE];
 extern const char* g_BGMission[BGACT_SIZE];
+extern const char* g_CrisisStateStr[CRISIS_SIZE];
 
 struct BigGuyMission {
 	int Type;
@@ -83,7 +99,9 @@ struct BigGuyRelation {
 };
 
 struct BigGuyAction {
-	void(*ActionFunc)(struct BigGuy*, void*);
+	int Type;
+	struct BigGuy* Target;
+	int Modifier;
 	void* Data;
 };
 
@@ -96,14 +114,30 @@ struct BigGuy {
 	struct Person* Person;
 	int IsDirty;
 	struct WorldState State;
+	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Authority;
 	float Prestige;
 	struct BigGuyRelation* Relations;
 	struct BigGuyStats Stats;
 	struct BigGuyAction Action;
+	struct LinkedList Feuds;
+	int Personality;
+	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 };
 
-struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor, int _Action, int _Modifier);
+struct Crisis {
+	struct WorldState State;
+	int BigGuyId;
+};
+
+struct Crisis* CreateCrisis(int _Type, int _Id);
+void DestroyCrisis(struct Crisis* _Crisis);
+
+int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
+int CrisisInsert(const int* _One, const struct Crisis* _Two);
+
+struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor);
+struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int _Action, int _Modifier);
 struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
 
@@ -117,16 +151,38 @@ void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value);
 
 struct BigGuy* BigGuyLeaderType(struct Person* _Person);
 
+//FIXME: _Guy is not used.
 void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, int _Action, int _Modifier);
+/*
+ * Recalculates the modifier variable of _Relation and then updates Relation if applicable.
+ */
 void BigGuyRelationUpdate(struct BigGuyRelation* _Relation);
 struct BigGuyRelation* BigGuyGetRelation(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 
+/*
+ * Randomly distributes points to the stats that are provided in the variable argument.
+ * _StatCt pointers to integers should be supplied to the variable argument followed by
+ * _StatCt floats whose cumulative sum is 1. The float numbers represent the percentage of _Points
+ * a random integer will receive.
+ */
 void BGStatsRandom(int _Points, int _StatCt, ...);
+/*
+ * Creates a big guy with a stat emphasis on warfare.
+ */
 void BGStatsWarlord(struct BigGuyStats* _Stats, int _Points);
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
 void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
 
-void BigGuySetAction(struct BigGuy* _Guy, int _Action, void* _Data);
+void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
+void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
+/*
+ * Return 1 if _Target's personality is one that _Guy would prefer to have as an acquaintance.
+ * Return 0 if _Target's personality is not compatable.
+ */
+int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target);
+double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target);
+
+void* BigGuyGetCrisis(struct BigGuy* _Guy);
 
 #endif

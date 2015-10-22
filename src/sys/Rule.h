@@ -119,6 +119,7 @@ void DestroyRuleIfThenElse(struct RuleIfThenElse* _Rule);
 struct RuleBoolean* CreateRuleBoolean(int _Boolean);
 void DestroyRuleBoolean(struct RuleBoolean* _Rule);
 
+struct RuleLuaCall* CreateRuleLuaCall(lua_State* _State, int _TableRef);
 void DestroyRuleLuaCall(struct RuleLuaCall* _Rule);
 
 struct RuleEvent* CreateRuleEvent(int _Event);

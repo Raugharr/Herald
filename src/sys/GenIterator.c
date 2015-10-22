@@ -37,8 +37,19 @@ struct GenIterator* CreateArrayItr(void* _Array, int _Size) {
 	return _Iterator;
 }
 
-void DestroyArrayItr(struct GenIterator* _Iterator) {
+void DestroyGenIterator(struct GenIterator* _Iterator) {
 	free(_Iterator);
+}
+
+struct GenIterator CreateListItr(struct LinkedList* _List) {
+	struct GenIterator* _Iterator = (struct GenIterator*) malloc(sizeof(struct GenIterator));
+
+	_Iterator->HasNext = GenIteratorListHasNext;
+	_Iterator->NextObj = GenIteratorListHasNext;
+	_Iterator->StackSz = _List->Size;
+	_Iterator->Stack = _List->Front;
+	_Iterator->Index = 0;
+	return _Iterator;
 }
 
 int GenIteratorArrayHasNext(struct GenIterator* _Iterator) {
@@ -56,7 +67,7 @@ int GenIteratorListHasNext(struct GenIterator* _Iterator) {
 	return (_Iterator->Stack == NULL);
 }
 
-void* GenIteratorListNextObj(struct GenIterator* _Iterator) {
+void* GenIteratorListHasNext(struct GenIterator* _Iterator) {
 	void* _Obj = ((struct LnkLst_Node*)_Iterator->Stack)->Data;
 
 	_Iterator->Stack = ((struct LnkLst_Node*)_Iterator->Stack)->Next;

@@ -21,7 +21,9 @@ struct GenIterator* CreateRBItr(struct RBTree* _Tree, int _Size);
 void DestroyRBItr(struct GenIterator* _Iterator);
 
 struct GenIterator* CreateArrayItr(void* _Array, int _Size);
-void DestroyArrayItr(struct GenIterator* _Iterator);
+void DestroyGenIterator(struct GenIterator* _Iterator);
+
+struct GenIterator CreateListItr(struct LinkedList* _List);
 
 int GenIteratorArrayHasNext(struct GenIterator* _Iterator);
 void* GenIteratorArrayNextObj(struct GenIterator* _Iterator);

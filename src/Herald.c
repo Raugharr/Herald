@@ -28,6 +28,7 @@
 #include "sys/Log.h"
 #include "sys/Rule.h"
 #include "sys/Event.h"
+#include "sys/GenIterator.h"
 #include "video/Animation.h"
 
 #include <assert.h>
@@ -64,6 +65,22 @@ struct Constraint** g_OpinionMods = NULL;
 
 int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
+}
+
+struct BigGuy* CrisisGetOwner(struct Crisis* _Crisis) {
+	return _Crisis->Guy;
+}
+
+int* CrisisGetTriggerMask(struct Crisis* _Crisis) {
+	return &_Crisis->TriggerMask;
+}
+
+struct WorldState* CrisisGetState(struct Crisis* _Crisis) {
+	return &_Crisis->State;
+}
+
+int MissionCatRBIsEmpty(struct RBTree* _Tree) {
+	return (_Tree->Size == 0);
 }
 
 int HeraldInit() {
@@ -121,10 +138,25 @@ int HeraldInit() {
 	g_MissionEngine.MissionId.ICallback = (int(*)(const void*, const void*))MissionIdSearch;
 	g_MissionEngine.MissionId.SCallback = (int(*)(const void*, const void*))MissionIdInsert;
 
-	g_MissionEngine.Categories[0].GetObj = BigGuyGetCrisis;
-	g_MissionEngine.Categories[0].StateStr = g_CrisisStateStr;
-	g_MissionEngine.Categories[0].GetState = NULL;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].CreateItr = CrisisCreateItr;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].DestroyItr = DestroyRBItr;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].StateStr = g_CrisisStateStr;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetState = NULL;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetState = (struct WorldState*(*)(void*))CrisisGetState;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetTriggerMask = (int*(*)(void*))CrisisGetTriggerMask;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetOwner = (struct BigGuy*(*)(void*))CrisisGetOwner;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].List = &g_GameWorld.Crisis;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].Name = "Crisis";
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].StateSz = CRISIS_SIZE;
+	g_MissionEngine.Categories[MISSIONCAT_CRISIS].ListIsEmpty = (int(*)(void*))MissionCatRBIsEmpty;
 
+	for(int i = 0; i < MISSIONCAT_SIZE; ++i) {
+		for(int j = 0; j < WORLDSTATE_ATOMSZ; ++j) {
+			g_MissionEngine.Categories[i].MissionList[j].Size = 0;
+			g_MissionEngine.Categories[i].MissionList[j].Front = NULL;
+			g_MissionEngine.Categories[i].MissionList[j].Back = NULL;
+		}
+	}
 	for(int i = 0; i < WORLDSTATE_ATOMSZ; ++i) {
 		g_MissionEngine.MissionList[i].Size = 0;
 		g_MissionEngine.MissionList[i].Front = NULL;

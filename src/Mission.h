@@ -12,6 +12,9 @@
 #include "sys/RBTree.h"
 
 #define MISSION_MAXOPTIONS (6)
+#define MISSION_BGTYPE (0)
+#define MISSION_TYPE(_Cat) ((_Cat) + 1)
+#define MISSION_TYPETOCAT(_Type) ((_Type) - 1)
 
 enum {
 	//MISSIONCAT_SETTLEMENT,
@@ -69,9 +72,17 @@ struct Mission {
 };
 
 struct MissionCat {
-	void* (*GetObj)(struct BigGuy*);
+	struct GenIterator* (*CreateItr)(void*);
+	void (*DestroyItr)(struct GenIterator*);
 	struct WorldState* (*GetState)(void*);
+	int* (*GetTriggerMask)(void*);
+	struct BigGuy* (*GetOwner)(void*);
+	int (*ListIsEmpty)(void*);
+	void* List;
 	const char** StateStr;
+	int StateSz;
+	const char* Name;
+	struct LinkedList MissionList[WORLDSTATE_ATOMSZ];
 };
 
 struct MissionEngine {
@@ -117,6 +128,6 @@ int LuaMissionSetId(lua_State* _State);
 int LuaMissionOnTrigger(lua_State* _State);
 int LuaMissionCallById(lua_State* _State);
 
-void MissionDataGetVal(lua_State* _State, int _Index);
+struct GenIterator* CrisisCreateItr(void* _Tree);
 
 #endif

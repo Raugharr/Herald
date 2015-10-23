@@ -197,7 +197,7 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 		if((_Father = GetFather(_Warrior->Person)) != NULL
 				&& ((_BGFather = RBSearch(&g_GameWorld.BigGuys, _Father)) != 0)) {
 			if((_Relation = BigGuyGetRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader)) == NULL) {
-				struct Crisis* _Crisis = CreateCrisis(CRISIS_WARDEATH, _BGFather->Id);
+				struct Crisis* _Crisis = CreateCrisis(CRISIS_WARDEATH, _BGFather);
 
 				_Relation = CreateBigGuyRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader);
 				CreateBigGuyOpinion(_Relation, BGOPIN_NONE, -20);

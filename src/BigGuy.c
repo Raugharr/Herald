@@ -87,12 +87,13 @@ struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int 
 	return _Opinion;
 }
 
-struct Crisis* CreateCrisis(int _Type, int _Id) {
+struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy) {
 	struct Crisis* _Crisis = (struct Crisis*) malloc(sizeof(struct Crisis));
 
 	WorldStateClear(&_Crisis->State);
 	WorldStateSetAtom(&_Crisis->State, _Type, 1);
-	_Crisis->BigGuyId = _Id;
+	_Crisis->Guy = _Guy;
+	_Crisis->TriggerMask = 0;
 	return _Crisis;
 }
 
@@ -103,11 +104,11 @@ void DestroyCrisis(struct Crisis* _Crisis) {
 int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two) {
 	//if(_One->BigGuyId - _Two->BigGuyId == 0)
 	//	return _One->Type - _Two->Type;
-	return _One->BigGuyId - _Two->BigGuyId;
+	return _One->Guy->Id - _Two->Guy->Id;
 }
 
 int CrisisInsert(const int* _One, const struct Crisis* _Two) {
-	return ((*_One) - _Two->BigGuyId);
+	return ((*_One) - _Two->Guy->Id);
 }
 
 struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor) {
@@ -360,8 +361,4 @@ double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target)
 	static double _TableMod[][4] = {{2, 1.5, 1, .5}, {1.5, 2, .5, 1}, {.5, 1, 2, 1.5}, {1, .5, 1.5, 2}};
 
 	return _TableMod[_Guy->Personality][_Target->Personality];
-}
-
-void* BigGuyGetCrisis(struct BigGuy* _Guy) {
-	return RBSearch(&g_GameWorld.Crisis, &_Guy->Id);
 }

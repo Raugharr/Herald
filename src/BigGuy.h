@@ -127,10 +127,11 @@ struct BigGuy {
 
 struct Crisis {
 	struct WorldState State;
-	int BigGuyId;
+	int TriggerMask;
+	struct BigGuy* Guy;
 };
 
-struct Crisis* CreateCrisis(int _Type, int _Id);
+struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy);
 void DestroyCrisis(struct Crisis* _Crisis);
 
 int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
@@ -182,7 +183,5 @@ void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
  */
 int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target);
-
-void* BigGuyGetCrisis(struct BigGuy* _Guy);
 
 #endif

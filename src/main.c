@@ -72,6 +72,10 @@ int InitLuaSystem() {
 	lua_pushstring(g_LuaState, "GreaterThan");
 	lua_pushinteger(g_LuaState, WSOP_GREATERTHAN);
 	lua_rawset(g_LuaState, -3);
+
+	lua_pushstring(g_LuaState, "Equal");
+	lua_pushinteger(g_LuaState, WSOP_EQUAL);
+	lua_rawset(g_LuaState, -3);
 	lua_setglobal(g_LuaState, "Mission");
 
 	InitVideoLua(g_LuaState);

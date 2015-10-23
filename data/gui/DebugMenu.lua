@@ -1,3 +1,5 @@
+Menu.__savestate = true;
+
 function Menu.Init(Menu, Width, Height, Data)
 	local Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
@@ -30,5 +32,4 @@ function Menu.Init(Menu, Width, Height, Data)
 		DTable:CreateLabel(PrintYears(PersonInfo.Age))
 		DTable:CreateLabel(PersonInfo.Nutrition)
 	end
-	return true
 end

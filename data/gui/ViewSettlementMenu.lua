@@ -1,3 +1,5 @@
+Menu.__savestate = false;
+
 function RelationToStr(Guy, Target)
 	local Relation = Guy:GetRelation(Target)
 	if Relation == nil then
@@ -62,7 +64,6 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			Menu.Screen:Close()
 		end)
-	return false
 end
 
 function Menu.Think(Menu)

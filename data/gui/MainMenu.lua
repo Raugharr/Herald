@@ -1,3 +1,5 @@
+Menu.__savestate = false;
+
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	
@@ -16,10 +18,12 @@ function Menu.Init(Menu, Width, Height, Data)
 		function() 
 			Menu.Screen:Close()
 		end)	
-	return false
+	Menu.Screen:CreateImage(Video.CreateSprite("grass.png"))
+	Menu.Screen:CreateImage(Video.CreateSprite("Grass2.png"))
 end
 
 function Menu.Think(Menu)
+
 end
 
 function Menu.Quit(Menu)

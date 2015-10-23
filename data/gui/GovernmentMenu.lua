@@ -1,3 +1,5 @@
+Menu.__savestate = false;
+
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
 	Menu.VoteCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Menu.Screen)
@@ -27,7 +29,6 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			GUI.PopMenu()
 		end)
-	return false
 end
 
 function Menu.Think(Menu)

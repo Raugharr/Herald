@@ -284,8 +284,10 @@ const struct LinkedList* MissionTriggerList(struct MissionEngine* _Engine, struc
 				goto loop_exit;
 			}
 		}
+		j = 0;
 	}
-	return NULL;
+	if((*_Atom) == -1)
+		return NULL;
 	loop_exit:
 	return &_MissionList[(*_Atom)];
 }

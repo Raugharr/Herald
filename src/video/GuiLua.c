@@ -1130,6 +1130,9 @@ int LuaContainerParagraph(lua_State* _State) {
 			_WordWidth += _CharWidth;
 			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Rect.w) {
 				_Temp -= _WordSz;
+				//NOTE: Used to stop infinite loop when the parent is to small to hold a single letter.
+				if(_WordSz == 0)
+					break;
 				_WordSz = 0;
 				_WordWidth = 0;
 				goto create_buffer;
@@ -1139,8 +1142,6 @@ int LuaContainerParagraph(lua_State* _State) {
 			++_Temp;
 		} while((*_Temp) != '\0');
 		create_buffer:
-		if(_WordSz == 0)
-			break;
 		_Ct += _WordSz;
 		_Rect.w += _WordWidth;
 		_WordSz = 0;
@@ -1160,7 +1161,6 @@ int LuaContainerParagraph(lua_State* _State) {
 		}
 		_Rect.w = 0;
 		_Ct = 0;
-
 	}
 	ContainerShrink(_NewContainer);
 	return 0;

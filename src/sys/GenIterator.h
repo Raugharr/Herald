@@ -9,6 +9,7 @@
  * Generic container for any object that can be iterated over.
  */
 struct RBTree;
+struct LinkedList;
 
 struct GenIterator {
 	int (*HasNext)(struct GenIterator*);
@@ -23,10 +24,11 @@ void DestroyRBItr(struct GenIterator* _Iterator);
 struct GenIterator* CreateArrayItr(void* _Array, int _Size);
 void DestroyGenIterator(struct GenIterator* _Iterator);
 
-struct GenIterator CreateListItr(struct LinkedList* _List);
+struct GenIterator* CreateListItr(struct LinkedList* _List);
 
 int GenIteratorArrayHasNext(struct GenIterator* _Iterator);
 void* GenIteratorArrayNextObj(struct GenIterator* _Iterator);
+void* GenIteratorRBNextObj(struct GenIterator* _Iterator);
 
 int GenIteratorListHasNext(struct GenIterator* _Iterator);
 void* GenIteratorListNextObj(struct GenIterator* _Iterator);

@@ -53,6 +53,8 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"GetPerson", LuaBGGetPerson},
 		{"GetAuthority", LuaBGGetAuthority},
 		{"SetAuthority", LuaBGSetAuthority},
+		{"GetPrestige", LuaBGGetPrestige},
+		{"SetPrestige", LuaBGSetPrestige},
 		{"GetAdministration", LuaBGGetAdministration},
 		{"GetIntrigue", LuaBGGetIntrigue},
 		{"GetStrategy", LuaBGGetStrategy},
@@ -129,6 +131,21 @@ int LuaBGSetAuthority(lua_State* _State) {
 	int _Authority = luaL_checkinteger(_State, 2);
 
 	_Guy->Authority += _Authority;
+	return 0;
+}
+
+int LuaBGGetPrestige(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	lua_pushinteger(_State, _Guy->Prestige);
+	return 1;
+}
+
+int LuaBGSetPrestige(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	int _Prestige = luaL_checkinteger(_State, 2);
+
+	_Guy->Prestige += _Prestige;
 	return 0;
 }
 

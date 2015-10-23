@@ -277,14 +277,17 @@ void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child) {
 }
 
 void ContainerShrink(struct Container* _Container) {
+	int _XOff = 0;
 	int _NewW = 0;
 	int _NewH = 0;
 	const struct Widget* _Child = NULL;
 
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		_Child = _Container->Children[i];
-		if((_Child->Rect.x + _Child->Rect.w) > _NewW)
-			_NewW = _Child->Rect.w;
+		if(((_Child->Rect.x - _Container->Rect.x) + _Child->Rect.w) > (_NewW + _XOff)) {
+			_XOff = _Child->Rect.x - _Container->Rect.x;
+			_NewW = _XOff + _Child->Rect.w;
+		}
 		if((_Child->Rect.y + _Child->Rect.h) > _NewH)
 			_NewH += _Child->Rect.h;
 	}

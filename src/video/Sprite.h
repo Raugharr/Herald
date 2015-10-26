@@ -5,8 +5,6 @@
 #ifndef __SPRITE_H
 #define __SPRITE_H
 
-#include "Point.h"
-
 #include <SDL2/SDL.h>
 
 struct Resource;

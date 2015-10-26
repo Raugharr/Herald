@@ -15,6 +15,7 @@
 #include "../sys/Log.h"
 #include "../sys/LinkedList.h"
 #include "../sys/TaskPool.h"
+#include "../sys/Event.h"
 #include "../Herald.h"
 
 #include <SDL2/SDL.h>

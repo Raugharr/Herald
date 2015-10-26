@@ -10,6 +10,7 @@
 #include "GuiLua.h"
 
 #include "../sys/Stack.h"
+#include "../sys/Event.h"
 
 #include <string.h>
 #include <stdlib.h>

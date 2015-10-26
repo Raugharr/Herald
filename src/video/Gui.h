@@ -46,12 +46,6 @@ typedef struct lua_State lua_State;
 	int VertFocChange;												\
 	struct Margin Margins
 
-struct WEvent {
-	struct KeyMouseState Event; //TODO: All the data is checked for an event not just relevant data. This means if we want to click a widget it will fail if we are clicking and pressing a button etc.
-	int WidgetId;
-	int RefId;
-};
-
 struct GUIFocus {
 	const struct Container* Parent;
 	int Index;
@@ -110,6 +104,7 @@ struct GUIFocus* CreateGUIFocus(void);
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+int VideoEvents(const struct KeyMouseState* _State);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);

@@ -194,15 +194,14 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 		_Warrior = _Warband->Warriors;
 		if(_Warband->Warriors == NULL)
 			return;
+		//FIXME: Somehow every father is a ruler even if more people die than the ruler has children.
 		if((_Father = GetFather(_Warrior->Person)) != NULL
 				&& ((_BGFather = RBSearch(&g_GameWorld.BigGuys, _Father)) != 0)) {
 			if((_Relation = BigGuyGetRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader)) == NULL) {
-				struct Crisis* _Crisis = CreateCrisis(CRISIS_WARDEATH, _BGFather);
-
+				if(CreateCrisis(CRISIS_WARDEATH, _BGFather) == NULL)
+					break;
 				_Relation = CreateBigGuyRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader);
 				CreateBigGuyOpinion(_Relation, BGOPIN_NONE, -20);
-				if(RBSearch(&g_GameWorld.Crisis, &_BGFather->Id) == NULL)
-					RBInsert(&g_GameWorld.Crisis, _Crisis);
 			} else
 				BigGuyAddRelation(_BGFather, _Relation, BGOPIN_NONE, -20);
 		}

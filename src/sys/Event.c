@@ -9,15 +9,23 @@
 #include "LinkedList.h"
 #include "Queue.h"
 #include "RBTree.h"
+#include "LuaCore.h"
+
+#include "../video/Video.h"
+#include "../video/GuiLua.h"
 
 #include "../Person.h"
 #include "../Family.h"
 #include "../Crop.h"
 
+#include <lua/lauxlib.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define EVENTPOOL (1024)
 
+static int g_EventTypes[EVENT_SIZE];
+static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
 static struct EventQueue g_EventQueue = {0, NULL, NULL};
 static struct RBTree* g_EventHooks[EVENT_LAST];
 int g_EventId = 0;
@@ -50,6 +58,9 @@ struct RBTree g_ActorObservers = {NULL, 0, ActorObserverI, ActorObserverS};
 void EventInit() {
 	for(int i = 0; i < EVENT_LAST; ++i)
 		g_EventHooks[i] = CreateRBTree(ActorObserverI, ActorObserverS);
+	g_EventTypes[0] = SDL_RegisterEvents(EVENT_SIZE);
+	for(int i = 1; i < EVENT_SIZE; ++i)
+		g_EventTypes[i] = g_EventTypes[0] + i;
 }
 
 void EventQuit() {
@@ -128,15 +139,6 @@ struct Event* HandleEvents() {
 	return _Event;
 }
 
-struct Event* CreateEventBirth(struct Person* _Mother, struct Person* _Child) {
-	struct EventBirth* _Event = (struct EventBirth*) malloc(sizeof(struct EventBirth));
-
-	EventCtor(struct EventBirth, _Event, _Mother->Id, (struct Location*)FamilyGetSettlement(_Mother->Family), EVENT_BIRTH);
-	_Event->Mother = _Mother;
-	_Event->Child = _Child;
-	return (struct Event*)_Event;
-}
-
 struct Event* CreateEventDeath(struct Person* _Person) {
 	struct EventDeath* _Event = (struct EventDeath*) malloc(sizeof(struct EventDeath));
 
@@ -188,4 +190,57 @@ struct EventObserver* CreateEventObserver(int _EventType, int _ObjectId, void (*
 }
 void DestroyEventObserver(struct EventObserver* _EventObs) {
 	free(_EventObs);
+}
+
+void Events(void) {
+	SDL_Event _Event;
+	struct Widget* _Widget = NULL;
+
+	GUIMessageCheck(&g_GUIMessageList);
+	KeyMouseStateClear(&g_KeyMouseState);
+	SDL_GetMouseState(&g_KeyMouseState.MousePos.x, &g_KeyMouseState.MousePos.y);
+	while(SDL_PollEvent(&_Event) != 0) {
+		switch(_Event.type) {
+		case SDL_KEYUP:
+		case SDL_KEYDOWN:
+			g_KeyMouseState.KeyboardState = _Event.key.state;
+			g_KeyMouseState.KeyboardButton = _Event.key.keysym.sym;
+			g_KeyMouseState.KeyboardMod = _Event.key.keysym.mod;
+			break;
+		case SDL_MOUSEBUTTONUP:
+		case SDL_MOUSEBUTTONDOWN:
+			g_KeyMouseState.MouseButton = _Event.button.button;
+			g_KeyMouseState.MouseState = _Event.button.state;
+			g_KeyMouseState.MouseClicks = _Event.button.clicks;
+			g_KeyMouseState.MousePos.x = _Event.button.x;
+			g_KeyMouseState.MousePos.y = _Event.button.y;
+			break;
+		case SDL_MOUSEMOTION:
+			g_KeyMouseState.MouseMove = 1;
+			g_KeyMouseState.MousePos.x = _Event.motion.x;
+			g_KeyMouseState.MousePos.y = _Event.motion.y;
+			break;
+		}
+		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
+			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
+				MessageBox(g_LuaState, "A Crisis has occured.");
+		}
+	}
+
+	if(VideoEvents(&g_KeyMouseState) == 0 && g_GameWorld.IsPaused == 0)
+		GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
+}
+
+void GetMousePos(struct SDL_Point* _Point) {
+	*_Point = g_KeyMouseState.MousePos;
+}
+
+void PushEvent(int _Type, void* _Data1, void* _Data2) {
+	SDL_Event _Event;
+
+	assert(_Type < EVENT_SIZE);
+	_Event.type = g_EventTypes[_Type];
+	_Event.user.data1 = _Data1;
+	_Event.user.data2 = _Data2;
+	SDL_PushEvent(&_Event);
 }

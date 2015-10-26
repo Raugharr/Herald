@@ -265,7 +265,7 @@ void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point,
 
 void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
-	struct Point _ScreenSize = {ceil(SDL_WIDTH / ((float)TILE_WIDTH)), ceil(SDL_HEIGHT / ((float)TILE_HEIGHT_THIRD))};
+	SDL_Point _ScreenSize = {ceil(SDL_WIDTH / ((float)TILE_WIDTH)), ceil(SDL_HEIGHT / ((float)TILE_HEIGHT_THIRD))};
 
 	_GameWorld->MapRenderer = CreateMapRenderer(_Area, &_ScreenSize);
 
@@ -461,13 +461,15 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 	}
 }
 
-void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World) {
+void GameWorldDraw(struct GameWorld* _World) {
 	struct Tile* _Tile = NULL;
 	struct LnkLst_Node* _Settlement = NULL;
+	struct SDL_Point _Pos;
 
 	if(_World->MapRenderer->IsRendering == 0)
 		return;
-	_Tile = ScreenToTile(g_GameWorld.MapRenderer, &_State->MousePos);
+	GetMousePos(&_Pos);
+	_Tile = ScreenToTile(g_GameWorld.MapRenderer, &_Pos);
 	_Settlement = g_GameWorld.Settlements.Front;
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
 	if(_Tile != NULL)

@@ -1,4 +1,5 @@
 Menu.__savestate = false
+Menu.moveable = true
 
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
@@ -7,10 +8,10 @@ function Menu.Init(Menu, Width, Height, Data)
 	if Menu.TextBox == nil then
 		Menu.TextBox = ""
 	end
-	Menu.Text = GUI.Paragraph(Menu.TextBox)
-	Menu.TextBox = GUI.CreateButton("Ok", 
+	Menu.Text = Menu.Screen:Paragraph(Menu.TextBox)
+	Menu.TextBox = Menu.Screen:CreateButton("Ok", 
 		function()
-			GUI.PopMenu()
+			Menu.Screen:Close()
 		end)
 end
 

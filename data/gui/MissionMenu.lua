@@ -10,13 +10,12 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Title = Menu.TitleCon:CreateLabel(Menu.Mission:GetName())
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
-	Menu.Screen:Paragraph(GUI.GetFont("Elementary_Gothic_Bookhand.ttf", 12), Menu.Mission:GetDescription())
+	Menu.Screen:Paragraph(Menu.Mission:GetDescription())
 	for k, v in ipairs(Menu.Mission:GetOptions()) do
 		if v:ConditionSatisfied() == true then
 			Menu.Screen:CreateButton(v:GetName(),
 			function()
 				Menu.Mission:ChooseOption(Menu.Data, k - 1)
-				--GUI.SendMessage("Mission", k - 1)
 				Menu.Screen:Close()
 			end)
 		end

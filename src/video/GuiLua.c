@@ -395,11 +395,6 @@ int LuaCreateWindow(lua_State* _State) {
 	lua_pushvalue(_State, 2);
 	if(LuaCallFunc(_State, 4, 1, 0) == 0)
 		return luaL_error(_State, "%s.Init function call failed", _Name);
-	//_Container = CreateContainer();
-	//lua_newtable(_State);
-	//ConstructContainer(_Container, _Parent, &_Rect, _State, 0, &_Margins);
-	//_Container->IsDraggable = 1;
-	//LuaInitClass(_State, "Container", _Container);
 	return 1;
 }
 
@@ -1097,19 +1092,24 @@ int LuaContainerShrink(lua_State* _State) {
 int LuaContainerParagraph(lua_State* _State) {
 	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
 	struct Container* _NewContainer = NULL;
-	struct Font* _Font = LuaCheckClass(_State, 2, "Font");
-	const char* _String = luaL_checkstring(_State, 3);
+	struct Font* _Font = NULL;
+	const char* _String = luaL_checkstring(_State, 2);
 	const char* _Temp = _String;
 	int _CharWidth = 0;
 	int _WordSz = 0;
 	int _WordWidth = 0;
 	struct Label* _Label = NULL;
-	SDL_Rect _Rect = {0, 0, TTF_FontFaceIsFixedWidth(_Font->Font), 0};
+	SDL_Rect _Rect = {0, 0, 0, 0};
 	SDL_Rect _PRect = {0, 0, 0, 0};
 	SDL_Surface* _Surface = NULL;
 	struct Margin _Margins = {0, 0, 0, 0};
 	int _Ct = 0;
 
+	if(lua_gettop(_State) < 3)
+		_Font = g_GUIDefs.Font;
+	else
+		_Font = LuaCheckClass(_State, 3, "Font");
+	_Rect.w = TTF_FontFaceIsFixedWidth(_Font->Font);
 	_Rect.x = 0;
 	_Rect.y = 0;
 	_PRect.w = _Parent->Rect.w;
@@ -1131,8 +1131,8 @@ int LuaContainerParagraph(lua_State* _State) {
 			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Rect.w) {
 				_Temp -= _WordSz;
 				//NOTE: Used to stop infinite loop when the parent is to small to hold a single letter.
-				if(_WordSz == 0)
-					break;
+				if(_WordSz == 0 || _Temp == _String)
+					goto func_end;
 				_WordSz = 0;
 				_WordWidth = 0;
 				goto create_buffer;
@@ -1162,6 +1162,7 @@ int LuaContainerParagraph(lua_State* _State) {
 		_Rect.w = 0;
 		_Ct = 0;
 	}
+	func_end:
 	ContainerShrink(_NewContainer);
 	return 0;
 }
@@ -1426,4 +1427,16 @@ void LuaAddMenu(lua_State* _State, const char* _Name) {
 	lua_newtable(_State);
 	lua_rawset(_State, -3);
 	lua_pop(_State, 1);
+}
+
+void MessageBox(lua_State* _State, const char* _Text) {
+	lua_settop(_State, 0);
+	lua_pushstring(_State, "MessageBox");
+	lua_createtable(_State, 0, 1);
+	lua_pushstring(_State, "Text");
+	lua_pushstring(_State, _Text);
+	lua_rawset(_State, -3);
+	lua_pushinteger(_State, 256);
+	lua_pushinteger(_State, 256);
+	LuaCreateWindow(_State);
 }

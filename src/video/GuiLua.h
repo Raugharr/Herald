@@ -163,4 +163,6 @@ void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget);
 void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget);
 void LuaAddMenu(lua_State* _State, const char* _Name);
 
+void MessageBox(lua_State* _State, const char* _Text);
+
 #endif

@@ -11,7 +11,7 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Title = Menu.TitleCon:CreateLabel("Government")
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
-	--Screen:Paragraph(GUI.GetFont("Elementary_Gothic_Bookhand.ttf", 12), Mission.Description)
+	--Screen:Paragraph(Mission.Description)
 	--Government:PossibleReforms():Front():Data():GetName()
 	Menu.VoteCont:SetFocus(false)
 	if Menu.Reform ~= nil then

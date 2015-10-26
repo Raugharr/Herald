@@ -25,7 +25,7 @@ function Menu.Init(Menu, Width, Height, Person)
 		String = String .. " Their opinion of us is " .. Rel
 	end
 	
-	Menu.MenuBar:Paragraph(GUI.GetFont("Plain Germanica.ttf", 21), String)
+	Menu.MenuBar:Paragraph(String)
 	Menu.MenuBar:CreateLabel("Skills")
 	Menu.MenuBar:CreateButton("Agriculture",
 		function()

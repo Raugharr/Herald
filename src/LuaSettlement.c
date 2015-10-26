@@ -68,6 +68,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"SetOpinion", LuaBGSetOpinion},
 		{"SetAction", LuaBGSetAction},
 		{"ImproveRelationTarget", LuaBGImproveRelationTarget},
+		{"Kill", LuaBGKill},
 		{NULL, NULL}
 };
 
@@ -274,6 +275,13 @@ int LuaBGImproveRelationTarget(lua_State* _State) {
 		return luaL_error(_State, "ImproveRelationTarget argument #1 is not improving relations.");
 	}
 	return 1;
+}
+
+int LuaBGKill(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	DestroyBigGuy(_Guy);
+	return 0;
 }
 
 int LuaBGRelationGetOpinion(lua_State* _State) {

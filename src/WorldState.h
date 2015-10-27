@@ -76,6 +76,7 @@ int WorldStateEmpty(const struct WorldState* _State);
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two);
 int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State);
+int WorldStateOpCmp(const struct WorldState* _One, const struct WorldState* _Two);
 /*
  * Returns the index of the first atom that is not masked by _State's DontCare variable.
  */

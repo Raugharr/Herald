@@ -1437,7 +1437,7 @@ void MessageBox(lua_State* _State, const char* _Text) {
 	lua_pushstring(_State, "Text");
 	lua_pushstring(_State, _Text);
 	lua_rawset(_State, -3);
-	lua_pushinteger(_State, 300);
 	lua_pushinteger(_State, 400);
+	lua_pushinteger(_State, 300);
 	LuaCreateWindow(_State);
 }

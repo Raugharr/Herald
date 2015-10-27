@@ -104,7 +104,6 @@ struct GUIFocus* CreateGUIFocus(void);
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
-int VideoEvents(const struct KeyMouseState* _State);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);

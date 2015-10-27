@@ -12,6 +12,8 @@
 #include "Family.h"
 #include "Location.h"
 
+#include "sys/Event.h"
+
 #include <stdlib.h>
 
 #define BATTLE_FIRSTFRONT (BATTLE_MAXFRONTS / 2)
@@ -77,6 +79,10 @@ struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
 	_Battle->Defender.Action = BATTLE_ORGANIZE;
 	_Battle->Defender.Pos = FRONT_STARTRANGE;
 	_Battle->Defender.StartingSize = ArmyGetSize(_Battle->Defender.Army);
+	_Battle->Stats.AttkBegin = _Front->Attacker.UnitCt;
+	_Battle->Stats.AttkCas = 0;
+	_Battle->Stats.DefBegin = _Front->Defender.UnitCt;
+	_Battle->Stats.DefCas = 0;
 	ILL_CREATE(*_List, _Battle);
 	ArmyUpdateStats(_Battle->Attacker.Army);
 	ArmyUpdateStats(_Battle->Defender.Army);
@@ -100,7 +106,7 @@ void BattleEnd(int _Victor, struct Battle* _Battle) {
 	_Battle->Defender.Army->Leader->Prestige += (((float)_DefendSize) / _Battle->Defender.StartingSize) / (((float)_AttackSize) / _Battle->Attacker.StartingSize);
 	if(_Victor == BATTLE_ATTACKER)
 		GovernmentLesserJoin(_Battle->Attacker.Army->Government, _Battle->Defender.Army->Government, GOVREL_TRIBUTE);
-	DestroyBattle(_Battle);
+	PushEvent(EVENT_BATTLE, _Battle, NULL);
 }
 
 void BattleSetupSide(struct Army* _Army, struct FrontSide* _Side) {
@@ -230,6 +236,8 @@ void BattleMelee(struct Battle* _Battle) {
 		UnitStatsIncrMoral(&_Front->Defender.Stats, -((_DefCas / _Front->Defender.UnitCt) * 100));
 		RemoveCasualties(&_Front->Attacker.WarbandList, _AttkCas);
 		RemoveCasualties(&_Front->Defender.WarbandList, _DefCas);
+		_Battle->Stats.AttkCas += _AttkCas;
+		_Battle->Stats.DefCas += _DefCas;
 		_Front->Attacker.UnitCt -= _AttkCas;
 		_Front->Defender.UnitCt -= _DefCas;
 	}

@@ -17,6 +17,8 @@
 #include "../Person.h"
 #include "../Family.h"
 #include "../Crop.h"
+#include "../BigGuy.h"
+#include "../Battle.h"
 
 #include <lua/lauxlib.h>
 #include <stdlib.h>
@@ -194,7 +196,6 @@ void DestroyEventObserver(struct EventObserver* _EventObs) {
 
 void Events(void) {
 	SDL_Event _Event;
-	struct Widget* _Widget = NULL;
 
 	GUIMessageCheck(&g_GUIMessageList);
 	KeyMouseStateClear(&g_KeyMouseState);
@@ -227,6 +228,18 @@ void Events(void) {
 		} else if(_Event.type == g_EventTypes[EVENT_FEUD]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
 				MessageBox(g_LuaState, "A feud has occured.");
+		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
+			if(_Event.user.data1 == g_GameWorld.Player->Person)
+				MessageBox(g_LuaState, "You have died.");
+			DestroyPerson(_Event.user.data1);
+		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
+			struct Battle* _Battle = _Event.user.data1;
+			char _Buffer[256];
+
+			sprintf(_Buffer, "The attacker has lost %i men out of %i. The defender has lost %i men out of %i.",
+					_Battle->Stats.AttkCas, _Battle->Stats.AttkBegin, _Battle->Stats.DefCas, _Battle->Stats.DefBegin);
+			MessageBox(g_LuaState, _Buffer);
+			DestroyBattle(_Battle);
 		}
 	}
 

@@ -149,8 +149,6 @@ void PersonDeath(struct Person* _Person) {
 	struct Family* _Family = _Person->Family;
 
 	free(_Person->Pregnancy);
-	//if(_Person->Gender == EFEMALE)
-	//	ATimerRmNode(&g_ATimer, _Person);
 	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
@@ -163,7 +161,6 @@ void PersonDeath(struct Person* _Person) {
 		}
 	RBDelete(&g_GameWorld.BigGuys, _Person);
 	PushEvent(EVENT_DEATH, _Person, NULL);
-	DestroyPerson(_Person);
 }
 
 int PersonIsWarrior(const struct Person* _Person) {

@@ -111,8 +111,25 @@ const struct QueuedMission* UsedMissionEarliestDate(const struct  QueuedMission*
 	return _Best;
 }
 
+void MissionListSort(struct LinkedList* _List, struct Mission* _Mission) {
+	int _Cmp = 0;
+	struct LnkLst_Node* _Itr = _List->Front;
+	struct Mission* _Temp;
+
+	while(_Itr != NULL) {
+		_Temp = (struct Mission*) _Itr->Data;
+		if((_Cmp = WorldStateOpCmp(&_Mission->Trigger, &_Temp->Trigger)) >= 0) {
+			LnkLstInsertBefore(_List, _Itr, _Mission);
+			return;
+		}
+		_Itr = _Itr->Next;
+	}
+	LnkLstPushBack(_List, _Mission);
+}
+
 void MissionInsert(struct MissionEngine* _Engine, struct Mission* _Mission) {
 	struct LinkedList* _List = RBSearch(&_Engine->Missions, _Mission);
+	struct LinkedList* _MissionCat = NULL;
 
 	if(WorldStateEmpty(&_Mission->Trigger) != 0)
 		return;
@@ -133,9 +150,10 @@ void MissionInsert(struct MissionEngine* _Engine, struct Mission* _Mission) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
 			if(WSAtomDontCare(&_Mission->Trigger, i , j) == 0) {
 				if(_Mission->Type == MISSION_BGTYPE)
-					LnkLstPushBack(&_Engine->MissionList[WSAtomIdxToInt(i, j)], _Mission);
+					_MissionCat = &_Engine->MissionList[WSAtomIdxToInt(i, j)];
 				else
-					LnkLstPushBack(&_Engine->Categories[MISSION_TYPETOCAT(_Mission->Type)].MissionList[WSAtomIdxToInt(i, j)], _Mission);
+					_MissionCat = &_Engine->Categories[MISSION_TYPETOCAT(_Mission->Type)].MissionList[WSAtomIdxToInt(i, j)];
+				MissionListSort(_MissionCat, _Mission);
 				return;
 			}
 		}
@@ -300,6 +318,7 @@ void MissionSelect(struct MissionEngine* _Engine, void* _Object, struct BigGuy* 
 		int* _TriggerMask, int _Type, struct LinkedList* _MissionList) {
 	int _Atom = -1;
 	int _Rnd = 0;
+	int _Ct = 0;
 	const struct LinkedList* _List = NULL;
 	const struct LnkLst_Node* _Itr = NULL;
 	struct QueuedMission* _Used = NULL;
@@ -328,7 +347,14 @@ void MissionSelect(struct MissionEngine* _Engine, void* _Object, struct BigGuy* 
 	/*
 	 * Pick a random Mission that is true when compared to _BigGuy's State.
 	 */
-	_Rnd = Random(0, _List->Size - 1);
+	while(_Itr != NULL) {
+		if(WorldStateTruth(_State, &((struct Mission*)_Itr->Data)->Trigger) != 0)
+			goto found_mission;
+		++_Ct;
+	}
+	goto missiontype_select;
+	found_mission:
+	_Rnd = Random(0, _List->Size - (1 + _Ct));
 	for(int i = 0; i < _Rnd; ++i) _Itr = _Itr->Next;
 	_Mission = (struct Mission*)_Itr->Data;
 	//NOTE: Can _Element and _Used be combined into one variable? The parameters are very similar.

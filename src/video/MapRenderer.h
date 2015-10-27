@@ -37,7 +37,7 @@ struct MapRenderer {
 	SDL_Texture* Warrior;
 };
 
-struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize);
+struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize);
 void MapLoad(struct MapRenderer* _Map);
 /**
  * Finds the tile that corrisponds with the screen position given by _Screen.

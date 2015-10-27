@@ -46,12 +46,6 @@ typedef struct lua_State lua_State;
 	int VertFocChange;												\
 	struct Margin Margins
 
-struct WEvent {
-	struct KeyMouseState Event; //TODO: All the data is checked for an event not just relevant data. This means if we want to click a widget it will fail if we are clicking and pressing a button etc.
-	int WidgetId;
-	int RefId;
-};
-
 struct GUIFocus {
 	const struct Container* Parent;
 	int Index;

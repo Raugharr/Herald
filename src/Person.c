@@ -11,6 +11,7 @@
 #include "Crop.h"
 #include "Good.h"
 #include "Location.h"
+
 #include "sys/LinkedList.h"
 #include "sys/LuaCore.h"
 #include "sys/RBTree.h"
@@ -20,6 +21,7 @@
 #include "sys/MemoryPool.h"
 #include "sys/Event.h"
 #include "sys/Log.h"
+
 #include "AI/LuaLib.h"
 #include "AI/Setup.h"
 
@@ -49,11 +51,14 @@ void DestroyPregnancy(struct Pregnancy* _Pregnancy) {
 
 void PregnancyThink(struct Pregnancy* _Pregnancy) {
 	if(--_Pregnancy->TTP <= 0) {
-		if(_Pregnancy->Mother->Family->NumChildren >= CHILDREN_SIZE)
+		if(_Pregnancy->Mother->Family->NumChildren >= CHILDREN_SIZE) {
 			DestroyPregnancy(_Pregnancy);
+			return;
+		}
 		struct Person* _Child = CreateChild(_Pregnancy->Mother->Family);
+
 		_Pregnancy->Mother->Family->People[2 + _Pregnancy->Mother->Family->NumChildren++] = _Child;
-		EventPush(CreateEventBirth(_Pregnancy->Mother, _Child));
+		PushEvent(EVENT_BIRTH, _Pregnancy->Mother, _Child);
 		DestroyPregnancy(_Pregnancy);
 	}
 }
@@ -144,8 +149,6 @@ void PersonDeath(struct Person* _Person) {
 	struct Family* _Family = _Person->Family;
 
 	free(_Person->Pregnancy);
-	//if(_Person->Gender == EFEMALE)
-	//	ATimerRmNode(&g_ATimer, _Person);
 	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
@@ -157,8 +160,7 @@ void PersonDeath(struct Person* _Person) {
 			break;
 		}
 	RBDelete(&g_GameWorld.BigGuys, _Person);
-	EventPush(CreateEventDeath(_Person));
-	DestroyPerson(_Person);
+	PushEvent(EVENT_DEATH, _Person, NULL);
 }
 
 int PersonIsWarrior(const struct Person* _Person) {

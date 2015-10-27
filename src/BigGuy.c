@@ -11,6 +11,7 @@
 #include "Location.h"
 #include "Feud.h"
 #include "Good.h"
+#include "Government.h"
 
 #include "ai/Utility.h"
 #include "ai/goap.h"
@@ -19,7 +20,7 @@
 
 #include "sys/Math.h"
 #include "sys/Constraint.h"
-
+#include "sys/Event.h"
 #include "sys/RBTree.h"
 #include "sys/Event.h"
 #include "sys/LinkedList.h"
@@ -88,12 +89,21 @@ struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int 
 }
 
 struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy) {
-	struct Crisis* _Crisis = (struct Crisis*) malloc(sizeof(struct Crisis));
+	struct Crisis* _Crisis = NULL;
+	SDL_Event _Event;
+	struct BigGuy* _Ruler = _Guy->Person->Family->HomeLoc->Government->Leader;
 
+	if(_Guy == _Ruler)
+		return NULL;
+	_Crisis = (struct Crisis*) malloc(sizeof(struct Crisis));
 	WorldStateClear(&_Crisis->State);
 	WorldStateSetAtom(&_Crisis->State, _Type, 1);
 	_Crisis->Guy = _Guy;
 	_Crisis->TriggerMask = 0;
+	PushEvent(EVENT_CRISIS, _Guy, _Ruler);
+	//FIXME: If a crisis already exists then this current crisis will not be recorded.
+	if(RBSearch(&g_GameWorld.Crisis, &_Guy->Id) == NULL)
+		RBInsert(&g_GameWorld.Crisis, _Crisis);
 	return _Crisis;
 }
 

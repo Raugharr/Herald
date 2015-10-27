@@ -165,6 +165,7 @@ void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void
 			_List->Back = _NewNode;
 		++_List->Size;
 		_Node->Next = _NewNode;
+		_NewNode->Next = NULL;
 		_NewNode->Prev = _Node;
 		return;
 	}
@@ -173,6 +174,25 @@ void LnkLstInsertAfter(struct LinkedList* _List, struct LnkLst_Node* _Node, void
 	_NewNode->Next = _Node->Next;
 	_Node->Next = _NewNode;
 	_NewNode->Prev = _Node;
+}
+
+void LnkLstInsertBefore(struct LinkedList* _List, struct LnkLst_Node* _Node, void* _Value) {
+	struct LnkLst_Node* _NewNode = CreateLnkLstNode(_Value);
+
+	if(_Node->Prev == NULL) {
+		if(_Node == _List->Front)
+			_List->Front = _NewNode;
+		++_List->Size;
+		_Node->Prev = _NewNode;
+		_NewNode->Next = _Node;
+		_NewNode->Prev = NULL;
+		return;
+	}
+	++_List->Size;
+	_Node->Prev->Next = _NewNode;
+	_NewNode->Prev = _Node->Prev;
+	_Node->Prev = _NewNode;
+	_NewNode->Next = _Node;
 }
 
 void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {

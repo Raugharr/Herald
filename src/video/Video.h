@@ -49,6 +49,7 @@ void VideoQuit(void);
 int NextGUIId(void);
 struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos);
 void Draw(void);
+int VideoEvents(const struct KeyMouseState* _State);
 
 int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _Two);
 

@@ -223,7 +223,10 @@ void Events(void) {
 		}
 		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
-				MessageBox(g_LuaState, "A Crisis has occured.");
+				MessageBox(g_LuaState, "A crisis has occured.");
+		} else if(_Event.type == g_EventTypes[EVENT_FEUD]) {
+			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
+				MessageBox(g_LuaState, "A feud has occured.");
 		}
 	}
 

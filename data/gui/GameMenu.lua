@@ -1,4 +1,5 @@
 Menu.__savestate = false;
+Menu.moveable = false;
 
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
@@ -25,6 +26,7 @@ function Menu.Init(Menu, Width, Height, Data)
 			GUI.PopMenu() 
 		end)
 	Menu.MenuBar:Shrink()
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

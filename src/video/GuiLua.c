@@ -269,24 +269,6 @@ struct Container* LuaContainer(lua_State* _State) {
 	} else
 		ConstructContainer(_Container, NULL, &_Rect, _State, luaL_checkint(_State, 5), &_Margins);
 	LuaInitClass(_State, "Container", _Container);
-
-	/* NOTE: Can this if statement be removed by
-	 * having more sound logic? */
-	if(_Container->Parent == NULL) {
-		struct Container* _Screen = GetScreen(_State);
-
-		if(_Screen != NULL) {
-			//_Screen->OnDestroy((struct Widget*)_Screen, _State);
-			WidgetSetParent(_Screen, (struct Widget*) _Container);
-			//_Container->Parent = _Screen;
-			return _Container;
-		}
-		lua_getglobal(_State, "GUI");
-		lua_pushstring(_State, "Screen");
-		lua_pushvalue(_State, -3);
-		lua_rawset(_State, -3);
-		lua_pop(_State, 1);
-	}
 	return _Container;
 }
 
@@ -381,6 +363,7 @@ int LuaCreateWindow(lua_State* _State) {
 	int w = luaL_checkinteger(_State, 3);
 	int h = luaL_checkinteger(_State, 4);
 	struct Container* _Parent = GetScreen(_State);
+	struct Container* _Container = NULL;
 	SDL_Rect _Rect = {0, 0, w, h};
 
 	if(_Parent == NULL)
@@ -396,6 +379,9 @@ int LuaCreateWindow(lua_State* _State) {
 	lua_pushvalue(_State, 2);
 	if(LuaCallFunc(_State, 4, 1, 0) == 0)
 		return luaL_error(_State, "%s.Init function call failed", _Name);
+	_Container = LuaCheckClass(_State, lua_absindex(_State, -1), "Container");
+	WidgetSetParent(_Parent, (struct Widget*) _Container);
+	_Container->IsMoveable = 1;
 	return 1;
 }
 
@@ -569,12 +555,17 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pushinteger(_State, SDL_WIDTH);
 	lua_pushinteger(_State, SDL_HEIGHT);
 	lua_pushvalue(_State, 2);
-	if(LuaCallFunc(_State, 4, 0, 0) == 0) {
+	if(LuaCallFunc(_State, 4, 1, 0) == 0) {
 		if(g_GUIStack.Size > 0) {
 			RestoreScreen(_State);
 		}
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	}
+	lua_getglobal(_State, "GUI");
+	lua_pushstring(_State, "Screen");
+	lua_pushvalue(_State, -3);
+	lua_rawset(_State, -3);
+	lua_pop(_State, 1);
 	/*
 	 * FIXME: Instead of using a return value from the Init function to set the value of __savestate,
 	 * instead have the table have a variable to declare the value of __savestate.

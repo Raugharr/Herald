@@ -1,4 +1,5 @@
 Menu.__savestate = false;
+Menu.moveable = true;
 
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
@@ -29,6 +30,7 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			GUI.PopMenu()
 		end)
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

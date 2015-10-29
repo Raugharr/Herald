@@ -50,7 +50,7 @@ struct GUIFocus* CreateGUIFocus(void) {
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
-	_Widget->IsDraggable = 0;
+	_Widget->IsMoveable = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
 	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;
@@ -106,7 +106,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Background.a = 0xFF;
 }
 
-void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
+void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
 	int i;
 	int _X = _Parent->Margins.Left + _Parent->Rect.x;
 	int _Y = _Parent->Margins.Top + _Parent->Rect.y;
@@ -115,10 +115,13 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
-	_Child->Rect.x = _X;
-	_Child->Rect.y = _Y;
+	_Pos->x = _X;
+	_Pos->y = _Y;
 }
 
+/*
+ * FIXME: Check if _Child already has a parent and if it does delete it from the old parent.
+ */
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 	int i = 0;
 
@@ -251,8 +254,11 @@ void ContainerOnDebug(const struct Container* _Container) {
 }
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.x = _Parent->Rect.x;
+	SDL_Point _Pos;
+
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Pos.x = _Parent->Rect.x;
+	_Child->SetPosition(_Child, &_Pos);
 }
 
 void FixedConNewChild(struct Container* _Parent, struct Widget* _Child) {
@@ -261,19 +267,25 @@ void FixedConNewChild(struct Container* _Parent, struct Widget* _Child) {
 }
 
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.y = _Parent->Rect.y;
+	SDL_Point _Pos;
+
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Pos.y = _Parent->Rect.y;
+	_Child->SetPosition(_Child, &_Pos);
 }
 
 void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child) {
+	SDL_Point _Pos;
+
 	if(_Parent->Children[0] == _Child) {
 		_Child->Rect.x = _Parent->Rect.x;
 		_Child->Rect.y = _Parent->Rect.y;
 		return;
 	}
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.x = _Parent->Children[0]->Rect.w + _Parent->Spacing;
-	_Child->Rect.y = _Child->Rect.y - _Parent->Children[0]->Rect.h;
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Child->SetPosition(_Child, &_Pos);
+	//_Child->Rect.x = _Parent->Children[0]->Rect.w + _Parent->Spacing;
+	//_Child->Rect.y = _Child->Rect.y - _Parent->Children[0]->Rect.h;
 	_Parent->VertFocChange = _Parent->ChildCt;
 }
 

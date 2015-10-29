@@ -1,4 +1,5 @@
 Menu.__savestate = false;
+Menu.moveable = false;
 
 function Menu.Init(Menu, Width, Height, Data)
 	Menu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
@@ -20,6 +21,7 @@ function Menu.Init(Menu, Width, Height, Data)
 			end)
 		end
 	end
+	return Mission.Screen
 end
 
 function Menu.Think(Menu)

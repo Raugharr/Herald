@@ -14,12 +14,13 @@ typedef struct lua_State lua_State;
 
 /*
  * TODO: Remove LuaOnClickFunc and and put function into the Lua table and use WEvents to handle click events.
+ * TODO: Add a flags variable to fit in IsDraggable, CanFocus, and IsVisible.
  */
 #define DECLARE_WIDGET														\
 	int Id;																	\
 	struct Container* Parent;												\
 	SDL_Rect Rect;															\
-	int IsDraggable;														\
+	int IsMoveable;															\
 	int LuaRef;																\
 	int CanFocus;															\
 	int IsVisible;															\
@@ -106,7 +107,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 struct Font* CreateFont(const char* _Name, int _Size);
 
-void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
+void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);

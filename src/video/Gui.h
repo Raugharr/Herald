@@ -161,4 +161,7 @@ void WidgetOnDebug(const struct Widget* _Widget);
 int WidgetCheckVisibility(const struct Widget* _Widget);
 
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
+
+struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
+int WidgetOnUnfocus(struct Widget* _Widget);
 #endif

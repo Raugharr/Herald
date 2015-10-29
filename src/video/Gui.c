@@ -58,8 +58,8 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->OnClick = WidgetOnClick;
 	_Widget->SetPosition = WidgetSetPosition;
 	_Widget->OnDraw = NULL;
-	_Widget->OnFocus = NULL;
-	_Widget->OnUnfocus = NULL;
+	_Widget->OnFocus = WidgetOnFocus;
+	_Widget->OnUnfocus = WidgetOnUnfocus;
 	_Widget->OnKeyUp = WidgetOnKeyUp;
 	_Widget->OnDestroy = NULL;
 	_Widget->OnDebug = WidgetOnDebug;
@@ -383,12 +383,16 @@ int WidgetCheckVisibility(const struct Widget* _Widget) {
 	return (_Widget->Rect.x < (_Widget->Parent->Rect.x + _Widget->Parent->Rect.w)) & (_Widget->Rect.y < (_Widget->Parent->Rect.y + _Widget->Parent->Rect.h));
 }
 
-int ContextHorzFocChange(const struct Container* _Container) {
-	//if(g_Focus->Id == _Container->Children[0]->Id)
-	//	return 1;
-	return 1;
-}
-
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
 	return _Parent->Rect.x + (((_Parent ->Rect.w) / 2) - (_Widget ->Rect.w / 2));
+}
+
+struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
+	if(PointInAABB(_Point, &_Widget->Rect) == 0)
+		return NULL;
+	return _Widget;
+}
+
+int WidgetOnUnfocus(struct Widget* _Widget) {
+	return 1;
 }

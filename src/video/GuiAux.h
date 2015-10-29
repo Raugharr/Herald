@@ -33,32 +33,29 @@ struct Button {
 };
 
 struct Label* CreateLabel(void);
-struct Button* CreateButton(void);
-struct Table* CreateTable(void);
-struct ContextItem* CreateContextItem(void);
-
 void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
+void DestroyLabel(struct Label* _Text, lua_State* _State);
+int LabelOnDraw(struct Widget* _Widget);
+int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
+
+struct Button* CreateButton(void);
 struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
+int ButtonOnUnFocus(struct Widget* _Widget);
+int ButtonOnDraw(struct Widget* _Widget);
+
+struct Table* CreateTable(void);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
 		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
-
-void DestroyLabel(struct Label* _Text, lua_State* _State);
 void DestroyTable(struct Table* _Table, lua_State* _State);
+void TableNewChild(struct Container* _Parent, struct Widget* _Child);
+int TableHorzFocChange(const struct Container* _Container);
 
+struct ContextItem* CreateContextItem(void);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 int ContextItemOnDraw(struct ContextItem* _Container);
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);
 int ContextHorzFocChange(const struct Container* _Container);
-
-int LabelOnDraw(struct Widget* _Widget);
-struct Widget* LabelOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
-int LabelOnUnfocus(struct Widget* _Widget);
-int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
-
-int ButtonOnDraw(struct Widget* _Widget);
-
-void TableNewChild(struct Container* _Parent, struct Widget* _Child);
-int TableHorzFocChange(const struct Container* _Container);
 
 #endif

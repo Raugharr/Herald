@@ -16,6 +16,7 @@
 #include "video/Video.h"
 #include "video/VideoLua.h"
 
+#include "sys/Event.h"
 #include "sys/Log.h"
 #include "sys/HashTable.h"
 #include "sys/LuaCore.h"

@@ -188,6 +188,18 @@ int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* 
 	return 0;
 }
 
+int WorldStateOpCmp(const struct WorldState* _One, const struct WorldState* _Two) {
+	int _Cmp = 0;
+
+	for(int i = 0; i < WORLDSTATESZ; ++i) {
+		for(int j = 0; j < sizeof(WorldState_t); ++j) {
+			if((_Cmp = _One->OpCode[i] - _Two->OpCode[j]) != 0)
+				return _Cmp;
+		}
+	}
+	return _Cmp;
+}
+
 int WorldStateFirstAtom(const struct WorldState* _State) {
 	int _Ct = 0;
 	int _ffs = 0;

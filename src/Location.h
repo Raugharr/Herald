@@ -8,7 +8,6 @@
 #include "sys/LinkedList.h"
 
 #include "video/AABB.h"
-#include "video/Point.h"
 
 #define SETTLEMENT_MINBG (3)
 #define SettlementRaiseFyrd(_Settlement, _ArmyGoal) CreateArmy((_Settlement), &(_Settlement)->Pos, (_Settlement)->Government, (_Settlement)->Government->Leader, (_ArmyGoal))

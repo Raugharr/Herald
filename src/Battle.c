@@ -12,6 +12,8 @@
 #include "Family.h"
 #include "Location.h"
 
+#include "sys/Event.h"
+
 #include <stdlib.h>
 
 #define BATTLE_FIRSTFRONT (BATTLE_MAXFRONTS / 2)
@@ -77,6 +79,10 @@ struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
 	_Battle->Defender.Action = BATTLE_ORGANIZE;
 	_Battle->Defender.Pos = FRONT_STARTRANGE;
 	_Battle->Defender.StartingSize = ArmyGetSize(_Battle->Defender.Army);
+	_Battle->Stats.AttkBegin = _Front->Attacker.UnitCt;
+	_Battle->Stats.AttkCas = 0;
+	_Battle->Stats.DefBegin = _Front->Defender.UnitCt;
+	_Battle->Stats.DefCas = 0;
 	ILL_CREATE(*_List, _Battle);
 	ArmyUpdateStats(_Battle->Attacker.Army);
 	ArmyUpdateStats(_Battle->Defender.Army);
@@ -100,7 +106,7 @@ void BattleEnd(int _Victor, struct Battle* _Battle) {
 	_Battle->Defender.Army->Leader->Prestige += (((float)_DefendSize) / _Battle->Defender.StartingSize) / (((float)_AttackSize) / _Battle->Attacker.StartingSize);
 	if(_Victor == BATTLE_ATTACKER)
 		GovernmentLesserJoin(_Battle->Attacker.Army->Government, _Battle->Defender.Army->Government, GOVREL_TRIBUTE);
-	DestroyBattle(_Battle);
+	PushEvent(EVENT_BATTLE, _Battle, NULL);
 }
 
 void BattleSetupSide(struct Army* _Army, struct FrontSide* _Side) {
@@ -194,15 +200,14 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 		_Warrior = _Warband->Warriors;
 		if(_Warband->Warriors == NULL)
 			return;
+		//FIXME: Somehow every father is a ruler even if more people die than the ruler has children.
 		if((_Father = GetFather(_Warrior->Person)) != NULL
 				&& ((_BGFather = RBSearch(&g_GameWorld.BigGuys, _Father)) != 0)) {
 			if((_Relation = BigGuyGetRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader)) == NULL) {
-				struct Crisis* _Crisis = CreateCrisis(CRISIS_WARDEATH, _BGFather);
-
+				if(CreateCrisis(CRISIS_WARDEATH, _BGFather) == NULL)
+					break;
 				_Relation = CreateBigGuyRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader);
 				CreateBigGuyOpinion(_Relation, BGOPIN_NONE, -20);
-				if(RBSearch(&g_GameWorld.Crisis, &_BGFather->Id) == NULL)
-					RBInsert(&g_GameWorld.Crisis, _Crisis);
 			} else
 				BigGuyAddRelation(_BGFather, _Relation, BGOPIN_NONE, -20);
 		}
@@ -231,6 +236,8 @@ void BattleMelee(struct Battle* _Battle) {
 		UnitStatsIncrMoral(&_Front->Defender.Stats, -((_DefCas / _Front->Defender.UnitCt) * 100));
 		RemoveCasualties(&_Front->Attacker.WarbandList, _AttkCas);
 		RemoveCasualties(&_Front->Defender.WarbandList, _DefCas);
+		_Battle->Stats.AttkCas += _AttkCas;
+		_Battle->Stats.DefCas += _DefCas;
 		_Front->Attacker.UnitCt -= _AttkCas;
 		_Front->Defender.UnitCt -= _DefCas;
 	}

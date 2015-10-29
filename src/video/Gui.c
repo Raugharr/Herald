@@ -10,6 +10,7 @@
 #include "GuiLua.h"
 
 #include "../sys/Stack.h"
+#include "../sys/Event.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -49,7 +50,7 @@ struct GUIFocus* CreateGUIFocus(void) {
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
-	_Widget->IsDraggable = 0;
+	_Widget->IsMoveable = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
 	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;
@@ -57,8 +58,8 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->OnClick = WidgetOnClick;
 	_Widget->SetPosition = WidgetSetPosition;
 	_Widget->OnDraw = NULL;
-	_Widget->OnFocus = NULL;
-	_Widget->OnUnfocus = NULL;
+	_Widget->OnFocus = WidgetOnFocus;
+	_Widget->OnUnfocus = WidgetOnUnfocus;
 	_Widget->OnKeyUp = WidgetOnKeyUp;
 	_Widget->OnDestroy = NULL;
 	_Widget->OnDebug = WidgetOnDebug;
@@ -105,7 +106,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Background.a = 0xFF;
 }
 
-void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
+void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
 	int i;
 	int _X = _Parent->Margins.Left + _Parent->Rect.x;
 	int _Y = _Parent->Margins.Top + _Parent->Rect.y;
@@ -114,10 +115,13 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
-	_Child->Rect.x = _X;
-	_Child->Rect.y = _Y;
+	_Pos->x = _X;
+	_Pos->y = _Y;
 }
 
+/*
+ * FIXME: Check if _Child already has a parent and if it does delete it from the old parent.
+ */
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 	int i = 0;
 
@@ -250,8 +254,11 @@ void ContainerOnDebug(const struct Container* _Container) {
 }
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.x = _Parent->Rect.x;
+	SDL_Point _Pos;
+
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Pos.x = _Parent->Rect.x;
+	_Child->SetPosition(_Child, &_Pos);
 }
 
 void FixedConNewChild(struct Container* _Parent, struct Widget* _Child) {
@@ -260,19 +267,25 @@ void FixedConNewChild(struct Container* _Parent, struct Widget* _Child) {
 }
 
 void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.y = _Parent->Rect.y;
+	SDL_Point _Pos;
+
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Pos.y = _Parent->Rect.y;
+	_Child->SetPosition(_Child, &_Pos);
 }
 
 void ContextItemNewChild(struct Container* _Parent, struct Widget* _Child) {
+	SDL_Point _Pos;
+
 	if(_Parent->Children[0] == _Child) {
 		_Child->Rect.x = _Parent->Rect.x;
 		_Child->Rect.y = _Parent->Rect.y;
 		return;
 	}
-	ContainerPosChild(_Parent, _Child);
-	_Child->Rect.x = _Parent->Children[0]->Rect.w + _Parent->Spacing;
-	_Child->Rect.y = _Child->Rect.y - _Parent->Children[0]->Rect.h;
+	ContainerPosChild(_Parent, _Child, &_Pos);
+	_Child->SetPosition(_Child, &_Pos);
+	//_Child->Rect.x = _Parent->Children[0]->Rect.w + _Parent->Spacing;
+	//_Child->Rect.y = _Child->Rect.y - _Parent->Children[0]->Rect.h;
 	_Parent->VertFocChange = _Parent->ChildCt;
 }
 
@@ -370,12 +383,16 @@ int WidgetCheckVisibility(const struct Widget* _Widget) {
 	return (_Widget->Rect.x < (_Widget->Parent->Rect.x + _Widget->Parent->Rect.w)) & (_Widget->Rect.y < (_Widget->Parent->Rect.y + _Widget->Parent->Rect.h));
 }
 
-int ContextHorzFocChange(const struct Container* _Container) {
-	//if(g_Focus->Id == _Container->Children[0]->Id)
-	//	return 1;
-	return 1;
-}
-
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
 	return _Parent->Rect.x + (((_Parent ->Rect.w) / 2) - (_Widget ->Rect.w / 2));
+}
+
+struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
+	if(PointInAABB(_Point, &_Widget->Rect) == 0)
+		return NULL;
+	return _Widget;
+}
+
+int WidgetOnUnfocus(struct Widget* _Widget) {
+	return 1;
 }

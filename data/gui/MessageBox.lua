@@ -13,6 +13,7 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			Menu.Screen:Close()
 		end)
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

@@ -5,8 +5,6 @@
 #ifndef __AABB_H
 #define __AABB_H
 
-#include "Point.h"
-
 #include <SDL2/SDL.h>
 
 typedef struct SDL_Rect SDL_Rect;

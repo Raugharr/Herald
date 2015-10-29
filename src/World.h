@@ -112,7 +112,7 @@ void WorldQuit();
 int GameDefaultClick(const struct Object* _One, const struct Object* _Two);
 int GameFyrdClick(const struct Object* _One, const struct Object* _Two);
 void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World);
-void GameWorldDraw(const struct KeyMouseState* _State, struct GameWorld* _World);
+void GameWorldDraw(struct GameWorld* _World);
 void CreateTempMap(int _Length);
 int World_Tick();
 

@@ -1,4 +1,5 @@
 Menu.__savestate = false;
+Menu.moveable = true;
 
 function NonPlayerActions(Menu, Person)
 	Menu:CreateButton("Influence", 
@@ -99,6 +100,7 @@ function Menu.Init(Menu, Width, Height, Person)
 		function()
 			Menu.Screen:Close()
 		end)
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

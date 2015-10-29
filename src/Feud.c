@@ -14,6 +14,7 @@
 
 #include "sys/Array.h"
 #include "sys/Math.h"
+#include "sys/Event.h"
 
 #include <stdlib.h>
 
@@ -47,6 +48,7 @@ struct Feud* CreateFeud(struct BigGuy* _SideOne, struct BigGuy* _SideTwo) {
 	_Feud->Leader[1] = _SideTwo;
 	FeudAddBigGuy(_Feud, _SideOne->Person->Family);
 	FeudAddBigGuy(_Feud, _SideTwo->Person->Family);
+	PushEvent(EVENT_FEUD, _SideOne, _SideTwo);
 	return _Feud;
 }
 

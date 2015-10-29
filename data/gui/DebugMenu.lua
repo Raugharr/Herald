@@ -1,17 +1,17 @@
 Menu.__savestate = true;
+Menu.moveable = true;
 
 function Menu.Init(Menu, Width, Height, Data)
-	local Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
+	Menu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
 	local Columns = 16
 	local DTable = Screen:CreateTable(4, Columns, 0, {0, 0, 0, 0})
 	local PersonData = nil
 	local PersonInfo = ""
 	
-	Menu.Screen = Screen
 	Menu.DTable:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 	Menu.DTable:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-	Screen:CreateLabel("Back"):OnKey("Enter", "Released", 
+	Menu.Screen:CreateLabel("Back"):OnKey("Enter", "Released", 
 		function() 
 			GUI.PopMenu()
 		end)
@@ -32,4 +32,5 @@ function Menu.Init(Menu, Width, Height, Data)
 		DTable:CreateLabel(PrintYears(PersonInfo.Age))
 		DTable:CreateLabel(PersonInfo.Nutrition)
 	end
+	return Menu.Screen
 end

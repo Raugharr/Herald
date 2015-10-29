@@ -35,6 +35,7 @@ int LuaBGGetRelation(lua_State* _State);
 int LuaBGSetOpinion(lua_State* _State);
 int LuaBGSetAction(lua_State* _State);
 int LuaBGImproveRelationTarget(lua_State* _State);
+int LuaBGKill(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);
 

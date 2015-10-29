@@ -1,4 +1,5 @@
 Menu.__savestate = false;
+Menu.moveable = true;
 
 function RelationToStr(Guy, Target)
 	local Relation = Guy:GetRelation(Target)
@@ -64,6 +65,7 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			Menu.Screen:Close()
 		end)
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

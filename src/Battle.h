@@ -49,6 +49,12 @@ struct Battle {
 	struct BattleSide Defender;
 	int Range; //How far the armies are away from each other.
 	struct Front Fronts[BATTLE_MAXFRONTS];
+	struct {
+		int AttkBegin; //Beginning attackers man count
+		int AttkCas;
+		int DefBegin;
+		int DefCas;
+	} Stats;
 	struct Battle* Next;
 	struct Battle* Prev;
 };

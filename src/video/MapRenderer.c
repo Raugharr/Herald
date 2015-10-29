@@ -7,7 +7,6 @@
 
 #include "Sprite.h"
 #include "Tile.h"
-#include "Point.h"
 #include "Video.h"
 #include "../sys/Math.h"
 #include "../Warband.h"
@@ -21,7 +20,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize) {
+struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize) {
 	struct MapRenderer* _Map = (struct MapRenderer*) malloc(sizeof(struct MapRenderer));
 
 	_Map->OddGrass = IMG_LoadTexture(g_Renderer, "data/graphics/grass.png");
@@ -50,8 +49,8 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, struct Point* _RenderSize)
 	}
 	_Map->Screen.x = 0;
 	_Map->Screen.y = 0;
-	_Map->Screen.w = _RenderSize->X;
-	_Map->Screen.h = _RenderSize->Y;
+	_Map->Screen.w = _RenderSize->x;
+	_Map->Screen.h = _RenderSize->y;
 	MapLoad(_Map);
 	return _Map;
 }

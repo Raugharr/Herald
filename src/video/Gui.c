@@ -50,7 +50,7 @@ struct GUIFocus* CreateGUIFocus(void) {
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
-	_Widget->IsMoveable = 0;
+	_Widget->IsDraggable = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
 	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;
@@ -67,6 +67,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->Rect.y = _Rect->y;
 	_Widget->Rect.w = _Rect->w;
 	_Widget->Rect.h = _Rect->h;
+	_Widget->OnDrag = WidgetOnDrag;
 	if(_Parent != NULL) {
 		WidgetSetParent(_Parent, _Widget);
 		if(WidgetCheckVisibility(_Widget) == 0) {
@@ -100,6 +101,7 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->VertFocChange = 1;
 	_Widget->HorzFocChange = ContainerHorzFocChange;
 	_Widget->OnDebug = (void(*)(const struct Widget*))ContainerOnDebug;
+	_Widget->OnDrag = (struct Widget*(*)(struct Widget*, const SDL_Point*))ContainerOnDrag;
 	_Widget->Background.r = 0;
 	_Widget->Background.g = 0;
 	_Widget->Background.b = 0;
@@ -117,6 +119,20 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Poi
 	}
 	_Pos->x = _X;
 	_Pos->y = _Y;
+}
+
+struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point* _Pos) {
+	struct Widget* _Child = NULL;
+
+	if(_Widget->IsDraggable == 0) {
+		for(int i = 0; i < _Widget->ChildCt; ++i) {
+			_Child = _Widget->Children[i];
+			if(_Child->OnDrag(_Child, _Pos) != NULL)
+				return _Child;
+		}
+		return NULL;
+	}
+	return (PointInAABB(_Pos, &_Widget->Rect) != 0) ? ((struct Widget*)_Widget) : (NULL);
 }
 
 /*
@@ -156,6 +172,12 @@ void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event) {
 
 void WidgetSetVisibility(struct Widget* _Widget, int _Visibility) {
 	_Widget->IsVisible = (WidgetCheckVisibility(_Widget) && (_Visibility != 0));
+}
+
+struct Widget* WidgetOnDrag(struct Widget* _Widget, const struct SDL_Point* _Pos) {
+	if(PointInAABB(_Pos, &_Widget->Rect) != 0)
+		return NULL;
+	return (_Widget->IsDraggable == 0) ? (NULL) : (_Widget);
 }
 
 void DestroyWidget(struct Widget* _Widget, lua_State* _State) {

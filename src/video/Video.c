@@ -178,9 +178,9 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		}
 	}
 	if(_State->MouseState == SDL_PRESSED) {
-		struct Widget* _Widget = _Screen->OnClick((struct Widget*)_Screen, &_State->MousePos);
+		struct Widget* _Widget = _Screen->OnDrag((struct Widget*)_Screen, &_State->MousePos);
 
-		if(_Widget == NULL || _Widget->IsMoveable == 0)
+		if(_Widget == NULL || _Widget->IsDraggable == 0)
 			return 1;
 		g_DraggableWidget.Widget = _Widget;
 		g_DraggableWidget.Offset.x = _State->MousePos.x - _Widget->Rect.x;

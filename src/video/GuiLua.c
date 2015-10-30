@@ -381,7 +381,7 @@ int LuaCreateWindow(lua_State* _State) {
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	_Container = LuaCheckClass(_State, lua_absindex(_State, -1), "Container");
 	WidgetSetParent(_Parent, (struct Widget*) _Container);
-	_Container->IsMoveable = 1;
+	_Container->IsDraggable = 1;
 	return 1;
 }
 

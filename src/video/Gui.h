@@ -31,7 +31,8 @@ typedef struct lua_State lua_State;
 	void (*SetPosition)(struct Widget*, const SDL_Point*);					\
 	int (*OnUnfocus)(struct Widget*);										\
 	void (*OnDebug)(const struct Widget*);									\
-	void (*OnDestroy)(struct Widget*, lua_State*)
+	void (*OnDestroy)(struct Widget*, lua_State*);							\
+	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*)
 
 #define DECLARE_CONTAINER											\
 	DECLARE_WIDGET;													\
@@ -106,11 +107,13 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
 struct Font* CreateFont(const char* _Name, int _Size);
 
-void ContainerPosChild(struct Container* _Parent, struct Widget* _Child);
+void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);
+struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point* _Pos);
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
 void WidgetSetVisibility(struct Widget* _Widget, int _Visibility);
+struct Widget* WidgetOnDrag(struct Widget* _Widget, const struct SDL_Point* _Pos);
 /**
  * Deconstructors
  */
@@ -160,4 +163,6 @@ void WidgetOnDebug(const struct Widget* _Widget);
 int WidgetCheckVisibility(const struct Widget* _Widget);
 
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget);
+struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
+int WidgetOnUnfocus(struct Widget* _Widget);
 #endif

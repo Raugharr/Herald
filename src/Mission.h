@@ -63,7 +63,6 @@ struct Mission {
 	int Type;
 	char* Name;
 	char* Description;
-	char* LuaTable;
 	struct WorldState Trigger;
 	struct MissionOption Options[MISSION_MAXOPTIONS];
 	struct Rule* OnTrigger;
@@ -122,11 +121,15 @@ int LuaMissionSetDesc(lua_State* _State);
 int LuaMissionAddOption(lua_State* _State);
 int LuaMissionAddTrigger(lua_State* _State);
 int LuaMissionGetOwner(lua_State* _State);
+int LuaMissionGetTarget(lua_State* _State);
 int LuaMissionGetRandomPerson(lua_State* _State);
 int LuaMissionSetMeanTime(lua_State* _State);
 int LuaMissionSetId(lua_State* _State);
 int LuaMissionOnTrigger(lua_State* _State);
 int LuaMissionCallById(lua_State* _State);
+
+int LuaMissionLoad(lua_State* _State);
+int LuaMissionFuncWrapper(lua_State* _State);
 
 struct GenIterator* CrisisCreateItr(void* _Tree);
 

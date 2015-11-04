@@ -187,4 +187,6 @@ void LuaSetEnv(lua_State* _State, const char* _Env);
 void LuaGetEnv(lua_State* _State, const char* _Env);
 int LuaClassIndex(lua_State* _State);
 
+void InitMissionLua(lua_State* _State);
+
 #endif

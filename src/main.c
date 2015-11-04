@@ -38,47 +38,13 @@
 	#include <sys/io.h>
 #endif
 
-static const luaL_Reg g_LuaFuncsMission[] = {
-		{"SetName", LuaMissionSetName},
-		{"SetDesc", LuaMissionSetDesc},
-		{"AddOption", LuaMissionAddOption},
-		{"AddTrigger", LuaMissionAddTrigger},
-		{"Owner", LuaMissionGetOwner},
-		{"GetRandomPerson", LuaMissionGetRandomPerson},
-		{"GetImprovingRelation", NULL},
-		{"SetMeanTime", LuaMissionSetMeanTime},
-		{"SetId", LuaMissionSetId},
-		{"OnTrigger", LuaMissionOnTrigger},
-		{"CallById", LuaMissionCallById},
-		{NULL, NULL},
-};
-
 int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
 
-	lua_settop(g_LuaState, 0);
-	luaL_newlib(g_LuaState, g_LuaFuncsMission);
-	luaL_getmetatable(g_LuaState, "BigGuy");
-	lua_createtable(g_LuaState, 0, 0);
-	LuaCopyTable(g_LuaState, -2);
-	lua_setmetatable(g_LuaState, -2);
-
-	lua_pushstring(g_LuaState, "LessThan");
-	lua_pushinteger(g_LuaState, WSOP_LESSTHAN);
-	lua_rawset(g_LuaState, -3);
-
-	lua_pushstring(g_LuaState, "GreaterThan");
-	lua_pushinteger(g_LuaState, WSOP_GREATERTHAN);
-	lua_rawset(g_LuaState, -3);
-
-	lua_pushstring(g_LuaState, "Equal");
-	lua_pushinteger(g_LuaState, WSOP_EQUAL);
-	lua_rawset(g_LuaState, -3);
-	lua_setglobal(g_LuaState, "Mission");
-
+	InitMissionLua(g_LuaState);
 	InitVideoLua(g_LuaState);
 	lua_newtable(g_LuaState);
 	lua_pushstring(g_LuaState, "__index");

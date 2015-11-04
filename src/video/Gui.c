@@ -50,7 +50,7 @@ struct GUIFocus* CreateGUIFocus(void) {
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
-	_Widget->IsMoveable = 0;
+	_Widget->IsDraggable = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
 	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;

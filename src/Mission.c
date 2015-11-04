@@ -33,6 +33,7 @@
 #include <dirent.h>
 #include <malloc.h>
 #include <assert.h>
+#include <ctype.h>
 
 #define MISSION_STACKSZ (8)
 #define USEDMISSION_ARRAYSZ (10)
@@ -45,6 +46,7 @@ static struct MemoryPool* g_MissionUsed = NULL;
 
 struct MissionData {
 	struct BigGuy* Triggerer;
+	struct BigGuy* Target;
 	struct BigGuy* Stack[MISSION_STACKSZ];
 	int StackSz;
 	struct {
@@ -97,6 +99,28 @@ struct MissionData* CreateMissionData(struct BigGuy* _Triggerer) {
 
 void DestroyMissionData(struct MissionData* _MissionData) {
 	free(_MissionData);
+}
+
+int MissionStrToId(const char* _Str) {
+	int _Id = 0;
+	int _TempId = 0;
+	const char* _Namespace = strchr(_Str, '.');
+
+	if(_Namespace == NULL || strchr(_Namespace + 1, '.') != NULL || strlen(_Namespace + 1) > 3)
+		return -1;
+	if(_Namespace - _Str > 5)
+		return -1;
+	for(int i = 0; i < 5; ++i) {
+		if(_Str[i] == '.')
+			break;
+		if(isalpha(_Str[i]) == 0 || islower(_Str[i]))
+			return -1;
+		_Id = _Id + ((_Str[i] - 'A') << (5 * i));
+	}
+	_TempId = atoi(_Namespace + 1);
+	if(_TempId > 127)
+		return -1;
+	return _Id + (_TempId << 25);
 }
 
 const struct QueuedMission* UsedMissionEarliestDate(const struct  QueuedMission* _Queued) {
@@ -186,7 +210,6 @@ struct Mission* CreateMission() {
 	_Mission->Type = 0;
 	_Mission->Name = NULL;
 	_Mission->Description = NULL;
-	_Mission->LuaTable = NULL;
 	_Mission->OptionCt = 0;
 	_Mission->OnTrigger = NULL;
 	WorldStateClear(&_Mission->Trigger);
@@ -222,12 +245,8 @@ int UsedMissionSearch(const struct UsedMissionSearch* _One, const struct QueuedM
 }
 
 void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine) {
-	int i = 0;
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
-	char* _TableName = NULL;
-	char* _SubString = NULL;
-	struct Mission* _Mission = NULL;
 
 	chdir("data/missions");
 	_Dir = opendir("./");
@@ -235,48 +254,18 @@ void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine) {
 	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
 			continue;
-		_Mission = CreateMission();
-		lua_pushvalue(_State, LUA_REGISTRYINDEX);
-		lua_pushstring(_State, MISSION_LUASTR);
-		lua_pushlightuserdata(_State, _Mission);
-		lua_rawset(_State, -3);
 		//FIXME: If one Mission cannot be loaded then all missions after it will not be loaded either.
-		if(LuaLoadFile(_State, _Dirent->d_name, NULL) != LUA_OK) {
-			lua_pushvalue(_State, LUA_REGISTRYINDEX);
-			lua_pushstring(_State, MISSION_LUASTR);
-			lua_pushnil(_State);
-			lua_rawset(_State, -3);
+		if(LuaLoadFile(_State, _Dirent->d_name, "Mission") != LUA_OK) {
 			goto error;
 		}
-		lua_pushvalue(_State, LUA_REGISTRYINDEX);
-		lua_pushstring(_State, MISSION_LUASTR);
-		lua_pushnil(_State);
-		lua_rawset(_State, -3);
-		_SubString = strrchr(_Dirent->d_name, '.');
-		_TableName = alloca(sizeof(char) * (strlen(_Dirent->d_name) + 1));
-		while(&_Dirent->d_name[i] != _SubString) {
-			_TableName[i] = _Dirent->d_name[i];
-			++i;
-		}
-		_TableName[i] = '\0';
-		_Mission->LuaTable = calloc(sizeof(char), strlen(_TableName) + 1);
-		strcpy(_Mission->LuaTable, _TableName);
-		MissionInsert(_Engine, _Mission);
-		//RBInsert(_List, _Mission/*LoadMission(_State, _TableName*/);
-		Log(ELOG_INFO, "Loaded mission %s", _TableName);
-		i = 0;
 	}
-	goto end;
 	error:
-	free(_Mission);
-	end:
 	chdir("../..");
 }
 
 void DestroyMission(struct Mission* _Mission) {
 	free(_Mission->Name);
 	free(_Mission->Description);
-	free(_Mission->LuaTable);
 	free(_Mission);
 }
 
@@ -350,12 +339,19 @@ void MissionSelect(struct MissionEngine* _Engine, void* _Object, struct BigGuy* 
 	while(_Itr != NULL) {
 		if(WorldStateTruth(_State, &((struct Mission*)_Itr->Data)->Trigger) != 0)
 			goto found_mission;
+		_Itr = _Itr->Next;
 		++_Ct;
 	}
 	goto missiontype_select;
 	found_mission:
-	_Rnd = Random(0, _List->Size - (1 + _Ct));
-	for(int i = 0; i < _Rnd; ++i) _Itr = _Itr->Next;
+	_Rnd = Random(0, (_List->Size - _Ct) + 1);
+	for(int i = 0; i < _Rnd;) {
+		if(WorldStateTruth(_State, &((struct Mission*)_Itr->Data)->Trigger) != 0)
+			++i;
+		_Itr = _Itr->Next;
+		if(_Itr == NULL)
+			_Itr = _List->Front;
+	}
 	_Mission = (struct Mission*)_Itr->Data;
 	//NOTE: Can _Element and _Used be combined into one variable? The parameters are very similar.
 	_Element = MemPoolAlloc(g_MissionQueuePool);
@@ -642,6 +638,21 @@ int LuaMissionGetOwner(lua_State* _State) {
 	return 1;
 }
 
+int LuaMissionGetTarget_Aux(lua_State* _State) {
+	if(g_MissionData->Target == NULL)
+		lua_pushnil(_State);
+	else {
+		LuaCtor(_State, "BigGuy", g_MissionData->Target);
+	}
+	return 1;
+}
+
+int LuaMissionGetTarget(lua_State* _State) {
+	lua_pushcfunction(_State, LuaMissionGetTarget_Aux);
+	LuaRuleLuaCall(_State);
+	return 1;
+}
+
 int LuaMissionGetRandomPerson_Aux(lua_State* _State) {
 	int _IsUnique = 0;
 	struct Settlement* _Settlement = NULL;
@@ -714,13 +725,16 @@ int LuaMissionSetMeanTime(lua_State* _State) {
 
 int LuaMissionSetId(lua_State* _State) {
 	struct Mission* _Mission = NULL;
-	int _Id = luaL_checkinteger(_State, 1);
+	int _Id = 0;
+	const char* _Str = luaL_checkstring(_State, 1);
 
 	lua_pushvalue(_State, LUA_REGISTRYINDEX);
 	lua_pushstring(_State, MISSION_LUASTR);
 	lua_rawget(_State, -2);
 	_Mission = lua_touserdata(_State, -1);
 	if(_Mission == NULL)
+		return 0;
+	if((_Id = MissionStrToId(_Str)) == -1)
 		return 0;
 	if(RBSearch(&g_MissionEngine.MissionId, &_Id) != NULL) {
 		return luaL_error(_State, "Cannot load mission with id %d. Id is already in use.", _Id);
@@ -743,14 +757,179 @@ int LuaMissionOnTrigger(lua_State* _State) {
 }
 
 int LuaMissionCallById(lua_State* _State) {
-	int _Id = luaL_checkint(_State, 1);
+	const char* _Str = luaL_checkstring(_State, 1);
+	int _Id = 0;
 	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
 	struct Mission* _Mission = NULL;
 
+	if((_Id = MissionStrToId(_Str)) == -1)
+			return 0;
 	if((_Mission = RBSearch(&g_MissionEngine.MissionId, &_Id)) == NULL)
 		return luaL_error(_State, "Attempted to call nil mission #%d", _Id);
 	MissionCall(_State, _Mission, _Guy);
 	return 0;
+}
+
+void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
+	const char* _Text = NULL;
+	struct Rule* _Condition = NULL;
+	struct Rule* _Trigger = NULL;
+
+	lua_pushstring(_State, "Options");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TTABLE)
+		luaL_error(_State, "Mission's options is not a table.");
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(_Mission->OptionCt >= MISSION_MAXOPTIONS) {
+			lua_pop(_State, 1);
+			break;
+		}
+		if(lua_type(_State, -1) != LUA_TTABLE)
+			return (void) luaL_error(_State, "Mission.Options entry is not a table.");
+		_Text = NULL;
+		_Condition = NULL;
+		_Trigger = NULL;
+		lua_pushstring(_State, "Text");
+		lua_rawget(_State, -2);
+		LuaGetString(_State, -1, &_Text);
+		lua_pop(_State, 1);
+
+		lua_pushstring(_State, "Condition");
+		lua_rawget(_State, -2);
+		_Condition = LuaCheckClass(_State, -1, "Rule");
+		lua_pop(_State, 1);
+
+		lua_pushstring(_State, "Trigger");
+		lua_rawget(_State, -2);
+		_Trigger = LuaCheckClass(_State, -1, "Rule");
+		lua_pop(_State, 1);
+
+		if(_Text == NULL || _Condition == NULL || _Trigger == NULL)
+			return (void) luaL_error(_State, "Mission.Option entry is incomplete.");
+		_Mission->Options[_Mission->OptionCt].Name = calloc(sizeof(char), strlen(_Text) + 1);
+		strcpy(_Mission->Options[_Mission->OptionCt].Name, _Text);
+		_Mission->Options[_Mission->OptionCt].Condition = _Condition;
+		_Mission->Options[_Mission->OptionCt].Action = _Trigger;
+		++_Mission->OptionCt;
+		lua_pop(_State, 1);
+	}
+}
+
+void MissionLoadTrigger(lua_State* _State, struct Mission* _Mission) {
+	const char* _Name = NULL;
+	const char* _Type = NULL;
+	int _OpCode = 0;
+	int _Value = 0;
+
+	lua_pushstring(_State, "Name");
+	lua_rawget(_State, -2);
+	LuaGetString(_State, -1, &_Name);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "Type");
+	lua_rawget(_State, -2);
+	LuaGetString(_State, -1, &_Type);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "OpCode");
+	lua_rawget(_State, -2);
+	LuaGetInteger(_State, -1, &_OpCode);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "Value");
+	lua_rawget(_State, -2);
+	LuaGetInteger(_State, -1, &_Value);
+	lua_pop(_State, 1);
+
+	if(_OpCode < WSOP_NOT || _OpCode > WSOP_LESSTHANEQUAL)
+		return (void) luaL_error(_State, "%d is an invalid trigger op code.", _OpCode);
+	if(strcmp(_Name, "BigGuy") != 0) {
+		for(int i = 0; i < MISSIONCAT_SIZE; ++i)
+			if(strcmp(_Name, g_MissionEngine.Categories[i].Name) == 0) {
+				MissionAddTriggerSetOp(_State, _Type, g_MissionEngine.Categories[i].StateStr, g_MissionEngine.Categories[i].StateSz, &_Mission->Trigger, _Value, _OpCode);
+				_Mission->Type = MISSION_TYPE(i);
+				return;
+			}
+	} else {
+		MissionAddTriggerSetOp(_State, _Type, g_BGStateStr, BGBYTE_SIZE, &_Mission->Trigger, _Value, _OpCode);
+		_Mission->Type = MISSION_BGTYPE;
+		return;
+	}
+	return (void) luaL_error(_State, "%s: is not a valid trigger type.", _Name);
+}
+
+int LuaMissionLoad(lua_State* _State) {
+	struct Mission* _Mission = CreateMission();
+	const char* _TempStr = NULL;
+	int _Id = 0;
+
+	luaL_checktype(_State, 1, LUA_TTABLE);
+	lua_pushstring(_State, "Name");
+	lua_rawget(_State, 1);
+	if(lua_type(_State, -1) != LUA_TSTRING)
+		luaL_error(_State, "Mission's name is not a string.");
+	_TempStr = lua_tostring(_State, -1);
+	_Mission->Name = calloc(sizeof(char), strlen(_TempStr) + 1);
+	strcpy(_Mission->Name, _TempStr);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "Description");
+	lua_rawget(_State, 1);
+	if(lua_type(_State, -1) != LUA_TSTRING)
+		luaL_error(_State, "Mission's description is not a string.");
+	_TempStr = lua_tostring(_State, -1);
+	_Mission->Description = calloc(sizeof(char), strlen(_TempStr) + 1);
+	strcpy(_Mission->Description, _TempStr);
+	lua_pop(_State, 1);
+
+	MissionLoadOption(_State, _Mission);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "Id");
+	lua_rawget(_State, 1);
+	if(lua_type(_State, -1) != LUA_TSTRING)
+		luaL_error(_State, "Mission's Id is not a string.");
+	if((_Id = MissionStrToId((_TempStr = lua_tostring(_State, -1)))) == -1)
+		return 0;
+	if(RBSearch(&g_MissionEngine.MissionId, &_Id) != NULL) {
+		return luaL_error(_State, "Cannot load mission with id %d. Id is already in use.", _Id);
+	}
+	_Mission->Id = _Id;
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "Trigger");
+	lua_rawget(_State, 1);
+	if(lua_type(_State, -1) != LUA_TTABLE)
+		return luaL_error(_State, "Mission.Trigger is not a table.");
+	MissionLoadTrigger(_State, _Mission);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "MeanTime");
+	lua_rawget(_State, 1);
+	LuaGetInteger(_State, -1, &_Mission->MeanTime);
+	lua_pop(_State, 1);
+
+	lua_pushstring(_State, "OnTrigger");
+	lua_rawget(_State, 1);
+	if(lua_isnil(_State, -1) == 0)
+		_Mission->OnTrigger = LuaCheckClass(_State, -1, "Rule");
+	else
+		_Mission->OnTrigger = NULL;
+	lua_pop(_State, 1);
+
+	MissionInsert(&g_MissionEngine, _Mission);
+	Log(ELOG_INFO, "Loaded mission %s", _Mission->Name);
+	return 0;
+}
+
+int LuaMissionFuncWrapper(lua_State* _State) {
+	int _Index = lua_upvalueindex(1);
+
+	lua_pushvalue(_State, _Index);
+	lua_insert(_State, 1);
+	LuaRuleLuaCall(_State);
+	return 1;
 }
 
 struct GenIterator* CrisisCreateItr(void* _Tree) {

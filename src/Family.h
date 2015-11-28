@@ -52,7 +52,7 @@ void Marry(struct Person* _Male, struct Person* _Female);
 void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType** _FamilyTypes, int _X, int _Y, struct Settlement* _Location);
 void FamilyGetGood(struct Family* _Family, struct Good* _Good);
 struct Good* FamilyTakeGood(struct Family* _Family, int _Index, int _Quantity);
-struct Population* FamilyTakeAnimal(struct Family* _Family, int _Index);
+struct Animal* FamilyTakeAnimal(struct Family* _Family, int _Index);
 /**
  * Returns the yearly requirement of nutrition needed to feed the people in the family _Family.
  */
@@ -60,6 +60,8 @@ int FamilyNutReq(const struct Family* _Family);
 int FamilyGetNutrition(const struct Family* _Family);
 struct Settlement* FamilyGetSettlement(struct Family* _Family);
 int FamilyNextId();
+int FamilyCountAcres(const struct Family* _Family);
+int FamilyExpectedYield(const struct Family* _Family);
 
 #endif
 

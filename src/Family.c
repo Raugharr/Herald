@@ -109,6 +109,9 @@ void DestroyFamily(struct Family* _Family) {
 	free(_Family);
 }
 
+/*
+ * FIXME: Shouldn't return a Food* as it is not used by anything that calls this function.
+ */
 struct Food* FamilyMakeFood(struct Family* _Family) {
 	int _Size;
 	int i;
@@ -141,6 +144,8 @@ struct Food* FamilyMakeFood(struct Family* _Family) {
 		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Family->Id);
 	end:
 	free(_Foods);
+	if((_FamFood->Base->Category & EFOOD) != EFOOD)
+		FamilyMakeFood(_Family);
 	return _FamFood;
 }
 
@@ -167,31 +172,23 @@ void FamilyWorkField(struct Family* _Family) {
 		} else if(_Field->Status > EFALLOW) {
 			if(_Field->Status == EHARVESTING)
 				FieldHarvest((struct Field*)_Field, _Family->Goods);
-			else
-				FieldWork(_Field, ActorWorkMult((struct Actor*)_Family->People[0]));
+			else {
+				for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
+					if(_Family->People[i] != NULL && _Family->People[i]->Gender == EMALE) {
+						FieldWork(_Field, ActorWorkMult((struct Actor*)_Family->People[i]));
+						break;
+					}
+				}
+			}
 		}
 	}
 }
 
 int FamilyThink(struct Family* _Family) {
-	int i = 0;
-	int _PersonHungry = 0;
-	struct Food* _Food = NULL;
-
 	FamilyWorkField(_Family);
-	if((_Food = FamilyMakeFood(_Family)) == NULL)
-		goto hungry_person;
-	for(i = 0; _Family->People[i] != NULL && i < FAMILY_PEOPLESZ; ++i) {
+	FamilyMakeFood(_Family);
+	for(int i = 0; _Family->People[i] != NULL && i < FAMILY_PEOPLESZ; ++i) {
 		PersonThink(_Family->People[i]);
-		if(_Food->Quantity > 0) {
-			_Family->People[i]->Nutrition += _Food->Base->Nutrition;
-			--_Food->Quantity;
-		} else
-			_PersonHungry = 1;
-	}
-	if(_PersonHungry != 0) {
-		hungry_person:
-		EventPush(CreateEventStarvingFamily(_Family));
 	}
 	return 1;
 }
@@ -359,8 +356,8 @@ struct Good* FamilyTakeGood(struct Family* _Family, int _Index, int _Quantity) {
 	return _Good;
 }
 
-struct Population* FamilyTakeAnimal(struct Family* _Family, int _Index) {
-	struct Population* _Animal = NULL;
+struct Animal* FamilyTakeAnimal(struct Family* _Family, int _Index) {
+	struct Animal* _Animal = NULL;
 
 	if(_Index < 0 || _Index >= _Family->Animals->Size)
 		return NULL;
@@ -404,3 +401,27 @@ struct Settlement* FamilyGetSettlement(struct Family* _Family) {
 }
 
 int FamilyNextId() {return g_FamilyId++;}
+
+int FamilyCountAcres(const struct Family* _Family) {
+	struct Field* _Field = NULL;
+	int _Acres = 0;
+
+	for(int i = 0; i < _Family->Fields->Size; ++i) {
+		_Field = (struct Field*) _Family->Fields->Table[i];
+		_Acres = _Acres + _Field->Acres + _Field->UnusedAcres;
+	}
+	return _Acres;
+}
+
+int FamilyExpectedYield(const struct Family* _Family) {
+	struct Field* _Field = NULL;
+	int _Yield = 0;
+
+	for(int i = 0; i < _Family->Fields->Size; ++i) {
+		_Field = (struct Field*) _Family->Fields->Table[i];
+		if(_Field->Crop == NULL)
+			continue;
+		_Yield = _Yield + ((_Field->Acres * ((_Field->Crop->YieldMult - 1) * (_Field->Crop->SeedsPerAcre / OUNCE)) * _Field->Crop->NutVal)); //-1 to YieldMult as we assume some of the seeds will be used to regrow the crop.
+	}
+	return _Yield;
+}

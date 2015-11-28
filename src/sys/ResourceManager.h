@@ -26,6 +26,13 @@ struct Resource;
 #define DIR_CHAR '\\'
 #define DIR_STR "\\"
 #endif
+
+#ifndef WINDOWS
+	#define O_BINARY 0
+	#define S_IREAD S_IRUSR
+	#define S_IWRITE S_IWUSR
+#endif
+
 #if LINUX
 #define DIR_CHAR '/'
 #define DIR_STR "/"

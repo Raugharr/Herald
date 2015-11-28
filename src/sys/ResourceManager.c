@@ -66,7 +66,12 @@ struct Resource {
 };
 
 SDL_Texture* ResourceLoadPng(SDL_RWops* _Ops) {
-	return SurfaceToTexture(IMG_LoadPNG_RW(_Ops));
+	SDL_Surface* _Surface = IMG_LoadPNG_RW(_Ops);
+
+	if(_Surface != NULL)
+		return SurfaceToTexture(_Surface);
+	Log(ELOG_ERROR, "Cannot convert SDL surface: %s", IMG_GetError());
+	return NULL;
 }
 
 struct ResourceManager g_RsrMgr;
@@ -94,14 +99,10 @@ void ResourceManagementQuit() {
 
 char* GetFile(const char* _Filename, char* _Buffer, int* _Len) {
 	int _File = 0;
-//#ifdef DWINDOWS
-	if((_File = open(_Filename, O_RDONLY | _O_BINARY)) < 0)
-//#else
-	if((_File = open(_Filename, O_RDONLY)) < 0)
-//#endif
-		return 0;
 	int _Size = -1;
 
+	if((_File = open(_Filename, O_RDONLY | O_BINARY)) < 0)
+		return 0;
 	_Size = lseek(_File, 0, SEEK_END);
 	lseek(_File, 0, SEEK_SET);
 	read(_File, _Buffer, _Size);
@@ -433,7 +434,7 @@ void CreatePak(const char* _DirName) {
 	/*
 	 * Writing the data.
 	 */
-	if((_OutFile = open(_Header.Name, _O_WRONLY | _O_CREAT | _O_TRUNC | _O_BINARY, S_IREAD | S_IWRITE)) < 0) {
+	if((_OutFile = open(_Header.Name, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, S_IREAD | S_IWRITE)) < 0) {
 		Log(ELOG_ERROR, FILE_ERROR, _Header.Name, strerror(errno));
 		goto end;
 	}
@@ -600,5 +601,7 @@ int ResourceExists(const char* _FilePath) {
 }
 
 void* ResourceGetData(struct Resource* _Res) {
+	if(_Res == NULL)
+		return NULL;
 	return _Res->Data;
 }

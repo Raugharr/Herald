@@ -34,6 +34,8 @@ void ActorDeath(struct Actor* _Actor) {
 
 void ActorThink(struct Actor* _Actor) {
 	_Actor->Nutrition -= NUTRITION_LOSS;
+	if(_Actor->Nutrition < 0)
+		_Actor->Nutrition = 0;
 	NextDay(&_Actor->Age);
 }
 

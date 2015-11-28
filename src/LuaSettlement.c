@@ -12,6 +12,8 @@
 #include "Warband.h"
 #include "ArmyGoal.h"
 #include "World.h"
+#include "Family.h"
+#include "Person.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -68,6 +70,8 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 		{"SetOpinion", LuaBGSetOpinion},
 		{"SetAction", LuaBGSetAction},
 		{"ImproveRelationTarget", LuaBGImproveRelationTarget},
+		{"GetSettlement", LuaBGGetSettlement},
+		{"GetFamily", LuaBGGetFamily},
 		{"Kill", LuaBGKill},
 		{NULL, NULL}
 };
@@ -84,6 +88,12 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 		{"GetPopulation", LuaSettlementGetPopulation},
 		{"CountWarriors", LuaSettlementCountWarriors},
 		{"GetBigGuys", LuaSettlementGetBigGuys},
+		{"GetNutrition", LuaSettlementGetNutrition},
+		{"GetYearlyNutrition", LuaSettlementYearlyNutrition},
+		{"CountAcres", LuaSettlementCountAcres},
+		{"ExpectedYield", LuaSettlementExpectedYield},
+		{"YearlyDeaths", LuaSettlementYearlyDeaths},
+		{"YearlyBirths", LuaSettlementYearlyBirths},
 		{NULL, NULL}
 };
 
@@ -277,6 +287,20 @@ int LuaBGImproveRelationTarget(lua_State* _State) {
 	return 1;
 }
 
+int LuaBGGetSettlement(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	LuaCtor(_State, "Settlement", FamilyGetSettlement(_Guy->Person->Family));
+	return 1;
+}
+
+int LuaBGGetFamily(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	LuaCtor(_State, "Family", _Guy->Person->Family);
+	return 1;
+}
+
 int LuaBGKill(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
@@ -376,6 +400,7 @@ int LuaSettlementGetGovernment(lua_State* _State) {
 	return 1;
 }
 
+//Used for the function below as a placeholder to decide which settlement to raid.
 #include "World.h"
 
 int LuaSettlementRaiseArmy(lua_State* _State) {
@@ -416,3 +441,46 @@ int LuaSettlementGetBigGuys(lua_State* _State) {
 	lua_rawset(_State, -3);
 	return 1;
 }
+
+int LuaSettlementGetNutrition(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, SettlementGetNutrition(_Settlement));
+	return 1;
+}
+
+int LuaSettlementYearlyNutrition(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, SettlementYearlyNutrition(_Settlement));
+	return 1;
+}
+
+int LuaSettlementCountAcres(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, SettlementCountAcres(_Settlement));
+	return 1;
+}
+
+int LuaSettlementExpectedYield(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, SettlementExpectedYield(_Settlement));
+	return 1;
+}
+
+int LuaSettlementYearlyDeaths(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, _Settlement->YearDeaths);
+	return 1;
+}
+
+int LuaSettlementYearlyBirths(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	lua_pushinteger(_State, _Settlement->YearBirths);
+	return 1;
+}
+

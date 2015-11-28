@@ -35,6 +35,8 @@ int LuaBGGetRelation(lua_State* _State);
 int LuaBGSetOpinion(lua_State* _State);
 int LuaBGSetAction(lua_State* _State);
 int LuaBGImproveRelationTarget(lua_State* _State);
+int LuaBGGetSettlement(lua_State* _State);
+int LuaBGGetFamily(lua_State* _State);
 int LuaBGKill(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);
@@ -57,5 +59,11 @@ int LuaSettlementRaiseArmy(lua_State* _State);
 int LuaSettlementGetPopulation(lua_State* _State);
 int LuaSettlementCountWarriors(lua_State* _State);
 int LuaSettlementGetBigGuys(lua_State* _State);
+int LuaSettlementGetNutrition(lua_State* _State);
+int LuaSettlementYearlyNutrition(lua_State* _State);
+int LuaSettlementCountAcres(lua_State* _State);
+int LuaSettlementExpectedYield(lua_State* _State);
+int LuaSettlementYearlyDeaths(lua_State* _State);
+int LuaSettlementYearlyBirths(lua_State* _State);
 
 #endif

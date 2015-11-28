@@ -27,7 +27,8 @@ enum {
 	RULE_PRIMITIVE,
 	RULE_IFTHENELSE,
 	RULE_EVENT,
-	RULE_BLOCK
+	RULE_BLOCK,
+	RULE_LUAOBJ
 };
 
 union UPrimitive {
@@ -96,8 +97,20 @@ struct RuleBlock {
 	int ListSz;
 };
 
+struct RuleLuaObj {
+	int Type;
+	void (*Destroy)(struct Rule*);
+	void* Object;
+	const char* Class;
+};
+
 struct Primitive* CreatePrimitive();
 void DestroyPrimitive(struct Primitive* _Primitive);
+
+void PrimitiveSetInt(struct Primitive* _Primitive, int _Int);
+void PirmitiveSetFloat(struct Primitive* _Primitive, float _Float);
+void PirmitiveSetPtr(struct Primitive* _Primitive, void* _Ptr);
+void PirmitiveSetString(struct Primitive* _Primitive, const char* _Str);
 
 int PrimitiveToBoolean(struct Primitive* _Primitive);
 void PrimitivePrint(const struct Primitive* _Primitive);
@@ -128,6 +141,9 @@ void DestroyRuleEvent(struct RuleEvent* _Rule);
 struct RuleBlock* CreateRuleBlock(int _Size);
 void DestroyRuleBlock(struct RuleBlock* _Rule);
 
+struct RuleLuaObj* CreateRuleLuaObj(void* _Object, const char* _Class);
+void DestroyRuleLuaObj(struct RuleLuaObj* _Obj);
+
 int RuleTrue(const struct Rule* _Rule);
 int RuleFalse(const struct Rule* _Rule);
 int RuleGreaterThan(const struct RuleComparator* _Rule);
@@ -138,6 +154,7 @@ int RulePrimitive(const struct RulePrimitive* _Primitive);
 int RuleIfThenElse(const struct RuleIfThenElse* _Rule);
 int RuleBoolean(const struct RuleBoolean* _Rule);
 int RuleBlock(const struct RuleBlock* _Block);
+int RuleLuaObject(const struct RuleLuaObj* _Obj);
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);
 

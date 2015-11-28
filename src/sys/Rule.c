@@ -24,7 +24,8 @@ int(*g_RuleFuncLookup[])(const struct Rule*) = {
 		(int(*)(const struct Rule*))RulePrimitive,
 		(int(*)(const struct Rule*))RuleIfThenElse,
 		RuleTrue,
-		(int(*)(const struct Rule*))RuleBlock
+		(int(*)(const struct Rule*))RuleBlock,
+		(int(*)(const struct Rule*))RuleLuaObject
 };
 
 struct Primitive* CreatePrimitive() {
@@ -83,6 +84,27 @@ void DestroyRule(struct Rule* _Rule) {
 	free(_Rule);
 }
 
+void PrimitiveSetInt(struct Primitive* _Primitive, int _Int) {
+	_Primitive->Value.Int = _Int;
+	_Primitive->Type = PRIM_INTEGER;
+}
+
+void PrimitiveSetFloat(struct Primitive* _Primitive, float _Float) {
+	_Primitive->Value.Float = _Float;
+	_Primitive->Type = PRIM_FLOAT;
+}
+
+void PrimitiveSetPtr(struct Primitive* _Primitive, void* _Ptr) {
+	_Primitive->Value.Ptr = _Ptr;
+	_Primitive->Type = PRIM_PTR;
+}
+
+void PrimitiveSetStr(struct Primitive* _Primitive, const char* _Str) {
+	_Primitive->Value.String = calloc(strlen(_Str) + 1, sizeof(char));
+	strcpy(_Primitive->Value.String, _Str);
+	_Primitive->Type = PRIM_STRING;
+}
+
 int RuleCmp(const void* _One, const void* _Two) {
 	return RuleEval(((struct Rule*)_One)) - RuleEval(((struct Rule*)_Two));
 }
@@ -92,6 +114,7 @@ struct RulePrimitive* CreateRulePrimitive(struct Primitive* _Primitive) {
 
 	_Rule->Type = RULE_PRIMITIVE;
 	_Rule->Destroy = (void(*)(struct Rule*))DestroyRulePrimitive;
+	_Rule->Value.Type = -1;
 	_Rule->Value = *_Primitive;
 	return _Rule;
 }
@@ -187,6 +210,22 @@ void DestroyRuleBlock(struct RuleBlock* _Rule) {
 	free(_Rule);
 }
 
+struct RuleLuaObj* CreateRuleLuaObj(void* _Object, const char* _Class) {
+	struct RuleLuaObj* _Rule = (struct RuleLuaObj*) malloc(sizeof(struct RuleLuaObj));
+
+	_Rule->Destroy = (void (*)(struct Rule*))DestroyRuleLuaObj;
+	_Rule->Type = RULE_LUAOBJ;
+	_Rule->Object = _Object;
+	_Rule->Class = calloc(strlen(_Class) + 1, sizeof(char));
+	strcpy((char*) _Rule->Class, _Class);
+	return _Rule;
+}
+
+void DestroyRuleLuaObj(struct RuleLuaObj* _Obj) {
+	free((char*) _Obj->Class);
+	free(_Obj);
+}
+
 int RuleTrue(const struct Rule* _Rule) {
 	return 1;
 }
@@ -236,10 +275,8 @@ int RulePrimitive(const struct RulePrimitive* _Primitive) {
 
 int RuleIfThenElse(const struct RuleIfThenElse* _Rule) {
 	if(RuleEval((struct Rule*) _Rule->Comparator) != 0)
-		RuleEval(_Rule->OnTrue);
-	else
-		RuleEval(_Rule->OnFalse);
-	return 0;
+		return RuleEval(_Rule->OnTrue);
+	return RuleEval(_Rule->OnFalse);
 }
 
 int RuleBoolean(const struct RuleBoolean* _Rule) {
@@ -250,6 +287,10 @@ int RuleBlock(const struct RuleBlock* _Block) {
 	for(int i = 0; i < _Block->ListSz; ++i)
 		RuleEval(_Block->RuleList[i]);
 	return 0;
+}
+
+int RuleLuaObject(const struct RuleLuaObj* _Obj) {
+	return 1;
 }
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two) {

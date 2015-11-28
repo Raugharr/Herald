@@ -22,6 +22,11 @@ enum {
 	MISSIONCAT_SIZE
 };
 
+enum {
+	MISSION_FNONE = 0,
+	MISSION_FONLYTRIGGER = (1 << 0)
+};
+
 typedef struct lua_State lua_State;
 struct Rule;
 struct RBTree;
@@ -40,7 +45,6 @@ struct MissionData;
  * dirty will have their state compared to a mission.
  */
 
-
 /*
  * TODO: Trigger should be replaced with a new struct that can contain multiple WorlState's. This new struct should also be able to handle the
  * relationship these different Triggers have.
@@ -56,18 +60,21 @@ struct MissionOption {
 	char* Name;
 	struct Rule* Condition;
 	struct Rule* Action;
+	struct Rule* Utility;//Used by AI to determine which is the best option.
 };
 
 struct Mission {
 	int Id;
 	int Type;
+	int Flags;
 	char* Name;
 	char* Description;
+	struct Rule* PostTrigger; //Must be true for the mission to be run. Is checked after Trigger is true.
 	struct WorldState Trigger;
 	struct MissionOption Options[MISSION_MAXOPTIONS];
 	struct Rule* OnTrigger;
 	int OptionCt;
-	int MeanTime;
+	struct Rule* MeanTime;
 };
 
 struct MissionCat {
@@ -92,6 +99,7 @@ struct MissionEngine {
 	struct RBTree MissionId; //Tree sorted by Mission id.
 	struct MissionCat Categories[MISSIONCAT_SIZE];
 	struct LinkedList MissionList[WORLDSTATE_ATOMSZ];
+	//struct LinkedList GeneralList;
 };
 
 void InitMissions(void);
@@ -103,7 +111,7 @@ void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine);
 void DestroyMission(struct Mission* _Mission);
 //int CheckMissionOption(struct GUIMessagePacket* _Packet);
 void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionData* _Data, int _Option);
-void MissionCall(lua_State* _State, struct Mission* _Mission, struct BigGuy* _Guy);
+void MissionCall(lua_State* _State, struct Mission* _Mission, struct BigGuy* _Guy, struct BigGuy* _Target);
 
 void DestroyMissionEngine(struct MissionEngine* _Engine);
 void MissionEngineThink(struct MissionEngine* _Engine, lua_State* _State, const struct RBTree* _BigGuys);
@@ -123,10 +131,10 @@ int LuaMissionAddTrigger(lua_State* _State);
 int LuaMissionGetOwner(lua_State* _State);
 int LuaMissionGetTarget(lua_State* _State);
 int LuaMissionGetRandomPerson(lua_State* _State);
-int LuaMissionSetMeanTime(lua_State* _State);
-int LuaMissionSetId(lua_State* _State);
-int LuaMissionOnTrigger(lua_State* _State);
 int LuaMissionCallById(lua_State* _State);
+int LuaMissionNormalize(lua_State* _State);
+int LuaMissionData(lua_State* _State);
+int LuaMissionAddData(lua_State* _State);
 
 int LuaMissionLoad(lua_State* _State);
 int LuaMissionFuncWrapper(lua_State* _State);

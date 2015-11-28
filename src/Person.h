@@ -31,6 +31,13 @@ struct Food;
 
 extern struct MemoryPool* g_PersonPool;
 
+enum {
+	CASTE_SERF,
+	CASTE_FARMER,
+	CASTE_CRAFTER,
+	CASTE_WARRIOR
+};
+
 struct Person {
 	int Id;
 	int Type;
@@ -40,6 +47,7 @@ struct Person {
 	SDL_Point Pos;
 	int Gender;
 	int Nutrition;
+	int Caste;
 	DATE Age;
 	struct ActorJob* Action;
 	const char* Name;

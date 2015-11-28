@@ -51,6 +51,9 @@ struct Settlement {
 	struct Sprite* Sprite; //FIXME: Should only me one sprite not a list.
 	struct Government* Government;
 	int NumPeople;
+	int YearDeaths; //Record of deaths in this settlement this year.
+	int YearBirths;
+	float HarvestMod;
 	struct LinkedList Families;
 };
 
@@ -69,5 +72,9 @@ void SettlementAddPerson(struct Settlement* _Settlement, struct Person* _Person)
 void SettlementRemovePerson(struct Settlement* _Settlement, struct Person* _Person);
 int SettlementCountWarriors(const struct Settlement* _Settlement);
 void TribalCreateBigGuys(struct Settlement* _Settlement);
+
 int SettlementGetNutrition(const struct Settlement* _Settlement);
+int SettlementYearlyNutrition(const struct Settlement* _Settlement);
+int SettlementCountAcres(const struct Settlement* _Settlement);
+int SettlementExpectedYield(const struct Settlement* _Settlement);
 #endif

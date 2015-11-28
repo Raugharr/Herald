@@ -9,9 +9,11 @@
 #include "Family.h"
 #include "Government.h"
 #include "Warband.h"
+#include "Crop.h"
 
 #include "sys/Math.h"
 #include "sys/ResourceManager.h"
+#include "sys/Array.h"
 
 #include "video/Sprite.h"
 #include "video/Tile.h"
@@ -46,6 +48,9 @@ struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovT
 	_Loc->Families.Back = NULL;
 	_Loc->People = NULL;
 	_Loc->People = NULL;
+	_Loc->YearBirths = 0;
+	_Loc->YearDeaths = 0;
+	_Loc->HarvestMod = 1.0f;
 	_Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &_Loc->Pos);
 	return _Loc;
 }
@@ -67,6 +72,11 @@ void SettlementThink(struct Settlement* _Settlement) {
 		_Itr = _Itr->Next;
 	}
 	GovernmentThink(_Settlement->Government);
+	if(MONTH(g_GameWorld.Date) == 0 && DAY(g_GameWorld.Date) == 0) {
+		_Settlement->YearBirths = 0;
+		_Settlement->YearDeaths = 0;
+		_Settlement->HarvestMod = 0.4f + (((float)(Random(0, 6) + Random(0, 6))) / 10);
+	}
 }
 
 void SettlementDraw(const struct MapRenderer* _Renderer, struct Settlement* _Settlement) {
@@ -143,8 +153,47 @@ int SettlementGetNutrition(const struct Settlement* _Settlement) {
 	int _Nutrition = 0;
 
 	while(_Itr != NULL) {
-		_Nutrition = FamilyGetNutrition((const struct Family*)_Itr->Data);
+		_Nutrition = _Nutrition + FamilyGetNutrition((const struct Family*)_Itr->Data);
 		_Itr = _Itr->Next;
 	}
 	return _Nutrition;
+}
+
+int SettlementYearlyNutrition(const struct Settlement* _Settlement) {
+	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
+	const struct Family* _Family = NULL;
+	const struct Field* _Field = NULL;
+	int _Nutrition = 0;
+
+	while(_Itr != NULL) {
+		_Family = ((struct Family*)_Itr->Data);
+		for(int i = 0; i < _Family->Fields->Size; ++i) {
+			_Field = _Family->Fields->Table[i];
+			_Nutrition = _Nutrition + (_Field->Acres * 400);
+		}
+		_Itr = _Itr->Next;
+	}
+	return _Nutrition;
+}
+
+int SettlementCountAcres(const struct Settlement* _Settlement) {
+	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
+	int _Acres = 0;
+
+	while(_Itr != NULL) {
+		_Acres = _Acres + FamilyCountAcres((struct Family*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	return _Acres;
+}
+
+int SettlementExpectedYield(const struct Settlement* _Settlement) {
+	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
+	int _Yield = 0;
+
+	while(_Itr != NULL) {
+		_Yield = _Yield + FamilyExpectedYield((struct Family*)_Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	return _Yield * _Settlement->HarvestMod;
 }

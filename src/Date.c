@@ -181,11 +181,11 @@ void NextDay(int* _Date) {
 	} else if(_Day == 30)
 		goto new_month;
 	++_Day;
+	end:
 	if(_Month >= 12) {
 		++_Year;
 		_Month = 0;
 	}
-	end:
 	*_Date = TO_DATE(_Year, _Month, _Day);
 	return;
 	new_month:

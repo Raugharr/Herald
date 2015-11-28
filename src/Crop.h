@@ -37,7 +37,7 @@ struct Crop {
 	int Id;
 	char* Name;
 	int Type;
-	int PerAcre;//How many ounces of seeds it takes to fill an acre.
+	int SeedsPerAcre;//How many ounces of seeds it takes to fill an acre.
 	int NutVal; //Nutritional Value per pound.
 	int GrowingDegree;
 	int GrowingBase; //The minimum temperature it must be for this crop to grow.
@@ -52,8 +52,6 @@ struct Field {
 	int LastThink;
 	struct LnkLst_Node* ThinkObj;
 	SDL_Point Pos;
-	int Width;
-	int Length;
 	const struct Crop* Crop;
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
 	int Acres;
@@ -102,7 +100,7 @@ void SelectCrops(struct Family* _Family, struct Array* _Fields);
  */
 void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Family* _Family);
 /**
- * Finds fields that are adjacent to each other and combines them.
+ * Combines all fields in the array into one.
  */
 void FieldAbosrb(struct Array* _Fields);
 

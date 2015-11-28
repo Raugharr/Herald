@@ -13,10 +13,10 @@
 #include "Good.h"
 #include "Government.h"
 
-#include "ai/Utility.h"
-#include "ai/goap.h"
-#include "ai/Setup.h"
-#include "ai/Agent.h"
+#include "AI/Utility.h"
+#include "AI/goap.h"
+#include "AI/Setup.h"
+#include "AI/Agent.h"
 
 #include "sys/Math.h"
 #include "sys/Constraint.h"

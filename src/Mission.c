@@ -42,6 +42,7 @@
 #define MISSION_QELEMENTS (2048)
 #define USEDMISSION_SIZE (10000)
 #define MISSIONDATA_HASHSZ (32)
+#define MISSION_COOLDOWN (90)
 
 static struct MemoryPool* g_MissionQueuePool = NULL;
 static struct MemoryPool* g_MissionUsed = NULL;
@@ -521,7 +522,7 @@ void MissionEngineThink(struct MissionEngine* _Engine, lua_State* _State, const 
 		_Mission = RBSearch(&_Engine->UsedMissionTree, &_Search);
 		MissionCall(_State, _Mission->Mission, _Mission->Triggerer, NULL);
 		BinaryHeapPop(&_Engine->MissionQueue);
-		_Mission->FireDay = DateAddInt(_Mission->FireDay, 30);
+		_Mission->FireDay = DateAddInt(_Mission->FireDay, MISSION_COOLDOWN);
 		BinaryHeapInsert(&_Engine->UsedMissionQueue, _Mission);
 	}
 	while((_Mission = BinaryHeapTop(&_Engine->UsedMissionQueue)) != NULL) {

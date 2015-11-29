@@ -173,6 +173,7 @@ void HeraldDestroy() {
 		DestroyAnimation(_Itr->Node->Pair);
 		HashNext(&g_Animations, _Itr);
 	}
+	HashDeleteItr(_Itr);
 	DestroyTaskPool(g_TaskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);

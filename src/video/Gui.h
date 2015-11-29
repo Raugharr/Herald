@@ -109,6 +109,7 @@ struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);
 struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point* _Pos);
+
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
 void WidgetSetVisibility(struct Widget* _Widget, int _Visibility);

@@ -30,6 +30,7 @@
 #include <SDL2/SDL_image.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
+#include <unistd.h>
 
 #include <stdlib.h>
 #ifdef _WIN32
@@ -37,6 +38,8 @@
 #else
 	#include <sys/io.h>
 #endif
+
+#define GAME_TICK (400)
 
 int InitLuaSystem() {
 	InitLuaCore();
@@ -109,7 +112,7 @@ int main(int argc, char* args[]) {
 			Draw();
 			_DrawTimer = _Ticks;
 		}
-		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + 1000) <= _Ticks) {
+		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + GAME_TICK) <= _Ticks) {
 			World_Tick();
 			_WorldTimer = _Ticks;
 		}

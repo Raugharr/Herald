@@ -9,7 +9,7 @@
 
 #include <string.h>
 
-int AUtilityFunction(const struct AgentUtility* _Planner, double _Num, int _Func) {
+int AUtilityFunction(double _Num, int _Func) {
 	switch(_Func) {
 		case UTILITY_LINEAR:
 			break;
@@ -46,11 +46,11 @@ void AUtilityBest(const struct AgentUtility* _Planner, const void* _Data, struct
 		return;
 	WorldStateClear(&_State);
 	_Utility = _Planner->Utilities[0](_Data, &_Min, &_Max, _BestState);
-	_Best = AUtilityFunction(_Planner, Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[0]);
+	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[0]);
 	for(int i = 1; i < _Planner->UtilityCt; ++i) {
 		WorldStateClear(&_State);
 		_Utility = _Planner->Utilities[i](_Data, &_Min, &_Max, &_State);
-		_Utility = AUtilityFunction(_Planner, Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[i]);
+		_Utility = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[i]);
 		if(_Utility > _Best) {
 			_Best =	_Utility;
 			WorldStateCopy(_BestState, &_State);

@@ -22,6 +22,11 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	
+	Menu.Left:CreateLabel(tostring(Data["Settlement"]:CountAcres()) .. " Acres")
+	Menu.Left:Paragraph("The settlement can currently can feed " .. tostring(math.floor(Data["Settlement"]:GetNutrition() / 365 / 16)) .. " people a year." 
+		.. " we expect to be able to feed " .. tostring(math.floor(Data["Settlement"]:ExpectedYield() / 16 / 365)) .. " people from our harvest this year." )
+	Menu.Left:Paragraph(tostring(Data["Settlement"]:YearlyDeaths()) .. " people have died and " .. tostring(Data["Settlement"]:YearlyBirths()) .. " children have been born this year.")
+	
 	Menu.Left:CreateButton("Raise Fyrd",
 		function()
 			World.SetOnClick(1, Data["Settlement"].__self)

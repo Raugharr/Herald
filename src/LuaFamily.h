@@ -91,5 +91,6 @@ int LuaBuildMat(lua_State* _State);
 int LuaCreateGood(lua_State* _State);
 int LuaCreateBuilding(lua_State* _State);
 int LuaCreateAnimal(lua_State* _State);
+int LuaFamilyTakeAnimal(lua_State* _State);
 
 #endif

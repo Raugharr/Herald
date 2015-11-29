@@ -29,7 +29,6 @@ static const luaL_Reg g_LuaFamilyFuncs[] = {
 		{"Good", LuaGoodBase},
 		{"Food", LuaFoodBase},
 		{"GetAnimal", LuaPopulation},
-		{"CountAnimal", LuaFamilyCountAnimal},
 		{"KillAnimal", LuaFamillyKillAnimal},
 		{"GetPerson", LuaPerson},
 		{"CreateGood", LuaCreateGood},
@@ -70,6 +69,8 @@ static const luaL_Reg g_LuaFuncsFamily[] = {
 		{"GetGoodCt", LuaFamilyGetGoodCt},
 		{"GetAnimals", LuaFamilyGetAnimals},
 		{"GetAnimalCt", LuaFamilyGetAnimalCt},
+		{"CountAnimal", LuaFamilyCountAnimal},
+		{"TakeAnimal", LuaFamilyTakeAnimal},
 		{NULL, NULL}
 };
 
@@ -483,7 +484,7 @@ int LuaCrop(lua_State* _State) {
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "PerAcre");
-	lua_pushinteger(_State, _Crop->PerAcre);
+	lua_pushinteger(_State, _Crop->SeedsPerAcre);
 	lua_rawset(_State, -3);
 
 	lua_pushstring(_State, "NutVal");
@@ -573,12 +574,11 @@ int LuaFamilyCountAnimal(lua_State* _State) {
 	int _AnimalCt = 0;
 
 	if((_AnimalType = HashSearch(&g_Populations, _Animal)) == NULL)
-		goto end;
+		return luaL_error(_State, "CountAnimal: %s is not an animal type.", _Animal);
 	for(int i = 0; i < _Family->Animals->Size; ++i) {
 		if(_AnimalType->Id == ((struct Animal*)_Family->Animals->Table[i])->PopType->Id)
 			++_AnimalCt;
 	}
-	end:
 	lua_pushinteger(_State, _AnimalCt);
 	return 1;
 }
@@ -704,5 +704,27 @@ int LuaCreateAnimal(lua_State* _State) {
 		return luaL_error(_State, "Cannot find Population %s.", _Name);
 	LuaCtor(_State, "Animal", CreateAnimal(_Population, Random(0, _Population->Ages[AGE_DEATH]->Max), 1500, -1, -1));
 	return 1;
+}
+
+int LuaFamilyTakeAnimal(lua_State* _State) {
+	struct Family* _From = LuaCheckClass(_State, 1, "Family");
+	struct Family* _To = LuaCheckClass(_State, 2, "Family");
+	const char* _Animal = luaL_checkstring(_State, 3);
+	struct Animal* _Temp = NULL;
+	int _AnCount = luaL_checkinteger(_State, 4);
+
+	for(int i = 0; i < _From->Animals->Size; ++i) {
+		if(strcmp(((struct Animal*)_From->Animals->Table[i])->PopType->Name, _Animal) == 0) {
+			if(_AnCount <= 0)
+				return 0;
+			--_AnCount;
+			_Temp = FamilyTakeAnimal(_From, i);
+			ArrayInsert_S(_To->Animals, _Temp);
+			goto found_animal;
+		}
+	}
+	return 0;
+	found_animal:
+	return 0;
 }
 

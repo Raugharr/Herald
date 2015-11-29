@@ -31,6 +31,7 @@ const char* g_LuaGlobals[] = {
 };
 
 static const char* g_LuaMissionEnv[] = {
+		"Settlement",
 		"BigGuy",
 		"Family",
 		NULL
@@ -115,11 +116,11 @@ static const luaL_Reg g_LuaMissionRuleFuncs[] = {
 		{"Target", LuaMissionGetTarget},
 		{"GetRandomPerson", LuaMissionGetRandomPerson},
 		{"GetImprovingRelation", NULL},
-		{"SetMeanTime", LuaMissionSetMeanTime},
-		{"SetId", LuaMissionSetId},
-		{"OnTrigger", LuaMissionOnTrigger},
 		{"CallById", LuaMissionCallById},
+		{"Data", LuaMissionData},
+		{"AddData", LuaMissionAddData},
 		{"Load", LuaMissionLoad},
+		{"Normalize", LuaMissionNormalize},
 		{NULL, NULL},
 };
 
@@ -520,14 +521,14 @@ int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) 
 
 	error:
 	switch(_Error) {
-		case LUA_ERRSYNTAX:
-			Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
-			return _Error;
 		case LUA_ERRFILE:
 			Log(ELOG_ERROR, "Cannot load file: %s", _File);
 			return _Error;
 		case LUA_ERRRUN:
 			Log(ELOG_ERROR, "Cannot run file: %s", lua_tostring(_State, -1));
+			return _Error;
+		default:
+			Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
 			return _Error;
 	}
 	return LUA_ERRERR;
@@ -574,7 +575,7 @@ int LuaGetInteger(lua_State* _State, int _Index, int* _Number) {
 		*_Number = lua_tointeger(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "Lua index %i is not an integer", _Index);
+	//Log(ELOG_ERROR, "Lua index %i is not an integer", _Index);
 	return 0;
 }
 
@@ -583,7 +584,7 @@ int LuaGetString(lua_State* _State, int _Index, const char** _String) {
 		*_String = lua_tostring(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "Lua index %i is not a string", _Index);
+	//Log(ELOG_ERROR, "Lua index %i is not a string", _Index);
 	return 0;
 }
 
@@ -592,7 +593,7 @@ int LuaGetNumber(lua_State* _State, int _Index, double* _Number) {
 		*_Number = lua_tonumber(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "Lua index %i is not is not a number", _Index);
+	//Log(ELOG_ERROR, "Lua index %i is not is not a number", _Index);
 	return 0;
 }
 
@@ -601,7 +602,7 @@ int LuaGetUData(lua_State* _State, int _Index, void** _Data) {
 		*_Data = lua_touserdata(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "Lua index %i is not user data", _Index);
+	//Log(ELOG_ERROR, "Lua index %i is not user data", _Index);
 	return 0;
 }
 
@@ -610,7 +611,7 @@ int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
 		*_Function = lua_tocfunction(_State, _Index);
 		return 1;
 	}
-	Log(ELOG_ERROR, "metafield is not a c function.");
+	//Log(ELOG_ERROR, "metafield is not a c function.");
 	return 0;
 }
 

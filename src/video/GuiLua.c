@@ -391,6 +391,10 @@ int LuaCreateImage(lua_State* _State) {
 	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, 0, 0};
 	struct ImageWidget* _Widget = CreateImageWidget();
 
+	if(_Sprite == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
 	//SDL_QueryTexture(_Sprite->Image, NULL, NULL, &_Rect.w, &_Rect.h);
 	_Rect.w = _Sprite->Rect.w;
 	_Rect.h = _Sprite->Rect.h;
@@ -1123,7 +1127,7 @@ int LuaContainerParagraph(lua_State* _State) {
 			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Rect.w) {
 				_Temp -= _WordSz;
 				//NOTE: Used to stop infinite loop when the parent is to small to hold a single letter.
-				if(_WordSz == 0 || _Temp == _String)
+				if(_WordSz == 0 && _Temp == _String)
 					goto func_end;
 				_WordSz = 0;
 				_WordWidth = 0;

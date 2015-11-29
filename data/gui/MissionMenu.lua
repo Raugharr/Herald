@@ -21,7 +21,7 @@ function Menu.Init(Menu, Width, Height, Data)
 			end)
 		end
 	end
-	return Mission.Screen
+	return Menu.Screen
 end
 
 function Menu.Think(Menu)

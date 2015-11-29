@@ -178,7 +178,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		}
 	}
 	if(_State->MouseState == SDL_PRESSED) {
-		struct Widget* _Widget = _Screen->OnClick((struct Widget*)_Screen, &_State->MousePos);
+		struct Widget* _Widget = _Screen->OnDrag((struct Widget*)_Screen, &_State->MousePos);
 
 		if(_Widget == NULL || _Widget->IsDraggable == 0)
 			return 1;
@@ -279,6 +279,7 @@ SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
 
 SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 	SDL_Texture* _Texture = SDL_CreateTextureFromSurface(g_Renderer, _Surface);
+
 	SDL_FreeSurface(_Surface);
 	if(_Texture == NULL)
 		Log(ELOG_ERROR, "Cannot convert SDL surface: %s", SDL_GetError());

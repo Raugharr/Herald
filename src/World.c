@@ -69,7 +69,9 @@ struct GameWorld g_GameWorld = {
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
-		{0, NULL, NULL}
+		{0, NULL, NULL},
+		NULL,
+		NULL
 };
 
 static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
@@ -94,8 +96,6 @@ static struct GameOnClick g_GameOnClick = {
 	NULL
 };
 
-struct RBTree* g_GoodDeps = NULL;
-struct Array* g_AnFoodDep = NULL;
 struct TaskPool* g_TaskPool = NULL;
 struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
@@ -309,6 +309,43 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->Date = 0;
 	_GameWorld->Tick = 0;
 }
+
+struct FoodBase** LoadHumanFood(lua_State* _State, struct FoodBase** _FoodArray, const char* _LuaTable) {
+	int _Size = 0;
+	int _ArrayCt = 0;
+	const char* _TblVal = NULL;
+	struct FoodBase* _Food = NULL;
+
+	lua_pushstring(_State, _LuaTable);
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TTABLE)
+		return (void*) luaL_error(_State, "Table %s does not exist.", _LuaTable);
+	_Size = lua_rawlen(_State, -1);
+	_FoodArray = calloc(_Size + 1, sizeof(struct Food*));
+	_FoodArray[_Size] = NULL;
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if(lua_isstring(_State, -1) == 0) {
+			if(lua_isstring(_State, -2) != 0)
+				Log(ELOG_WARNING, "Key %s value in %s is not a string.", lua_tostring(_State, -2), _LuaTable);
+			else
+				Log(ELOG_WARNING, "Key in %s is not a string.", lua_tostring(_State, -2), _LuaTable);
+			lua_pop(_State, 1);
+			continue;
+		}
+		_TblVal = lua_tostring(_State, -1);
+		if((_Food = (struct FoodBase*) HashSearch(&g_Goods, _TblVal)) == NULL) {
+			Log(ELOG_WARNING, "Key %s in %s is not a good.", _TblVal, _LuaTable);
+			lua_pop(_State, 1);
+			continue;
+		}
+		_FoodArray[_ArrayCt++] = _Food;
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
+	return _FoodArray;
+}
+
 void WorldInit(int _Area) {
 	int i;
 	struct Array* _Array = NULL;
@@ -341,7 +378,6 @@ void WorldInit(int _Area) {
 	g_Crops.Table = (struct HashNode**) calloc(g_Crops.TblSize, sizeof(struct HashNode*));
 	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
 	LISTTOHASH(&_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
-
 
 	if(_GoodList.Size == 0) {
 		Log(ELOG_WARNING, "Failed to load goods.");
@@ -387,8 +423,17 @@ void WorldInit(int _Area) {
 	LISTTOHASH(&_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
 	LISTTOHASH(&_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
 
-	g_GoodDeps = GoodBuildDep(&g_Goods);
-	g_AnFoodDep = AnimalFoodDep(&g_Populations);
+	lua_getglobal(g_LuaState, "Human");
+	if(lua_isnil(g_LuaState, -1) != 0) {
+		Log(ELOG_WARNING, "Human table does not exist");
+	} else {
+		g_GameWorld.HumanEats = LoadHumanFood(g_LuaState, g_GameWorld.HumanEats, "Eats");
+		g_GameWorld.HumanDrinks = LoadHumanFood(g_LuaState, g_GameWorld.HumanDrinks, "Drinks");
+	}
+	lua_pop(g_LuaState, 1);
+
+	g_GameWorld.GoodDeps = GoodBuildDep(&g_Goods);
+	g_GameWorld.AnFoodDeps = AnimalFoodDep(&g_Populations);
 	if(PopulateWorld(&g_GameWorld) == 0)
 		goto end;
 	end:
@@ -400,10 +445,10 @@ void WorldQuit() {
 	AIQuit();
 	RBRemoveAll(&g_GameWorld.Families, (void(*)(void*))DestroyFamily);
 	LnkLstClear(&g_GameWorld.Settlements);
+	DestroyArray(g_GameWorld.AnFoodDeps);
+	DestroyRBTree(g_GameWorld.GoodDeps);
 	DestroyMemoryPool(g_PersonPool);
 	Family_Quit();
-	DestroyRBTree(g_GoodDeps);
-	DestroyArray(g_AnFoodDep);
 	DestroyHash(g_AIHash);
 }
 

@@ -155,7 +155,7 @@ int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
 
 	if(_Good == NULL)
 		return 0;
-	_GoodDep = GoodDependencies(g_GoodDeps, _Good);
+	_GoodDep = GoodDependencies(g_GameWorld.GoodDeps, _Good);
 	_Size = _GoodDep->DepTbl->Size;
 	_GoodTbl = _GoodDep->DepTbl->Table;
 	struct Good* _GoodIndxs[_Size];
@@ -239,9 +239,9 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 
 	_Stack.Prev = NULL;
 	_Stack.Data = NULL;
-	for(i = 0; i < g_AnFoodDep->Size; ++i) {
-		for(j = 0; ((struct AnimalDep*)g_AnFoodDep->Table[i])->Animals->Size; ++j) {
-			_Dep = ((struct AnimalDep*)g_AnFoodDep->Table[i]);
+	for(i = 0; i < g_GameWorld.AnFoodDeps->Size; ++i) {
+		for(j = 0; ((struct AnimalDep*)g_GameWorld.AnFoodDeps->Table[i])->Animals->Size; ++j) {
+			_Dep = ((struct AnimalDep*)g_GameWorld.AnFoodDeps->Table[i]);
 			if((_Req = BinarySearch(_Dep->Animals->Table[j], _AnimalCt, _AnSize, PopulationInputReqCmp)) == NULL)
 				continue;
 			_TotalNut += _Req->Quantity * ((struct Population*)_Req->Req)->Nutrition;

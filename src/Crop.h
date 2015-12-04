@@ -38,7 +38,7 @@ struct Crop {
 	char* Name;
 	int Type;
 	int SeedsPerAcre;//How many ounces of seeds it takes to fill an acre.
-	int NutVal; //Nutritional Value per pound.
+	double NutVal; //Nutritional Value per pound.
 	int GrowingDegree;
 	int GrowingBase; //The minimum temperature it must be for this crop to grow.
 	double YieldMult; //How many pounds of seed to expect from one pound.
@@ -61,7 +61,7 @@ struct Field {
 	struct Family* Owner;
 };
 
-struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, int _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter);
+struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, double _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter);
 void DestroyCrop(struct Crop* _Crop);
 struct Crop* CropLoad(lua_State* _State, int _Index);
 
@@ -78,11 +78,13 @@ void FieldWork(struct Field* _Field, int _Total);
 void FieldHarvest(struct Field* _Field, struct Array* _Goods);
 void FieldUpdate(struct Field* _Field);
 void FieldSetAcres(struct Field* _Field, int _Acres);
+void FieldDivideAcres(struct Field* _Field, int _Acres);
+void FieldClearAcres(struct Field* _Field);
 void FieldRotateCrops(struct Field* _Field);
 /**
- * Returns how many acres the field can support given the amount of seeds.
+ * Sets _Fields's acres to how many acres grown with _Seeds->Quantity.
  */
-int FieldAcreage(const struct Field* _Field, const struct Good* _Seeds);
+void FieldAcreage(struct Field* _Field, const struct Good* _Seeds);
 int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp);
 /**
  * Every element in _Fields must be a non NULL pointer to a struct Field.

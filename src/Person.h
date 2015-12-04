@@ -78,7 +78,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
 int PersonThink(struct Person* _Person);
-int PersonEat(struct Person* _Person, struct Food* _Food);
+double PersonEat(struct Person* _Person, struct Food* _Food);
 void PersonWork(struct Person* _Person);
 void PersonDeath(struct Person* _Person);
 

@@ -100,7 +100,7 @@ struct Person* CreateChild(struct Family* _Family) {
 int PersonThink(struct Person* _Person) {
 	struct Family* _Family = _Person->Family;
 	struct Good* _Good = NULL;
-	int _Nutrition = 0;
+	double _Nutrition = 0;
 
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
@@ -152,11 +152,11 @@ int PersonThink(struct Person* _Person) {
 	return 1;
 }
 
-int PersonEat(struct Person* _Person, struct Food* _Food) {
+double PersonEat(struct Person* _Person, struct Food* _Food) {
 	/*struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
 	int _NutReq = NUTRITION_LOSS;*/
 	struct Food* _FoodPtr = NULL;
-	int _Nut = 0;
+	double _Nut = 0;
 	int _FoodAmt = 0;
 	struct Family* _Family = _Person->Family;
 	int _GoodSz = _Family->Goods->Size;

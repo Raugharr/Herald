@@ -73,7 +73,7 @@ struct GoodBase {
 	char* Name;
 	int Category;
 	struct InputReq** InputGoods;
-	int IGSize;
+	int IGSize; //InputGood size.
 };
 
 /*
@@ -135,7 +135,7 @@ struct FoodBase {
 	int Category;
 	struct InputReq** InputGoods;
 	int IGSize;
-	int Nutrition;
+	double Nutrition;
 };
 
 struct Food {
@@ -223,12 +223,18 @@ void DestroyGoodDep(struct GoodDep* _GoodDep);
  * The returned RBTree* can be deleted with DestroyRBTree as normal.
  */
 struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
-/**
- * @Brief Returns an empty GoodDep*. Every GoodDep* in _Tree that is a prerequisite of _Good
- * Will have this empty GoodDep* added to their DepTbl.
+
+/*
+ * Iterates through all of _Good's input goods and searches _Tree for them. If they are not found a GoodDep* is created
+ * and a GoodDep* containing _Good is added to its DepTbl. Each input good will then have GoodDependencies called on them.
+ * A GoodDep* containing _Good is returned.
  */
-struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Weapon);
-int GoodNutVal(struct GoodBase* _Base);
+struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
+/*
+ * Returns a double containing the value of _Base's nutritional value by adding the
+ * sum of the nutritional values of the goods used to create _Base together.
+ */
+double GoodNutVal(struct GoodBase* _Base);
 /**
  * Creates an array of InputReq* that contain Good and the amount possible to make with the Good*'s in _Goods.
  */

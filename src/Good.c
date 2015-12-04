@@ -369,7 +369,7 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 
 void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct LinkedList* _List) {
 	int i = 0;
-	int _Nutrition = 0;
+	double _Nutrition = 0;
 
 	if(_Good->IGSize == 0) {
 		lua_pushstring(_State, "Nutrition");
@@ -616,9 +616,9 @@ struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _G
 	return _Pair;
 }
 
-int GoodNutVal(struct GoodBase* _Base) {
+double GoodNutVal(struct GoodBase* _Base) {
 	struct Crop* _Crop = NULL;
-	int _Nut = 0;
+	double _Nut = 0;
 	int i;
 
 	for(i = 0; i < _Base->IGSize; ++i) {
@@ -651,7 +651,7 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
 		_Good = (struct Good*)_Tbl[i];
 		if((_Categories &_Good->Base->Category) != _Good->Base->Category && _Good->Quantity > 0)
 			continue;
-		_Dep = RBSearch(g_GoodDeps, _Good->Base);
+		_Dep = RBSearch(g_GameWorld.GoodDeps, _Good->Base);
 		for(j = 0; j < _Dep->DepTbl->Size; ++j) {
 			_Output = ((struct GoodDep*)_Dep->DepTbl->Table[j])->Good;
 			if((_Amount = GoodCanMake(_Output, _Goods)) != 0) {

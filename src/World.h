@@ -29,8 +29,6 @@ struct Path;
 struct Actor;
 
 extern struct GameWorld g_GameWorld;
-extern struct RBTree* g_GoodDeps;
-extern struct Array* g_AnFoodDep;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
 
@@ -69,7 +67,7 @@ struct GameWorld {
 	int Tick;
 	struct MapRenderer* MapRenderer;
 	struct QuadTree SettlementMap;
-	struct RBTree* GoodDeps;
+	struct RBTree* GoodDeps; //Tree consisting of
 	struct Array* AnFoodDeps;
 	struct RBTree Families;
 	struct BigGuy* Player;
@@ -82,6 +80,8 @@ struct GameWorld {
 	struct RBTree Agents;
 	struct RBTree Crisis;
 	struct LinkedList MissionData;
+	struct FoodBase** HumanEats;
+	struct FoodBase** HumanDrinks;
 };
 
 struct FamilyType {
@@ -106,6 +106,7 @@ void DestroyWorldTile(struct WorldTile* _Tile);
  */
 void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point, int _Radius, struct LinkedList* _List);
 
+struct FoodBase** LoadHumanFood(lua_State* _State, struct FoodBase** _FoodArray, const char* _LuaTable);
 void WorldInit(int _Area);
 void WorldQuit();
 

@@ -152,6 +152,11 @@ void Draw(void) {
 	 *prevent the menu from being displayed instead of checking every draw call here.
 	 */
 	if(_Screen != NULL) {
+	/*	struct Container* _Itr = GUIZBot();
+		while(_Itr != NULL) {
+			(_Itr)->OnDraw(_Itr);
+			_Itr = _Itr->Prev;
+		}*/
 		for(int i = 0; i < _Screen->ChildCt; ++i)
 			_Screen->Children[i]->OnDraw(_Screen->Children[i]);
 		SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
@@ -168,6 +173,8 @@ int VideoEvents(const struct KeyMouseState* _State) {
 	struct Container* _Screen = GetScreen(g_LuaState);
 	struct Widget* _Widget = NULL;
 
+	if(_Screen == NULL)
+		return 0;
 	if(_State->MouseMove != 0) {
 		if(g_FocusWidget != NULL)
 			g_FocusWidget->OnUnfocus(g_FocusWidget);
@@ -266,6 +273,10 @@ SDL_Surface* ConvertSurface(SDL_Surface* _Surface) {
 	SDL_Surface* _Window = SDL_GetWindowSurface(g_Window);
 	SDL_Surface* _Temp = NULL;
 
+	if(_Surface == NULL) {
+		Log(ELOG_ERROR, "ConvertSurface: Initial surface is NULL.");
+		return NULL;
+	}
 	if(_Window == NULL) {
 		Log(ELOG_ERROR, SDL_GetError());
 		return NULL;

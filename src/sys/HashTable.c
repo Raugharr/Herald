@@ -11,11 +11,10 @@
 unsigned int Hash(const char* _Key) {
 	int _Len = strlen(_Key);
 	int _Hash = 0;
-	int i;
 	int _One = 63689;
 	int _Two = 378551;
 
-	for(i = 0; i < _Len; ++i) {
+	for(int i = 0; i < _Len; ++i) {
 		_Hash = _Hash * _One + _Key[i];
 		_One *= _Two;
 	}
@@ -45,25 +44,25 @@ void DestroyHash(struct HashTable* _Hash) {
 }
 
 struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key) {
-	int _Index = 0;
+	int _FirstIndex = 0;
 	struct HashNode* _Node = NULL;
-	int i;
+	int _Index;
 
 	if(_Key == NULL)
 		return NULL;
 	if(_Hash->TblSize == 0)
 		return NULL;
-	_Index = Hash(_Key) % _Hash->TblSize;
-	_Node = _Hash->Table[_Index];
+	_FirstIndex = Hash(_Key) % _Hash->TblSize;
+	_Node = _Hash->Table[_FirstIndex];
 	if(_Node == NULL)
 		return NULL;
-	i = _Index;
-	while(_Node != NULL && strcmp(_Node->Key, _Key) != 0 ) {
-		++i;
-		if(i >= _Hash->TblSize)
-			i = 0;
-		_Node = _Hash->Table[i];
-		if(i == _Index)
+	_Index = _FirstIndex;
+	while(_Node != NULL && strcmp(_Node->Key, _Key) != 0) {
+		++_Index;
+		if(_Index >= _Hash->TblSize)
+			_Index = 0;
+		_Node = _Hash->Table[_Index];
+		if(_Index == _FirstIndex)
 			return NULL;
 	}
 	if(_Node == NULL)
@@ -134,17 +133,27 @@ int HashDelete(struct HashTable* _Hash, const char* _Key) {
 	return 1;
 }
 
+void HashDeleteAll(struct HashTable* _Hash, void(*_Callback)(void*)) {
+	for(int i = 0; i < _Hash->Size; ++i) {
+		if(_Hash->Table[i] == NULL)
+			continue;
+		_Callback(_Hash->Table[i]->Pair);
+		_Hash->Table[i] = NULL;
+	}
+	_Hash->Size = 0;
+}
+
 struct HashItr* HashCreateItr(struct HashTable* _Hash) {
 	struct HashItr* _Itr = NULL;
-	int i;
 
-	for(i = 0; i < _Hash->TblSize; ++i)
+	for(int i = 0; i < _Hash->TblSize; ++i) {
 		if(_Hash->Table[i] != NULL) {
 			_Itr = (struct HashItr*) malloc(sizeof(struct HashItr));
 			_Itr->Index = i;
 			_Itr->Node = _Hash->Table[i];
 			return _Itr;
 		}
+	}
 	return NULL;
 }
 

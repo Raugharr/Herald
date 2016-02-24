@@ -1,10 +1,12 @@
 /*
- * File: RBTree.h
  * Author: David Brotz
- */
+ * File: RBTree.h 
+*/
 
 #ifndef RBTREE_H
 #define RBTREE_H
+
+typedef int(*RBCallback)(const void*, const void*);
 
 struct RBNode {
 	int Color;
@@ -28,11 +30,11 @@ struct RBTree {
 	 * than the second.
 	 * When Callback is called internally the user given data will always be passed to the first void*.
 	 */
-	int(*ICallback)(const void*, const void*);
-	int(*SCallback)(const void*, const void*);
+	RBCallback ICallback;
+	RBCallback SCallback;
 };
 
-struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*));
+struct RBTree* CreateRBTree(RBCallback ICallback, RBCallback SCallback);
 struct RBTree* CopyRBTree(struct RBTree* _Tree);
 void DestroyRBTree(struct RBTree* _Tree);
 
@@ -49,6 +51,9 @@ struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert
  */
 void* RBSearch(const struct RBTree* _Tree, const void* _Data);
 struct RBNode* RBSearchNode(const struct RBTree* _Tree, const void* _Data);
+/**
+ * Deletes a single node containing _Data if it exists.
+ */
 void RBDelete(struct RBTree* _Tree, void* _Data);
 void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode);
 
@@ -61,6 +66,9 @@ struct RBItrStack* RBDepthFirst(struct RBNode* const _Node, struct RBItrStack* _
  */
 void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*));
 void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*));
+/**
+ * Removes all elements from _Tree.
+ */
 void RBClear(struct RBTree* _Tree);
 /**
  *  Returns the data of the largest element that is _Node or a child of _Node.
@@ -81,3 +89,4 @@ int RBColorCheck(struct RBNode* _Node);
 int RBStrlen(struct RBNode* _Node);
 int RBToString(struct RBNode* _Node, char* _Buffer, int _Size);
 #endif
+

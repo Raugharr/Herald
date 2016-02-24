@@ -27,21 +27,24 @@
 struct RBNode* __RBMax(struct RBNode* _Node) {
 	if(_Node == NULL)
 		return NULL;
-	if(_Node->Left == NULL)
-		return _Node;
-	_Node = _Node->Left;
-	while(_Node->Right != NULL)
+	//if(_Node->Left == NULL)
+	//	return _Node;
+	//_Node = _Node->Left;
+	while(_Node->Right != NULL) {
 		_Node = _Node->Right;
+	}
 	return _Node;
 }
+
 struct RBNode* __RBMin(struct RBNode* _Node) {
 	if(_Node == NULL)
 		return NULL;
-	if(_Node->Right == NULL)
-		return _Node;
-	_Node = _Node->Right;
-	while(_Node->Left != NULL)
+	//if(_Node->Right == NULL)
+	//	return _Node;
+	//_Node = _Node->Right;
+	while(_Node->Left != NULL) {
 		_Node = _Node->Left;
+	}
 	return _Node;
 }
 
@@ -149,7 +152,7 @@ struct RBNode* CopyRBNode(struct RBNode* _Node) {
 	return _NewNode;
 }
 
-struct RBTree* CreateRBTree(int(*_ICallBack)(const void*, const void*), int(*_SCallBack)(const void*, const void*)) {
+struct RBTree* CreateRBTree(RBCallback _ICallBack, RBCallback _SCallBack) {
 	struct RBTree* _Tree = (struct RBTree*) malloc(sizeof(struct RBTree));
 
 	_Tree->Table = NULL;
@@ -348,22 +351,25 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 		return;
 	}
 
-	if(_OldNode->Right != NULL)
-		_NewNode = __RBMin(_OldNode);
-	else if(_OldNode->Left != NULL)
-		_NewNode = __RBMax(_OldNode);
-	else
+	if(_OldNode->Left != NULL) {
+		if(_OldNode->Left->Right != NULL) {
+			_NewNode = __RBMax(_OldNode->Left->Right);
+		} else { 
+			_NewNode = _OldNode->Left;
+		}
+	} else if(_OldNode->Right != NULL) {
+		if(_OldNode->Right->Left != NULL) {
+			_NewNode = __RBMin(_OldNode->Right->Left);
+		} else {
+			_NewNode = _OldNode->Right;
+		}
+	} else {
 		_NewNode = _OldNode;
+		goto skip_loop;	
+	} 
 
-	if(_NewNode == NULL)
-		_Node = _OldNode;
-	else
-		_Node = _NewNode;
-
-	if(_Node->Color == RB_RED)
-		_Node->Color = RB_BLACK;
-	else
-		_Node->Color = RB_DBLACK;
+	_Node = _NewNode;
+	_Node->Color = ((_Node->Color == RB_RED) ? (RB_BLACK) : (RB_DBLACK));
 	while(_Tree->Table != _Node && _Node->Color == RB_DBLACK) {
 		_Sibling = RBSibling(_Node);
 		_Parent = _Node->Parent;
@@ -406,9 +412,11 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 			}
 		}
 	}
+	skip_loop:
 	_Parent = _NewNode->Parent;
 	if(_Parent) {
 		struct RBNode* _Temp = (_NewNode->Left == NULL) ? (_NewNode->Right) : (_NewNode->Left);
+
 		if(_Parent->Right == _NewNode)
 			_Parent->Right = _Temp;
 		else
@@ -416,8 +424,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 		if(_Temp)
 			_Temp->Parent = _Parent;
 	}
-
-	if(_OldNode != _NewNode) {
+	/*if(_OldNode != _NewNode) {
 		if(_OldNode->Parent != NULL) {
 			if(_OldNode->Parent->Left == _OldNode)
 				_OldNode->Parent->Left = _NewNode;
@@ -433,10 +440,11 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 			_NewNode->Left->Parent = _NewNode;
 		if(_OldNode == _Tree->Table)
 			_Tree->Table = _NewNode;
-	}
+	}*/
 	_Tree->Table->Color = RB_BLACK;
 	--_Tree->Size;
-	free(_OldNode);
+	_OldNode->Data = _NewNode->Data;
+	free(_NewNode);
 }
 /*
  * FIXME: When the RBTree contains thousands of elements it would take to long to iterate through the thousands

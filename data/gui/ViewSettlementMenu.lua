@@ -17,6 +17,8 @@ function Menu.Init(Menu, Width, Height, Data)
 	Menu.Left = GUI.VerticalContainer(0, 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
 	Menu.Right = GUI.VerticalContainer((Width / 2), 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
+	local BigGuyMenu = nil
+	local SettlementMenu = nil
 	
 	Menu.TitleCon:SetFocus(false)
 	Menu.Title:SetFocus(false)
@@ -35,16 +37,23 @@ function Menu.Init(Menu, Width, Height, Data)
 		end)
 	Menu.Left:CreateButton("View Settlement",
 		function()
-			--Menu.Right:
-			Menu.Right:CreateLabel(tostring(Data["Settlement"]:GetPopulation()))
+			if SettlementMenu ~= nil then
+				return
+			end
+			SettlementMenu = Menu.Right:CreateLabel(tostring(Data["Settlement"]:GetPopulation()))
 		end)
 	Menu.Left:CreateButton("View big guys",
 		function()
+			if BigGuyMenu ~= nil then
+				return
+			end
+
 			local Table = Menu.Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
 			local Agent = nil
 			local Player = World.GetPlayer()
 			local Relation = nil
 			
+			BigGuyMenu = Table
 			Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			Table:CreateLabel("Name")
@@ -52,19 +61,25 @@ function Menu.Init(Menu, Width, Height, Data)
 			Table:CreateLabel("Our Opinion");
 			Table:CreateLabel("Their Opinion");
 			for Guy in Data["Settlement"]:GetBigGuys():Front() do
-			Table:CreateButton(Guy:GetPerson():GetName(),
-				function()
-					GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
-				end)
-			Agent = Guy:GetAgent()
-			if Agent ~= nil then
-				Table:CreateLabel(Agent:GetAction())
-				else
-					Table:CreateLabel("Player")
+				if Guy:Equal(World:GetPlayer()) == false then
+					Table:CreateButton(Guy:GetPerson():GetName(),
+						function()
+							GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
+						end)
+					Agent = Guy:GetAgent()
+					if Agent ~= nil then
+						Table:CreateLabel(Agent:GetAction())
+						else
+							Table:CreateLabel("Player")
+					end
+					Table:CreateLabel(RelationToStr(Player, Guy))
+					Table:CreateLabel(RelationToStr(Guy, Player))
+				end
 			end
-			Table:CreateLabel(RelationToStr(Player, Guy))
-			Table:CreateLabel(RelationToStr(Guy, Player))
-			end
+		end)
+	Menu.Left:CreateButton("Bulitin",
+		function()
+			GUI.CreateWindow("SettlementBulitinMenu", Data, 512, 512)
 		end)
 	Menu.Left:CreateButton("Close",
 		function()

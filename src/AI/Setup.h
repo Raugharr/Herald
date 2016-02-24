@@ -13,6 +13,7 @@ struct Behavior;
 struct Person;
 struct HashTable;
 struct Array;
+struct Family;
 struct GOAPPlanner;
 typedef struct lua_State lua_State;
 
@@ -32,28 +33,33 @@ extern struct Array g_BhvList;
 struct LuaBhvAction {
 	const char* Name;
 	BhvAction Action;
+	int Arguments;
 };
 
 extern struct LuaBhvAction g_BhvActions[];
 
 int LuaBaCmp(const void* _One, const void* _Two);
 
-int PAIHasField(struct Person* _Person, struct HashTable* _Table);
-int PAIHasHouse(struct Person* _Person, struct HashTable* _Table);
-int PAIWorkField(struct Person* _Person, struct HashTable* _Table);
-int PAIBuildHouse(struct Person* _Person, struct HashTable* _Table);
-int PAICanFarm(struct Person* _Person, struct HashTable* _Table);
-int PAIHasPlow(struct Person* _Person, struct HashTable* _Table);
-int PAIMakeGood(struct Person* _Person, struct HashTable* _Table);
-int PAIHasReap(struct Person* _Person, struct HashTable* _Table);
-int PAIHasAnimals(struct Person* _Person, struct HashTable* _Table);
-int PAIConstructBuild(struct Person* _Person, struct HashTable* _Table);
-int PAIHasShelter(struct Person* _Person, struct HashTable* _Table);
-int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table);
-int PAIEat(struct Person* _Person, struct HashTable* _Table);
-int PAIMakeFood(struct Person* _Person, struct HashTable* _Table);
-int PAIIsMale(struct Person* _Person, struct HashTable* _Table);
-int BHVNothing(struct Person* _Person, struct HashTable* _Table);
+int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIBuildHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAICanFarm(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasPlow(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIMakeGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasReap(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIConstructBuild(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasShelter(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIEat(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIMakeFood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+
+int PAIHasAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIBuyAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIHasGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+int PAIBuyGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
+
+int BHVNothing(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize);
 
 int LuaActionLen(const struct LuaBhvAction* _Action);
 

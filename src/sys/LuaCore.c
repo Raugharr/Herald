@@ -37,6 +37,11 @@ static const char* g_LuaMissionEnv[] = {
 		NULL
 };
 
+static const luaL_Reg g_LuaObjectFuncs[] = {
+		{"Equal", LuaObjectIsEqual},
+		{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaCoreFuncs[] = {
 		{"CreateConstraintBounds", LuaConstraintBnds},
 		{"ToYears", LuaYears},
@@ -45,6 +50,8 @@ static const luaL_Reg g_LuaCoreFuncs[] = {
 		{"PrintYears", LuaPrintYears},
 		{"Hook", LuaHook},
 		{"Random", LuaRandom},
+		{"Null", LuaNull},
+		{"CallMissionById", LuaMissionCallById_Aux},
 		{NULL, NULL}
 };
 
@@ -108,14 +115,9 @@ static const luaL_Reg g_LuaFuncsMissionOption[] = {
 };
 
 static const luaL_Reg g_LuaMissionRuleFuncs[] = {
-		{"SetName", LuaMissionSetName},
-		{"SetDesc", LuaMissionSetDesc},
-		{"AddOption", LuaMissionAddOption},
-		{"AddTrigger", LuaMissionAddTrigger},
 		{"Owner", LuaMissionGetOwner},
-		{"Target", LuaMissionGetTarget},
+		{"Sender", LuaMissionGetSender},
 		{"GetRandomPerson", LuaMissionGetRandomPerson},
-		{"GetImprovingRelation", NULL},
 		{"CallById", LuaMissionCallById},
 		{"Data", LuaMissionData},
 		{"AddData", LuaMissionAddData},
@@ -136,14 +138,31 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{NULL, NULL, NULL}
 };
 
+int LuaCallFuncError(lua_State* _State) {
+	//lua_Debug _Debug;
+
+	//lua_getstack(_State, 1 , &_Debug);
+	//lua_getinfo(_State, "Snl", &_Debug);
+	if(lua_isstring(_State, -1) == 0)
+		return 0;
+	lua_getglobal(_State, "debug");
+	lua_getfield(_State, -1, "traceback");
+	//lua_pushvalue(_State, 1);
+	//lua_pushinteger(_State, 2);
+	lua_call(_State, 0, 1);
+	//const char* _Foo = lua_tostring(_State, -1);
+	return 1;
+}
+
 void InitLuaCore() {
 	g_LuaState = luaL_newstate();
 	for(int i = 0; g_LuaGlobals[i] != NULL; ++i) {
 		lua_newtable(g_LuaState);
 		lua_setglobal(g_LuaState, g_LuaGlobals[i]);
 	}
-	lua_atpanic(g_LuaState, LogLua);
+	lua_atpanic(g_LuaState, LuaCallFuncError);
 	luaL_openlibs(g_LuaState);
+	LuaRegisterObject(g_LuaState, LUA_BASECLASS, NULL, g_LuaObjectFuncs);
 	RegisterLuaObjects(g_LuaState, g_LuaCoreObjects);
 	LuaCreateLibrary(g_LuaState, g_LuaFuncsRule, "Rule");
 	LuaRegisterFunctions(g_LuaState, g_LuaCoreFuncs);
@@ -176,6 +195,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 	lua_pushstring(_State, "__class");
 	lua_pushstring(_State, _Name);
 	lua_rawset(_State, -3);
+	//Give them the base class Object. This doesn't need to be done for a class with a base class as their base class with be an object.
 	if(_BaseClass != NULL) {
 		lua_pushliteral(_State, "__baseclass");
 		luaL_getmetatable(_State, _BaseClass);
@@ -388,6 +408,14 @@ int LuaConstraint(lua_State* _State) {
 	return 1;
 }
 
+int LuaObjectIsEqual(lua_State* _State) {
+	void* _Obj1 = LuaToClass(_State, 1);
+	void* _Obj2 = LuaToClass(_State, 2);
+
+	lua_pushboolean(_State, _Obj1 == _Obj2);
+	return 1;
+}
+
 int LuaConstraintBnds(lua_State* _State) {
 	luaL_checktype(_State, -1, LUA_TTABLE);
 
@@ -494,11 +522,17 @@ int LuaRandom(lua_State* _State) {
 	return 1;
 }
 
-int LuaLoadError(lua_State* _State) {
-	lua_Debug _Debug;
-
-	lua_getstack(_State, 0 , &_Debug);
-	//lua_getinfo(_State, "Snl", &_Debug);
+int LuaNull(lua_State* _State) {
+	if(lua_type(_State, 1) != LUA_TTABLE) {
+		lua_pushboolean(_State, 1);
+		return 1;
+	}
+	lua_pushstring(_State, "__self");
+	lua_rawget(_State, 1);
+	if(lua_touserdata(_State, -1) == NULL)
+		lua_pushboolean(_State, 1);
+	else
+		lua_pushboolean(_State, 0);
 	return 1;
 }
 
@@ -511,24 +545,28 @@ int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) 
 		LuaGetEnv(_State, _Environment);
 		lua_setupvalue(_State, -2, 1);
 	}
-	//lua_pushcfunction(_State, LuaLoadError);
+	//lua_pushcfunction(_State, LuaCallFuncError);
 	if((_Error = lua_pcall(_State, 0, LUA_MULTRET, 0)) != 0)
 		goto error;
 	const char* _Test = lua_getupvalue(_State, -1, 1);
 	if(_Test != NULL)
 		lua_pop(_State, 1);
+	//lua_pop(_State, 1);
 	return LUA_OK;
 
 	error:
 	switch(_Error) {
 		case LUA_ERRFILE:
 			Log(ELOG_ERROR, "Cannot load file: %s", _File);
+			lua_settop(_State, 0);
 			return _Error;
 		case LUA_ERRRUN:
 			Log(ELOG_ERROR, "Cannot run file: %s", lua_tostring(_State, -1));
+			lua_settop(_State, 0);
 			return _Error;
 		default:
 			Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
+			lua_settop(_State, 0);
 			return _Error;
 	}
 	return LUA_ERRERR;
@@ -536,13 +574,18 @@ int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment) 
 
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 	//TODO: If in debug mode the stack should be checked to ensure its balanced.
-	int _Error = lua_pcall(_State, _Args, _Results, _ErrFunc);
+	int _Error = 0;
 
+//	lua_pushcfunction(_State, LuaCallFuncError);
+//	lua_insert(_State, -_Args - 1);
+	_Error = lua_pcall(_State, _Args, _Results, 0/*_Results, -1*/);
+//	lua_remove(_State, -_Results - 1);
 	if(_Error != 0)
 		goto error;
 	return 1;
 
 	error:
+	SDL_assert(0 == 1 || lua_tostring(_State, -1));
 	Log(ELOG_ERROR, "%s", lua_tostring(_State, -1));
 	return 0;
 }
@@ -613,6 +656,18 @@ int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function) {
 	}
 	//Log(ELOG_ERROR, "metafield is not a c function.");
 	return 0;
+}
+
+int LuaRawString(lua_State* _State, int _Index, const char* _Field, const char** _Str) {
+	lua_pushstring(_State, _Field);
+	lua_rawget(_State, _Index);
+	if(lua_type(_State, -1) != LUA_TSTRING) {	
+		lua_pop(_State, 1);
+		return 0;
+	}
+	*_Str = lua_tostring(_State, -1);
+	lua_pop(_State, 1);
+	return 1;
 }
 
 void LuaPrintTable(lua_State* _State, int _Index) {
@@ -722,18 +777,44 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	return (void*) luaL_error(_State, LUA_TYPERROR(_State, 1, _Class, "LuaCheckClass"));
 }
 
+const char* LuaBaseClass(lua_State* _State, int _Index) {
+	const char* _BaseClass = NULL;
+
+	if(lua_getmetatable(_State, _Index) == 0)
+		 luaL_error(_State, LUA_TYPERROR(_State, _Index, "Table", "LuaTestClass"));
+	while(1) {
+		lua_pushstring(_State, "__class");
+		lua_rawget(_State, -2);
+		if(lua_isstring(_State, -1) == 0) {
+			lua_pop(_State, 2);
+			return NULL;
+		}
+		_BaseClass = lua_tostring(_State, -1);
+		lua_pop(_State, 1);
+		lua_pushstring(_State, "__baseclass");
+		lua_rawget(_State, -2);
+		if(lua_type(_State, -1) != LUA_TTABLE) {
+			lua_pop(_State, 1);
+			break;
+		}
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
+	return _BaseClass;
+}
+
 int LuaIntPair(lua_State* _State, int _Index, int* _One, int* _Two) {
 	int _Top = lua_gettop(_State);
 
 	lua_pushnil(_State);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(LuaGetInteger(_State, -1, _One) == -1)
+	if(LuaGetInteger(_State, -1, _One) == 0)
 		goto fail;
 	lua_pop(_State, 1);
 	if(lua_next(_State, _Index - 1) == 0)
 		goto fail;
-	if(LuaGetInteger(_State, -1, _Two) == -1)
+	if(LuaGetInteger(_State, -1, _Two) == 0)
 		goto fail;
 	lua_pop(_State, 2);
 	return 1;
@@ -763,16 +844,17 @@ int LuaKeyValue(lua_State* _State, int _Index, const char** _Value, int* _Pair) 
 }
 
 int LuaRuleLuaCall(lua_State* _State) {
-	int i = 1;
 	int _Args = lua_gettop(_State);
 	struct RuleLuaCall* _Rule = NULL;
 
+	SDL_assert(_Args > 0);
 	luaL_checktype(_State, 1, LUA_TFUNCTION);
 	lua_createtable(_State, _Args, 0);
-	for(i = 0; i < _Args; ++i) {
+	for(int i = 0; i < _Args; ++i) {
 		lua_pushvalue(_State, i + 1);
 		lua_rawseti(_State, -2, i + 1);
 	}
+	SDL_assert(lua_type(_State, -1) == LUA_TTABLE);
 	_Rule = CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX));
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
@@ -1002,14 +1084,25 @@ int LuaClassIndex(lua_State* _State) {
 	lua_getmetatable(_State, 1);
 	while(1) {
 		lua_pushvalue(_State, 2);
+		//Search metatable for the key.
 		lua_rawget(_State, 3);
 		if(lua_type(_State, -1) != LUA_TNIL)
 			break;
+		//Key not found check base class.
 		lua_pop(_State, 1);
 		lua_pushstring(_State, "__baseclass");
 		lua_rawget(_State, 3);
-		if(lua_type(_State, -1) == LUA_TNIL)
+		//No base class check LUA_BASECLASS metatable.
+		if(lua_type(_State, -1) == LUA_TNIL) {
+			luaL_getmetatable(_State, LUA_BASECLASS);
+			lua_pushvalue(_State, 2);
+			lua_rawget(_State, -2);
+			if(lua_type(_State, -1) == LUA_TNIL) {
+				lua_pushnil(_State);
+				return 1;
+			}
 			break;
+		}
 		lua_replace(_State, 3);
 	}
 	return 1;
@@ -1057,6 +1150,7 @@ void InitMissionLua(lua_State* _State) {
 					continue;
 				}
 			}
+			SDL_assert(lua_type(_State, -1) == LUA_TFUNCTION);
 			lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
 			lua_pushvalue(_State, -2);
 			lua_pushvalue(_State, -2);

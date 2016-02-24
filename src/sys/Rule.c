@@ -238,13 +238,11 @@ int RuleGreaterThan(const struct RuleComparator* _Rule) {
 	return (RuleEval(_Rule->Left) > RuleEval(_Rule->Right));
 }
 
-
 int RuleLessThan(const struct RuleComparator* _Rule) {
 	return (RuleEval(_Rule->Left) < RuleEval(_Rule->Right));
 }
 
 int RuleLuaCall(const struct RuleLuaCall* _Rule) {
-	int i = 0;
 	int _Len = 0;
 	int _Table = 0;
 	struct RuleLuaCall* _RuleArg = NULL;
@@ -252,17 +250,24 @@ int RuleLuaCall(const struct RuleLuaCall* _Rule) {
 	lua_rawgeti(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
 	_Table = lua_absindex(_Rule->State, -1);
 	_Len = lua_rawlen(_Rule->State, _Table);
-	for(i = 1; i <= _Len; ++i) {
+	if(_Len == 0) {
+		return luaL_error(_Rule->State, "LuaCall: table has no function to call.");
+	}
+	//Unwrap all elements in order the first is a function and the follwing elements are its arguments.
+	for(int i = 1; i <= _Len; ++i) {
 		lua_rawgeti(_Rule->State, _Table, i);
 		if(lua_type(_Rule->State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_Rule->State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
 			RuleLuaCall(_RuleArg);
 			lua_remove(_Rule->State, -2);
 		}
 	}
-	LuaCallFunc(_Rule->State, _Len - 1, 1, 0);
+	LuaCallFunc(_Rule->State, _Len - 1, 1, 0); //Len - 1 args because the element in the table is the function.
 	lua_remove(_Rule->State, _Table);//pop _Rule->TblRef.
 	if(lua_isnumber(_Rule->State, -1) != 0) {
-		return lua_tointeger(_Rule->State, -1);
+		int _Return = lua_tointeger(_Rule->State, -1);
+
+		lua_pop(_Rule->State, 1);
+		return _Return;
 	}
 	return 0;
 }

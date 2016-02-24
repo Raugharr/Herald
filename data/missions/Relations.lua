@@ -15,7 +15,7 @@ Mission.Load {
 			Utility = Mission.Normalize(0, 1)
 		}
 	},
-	Trigger = {Name = "BigGuy", Type = "ImproveRelations", OpCode = Mission.GreaterThan, Value = 0},
+	Trigger = {Name = "BigGuy", Triggers = {{Type = "ImproveRelations", OpCode = Mission.GreaterThan, Value = 0}}},
 	MeanTime = 2,
 	Id = "REL.1"
 }

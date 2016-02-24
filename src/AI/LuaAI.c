@@ -3,7 +3,7 @@
  * Author: David Brotz
  */
 
-#include "LuaAi.h"
+#include "LuaAI.h"
 #include "Agent.h"
 
 #include <lua/lauxlib.h>

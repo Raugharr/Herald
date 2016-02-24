@@ -26,23 +26,17 @@ struct AIHook {
 	struct Behavior** BhvPaths;
 };
 
+void LuaAILibInit(lua_State* _State);
+
 int LuaBhvCmp(const void* _One, const void* _Two);
 int luaStrLuaBhvCmp(const void* _One, const void* _Two);
 
-int LuaBhvComp(lua_State* _State);
-int LuaBhvPrim(lua_State* _State);
-int LuaBhvDec(lua_State* _State);
+int LuaBhvSelector(lua_State* _State);
+int LuaBhvSequence(lua_State* _State);
+int LuaBhvInverter(lua_State* _State);
+int LuaBhvNode(lua_State* _State);
 
 int LuaBhvTree(lua_State* _State);
-int LuaAISetHook(lua_State* _State);
-
-static const luaL_Reg g_LuaAIFuncs[] = {
-	{"CompNode", LuaBhvComp},
-	{"PrimNode", LuaBhvPrim},
-	{"DecorateNode", LuaBhvDec},
-	{"AddBhvTree", LuaBhvTree},
-	{"Hook", LuaAISetHook},
-	{NULL, NULL}
-};
+//int LuaAISetHook(lua_State* _State);
 
 #endif

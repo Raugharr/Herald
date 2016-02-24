@@ -108,7 +108,7 @@ void TilesInRange(struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Ran
 	for(; _Point.x <= _Range; ++_Point.x)
 		for(; _Point.y <= min(_Range, -_Pos->x - _Range); ++_Point.y)
 			if((_Tile = MapGetTile(_Renderer, &_Point)) != NULL)
-				LnkLstPushBack(_List, _Tile);
+				LnkLstPushBack(_List, (struct Tile*) _Tile);
 }
 
 void MapTileRenderRect(const struct MapRenderer* _Renderer, const SDL_Point* _TilePos, SDL_Rect* _Rect) {

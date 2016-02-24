@@ -18,6 +18,8 @@
 #define CHAR_BITS (8)
 #endif
 
+#define PowTwo(_Pow) (_Pow) > 0 && !((_Pow) & ((_Pow) - 1))
+
 #define IsNeg(_Int) ((_Int) < 0)
 //_Int becomes _Num more integers away from 0.
 #define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BITS - 1))) * (_Num))

@@ -75,28 +75,29 @@ void ArrayResize(struct Array* _Array) {
 	_Array->TblSize = _Size;
 }
 
-void InsertionSort(void* _Table, int _Count, int(*_Callback)(const void*, const void*)) {
-	int i;
+void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {
 	int j;
-	int* _Temp;
+	int* _Node[_SizeOf];
 	int** _Off;
 
 	if(_Count <= 1)
 		return;
-	for(i = 1; i < _Count; ++i) {
-		_Temp = *(int**)(_Table + sizeof(int*) * i);
-		j = i;
-		while(j > 0 && _Callback(_Temp, *(void**)(_Table + sizeof(int*) * (j - 1))) < 0) {
-			_Off = _Table + sizeof(int*) * j;
-			*_Off = *(int**)(_Table + sizeof(int*) * (j - 1));
+	for(int _Base = 1; _Base < _Count; ++_Base) {
+		memmove(_Node, (int**)(_Table + _SizeOf * _Base), _SizeOf);
+		j = _Base - 1;
+		while(j > 0 && _Callback(_Node, (void**)(_Table + _SizeOf * j)) < 0) {
+			_Off = _Table + _SizeOf * (j + 1);
+			memmove(_Off,  (int**)(_Table + _SizeOf * j), _SizeOf);
+			//*_Off = *(int**)(_Table + _SizeOf * (j - 1));
 			--j;
 		}
-		_Off = _Table + sizeof(int*) * j;
-		*_Off = _Temp;
+		_Off = _Table + _SizeOf * (j + 1);
+		memmove(_Off,  _Node, _SizeOf);
+		//*_Off = _Node;
 	}
 }
 
-void QuickSort_Aux(void* _Table, int(*_Callback)(const void*, const void*), int _Left, int _Right) {
+void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Left, int _Right) {
 	int i = _Left;
 	int j = _Right;
 	const void* _Node = NULL;
@@ -140,7 +141,26 @@ int ArrayLen(const void* _Table) {
 	return _Size;
 }
 
-void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*)) {
+int ArrayCount(const void** restrict _TblOne, const void** restrict _TblTwo) {
+	int _Count = 0;
+
+	for(int i = 0; _TblOne[i] != NULL; ++i) {
+		for(int j = 0; _TblTwo[j] != NULL; ++j) {
+			_Count += (_TblOne[i] == _TblTwo[j]);
+		}
+	}
+	return _Count;
+}
+
+int NArrayExists(const void** restrict _Tbl, const void* restrict _Ptr) {
+	for(int i = 0; _Tbl[i] != NULL; ++i) {
+		if(_Tbl[i] == _Ptr)
+			return 1;
+	}
+	return 0;
+}
+
+void* BinarySearch(const void* _Data, void* _Table, int _Size, CompCallback _Callback) {
 	int _Min = 0;
 	int _Max = _Size - 1;
 	int _Mid = 0;
@@ -159,10 +179,8 @@ void* BinarySearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(c
 	return NULL;
 }
 
-void* LinearSearch(const void* _Data, void* _Table, int _Size, int(*_Callback)(const void*, const void*)) {
-	int i;
-
-	for(i = 0; i < _Size; ++i) {
+void* LinearSearch(const void* _Data, void* _Table, int _Size, CompCallback _Callback) {
+	for(int i = 0; i < _Size; ++i) {
 		if(_Callback(_Data, *(void**)_Table) == 0)
 			return *(void**)_Table;
 		_Table = (void**)(_Table + sizeof(void*));

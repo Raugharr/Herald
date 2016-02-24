@@ -41,27 +41,38 @@
 
 struct Array g_BhvList;
 struct LuaBhvAction g_BhvActions[] = {
-	{"BuildHouse", PAIBuildHouse},
-	{"CanFarm", PAICanFarm},
-	{"ConstructBuilding", PAIConstructBuild},
-	{"FeedAnimals", PAIFeedAnimals},
-	{"HasAnimals", PAIHasAnimals},
-	{"HasField", PAIHasField},
-	{"HasHouse", PAIHasHouse},
-	{"HasPlow", PAIHasPlow},
-	{"HasReap", PAIHasReap},
-	{"HasShelter", PAIHasShelter},
-	{"IsMale", PAIIsMale},
-	{"MakeFood", PAIMakeFood},
-	{"MakeGood", PAIMakeGood},
-	{"Nothing", BHVNothing},
-	{"WorkField", PAIWorkField},
+	{"BuildHouse", PAIBuildHouse, 0},
+	{"BuyAnimal", PAIBuyAnimal, 2},
+	{"BuyGood", PAIBuyGood, 2},
+	{"CanFarm", PAICanFarm, 0},
+	{"ConstructBuilding", PAIConstructBuild, 0},
+	{"FeedAnimals", PAIFeedAnimals, 0},
+	{"HasAnimal", PAIHasAnimal, 1},
+	{"HasAnimals", PAIHasAnimals, 0},
+	{"HasField", PAIHasField, 0},
+	{"HasGood", PAIHasGood, 1},
+	{"HasHouse", PAIHasHouse, 0},
+	{"HasPlow", PAIHasPlow, 0},
+	{"HasReap", PAIHasReap, 0},
+	{"HasShelter", PAIHasShelter, 0},
+	{"MakeFood", PAIMakeFood, 0},
+	{"MakeGood", PAIMakeGood, 2},
+	{"Hunt", BHVNothing, 0},
+	{"Nothing", BHVNothing, 0},
+	{"WorkFields", BHVNothing, 0},
+	{"SlaughterAnimals", BHVNothing, 0},
+	{"Season", BHVNothing, 1},
+	{"PurchaseGood", BHVNothing, 2},
 	{NULL, NULL}
 };
 
 static struct AgentUtility g_BigGuyPlanner;
 
 int g_BhvActionsSz = 0;
+
+int SortBhvActions(const struct LuaBhvAction* _One, const struct LuaBhvAction* _Two) {
+	return strcmp(_One->Name, _Two->Name);
+}
 
 int LuaBaCmp(const void* _One, const void* _Two) {
 	return strcmp(((struct LuaBhvAction*)_One)->Name, ((struct LuaBhvAction*)_Two)->Name);
@@ -72,162 +83,104 @@ int PopulationInputReqCmp(const void* _One, const void* _Two) {
 }
 
 
-int PAIHasField(struct Person* _Person, struct HashTable* _Table) {
-	return _Person->Family->Fields->Table != NULL;
+int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	return _Family->Fields->Table != NULL;
 }
 
-int PAIHasHouse(struct Person* _Person, struct HashTable* _Table) {
+int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	int i;
-	struct Array* _Array = _Person->Family->Buildings;
+	struct Array* _Array = _Family->Buildings;
 	void** _PerTbl = _Array->Table;
-	struct HashNode* _Search = NULL;
 
 	for(i = 0; i < _Array->Size; ++i)
 		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_HUMAN) == ERES_HUMAN)
 			return 1;
-	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL) {
-		free(_Search->Pair);
-		_Search->Pair = AI_HOUSE;
-	} else
-		HashInsert(_Table, AI_MAKEGOOD, AI_HOUSE);
 	return 0;
 }
 
-int PAIWorkField(struct Person* _Person, struct HashTable* _Table) {
+int PAIBuildHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	return 1;
 }
 
-int PAIBuildHouse(struct Person* _Person, struct HashTable* _Table) {
-	/*struct Construction* _House = NULL;
-
-	if((_House = ATimerSearch(&g_ATimer, (struct Object*)_Person, ATT_CONSTRUCTION)) == NULL) {
-		ATimerInsert(&g_ATimer, CreateConstruct(NULL, _Person));
-	} else {
-		--_House->DaysLeft;
-	}*/
-	return 1;
-}
-
-int PAICanFarm(struct Person* _Person, struct HashTable* _Table) {
-	struct Family* _Family = _Person->Family;
+int PAICanFarm(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	struct Array* _Array = _Family->Goods;
 	struct GoodBase* _Good = NULL;
 	int i;
 	int _Tools = 0;
 
-	if(!PAIHasField(_Person, _Table))
+	if(!PAIHasField(_Family, _Vars, _Args, _ArgSize))
 		return 0;
 	for(i = 0; i < _Array->Size; ++i) {
 		_Good = _Array->Table[i];
-		if(_Good->Category == ETOOL)
+		if(_Good->Category == GOOD_TOOL)
 			_Tools |= ((struct ToolBase*)_Good)->Function;
 	}
 	return ((_Tools & (ETOOL_PLOW | ETOOL_REAP)) == (ETOOL_PLOW | ETOOL_REAP)) ? (1) : (0);
 }
 
-int PAIHasPlow(struct Person* _Person, struct HashTable* _Table) {
-	struct Array* _Goods = _Person->Family->Goods;
+int PAIHasPlow(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	struct Array* _Goods = _Family->Goods;
 	const struct GoodBase* _Good = NULL;
-	struct HashNode* _Search = NULL;
-	int i;
 
-	for(i = 0; i < _Goods->Size; ++i) {
+	for(int i = 0; i < _Goods->Size; ++i) {
 		_Good = ((struct Good*)_Goods->Table[i])->Base;
-		if(_Good->Category == ETOOL)
+		if(_Good->Category == GOOD_TOOL)
 			if(((struct ToolBase*)_Good)->Function == ETOOL_PLOW)
 				return 1;
-	}
-	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL)
-		_Search->Pair = AI_PLOW;
-	else
-		HashInsert(_Table, AI_MAKEGOOD, AI_PLOW);
+	};
 	return 0;
 }
 
-int PAIMakeGood(struct Person* _Person, struct HashTable* _Table) {
-	struct GoodBase* _Good = HashSearch(&g_Goods, HashSearch(_Table, AI_MAKEGOOD));
-	struct Good* _OwnedGood = NULL;
-	struct GoodDep* _GoodDep = NULL;
-	struct Family* _Family = _Person->Family;
-	int _Size;
-	void** _GoodTbl = NULL;
-	int i;
+int PAIMakeGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	const struct GoodBase* _Good = NULL;
 
-	if(_Good == NULL)
+	if(_Args[0].Type != PRIM_STRING && _Args[1]. Type != PRIM_INTEGER)
 		return 0;
-	_GoodDep = GoodDependencies(g_GameWorld.GoodDeps, _Good);
-	_Size = _GoodDep->DepTbl->Size;
-	_GoodTbl = _GoodDep->DepTbl->Table;
-	struct Good* _GoodIndxs[_Size];
-	for(i = 0; i < _Size; ++i)
-		if((_GoodIndxs[i] =
-				bsearch(_GoodTbl[i],
-						_Family->Goods->Table,
-						_Family->Goods->Size,
-						sizeof(struct GoodDep*),
-						(int(*)(const void*, const void*))IdISCallback)) == NULL
-				|| _GoodIndxs[i]->Quantity < ((struct InputReq*)_GoodTbl[i])->Quantity)
-			return 0;
-	for(i = 0; i < _Size; ++i) {
-		_GoodIndxs[i]->Quantity -= ((struct InputReq*)_GoodTbl[i])->Quantity;
-	}
-	if((_OwnedGood = bsearch(_Good, _Family->Goods->Table, _Family->Goods->Size, sizeof(struct Good*), (int(*)(const void*, const void*))IdISCallback)) == NULL) {
-		_OwnedGood = CreateGood(_Good, _Person->Pos.x, _Person->Pos.y);
-		_OwnedGood->Quantity = 1;
-	} else {
-		++_OwnedGood->Quantity;
-	}
+	_Good = HashSearch(&g_Goods, _Args[0].Value.String);
+	GoodMake(_Good, _Args[1].Value.Int, _Family->Goods, _Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y);
 	return 1;
 }
 
-int PAIHasReap(struct Person* _Person, struct HashTable* _Table) {
-	struct Array* _Goods = _Person->Family->Goods;
+int PAIHasReap(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	struct Array* _Goods = _Family->Goods;
 	struct GoodBase* _Good = NULL;
-	struct HashNode* _Search = NULL;
-	int i;
 
-	for(i = 0; i < _Goods->Size; ++i) {
+	for(int i = 0; i < _Goods->Size; ++i) {
 		_Good = (struct GoodBase*)_Goods->Table[i];
-		if(_Good->Category == ETOOL)
+		if(_Good->Category == GOOD_TOOL)
 			if(((struct ToolBase*)_Good)->Function == ETOOL_REAP)
 				return 1;
 	}
-	if((_Search = HashSearchNode(_Table, AI_MAKEGOOD)) != NULL)
-		_Search->Pair = AI_REAP;
-	else
-		HashInsert(_Table, AI_MAKEGOOD, AI_REAP);
 	return 0;
 }
 
-int PAIHasAnimals(struct Person* _Person, struct HashTable* _Table) {
-	if(_Person->Family->Animals->Size > 0)
+int PAIHasAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	if(_Family->Animals->Size > 0)
 		return 1;
 	return 0;
 }
 
-int PAIConstructBuild(struct Person* _Person, struct HashTable* _Table) {
+int PAIConstructBuild(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	return 1;
 }
 
-int PAIHasShelter(struct Person* _Person, struct HashTable* _Table) {
+int PAIHasShelter(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	int i;
-	struct Array* _Array = _Person->Family->Buildings;
+	struct Array* _Array = _Family->Buildings;
 	void** _PerTbl = _Array->Table;
 
 	for(i = 0; i < _Array->Size; ++i)
 		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_ANIMAL) == ERES_ANIMAL)
 			return 1;
-	HashInsert(_Table, AI_MAKEGOOD, AI_SHELTER);
 	return 0;
 }
 
-int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
+int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	int i;
 	int j;
 	int k;
 	int _AnSize = 0;
 	int _TotalNut = 0;
-	struct Family* _Family = _Person->Family;
 	struct StackNode _Stack;
 	struct InputReq** _AnimalCt = AnimalTypeCount(_Family->Animals, &_AnSize);
 	struct InputReq* _Req = NULL;
@@ -249,7 +202,7 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 				//TODO: We can do better than this.
 				for(k = 0; k < _Family->Animals->Size; ++k) {
 					if(PopulationCmp(_Family->Animals->Table[k], _Req->Req) == 0)
-						ActorFeed(_Family->Animals->Table[k], NUTRITION_LOSS);
+						ActorFeed(_Family->Animals->Table[k], ((struct Animal*)_Family->Animals->Table[k])->PopType->Nutrition);
 				}
 				_Food->Quantity -= _TotalNut;
 			} else {
@@ -272,7 +225,7 @@ int PAIFeedAnimals(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
 
-int PAIEat(struct Person* _Person, struct HashTable* _Table) {
+int PAIEat(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	/*struct Family* _Family = _Person->Family;
 	struct Food* _CloseFood = NULL;
 	int _BestDist = INT_MAX;
@@ -291,47 +244,55 @@ int PAIEat(struct Person* _Person, struct HashTable* _Table) {
 	return 1;
 }
 
-int PAIMakeFood(struct Person* _Person, struct HashTable* _Table) {
-	int _Size;
-	int i;
-	int j;
-	struct Family* _Family = _Person->Family;
-	struct InputReq** _Foods = GoodBuildList(_Family->Goods, &_Size, EFOOD | ESEED | EINGREDIENT);
-	struct Array* _GoodsArray = NULL;
-	struct FoodBase* _Food = NULL;
-	struct Food* _FamFood = NULL;
-	struct Good* _Good = NULL;
-	
-	if(_Foods == NULL)
-		return 1;
-
-	for(i = 0; i < _Size; ++i) {
-		_Food = ((struct FoodBase*)_Foods[i]->Req);
-		for(j = 0; j < _Food->IGSize; ++j) {
-			_Good = LinearSearch(_Food->InputGoods[j], _Family->Goods->Table, _Family->Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
-			_Good->Quantity -= _Foods[i]->Quantity * _Food->InputGoods[j]->Quantity;
-			_GoodsArray = _Family->Goods;
-			if((_FamFood = LinearSearch(_Food, _GoodsArray->Table, _GoodsArray->Size, GoodCmp)) == NULL) {
-				_FamFood =  CreateFood(_Food, _Person->Pos.x, _Person->Pos.y);
-				ArrayInsert_S(_GoodsArray, _FamFood);
-			}
-			_FamFood->Quantity += _Foods[i]->Quantity;
-		}
-		DestroyInputReq(_Foods[i]);
-	}
-	if(i == 0)
-		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Person->Id);
-	free(_Foods);
+int PAIMakeFood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	FamilyMakeFood(_Family);
 	return 1;
 }
 
-int PAIIsMale(struct Person* _Person, struct HashTable* _Table) {
-	if(_Person->Gender == EMALE)
-		return 1;
+int PAIHasAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	const struct Population* _Pop = NULL;
+
+	if(_Args[0].Type != PRIM_STRING)
+		return 0;
+	_Pop = HashSearch(&g_Populations, _Args[0].Value.String);
+	for(int i = 0; i < _Family->Animals->Size; ++i) {
+		if(((struct Animal*)_Family->Animals->Table[i])->PopType == _Pop)
+			return 1;
+	}
 	return 0;
 }
 
-int BHVNothing(struct Person* _Person, struct HashTable* _Table) {
+int PAIBuyAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	return 0;
+}
+
+int PAIHasGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	const struct GoodBase* _Base = NULL;
+
+	if(_Args[0].Type != PRIM_STRING)
+		return 0;
+	_Base = HashSearch(&g_Goods, _Args[0].Value.String);
+	for(int i = 0; i < _Family->Goods->Size; ++i) {
+		if(((struct Good*)_Family->Goods->Table[i])->Base == _Base)
+			return 1;
+	}
+	return 0;
+}
+
+int PAIBuyGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+	const struct GoodBase* _Base = NULL;
+
+	if(_Args[0].Type != PRIM_STRING || _Args[1].Type != PRIM_INTEGER)
+		return 0;
+	if((_Base = HashSearch(&g_Goods, _Args[0].Value.String)) == NULL) {
+		Log(ELOG_WARNING, "BuyGood: %s is not a good.", _Args[0].Value.String);
+		return 0;
+	}
+	GoodBuy(_Family, _Base, _Args[1].Value.Int);
+	return 1;
+}
+
+int BHVNothing(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	return 1;
 }
 
@@ -352,7 +313,6 @@ int BGImproveRelations(const void* _Data, const void* _Extra) {
 }
 
 int BGImproveRelationsAction(struct BigGuy* _Guy) {
-	//struct BigGuyRelation* _Relation = NULL;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
 	struct BigGuy* _Person = NULL;
@@ -496,9 +456,8 @@ void AIInit(lua_State* _State) {
 	struct LuaBehavior* _Bhv = NULL;
 
 	g_BhvActionsSz = LuaActionLen(g_BhvActions);
-	luaL_newlibtable(_State, g_LuaAIFuncs);
-	luaL_setfuncs(_State, g_LuaAIFuncs, 0);
-	lua_setglobal(_State, "AI");
+	InsertionSort(g_BhvActions, g_BhvActionsSz, (CompCallback) SortBhvActions, sizeof(struct LuaBhvAction));
+	LuaAILibInit(_State);
 	if(LuaLoadFile(_State, "ai.lua", NULL) != LUA_OK) {
 		exit(1);
 	}
@@ -506,7 +465,7 @@ void AIInit(lua_State* _State) {
 	lua_pushstring(_State, "Init");
 	lua_rawget(_State, -2);
 	if(LuaCallFunc(_State, 0, 1, 0) == 0) {
-		exit(1);
+		luaL_error(_State, "Cannot initialize AI, table AI does not contain function: Init.");
 	}
 
 	_Size = lua_rawlen(_State, -1);
@@ -533,13 +492,14 @@ void AIInit(lua_State* _State) {
 		}
 		lua_pop(_State, 1);
 		if(lua_next(_State, -2) != 0) {
-			if(!lua_islightuserdata(_State, -1)) {
+			struct Behavior* _Temp = LuaCheckClass(_State, -1, "Behavior");
+			if(_Temp == NULL) {
 				luaL_error(_State, "Second element of table #%d in AI.Init should be a behavior.", i);
 				goto BhvListEnd;
 			}
 			_Bhv = (struct LuaBehavior*) malloc(sizeof(struct LuaBehavior));
 			_Bhv->Name = strcpy(calloc(strlen(_Str) + 1, sizeof(char)), _Str);
-			_Bhv->Behavior = lua_touserdata(_State, -1);
+			_Bhv->Behavior = _Temp;
 		}
 		if(_Bhv == NULL) {
 			luaL_error(_State, "Cannot add NULL behavior to AI.Init.");

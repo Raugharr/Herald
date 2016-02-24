@@ -379,7 +379,8 @@ int LuaCreateWindow(lua_State* _State) {
 	lua_pushvalue(_State, 2);
 	if(LuaCallFunc(_State, 4, 1, 0) == 0)
 		return luaL_error(_State, "%s.Init function call failed", _Name);
-	_Container = LuaCheckClass(_State, lua_absindex(_State, -1), "Container");
+	if((_Container = LuaCheckClass(_State, lua_absindex(_State, -1), "Container")) == NULL)
+		return luaL_error(_State, "CreateWindow: Menu.Init function does not return a container.");
 	WidgetSetParent(_Parent, (struct Widget*) _Container);
 	_Container->IsDraggable = 1;
 	return 1;

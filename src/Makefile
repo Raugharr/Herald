@@ -1,12 +1,13 @@
 CC=gcc
 CFLAGS+= -Wall -std=c99 -pg -ggdb
 OBJFLD=obj/
-DEPS=Building.h Crop.h Family.h Good.h Herald.h Person.h Population.h World.h Actor.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
-WorldState.h Date.h Feud.h
-OBJ=$(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
-$(OBJFLD)Good.o $(OBJFLD)Herald.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)World.o \
+DEPS=Herald.h Building.h Crop.h Family.h Good.h Person.h Population.h World.h Actor.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
+WorldState.h Date.h Feud.h Profession.h Trait.h Bulitin.h
+OBJ=$(OBJFLD)Herald.o $(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
+$(OBJFLD)Good.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)World.o \
 $(OBJFLD)Actor.o $(OBJFLD)Location.o $(OBJFLD)Mission.o $(OBJFLD)BigGuy.o $(OBJFLD)Warband.o $(OBJFLD)Government.o \
-$(OBJFLD)LuaFamily.o $(OBJFLD)LuaSettlement.o $(OBJFLD)LuaWorld.o $(OBJFLD)ArmyGoal.o $(OBJFLD)Battle.o $(OBJFLD)WorldState.o $(OBJFLD)Date.o $(OBJFLD)Feud.o
+$(OBJFLD)LuaFamily.o $(OBJFLD)LuaSettlement.o $(OBJFLD)LuaWorld.o $(OBJFLD)ArmyGoal.o $(OBJFLD)Battle.o $(OBJFLD)WorldState.o \
+$(OBJFLD)Date.o $(OBJFLD)Feud.o $(OBJFLD)Profession.o $(OBJFLD)Trait.o $(OBJFLD)Bulitin.o
 ODIR=.
 DEFS=
 export DEFS
@@ -14,7 +15,7 @@ ifdef windows
 	LIB=-lmingw32 -llua -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
 	DEFS+=-DWINDOWS
 else
-	LIB=-llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
+	LIB=-lm -llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
 endif
 VIDEO=video
 SYS=sys
@@ -41,4 +42,4 @@ ai:
 .PHONY: clean all sys ai video
 
 clean:
-	rm $(OBJFLD)*.o
+	rm ./$(OBJFLD)*.o

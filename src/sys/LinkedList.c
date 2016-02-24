@@ -83,7 +83,7 @@ void LnkLstClear(struct LinkedList* _List) {
 	_List->Back = NULL;
 }
 
-void LnkLst_PushBack(struct LinkedList* _List, void* _Value) {
+void LnkLstPushBack(struct LinkedList* _List, void* _Value) {
 	struct LnkLst_Node* _Node = CreateLnkLstNode(_Value);
 
 	_Node->Data = _Value;
@@ -129,7 +129,7 @@ void LnkLstPushFront(struct LinkedList* _List, void* _Value) {
 	++_List->Size;
 }
 
-void* LnkLst_PopFront(struct LinkedList* _List) {
+void* LnkLstPopFront(struct LinkedList* _List) {
 	struct LnkLst_Node* _Node = _List->Front;
 	void* _Data = NULL;
 
@@ -137,7 +137,8 @@ void* LnkLst_PopFront(struct LinkedList* _List) {
 		return NULL;
 	_Data = _Node->Data;
 	_List->Front = _List->Front->Next;
-	_List->Front->Prev = NULL;
+	if(_List->Front != NULL)
+		_List->Front->Prev = NULL;
 	free(_Node);
 	--_List->Size;
 	return _Data;
@@ -195,7 +196,7 @@ void LnkLstInsertBefore(struct LinkedList* _List, struct LnkLst_Node* _Node, voi
 	_NewNode->Next = _Node;
 }
 
-void LnkLst_Remove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
+void LnkLstRemove(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 	struct LnkLst_Node* _Prev = NULL;
 
 	if(_List->Size == 1) {
@@ -231,9 +232,18 @@ void* LnkLstSearch(struct LinkedList* _List, const void* _Data, int (*_Compare)(
 	return NULL;
 }
 
-void LnkLst_CatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {
+void LnkLstMerge(struct LinkedList* _List, const struct LinkedList* _Other) {
+	struct LnkLst_Node* _Itr = _Other->Front;
+
+	while(_Itr != NULL) {
+		LnkLstPushBack(_List, _Itr->Data);
+		_Itr = _Itr->Next;
+	}
+}
+
+void LnkLstCatNode(struct LinkedList* _List, struct LnkLst_Node* _Node) {
 	while(_Node != NULL) {
-		LnkLst_PushBack(_List, _Node->Data);
+		LnkLstPushBack(_List, _Node->Data);
 		_Node = _Node->Next;
 	}
 }
@@ -248,4 +258,17 @@ void* LnkLstRandom(struct LinkedList* _List) {
 		_Itr = _Itr->Next;
 	}
 	return (_Itr == NULL) ? (NULL) : (_Itr->Data);
+}
+
+void** LnkLstToList(const struct LinkedList* _List) {
+	struct LnkLst_Node* _Node = _List->Front;
+	void** _Array = calloc(_List->Size + 1, sizeof(void*));
+	int _Idx = 0;
+
+	while(_Node != NULL) {
+		_Array[_Idx] = _Node->Data;
+		++_Idx;
+		_Node = _Node->Next;
+	}
+	return _Array;
 }

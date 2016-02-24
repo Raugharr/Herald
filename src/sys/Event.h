@@ -7,10 +7,8 @@
 #define __EVENT_H
 
 #include "../World.h"
-#include "RBTree.h"
 
-#define EVENT_BIRTHMSG "%s has given birth to %s.";
-#define EVENT_DEATHMSG "%s has died.";
+#include "RBTree.h"
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -20,21 +18,20 @@ extern const char* g_EventNames[];
 extern struct RBTree g_ActorObservers;
 
 struct Location;
+struct MissionEngine;
 
-enum {
-	EVENT_DEATH = 0,
-	EVENT_AGE,
-	EVENT_FARMING,
-	EVENT_STARVINGFAMILY,
-	EVENT_DATE,
-	EVENT_LAST //Do not remove.
-};
+typedef void (*EventCallback)(int, void*, void*, void*); 
 
 enum {
 	EVENT_CRISIS = 0,
 	EVENT_FEUD,
 	EVENT_BIRTH,
 	EVENT_BATTLE,
+	EVENT_DEATH,
+	EVENT_AGE,
+	EVENT_FARMING,
+	EVENT_STARVINGFAMILY,
+	EVENT_SABRELATION,
 	EVENT_SIZE
 };
 
@@ -68,62 +65,12 @@ struct WEvent {
 
 struct EventObserver {
 	int EventType;
-	int ObjectId;
-	void (*OnEvent)(const void*, void*); //First const void* is the event, second const void* is the listener.
-	void* Listener;
+	EventCallback OnEvent; //First const void* is the event, second const void* is the listener.
+	void* OwnerObj;
+	void* One;
+	void* Two;
 	struct EventObserver* Next;
 	struct EventObserver* Prev;
-};
-
-struct EventQueue {
-	int Size;
-	struct Event* Top;
-	struct Event* Bottom;
-};
-
-struct Event {
-	int Id;
-	int Type;
-	struct Event* Next;
-	int ObjId;
-};
-
-struct EventDeath {
-	int Id;
-	int Type;
-	struct Event* Next;
-	int ObjId;
-	struct Location* Location;
-	struct Person* Person;
-};
-
-struct EventAge {
-	int Id;
-	int Type;
-	struct Event* Next;
-	int ObjId;
-	struct Location* Location;
-	struct Person* Person;
-	DATE Age;
-};
-
-struct EventFarming {
-	int Id;
-	int Type;
-	struct Event* Next;
-	int ObjId;
-	struct Location* Location;
-	int Action;
-	const struct Field* Field;
-};
-
-struct EventStarvingFamily {
-	int Id;
-	int Type;
-	struct Event* Next;
-	int ObjId;
-	struct Location* Location;
-	struct Family* Family;
 };
 
 /*
@@ -132,21 +79,17 @@ struct EventStarvingFamily {
  */
 void EventInit();
 void EventQuit();
-void EventPush(struct Event* _Event);
-void EventHook(int _EventType, int _ObjId, void (*_OnEvent)(const void*, void*), void* _Listener);
-void EventHookRemove(int _EventType, int _ObjId);
-void EventHookUpdate(const struct Event* _Event);
-struct Event* HandleEvents();
-
-struct Event* CreateEventTime(struct Person* _Person, DATE _Age);
-struct Event* CreateEventFarming(int _Action, const struct Field* _Field);
-struct Event* CreateEventStarvingFamily(struct Family* _Family);
+void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2);
+void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data);
+void EventHookUpdate(const SDL_Event* _Event);
 
 void PushEvent(int _Type, void* _Data1, void* _Data2);
-struct EventObserver* CreateEventObserver(int _EventType, int _ObjectId, void (*_OnEvent)(const void*, void*), const void* _Listener);
+struct EventObserver* CreateEventObserver(int _EventType, EventCallback _Callback, void* _Owner, void* _One, void* _Two);
 void DestroyEventObserver(struct EventObserver* _EventObs);
-void Events(void);
+void Events();
 void GetMousePos(struct SDL_Point* _Point);
+int StringToEvent(const char* _Str);
+int EventUserOffset();
 
 #endif
 

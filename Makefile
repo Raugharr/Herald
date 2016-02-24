@@ -13,5 +13,5 @@ all:
 	$(MAKE) -C $(SRC)
 
 clean:
-	rm herald*
+#	rm ./src/obj/* 
 	$(MAKE) -C $(SRC) clean

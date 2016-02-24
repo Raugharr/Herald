@@ -24,6 +24,8 @@ struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 struct Font* g_GUIFonts = NULL;
 struct Stack g_GUIStack = {NULL, 0};
+struct Container* g_GUIZTop = NULL;
+struct Container* g_GUIZBot = NULL;
 
 int NextGUIId(void) {return g_GUIId++;}
 
@@ -46,6 +48,10 @@ struct GUIFocus* CreateGUIFocus(void) {
 	_New->Parent = NULL;
 	_New->Prev = NULL;
 	return _New;
+}
+
+struct Container* GUIZBot(void) {
+	return g_GUIZBot;
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
@@ -81,6 +87,9 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
+	ILL_CREATE(g_GUIZTop, _Widget);
+	if(g_GUIZBot == NULL)
+		g_GUIZBot = _Widget;
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
 	_Widget->ChildCt = 0;
@@ -192,13 +201,14 @@ void DestroyWidget(struct Widget* _Widget, lua_State* _State) {
 }
 
 void DestroyContainer(struct Container* _Container, lua_State* _State) {
-	int i;
-
-	for(i = 0; i < _Container->ChildCt; ++i) {
+	for(int i = 0; i < _Container->ChildCt; ++i) {
 		if(_Container->Children[i] == NULL)
 			continue;
 		_Container->Children[i]->OnDestroy(_Container->Children[i], _State);
 	}
+	ILL_DESTROY(g_GUIZTop, _Container);
+	if(g_GUIZBot == _Container)
+		g_GUIZBot = NULL;
 	DestroyWidget((struct Widget*)_Container, _State);
 }
 

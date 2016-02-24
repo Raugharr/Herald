@@ -1,40 +1,34 @@
 function AI.Init()
-	local Peasant = AI.CompNode("Sequence", {
-					AI.CompNode("Sequence", {
-							AI.PrimNode("HasField"),
-							AI.CompNode("Selector", {
-									AI.PrimNode("HasPlow"),
-									AI.PrimNode("MakeGood"),
-									}),
-							AI.CompNode("Selector", {
-									AI.PrimNode("HasReap"),
-									AI.PrimNode("MakeGood"),
-									}),
-							AI.PrimNode("WorkField"),
-							}),
-					AI.CompNode("Selector", {
-							AI.PrimNode("HasHouse"),
-							AI.PrimNode("ConstructBuilding"),
-							}),
-					AI.CompNode("Selector", {
-							AI.PrimNode("HasAnimals"),
-							AI.CompNode("Selector", {
-										AI.PrimNode("HasShelter"),
-										AI.PrimNode("ConstructBuilding"),
-										}),
-							AI.PrimNode("FeedAnimals"),
-							}),
-					})
-	local Woman = AI.CompNode("Sequence", {
-					AI.PrimNode("MakeFood")
-					})
-	local Child = AI.PrimNode("Nothing")
-
-	AI.Hook(Child, Hook("Age", ToMonth("Years", 13)), 
-		{
-			AI.PrimNode("IsMale"),
-			AI.DecorateNode("Not", "IsMale")
-		}, {Peasant, Woman})
+	local Peasant = Behavior.Sequence {
+					Behavior.Sequence {
+							Behavior.Node("HasField"),
+							Behavior.Selector {
+									Behavior.Node("HasPlow"),
+									Behavior.Node("MakeGood", "Plough", 1),
+									},
+							Behavior.Selector {
+									Behavior.Node("HasReap"),
+									Behavior.Node("MakeGood", "Sickle", 1),
+									},
+							Behavior.Node("WorkFields"),
+							},
+					Behavior.Selector {
+							Behavior.Node("HasHouse"),
+							Behavior.Node("ConstructBuilding"),
+							},
+					Behavior.Selector {
+							Behavior.Node("HasAnimals"),
+							Behavior.Selector {
+										Behavior.Node("HasShelter"),
+										Behavior.Node("ConstructBuilding"),
+										},
+							Behavior.Node("FeedAnimals"),
+							},
+					}
+	local Woman = Behavior.Sequence {
+					Behavior.Node("MakeFood")
+					}
+	local Child = Behavior.Node("Nothing")
 	return {
 		{"Peasant", Peasant},
 		{"Woman", Woman},

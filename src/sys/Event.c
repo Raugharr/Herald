@@ -19,173 +19,144 @@
 #include "../Crop.h"
 #include "../BigGuy.h"
 #include "../Battle.h"
+#include "../Mission.h"
 
 #include <lua/lauxlib.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #define EVENTPOOL (1024)
 
 static int g_EventTypes[EVENT_SIZE];
 static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
-static struct EventQueue g_EventQueue = {0, NULL, NULL};
-static struct RBTree* g_EventHooks[EVENT_LAST];
+static struct RBTree* g_EventHooks[EVENT_SIZE];
 int g_EventId = 0;
 const char* g_EventNames[] = {
+		"Crisis",
+		"Feud",
 		"Birth",
+		"Battle",
 		"Death",
 		"Age",
 		"Farming",
 		"StarvingFamily",
+		"SabatogeRelations",
 		NULL
 };
 
-int ActorObserverI(const void* _One, const void* _Two) {
-	return ((struct EventObserver*)_One)->ObjectId - ((struct EventObserver*)_Two)->ObjectId;
+int EventCmp(const void** _Vars, const struct EventObserver* _Event) {
+	int _Result = _Vars[0] - _Event->One;
+
+	if(_Result != 0)
+		return _Result;
+	//if((_Result = _Vars[1] - _Event->One) != 0)
+	//	return _Result;
+	if((_Result = _Vars[1] - _Event->Two) != 0)
+		return _Result;
+	return _Result;
 }
 
-int ActorObserverS(const void* _One, const void* _Two) {
-	return ((struct EventObserver*)_Two)->ObjectId - *((int*)_Two);
+int EventInsert(const struct EventObserver* _One, const struct EventObserver* _Two) {
+	int _Result = _One->EventType - _Two->EventType;
+	
+	if(_Result != 0)
+		return _Result;
+	if((_Result = _One->OwnerObj - _Two->OwnerObj) != 0)
+		return _Result;
+	if((_Result = _One->One - _Two->One) != 0)
+		return _Result;
+	if((_Result = _One->Two - _Two->Two) != 0)
+		return _Result;
+	return _Result;
 }
-
-struct RBTree g_ActorObservers = {NULL, 0, ActorObserverI, ActorObserverS};
-
-#define EventCtor(_Struct, _Event, _ObjId, _Location, _Type)			\
-	(_Event)->Id = g_EventId++;											\
-	(_Event)->Location = (_Location);									\
-	(_Event)->ObjId = (_ObjId);											\
-	(_Event)->Type = (_Type);											\
-	(_Event->Next) = NULL
 
 void EventInit() {
-	for(int i = 0; i < EVENT_LAST; ++i)
-		g_EventHooks[i] = CreateRBTree(ActorObserverI, ActorObserverS);
+	for(int i = 0; i < EVENT_SIZE; ++i)
+		g_EventHooks[i] = CreateRBTree((int(*)(const void*, const void*)) EventInsert, (int(*)(const void*, const void*)) EventCmp);
 	g_EventTypes[0] = SDL_RegisterEvents(EVENT_SIZE);
 	for(int i = 1; i < EVENT_SIZE; ++i)
 		g_EventTypes[i] = g_EventTypes[0] + i;
 }
 
 void EventQuit() {
-	for(int i = 0; i < EVENT_LAST; ++i)
+	for(int i = 0; i < EVENT_SIZE; ++i)
 		DestroyRBTree(g_EventHooks[i]);
 }
 
-void EventPush(struct Event* _Event) {
-	if(g_EventQueue.Top == NULL) {
-		g_EventQueue.Top = _Event;
-		g_EventQueue.Bottom = _Event;
-	} else {
-		g_EventQueue.Bottom->Next = _Event;
-		g_EventQueue.Bottom = _Event;
-	}
-	++g_EventQueue.Size;
-}
-
-void EventHook(int _EventType, int _ObjId, void (*_OnEvent)(const void*, void*), void* _Listener) {
+void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2) {
 	struct EventObserver* _Obs = NULL;
-	if(_EventType < 0 || _EventType >= EVENT_LAST)
-		return;
-	if((_Obs = RBSearch(g_EventHooks[_EventType], &_ObjId)) != NULL) {
-		struct EventObserver* _New = CreateEventObserver(_EventType, _ObjId, _OnEvent, _Listener);
+	struct EventObserver* _New = NULL;
 
-		ILL_CREATE(_Obs, _New);
+	SDL_assert(_EventType >= 0 && _EventType < EVENT_SIZE);
+	//SDL_assert(_EventType < g_EventTypes[0] || _EventType > g_EventTypes[EVENT_SIZE]);
+	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
+	if((_Obs = RBSearch(g_EventHooks[_EventType], &_Data1)) != NULL) {
+		struct EventObserver* _Temp = _Obs;
+
+		while(_Temp->Next != NULL)
+			_Temp = _Temp->Next;
+		_Temp->Next = _New;
 	} else {
-		RBInsert(g_EventHooks[_EventType], CreateEventObserver(_EventType, _ObjId, _OnEvent, _Listener));
+		RBInsert(g_EventHooks[_EventType], _New);
 	}
 }
 
-void EventHookRemove(int _EventType, int _ObjId) {
+void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 	struct EventObserver* _Obs = NULL;
-	struct EventObserver* _Next = NULL;
-	struct EventObserver* _Front = NULL;
+	struct RBNode* _Node = NULL;
 
-	if(_EventType < 0 || _EventType >= EVENT_LAST)
-		return;
-	if((_Obs = RBSearch(g_EventHooks[_EventType], &_ObjId)) != NULL) {
-		_Front = _Obs;
+	SDL_assert(_EventType >= g_EventTypes[0] && _EventType <=  g_EventTypes[EVENT_SIZE - 1]);
+	_EventType = _EventType -  g_EventTypes[0];
+	if((_Node = RBSearchNode(g_EventHooks[_EventType], &_Data1)) != NULL) {
+		_Obs = _Node->Data;
 		do {
-			_Next = _Obs->Next;
-			if(_Obs->ObjectId == _ObjId) {
-				ILL_DESTROY(_Front, _Obs);
+			//One and Two should be equal by definition of being in the RB node.
+			if(_Obs->OwnerObj == _Owner /*&& _Obs->One == _Data1 && _Obs->Two == _Data2*/) {
+				ILL_DESTROY(_Node->Data, _Obs);
 				DestroyEventObserver(_Obs);
+				_Obs = _Node->Data;
+				if(_Obs == NULL) {
+					RBDeleteNode(g_EventHooks[_EventType], _Node);
+					break;
+				}
+				continue;
 			}
-			_Obs = _Next;
+			_Obs = _Obs->Next;
 		} while(_Obs != NULL);
 	}
 }
 
-void EventHookUpdate(const struct Event* _Event) {
+void EventHookUpdate(const SDL_Event* _Event) {
 	struct EventObserver* _Obs = NULL;
-	struct EventObserver* _Next = NULL;
+	void* _Vars[] = {_Event->user.data1, _Event->user.data2};
 
-	if(_Event->Type < 0 || _Event->Type >= EVENT_LAST)
-		return;
-	if((_Obs = RBSearch(g_EventHooks[_Event->Type], &_Event->Id)) != NULL) {
-		do {
-			_Next = _Obs->Next;
-			_Obs->OnEvent(_Event, _Obs->Listener);
-			_Obs = _Next;
-		} while(_Obs != NULL);
+	SDL_assert(_Event->type  >= g_EventTypes[0] && _Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
+	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Vars);
+	while(_Obs != NULL) {
+		_Obs->OnEvent(_Event->type, _Obs->OwnerObj, _Obs->One, _Obs->Two);
+		_Obs = _Obs->Next;
 	}
 }
 
-struct Event* HandleEvents() {
-	struct Event* _Event = g_EventQueue.Top;
+void PushEvent(int _Type, void* _Data1, void* _Data2) {
+	SDL_Event _Event;
 
-	if(g_EventQueue.Size <= 1) {
-		g_EventQueue.Top = NULL;
-		g_EventQueue.Bottom = NULL;
-	} else
-		g_EventQueue.Top = g_EventQueue.Top->Next;
-	--g_EventQueue.Size;
-	return _Event;
+	assert(_Type < EVENT_SIZE);
+	_Event.type = g_EventTypes[_Type];
+	_Event.user.data1 = _Data1;
+	_Event.user.data2 = _Data2;
+	SDL_PushEvent(&_Event);
 }
 
-struct Event* CreateEventDeath(struct Person* _Person) {
-	struct EventDeath* _Event = (struct EventDeath*) malloc(sizeof(struct EventDeath));
-
-	EventCtor(struct EventDeath, _Event, _Person->Id, (struct Location*)FamilyGetSettlement(_Person->Family), EVENT_AGE);
-	_Event->Person = _Person;
-	return (struct Event*)_Event;
-}
-
-struct Event* CreateEventTime(struct Person* _Person, DATE _Age) {
-	struct EventAge* _Event = (struct EventAge*) malloc(sizeof(struct EventAge));
-	struct Location* _Location = NULL;
-
-	if(_Person != NULL)
-		_Location = (struct Location*) _Person->Family->HomeLoc;
-	EventCtor(struct EventAge, _Event, _Person->Id, _Location, EVENT_AGE);
-	_Event->Person = _Person;
-	_Event->Age = _Age;
-	return (struct Event*)_Event;
-}
-
-struct Event* CreateEventFarming(int _Action, const struct Field* _Field) {
-	struct EventFarming* _Event = (struct EventFarming*) malloc(sizeof(struct EventFarming));
-
-	EventCtor(struct EventFarming, _Event, _Field->Id, (struct Location*)FamilyGetSettlement(_Field->Owner), EVENT_FARMING);
-	_Event->Action = _Action;
-	_Event->Field = _Field;
-
-	return (struct Event*)_Event;
-}
-
-struct Event* CreateEventStarvingFamily(struct Family* _Family) {
-	struct EventStarvingFamily* _Event = (struct EventStarvingFamily*) malloc(sizeof(struct EventStarvingFamily));
-
-	EventCtor(struct EventStarvingFamily, _Event, _Family->Id, (struct Location*)FamilyGetSettlement(_Family), EVENT_STARVINGFAMILY);
-	_Event->Family = _Family;
-	return (struct Event*)_Event;
-}
-
-struct EventObserver* CreateEventObserver(int _EventType, int _ObjectId, void (*_OnEvent)(const void*, void*), const void* _Listener) {
+struct EventObserver* CreateEventObserver(int _EventType, EventCallback _Callback, void* _Owner, void* _One, void* _Two) {
 	struct EventObserver* _Obs = (struct EventObserver*) malloc(sizeof(struct EventObserver));
 
 	_Obs->EventType = _EventType;
-	_Obs->ObjectId = _ObjectId;
-	_Obs->OnEvent = _OnEvent;
-	_Obs->Listener = _Listener;
+	_Obs->OnEvent = _Callback;
+	_Obs->OwnerObj = _Owner;
+	_Obs->One = _One;
+	_Obs->Two = _Two;
 	_Obs->Next = NULL;
 	_Obs->Prev = NULL;
 	return _Obs;
@@ -194,7 +165,7 @@ void DestroyEventObserver(struct EventObserver* _EventObs) {
 	free(_EventObs);
 }
 
-void Events(void) {
+void Events() {
 	SDL_Event _Event;
 
 	GUIMessageCheck(&g_GUIMessageList);
@@ -222,6 +193,10 @@ void Events(void) {
 			g_KeyMouseState.MousePos.y = _Event.motion.y;
 			break;
 		}
+		if(_Event.type >= g_EventTypes[0] && _Event.type <= g_EventTypes[EVENT_SIZE - 1]) {
+			EventHookUpdate(&_Event);
+			MissionOnEvent(&g_MissionEngine, _Event.type, _Event.user.data1);
+		}
 		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
 				MessageBox(g_LuaState, "A crisis has occured.");
@@ -231,7 +206,7 @@ void Events(void) {
 		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
 			if(_Event.user.data1 == g_GameWorld.Player->Person)
 				MessageBox(g_LuaState, "You have died.");
-			DestroyPerson(_Event.user.data1);
+		//	DestroyPerson(_Event.user.data1);
 		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
 			struct Battle* _Battle = _Event.user.data1;
 			char _Buffer[256];
@@ -251,12 +226,14 @@ void GetMousePos(struct SDL_Point* _Point) {
 	*_Point = g_KeyMouseState.MousePos;
 }
 
-void PushEvent(int _Type, void* _Data1, void* _Data2) {
-	SDL_Event _Event;
+int StringToEvent(const char* _Str) {
+	for(int i = 0; g_EventNames[i] != NULL; ++i) {
+		if(strcmp(_Str, g_EventNames[i]) == 0)
+			return i;
+	}
+	return -1;
+}
 
-	assert(_Type < EVENT_SIZE);
-	_Event.type = g_EventTypes[_Type];
-	_Event.user.data1 = _Data1;
-	_Event.user.data2 = _Data2;
-	SDL_PushEvent(&_Event);
+int EventUserOffset() {
+	return g_EventTypes[0];
 }

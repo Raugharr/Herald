@@ -12,7 +12,16 @@ Populations = {
 		MaleRatio = 0.2,
 		Eats = {"Hay", "Straw"},
 		Milk = 68, --Fluid ounces.
-		Meat = 45
+		Meat = 45,
+		Hair = {
+			Type = "Wool",
+			Pounds = 6.5,
+			IsShearable = true
+		},
+		Skin = {
+			Type = "Leather",
+			Pounds = 1
+		}
 	},
 	
 	{
@@ -23,7 +32,11 @@ Populations = {
 		MaleRatio = 0.2,
 		Eats = {"Hay", "Straw"},
 		Milk = 120,
-		Meat = 1600
+		Meat = 240,
+		Skin = {
+			Type = "Leather",
+			Pounds = 36
+		}
 	},
 	
 	{
@@ -34,7 +47,7 @@ Populations = {
 		MaleRatio = 0.25,
 		Eats = {"Barley", "Oats"},
 		Milk = 10,
-		Meat = 45
+		Meat = 80
 	},
 	
 	{

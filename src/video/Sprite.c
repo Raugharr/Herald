@@ -23,8 +23,10 @@ struct Sprite* CreateSprite(struct Resource* _Image, int _Layer, const SDL_Point
 struct Sprite* ConstructSprite(struct Sprite* _Sprite, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
 	SDL_Texture* _Texture = ResourceGetData(_Image);
 
-	if(_Texture == NULL)
+	if(_Texture == NULL) {
+		free(_Sprite);
 		return NULL;
+	}
 	_Sprite->Image = _Image;
 	_Sprite->TilePos = *_TilePos;
 	_Sprite->Rect.x = 0;
@@ -47,7 +49,8 @@ struct Sprite* CreateGameObject(struct MapRenderer* _Renderer, struct Resource* 
 }
 
 struct Sprite* ConstructGameObject(struct Sprite* _Sprite, struct MapRenderer* _Renderer, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
-	ConstructSprite(_Sprite, _Image, _Layer, _TilePos);
+	if(ConstructSprite(_Sprite, _Image, _Layer, _TilePos) == NULL)
+		return NULL;
 	MapTileRenderRect(_Renderer, &_Sprite->TilePos, &_Sprite->SpritePos);
 	QTInsertPoint(&_Renderer->RenderArea[_Layer], _Sprite, &_Sprite->TilePos);
 	return _Sprite;

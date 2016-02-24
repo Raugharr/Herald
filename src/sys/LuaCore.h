@@ -14,9 +14,15 @@ struct Rule;
 struct Primitive;
 struct Resource;
 
+#define LUA_BASECLASS "Object"
+
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
-	LuaInitClass(_State, _Class, _Ptr)
+	LuaInitClass((_State), (_Class), (_Ptr))
+
+#define LuaConstCtor(_State, _Class, _Ptr)				\
+	lua_createtable((_State), 0, 1);					\
+	LuaInitClass((_State), (_Class), (void*) (_Ptr))	
 
 #define LuaCreateLibrary(_State, _LuaReg, _Name)	\
 	luaL_newlib((_State), (_LuaReg));				\
@@ -96,6 +102,7 @@ void* LuaToObject(lua_State* _State, int _Index, const char* _Class);
  * The three arguments are in order, min, max, and interval.
  */
 int LuaConstraint(lua_State* _State);
+int LuaObjectIsEqual(lua_State* _State);
 /**
  * A Lua variant of CreateConstrntVaBnds.
  */
@@ -111,6 +118,7 @@ int LuaPrintDate(lua_State* _State);
 int LuaPrintYears(lua_State* _State);
 int LuaHook(lua_State* _State);
 int LuaRandom(lua_State* _State);
+int LuaNull(lua_State* _State);
 
 int LuaLoadFile(lua_State* _State, const char* _File, const char* _Environment);
 int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc);
@@ -121,6 +129,8 @@ int LuaGetString(lua_State* _State, int _Index, const char** _String);
 int LuaGetNumber(lua_State* _State, int _Index, double* _Number);
 int LuaGetUData(lua_State* _State, int _Index, void** _Data);
 int LuaGetFunction(lua_State* _State, int _Index, lua_CFunction* _Function);
+
+int LuaRawString(lua_State* _State, int _Index, const char* _Field, const char** _Str);
 
 void LuaPrintTable(lua_State* _State, int _Index);
 /**
@@ -150,6 +160,10 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
  * Will raise an error if the table at _Index is not of type _Class.
  */
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
+/**
+ * Returns the lowest base class for the object at _Index
+ */
+const char* LuaBaseClass(lua_State* _State, int _Index);
 /*
  * These functions are for retrieving data from simple tables.
  */

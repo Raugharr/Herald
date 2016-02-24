@@ -4,7 +4,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 120,
 		YieldPerSeed = 4.0,
-		NutritionalValue = 480,
+		NutritionalValue = 4,
 		GrowingDegree = 2900,
 		GrowingBase = 41
 	},
@@ -14,7 +14,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 168,
 		YieldPerSeed = 4.6,
-		NutritionalValue = 360,
+		NutritionalValue = 3,
 		GrowingDegree = 2800,
 		GrowingBase = 32
 	},
@@ -24,7 +24,7 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 144,
 		YieldPerSeed = 4.6,
-		NutritionalValue = 360,
+		NutritionalValue = 3,
 		GrowingDegree = 2500,
 		GrowingBase = 41
 	},
@@ -34,8 +34,18 @@ Crops = {
 		Type = "Grass",
 		PoundsPerAcre = 112,
 		YieldPerSeed = 3.14,
-		NutritionalValue = 540,
+		NutritionalValue = 4.5,
 		GrowingDegree = 2900,
+		GrowingBase = 41
+	},
+	
+	{
+		Name = "Hay",
+		Type = "Grass",
+		PoundsPerAcre = 4000,
+		YieldPerSeed = 2,
+		NutritionalValue = 2.5,
+		GrowingDegree = 2500,
 		GrowingBase = 41
 	}
 }

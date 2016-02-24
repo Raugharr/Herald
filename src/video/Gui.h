@@ -11,6 +11,9 @@ typedef struct SDL_Color SDL_Color;
 typedef struct SDL_Surface SDL_Surface;
 typedef struct SDL_Rect SDL_Rect;
 typedef struct lua_State lua_State;
+typedef int (*GuiCallWidget) (struct Widget*);
+typedef struct Widget* (*GuiCallPoint) (struct Widget*, const SDL_Point*);
+typedef void (*GuiCallDestroy) (struct Widget*, lua_State*);
 
 /*
  * TODO: Remove LuaOnClickFunc and and put function into the Lua table and use WEvents to handle click events.
@@ -40,6 +43,8 @@ typedef struct lua_State lua_State;
 	void (*RemChild)(struct Container*, struct Widget*);			\
 	int(*HorzFocChange)(const struct Container*);					\
 	struct Widget** Children;										\
+	struct Container* Next;											\
+	struct Container* Prev;											\
 	int ChildrenSz;													\
 	int ChildCt;													\
 	int Spacing;													\
@@ -99,6 +104,7 @@ struct Container {
 struct Container* CreateContainer(void);
 struct GUIEvents* CreateGUIEvents(void);
 struct GUIFocus* CreateGUIFocus(void);
+struct Container* GUIZBot(void);
 
 /**
  * Constructors

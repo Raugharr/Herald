@@ -4,7 +4,15 @@ Menu.moveable = true;
 function NonPlayerActions(Menu, Person)
 	Menu:CreateButton("Influence", 
 		function()
-			World.GetPlayer():SetAction(1, Person)
+			World.GetPlayer():SetAction(BigGuy.Action.Influence, Person)
+		end)
+	Menu:CreateButton("Sabotage",
+		function()
+			World.GetPlayer():SetAction(BigGuy.Action.Sabotage, Person)
+		end)
+	Menu:CreateButton("Duel",
+		function()
+			World.GetPlayer():SetAction(BigGuy.Action.Duel, Person)
 		end)
 end
 

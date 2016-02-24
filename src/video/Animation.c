@@ -55,7 +55,7 @@ void AnimationQueue() {
 		do {
 			_Animation = (struct Animation*) _Itr->Data;
 			DestroyAnimation(_Animation);
-			LnkLst_Remove(_List, _Itr);
+			LnkLstRemove(_List, _Itr);
 			_Itr = _Itr->Next;
 		} while(_Itr != NULL);
 	SDL_UnlockMutex(g_AnimationLock);

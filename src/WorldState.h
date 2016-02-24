@@ -39,11 +39,6 @@ enum {
 struct WorldState {
 	WorldState_t State[WORLDSTATESZ];
 	WorldState_t OpCode[WORLDSTATESZ];
-	/*
-	 int State[64]
-	 int OpCode; //EQUAL GREATERTHAN LESSTHAN BOOLEAN
-	 int Value;
-	*/
 	WorldState_t DontCare[WORLDSTATESZ];
 };
 
@@ -67,6 +62,7 @@ void WorldStateAddAtom(struct WorldState* _State, int _Atom, int _Value);
 void WorldStateSetOpCode(struct WorldState* _State, int _Atom, int _OpCode);
 int WorldStateGetOpCode(const struct WorldState* _State, int _Atom);
 int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two);
+int WorldStateAtomCare(const struct WorldState* _State, int _Atom);
 /*
  * Returns 1 if all of _State's dont care bytes are equal to 1 otherwise returns 0.
  */
@@ -90,5 +86,6 @@ int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _S
 int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState* _State, int _Atom);
 
 int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two);
+int WSDntCrComp(const struct WorldState* _State);
 
 #endif

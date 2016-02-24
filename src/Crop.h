@@ -11,6 +11,7 @@
 #define CROP_ROTATIONS (2)
 #define FieldTotalAcres(_Field) ((_Field)->Acres + (_Field)->UnusedAcres)
 #define GROWDEG_MAX (88)
+#define CROP_BUSHEL (60)
 
 typedef struct lua_State lua_State;
 struct LinkedList;
@@ -73,8 +74,12 @@ int InputReqFieldCmp(const void* _One, const void* _Two);
  * Sets all the Fields data about a specific field to default values.
  */
 void FieldReset(struct Field* _Field);
+/**
+ * Sets the state of the field to be planting and removed enough seeds from _Seeds
+ * to fill up the field.
+ */
 int FieldPlant(struct Field* _Field, struct Good* _Seeds);
-void FieldWork(struct Field* _Field, int _Total);
+void FieldWork(struct Field* _Field, int _Total, const struct Array* _Goods);
 void FieldHarvest(struct Field* _Field, struct Array* _Goods);
 void FieldUpdate(struct Field* _Field);
 void FieldSetAcres(struct Field* _Field, int _Acres);
@@ -85,6 +90,10 @@ void FieldRotateCrops(struct Field* _Field);
  * Sets _Fields's acres to how many acres grown with _Seeds->Quantity.
  */
 void FieldAcreage(struct Field* _Field, const struct Good* _Seeds);
+/**
+ * Returns how many degrees a plant has grown over a day given the plants
+ * minimum and maximum degrees that it can grow in and the temperature for the day.
+ */
 int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp);
 /**
  * Every element in _Fields must be a non NULL pointer to a struct Field.
@@ -105,5 +114,7 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Fam
  * Combines all fields in the array into one.
  */
 void FieldAbosrb(struct Array* _Fields);
+
+void FieldSetStatus(struct Field* _Field, int _Status);
 
 #endif

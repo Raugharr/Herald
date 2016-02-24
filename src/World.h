@@ -31,6 +31,7 @@ struct Actor;
 extern struct GameWorld g_GameWorld;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
+extern struct Caste* g_Castes;
 
 #define GameWorldInsertSettlement(_GameWorld, _Settlement) 																				\
 {																																		\

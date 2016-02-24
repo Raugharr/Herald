@@ -82,6 +82,12 @@ struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat
 	_Population->Ages = _Ages;
 	_Population->Outputs = NULL;
 	_Population->MaleRatio = _MaleRatio;
+
+	_Population->Skin.Skin = NULL;
+	_Population->Skin.Pounds = 0.0;
+	_Population->Hair.Hair = NULL;
+	_Population->Hair.Pounds = 0.0;
+	_Population->Hair.Shearable = 0;
 	return _Population;
 }
 
@@ -126,14 +132,10 @@ int PopulationFoodCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyPopulation(struct Population* _Population) {
-	int i;
-
-	DtorActor((struct Actor*)_Population);
 	free(_Population->Name);
 	DestroyConstrntBnds(_Population->Ages);
-	for(i = 0; _Population->Outputs[i] != NULL; ++i)
+	for(int i = 0; _Population->Outputs[i] != NULL; ++i)
 		free(_Population->Outputs[i]);
-	free(_Population->Outputs[i]);
 	free(_Population->Outputs);
 	free(_Population);
 }
@@ -143,7 +145,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	const char* _Key = NULL;
 	const char* _Name = NULL;
 	struct Constraint** _Ages = NULL;
-	struct LinkedList* _List = CreateLinkedList();
+	struct LinkedList _List = {0, NULL, NULL};
 	struct Population* _Pop = NULL;
 	struct FoodBase** _Eats = NULL;
 	struct LnkLst_Node* _Itr = NULL;
@@ -153,6 +155,11 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	int _Nutrition = 0;
 	int _Meat = 0;
 	int _Milk = 0;
+	int _IsShearable = 0;
+	const struct GoodBase* _SkinGood = NULL;
+	const struct GoodBase* _HairGood = NULL;
+	double _SkinPounds = 0.0;
+	double _HairPounds = 0.0;
 	double _MaleRatio = 0;
 	int _Return = -2;
 	int _Top = lua_gettop(_State);
@@ -189,10 +196,72 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 					Log(ELOG_WARNING, "Food %s could not be found.", lua_tostring(_State, -1));
 					goto EatsEnd;
 				}
-				LnkLst_PushBack(_List, _Data);
+				LnkLstPushBack(&_List, _Data);
 				EatsEnd:
 				lua_pop(_State, 1);
 			}
+		} else if(!strcmp("Skin", _Key)) {
+			if(lua_type(_State, -1) != LUA_TTABLE) {
+				if(lua_isnil(_State, -1) == 0)
+					Log(ELOG_INFO, "Population skin variable is not a table.");
+				goto loop_end;
+			}
+			lua_pushstring(_State, "Type");
+			lua_rawget(_State, -2);
+			if(lua_type(_State, -1) != LUA_TSTRING) {
+				Log(ELOG_INFO, "Population skin.Type variable is not a table.");
+				goto loop_end;
+			}
+			if((_SkinGood = HashSearch(&g_Goods, lua_tostring(_State, -1))) == NULL) {
+				Log(ELOG_INFO, "Population skin.Type: %s is not a good.", lua_tostring(_State, -1));
+				lua_pop(_State, 2);
+				continue;
+			}
+			lua_pop(_State, 1);
+			lua_pushstring(_State, "Pounds");
+			lua_rawget(_State, -2);
+			if(lua_type(_State, LUA_TNUMBER) == 0) {
+				Log(ELOG_INFO, "Population skin.Pounds variable is not a number.");
+				lua_pop(_State, 2);
+				continue;;
+			}
+			_SkinPounds = lua_tonumber(_State, -1);
+			lua_pop(_State, 1);
+		} else if(!strcmp("Hair", _Key)) {
+			if(lua_type(_State, -1) != LUA_TTABLE) {
+				if(lua_isnil(_State, -1) == 0)
+					Log(ELOG_INFO, "Population hair variable is not a table.");
+				goto loop_end;
+			}
+			lua_pushstring(_State, "Type");
+			lua_rawget(_State, -2);
+			if(lua_type(_State, -1) != LUA_TSTRING) {
+				Log(ELOG_INFO, "Population hair.Type variable is not a table.");
+				goto loop_end;
+			}
+				if((_HairGood = HashSearch(&g_Goods, lua_tostring(_State, -1))) == NULL) {
+					Log(ELOG_INFO, "Population hair.Type: %s is not a good.", lua_tostring(_State, -1));
+					goto loop_end;
+				}
+				lua_pop(_State, 1);
+				lua_pushstring(_State, "Pounds");
+				lua_rawget(_State, -2);
+				if(lua_type(_State, LUA_TNUMBER) == 0) {
+					Log(ELOG_INFO, "Population hair.Pounds variable is not a number.");
+					lua_pop(_State, 2);
+					continue;
+				}
+				_HairPounds = lua_tonumber(_State, -1);
+				lua_pop(_State, 1);
+				lua_pushstring(_State, "IsShearable");
+				lua_rawget(_State, -2);
+				if(lua_type(_State, -1) != LUA_TBOOLEAN) {
+					Log(ELOG_INFO, "Population hair.IsShearable variable is not a number.");
+					lua_pop(_State, 2);
+					continue;
+				}
+				_IsShearable = lua_toboolean(_State, -1);
+				lua_pop(_State, 1);
 		} else {
 			Log(ELOG_WARNING, "%s is not a field of a Population.", _Key);
 			goto fail;
@@ -201,6 +270,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 			Log(ELOG_WARNING, "%s contains invalid data for a Population.", _Key);
 			goto fail;
 		}
+		loop_end:
 		lua_pop(_State, 1);
 	}
 	if(_Young > _Old || _Old > _Death || _Death < 0) {
@@ -209,26 +279,29 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	}
 	_Ages = CreateConstrntBnds(4, 0, _Young, _Old, _Death);
 	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio);
-	_Eats = calloc(_List->Size, sizeof(struct FoodBase*));
-	_Itr = _List->Front;
+	_Eats = calloc(_List.Size, sizeof(struct FoodBase*));
+	_Itr = _List.Front;
 	i = 0;
 	while(_Itr != NULL) {
 		_Eats[i] =_Itr->Data;
-		InsertionSort(_Eats, i + 1, GoodBaseCmp);
+		InsertionSort(_Eats, i + 1, GoodBaseCmp, sizeof(*_Eats));
 		_Itr = _Itr->Next;
 		++i;
 	}
+	_Pop->Skin.Skin = _SkinGood;
+	_Pop->Skin.Pounds = _SkinPounds;
+	_Pop->Hair.Hair = _HairGood;
+	_Pop->Hair.Pounds = _HairPounds;
+	_Pop->Hair.Shearable = _IsShearable;
 	_Pop->Outputs = malloc(sizeof(struct Good*));
 	_Pop->Outputs[0] = NULL;
 	_Pop->Eats = _Eats;
-	_Pop->EatsSize = _List->Size;
+	_Pop->EatsSize = _List.Size;
 	if(_Pop->EatsSize == 0)
 		Log(ELOG_WARNING, "Population %s has zero food types to consume.", _Name);
-	DestroyLinkedList(_List);
 	return _Pop;
 	fail:
 	lua_settop(_State, _Top);
-	DestroyLinkedList(_List);
 	return NULL;
 }
 
@@ -240,7 +313,7 @@ struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _Nutrit
 		_Gender = EMALE;
 	} else
 		_Gender = EFEMALE;
-	CtorActor(((struct Actor*)_Animal), OBJECT_ANIMAL,  _X, _Y, (int(*)(struct Object*))ActorThink, _Gender, _Nutrition, _Age);
+	CtorActor(((struct Actor*)_Animal), OBJECT_ANIMAL,  _X, _Y, (ObjectThink) AnimalThink, _Gender, _Nutrition, _Age);
 	_Animal->PopType = _Pop;
 	return _Animal;
 }
@@ -250,21 +323,24 @@ int AnimalCmp(const void* _One, const void* _Two) {
 }
 
 void DestroyAnimal(struct Animal* _Animal) {
+	DtorActor((struct Actor*)_Animal);
 	free(_Animal);
+}
+
+void AnimalThink(struct Animal* _Animal) {
+	ActorThink((struct Actor*) _Animal, _Animal->PopType);
 }
 
 void AnimalDepAddAn(const struct AnimalDep* _Dep, const struct Array* _Tbl) {
 	int _Len = 0;
 	int _DepLen = 0;
-	int i;
-	int j;
 
-	for(i = 0; i < _Tbl->Size; ++i) {
+	for(int i = 0; i < _Tbl->Size; ++i) {
 		_Len = ArrayLen(((struct AnimalDep*)_Tbl->Table[i])->Animals->Table);
 		if(_Len <= 1)
 			continue;
 		_DepLen = ArrayLen(_Dep->Tbl);
-		for(j = 0; j < _DepLen; ++j) {
+		for(int j = 0; j < _DepLen; ++j) {
 			if(BinarySearch(_Dep->Tbl[j], _Tbl->Table, _Tbl->Size, AnDepArrayCmp) == NULL)
 				return;
 		}
@@ -340,7 +416,6 @@ struct Array* AnimalFoodDep(const struct HashTable* _Table) {
 }
 
 struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
-	int i;
 	struct InputReq** _AnimalTypes = (struct InputReq**)alloca(_Animals->Size * sizeof(struct InputReq*));
 	struct InputReq** _Return = NULL;
 	struct InputReq* _Req = NULL;
@@ -348,14 +423,14 @@ struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
 
 	*_Size = 0;
 	memset(_AnimalTypes, 0, sizeof(struct InputReq*));
-	for(i = 0; i < _Animals->Size; ++i) {
+	for(int i = 0; i < _Animals->Size; ++i) {
 		_Animal = _Animals->Table[i];
 		if((_Req = LinearSearch(_Animal, _AnimalTypes, *_Size, AnimalTypeCmp)) == NULL) {
 			_Req = CreateInputReq();
 			_Req->Req = _Animal->PopType;
 			_Req->Quantity = 1;
 			_AnimalTypes[*_Size] = _Req;
-			InsertionSort(_AnimalTypes, *_Size, AnimalTypeCmp);
+			InsertionSort(_AnimalTypes, *_Size, AnimalTypeCmp, sizeof(*_AnimalTypes));
 			++(*_Size);
 		} else
 			++_Req->Quantity;
@@ -363,4 +438,46 @@ struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
 	_Return = calloc(_Animals->Size, sizeof(struct InputReq*));
 	memcpy(_Return, _AnimalTypes, sizeof(struct InputReq*) * _Animals->Size);
 	return _Return;
+}
+
+//NOTE: Test me.
+void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal) {
+	const struct Population* _PopType = _Animal->PopType;
+	struct Animal* _TempAn = NULL;
+	int _FoundType = 0;
+
+	for(int i = 0; i < _Array->Size; ++i) {
+		_TempAn = (struct Animal*) _Array->Table[i];
+		if(_TempAn->PopType == _PopType) {
+			_FoundType = 1;
+		} else if(_FoundType != 0) {
+			_Array->Table[i] = _Animal;
+			_Animal = _TempAn;
+			_FoundType = 0;
+		}
+	}
+}
+
+//FIXME: Change to ensure all animals of the same type are adjacent.
+struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index) {
+	const struct Population* _PopType = NULL;
+	struct Animal* _Animal = NULL;
+
+	if(_Index < 0 || _Index >= _Array->Size)
+		return NULL;
+	_Animal = _Array->Table[_Index];
+	if(_Array->Size <= _Index + 1) {
+		--_Array->Size;
+		return _Animal;
+	}
+	_PopType = ((struct Animal*)_Array->Table[_Index + 1])->PopType;
+	for(int i = _Index + 2; i < _Array->Size; ++i) {
+		if(_PopType != ((struct Animal*)_Array->Table[i])->PopType) {
+			_Array->Table[_Index] = _Array->Table[i - 1];
+			_Index = i;
+			_PopType = ((struct Animal*)_Array->Table[i])->PopType;
+		}
+	}
+	--_Array->Size;
+	return _Animal;
 }

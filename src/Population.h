@@ -26,6 +26,16 @@ struct Population {
 	struct Good** Outputs; //Contains struct Good*.
 	struct FoodBase** Eats;
 	int EatsSize;
+	struct {
+		const struct GoodBase* Skin;
+		double Pounds;
+	} Skin;
+
+	struct {
+		int Shearable;
+		const struct GoodBase* Hair;
+		double Pounds;
+	} Hair;
 };
 
 struct Animal {
@@ -59,10 +69,13 @@ struct Population* PopulationLoad(lua_State* _State, int _Index);
 struct Animal* CreateAnimal(const struct Population* _Pop, int _Age,  int _Nutrition, int _X, int _Y);
 int AnimalCmp(const void* _One, const void* _Two);
 void DestroyAnimal(struct Animal* _Animal);
+void AnimalThink(struct Animal* _Animal);
 /*!
  * Returns a power set that contains all FoodBase*'s that are eaten by Population*'s in _Table.
  */
 struct Array* AnimalFoodDep(const struct HashTable* _Table);
 struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size);
+void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal);
+struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index);
 
 #endif

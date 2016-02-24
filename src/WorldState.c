@@ -123,6 +123,13 @@ int WorldStateEqual(const struct WorldState* _One, const struct WorldState* _Two
 	return 1;
 }
 
+int WorldStateAtomCare(const struct WorldState* _State, int _Atom) {
+	int _Index = WSGetIndex(_Atom);
+
+	_Atom = _Atom - _Index * sizeof(WorldState_t);
+	return ~WSAtomDontCare(_State, _Index, _Atom);
+}
+
 int WorldStateEmpty(const struct WorldState* _State) {
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		if(_State->DontCare[i] != INT_MIN)
@@ -315,4 +322,15 @@ int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two) {
 		}
 	}
 	return 0;
+}
+
+int WSDntCrComp(const struct WorldState* _State) {
+	int _NewState = 0;
+
+	for(int i = 0; i < sizeof(WorldState_t); ++i) {
+		for(int j = 0; j < WORLDSTATESZ; ++j) {
+			_NewState = _NewState | ((((0xFF << (i * CHAR_BITS)) & _State->DontCare[j]) == 0) << (i + (sizeof(WorldState_t) * j)));
+		}
+	}
+	return _NewState;
 }

@@ -293,7 +293,7 @@ void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedLis
 	if(_NewRank >= _Gov->GovRank)
 		return;
 	while(_Gov->SubGovernments.Size > _Gov->AllowedSubjects)
-		LnkLstPushBack(_ReleasedSubjects, LnkLst_PopFront(&_Gov->SubGovernments));
+		LnkLstPushBack(_ReleasedSubjects, LnkLstPopFront(&_Gov->SubGovernments));
 	_Gov->GovRank = _NewRank;
 }
 
@@ -348,7 +348,7 @@ void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform) {
 		if(((struct Reform*)_Itr->Data) == _Reform) {
 			_Gov->Reform = CreateReformPassing(_Reform, _Gov);
 			ReformOnPass(_Gov, _Reform);
-			LnkLst_Remove(&_Gov->PossibleReforms, _Itr);
+			LnkLstRemove(&_Gov->PossibleReforms, _Itr);
 			LnkLstPushBack(&_Gov->PassedReforms, _Reform);
 			return;
 		}
@@ -394,7 +394,7 @@ void ElectiveMonarchyNewLeader(struct Government* _Gov) {
 
 	while(_Itr != NULL) {
 		_Person = ((struct BigGuy*)_Itr->Data)->Person;
-		if(_Person->Family->FamilyId == _Person->Family->FamilyId && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
+		if(_Person->Family->Id == _Person->Family->Id && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
 			_Gov->Leader->Person = _Person;
 			return;
 		}

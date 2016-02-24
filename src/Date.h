@@ -5,8 +5,6 @@
 #ifndef __DATE_H
 #define __DATE_H
 
-#define DATE int
-//#define DAY_BITMASK (1 << 5)
 #define DAY_BITSHIFT (0)
 #define MONTH_BITSHIFT (5)
 #define MONTH_BITMASK (1 << 5)
@@ -20,7 +18,9 @@
 #define YEAR(_Date) ((_Date) >> YEAR_BITSHIFT)
 #define MONTH(_Date) (((_Date) >> 5) & (0xF))
 #define MONTHS (12)
-#define DAY(_Date) (_Date & (31))
+#define DAY(_Date) ((_Date) & (31))
+
+typedef int DATE;
 
 DATE MonthToInt(const char* _Month);
 DATE DateAdd(DATE _One, DATE _Two);

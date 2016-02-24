@@ -6,7 +6,7 @@
 #ifndef __HERALD_H
 #define __HERALD_H
 
-#include "Mission.h"
+#include "Good.h"
 
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
@@ -35,8 +35,9 @@ typedef struct SDL_Color SDL_Color;
 struct StackNode;
 struct LinkedList;
 struct TaskPool;
+struct Behavior;
 
-extern struct MissionEngine g_MissionEngine;
+extern const char* g_ShortMonths[];
 extern struct Constraint** g_OpinionMods;
 /*
  * TODO: Object should be given its own file as well as DATE.
@@ -63,7 +64,8 @@ enum {
 	OBJECT_CONSTRUCT,
 	OBJECT_LOCATION,
 	OBJECT_BIGGUY,
-	OBJECT_FEUD
+	OBJECT_FEUD,
+	OBJECT_FAMILY
 };
 
 struct InputReq {
@@ -77,29 +79,29 @@ struct System {
 	void(*Quit)(void);
 };
 
+struct Object;
+typedef void (*ObjectThink)(struct Object*);
 /*
  * TODO: Have objects think in order of their type.
  */
 struct Object {
 	int Id;
 	int Type;
-	void (*Think)(struct Object*);
-	/*
-	 * LastThink is not used by Object and should be removed.
-	 */
+	ObjectThink Think;
 	int LastThink; //In game ticks.
 	struct LnkLst_Node* ThinkObj;
 };
 
+extern struct LinkedList g_GoodCats[GOOD_SIZE];
 extern struct HashTable g_Crops;
 extern struct HashTable g_Goods;
 extern struct HashTable g_BuildMats;
 extern struct HashTable g_Populations;
 extern struct HashTable g_Animations;
-extern struct RBTree g_MissionTree;
-extern struct RBTree g_MissionList;
+extern struct HashTable g_Traits;
+extern struct HashTable g_Professions;
 extern struct TaskPool* g_TaskPool;
-extern int g_ObjPosBal;
+extern struct MissionEngine g_MissionEngine;
 
 
 extern struct Constraint** g_AgeConstraints;
@@ -120,9 +122,12 @@ struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 
-void CreateObject(struct Object* _Obj, int _Type, void (*_Think)(struct Object*));
+void CreateObject(struct Object* _Obj, int _Type, ObjectThink _Think);
 void DestroyObject(struct Object* _Object);
 void ObjectsThink();
 int NextId();
 
+void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family); 
+void* SAlloc(size_t _SizeOf);
+void SFree(void* _Ptr);
 #endif

@@ -62,6 +62,7 @@ struct BuildMat {
 	int Type;
 	int BuildCost;
 	double MatCost;
+	const char* Name;
 	const struct GoodBase* Good;
 };
 

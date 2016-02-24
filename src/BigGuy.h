@@ -5,6 +5,7 @@
 #ifndef __BIGGUY_H
 #define __BIGGUY_H
 
+#include "Herald.h"
 #include "WorldState.h"
 
 #include "sys/LinkedList.h"
@@ -13,8 +14,10 @@
 
 struct Person;
 struct Mission;
+struct Trait;
 struct Object;
 struct Feud;
+struct Agent;
 
 #define BIGGUYSTAT_MIN (0)
 #define BIGGUYSTAT_MAX (100)
@@ -24,6 +27,7 @@ struct Feud;
 #define BIGGUY_DISLIKEMIN (-26)
 #define BIGGUY_LIKEMIN (25)
 #define BIGGUY_LOVEMIN (75)
+#define BIGGUY_TRAITREL (10)
 
 #define BIGGUY_PERSONALITIES (4)
 
@@ -47,17 +51,37 @@ enum {
 };
 
 enum {
-	BGOPIN_NONE,
-	BGOPIN_IMPROVREL,
-	BGOPIN_GIFT
+	OPINION_NONE,
+	OPINION_TOKEN,
+	OPINION_SMALL,
+	OPINION_AVERAGE,
+	OPINION_GREAT
 };
 
+enum {
+	ACTTYPE_THEFT,
+	ACTTYPE_RUMOR,
+	ACTTYPE_TRAIT,
+	ACTTYPE_RAISEFYRD,
+	ACTTYPE_ATTACK,
+	ACTTYPE_GIFT,
+	ACTTYPE_WARLACK,
+	ACTTYPE_SIZE
+};
+//These actions should be removed and only GOAP acions should be used instead.
 enum {
 	BGACT_NONE,
 	BGACT_IMRPOVEREL,
 	BGACT_SABREL,
 	BGACT_GIFT,
+	BGACT_STEALANIMAL,
+	BGACT_DUEL,
 	BGACT_SIZE
+};
+
+enum {
+	BGMOT_RULE,
+	BGMOT_SIZE
 };
 
 enum {
@@ -93,7 +117,7 @@ struct BigGuyOpinion {
 struct BigGuyRelation {
 	int Relation;
 	int Modifier;
-	const struct BigGuy* Person;
+	struct BigGuy* Person;
 	struct BigGuyOpinion* Opinions;
 	struct BigGuyRelation* Next;
 };
@@ -108,10 +132,11 @@ struct BigGuyAction {
 struct BigGuy {
 	int Id;
 	int Type;
-	void (*Think)(struct Object*);
+	ObjectThink Think;
 	int LastThink; //In game ticks.
 	struct LnkLst_Node* ThinkObj;
 	struct Person* Person;
+	struct Agent* Agent;
 	int IsDirty;
 	struct WorldState State;
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
@@ -123,6 +148,8 @@ struct BigGuy {
 	struct LinkedList Feuds;
 	int Personality;
 	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
+	struct Trait** Traits;
+	int Motivation;
 };
 
 struct Crisis {
@@ -137,7 +164,7 @@ void DestroyCrisis(struct Crisis* _Crisis);
 int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
 int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
-struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, const struct BigGuy* _Actor);
+struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);
 struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int _Action, int _Modifier);
 struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
@@ -152,8 +179,8 @@ void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value);
 
 struct BigGuy* BigGuyLeaderType(struct Person* _Person);
 
-//FIXME: _Guy is not used.
 void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, int _Action, int _Modifier);
+void BigGuyChangeOpinion(struct BigGuy* _Guy, struct BigGuy* _Target, int _Action, int _Modifier);
 /*
  * Recalculates the modifier variable of _Relation and then updates Relation if applicable.
  */

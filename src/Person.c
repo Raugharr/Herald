@@ -45,6 +45,7 @@ struct Pregnancy* CreatePregnancy(struct Person* _Person) {
 };
 
 void DestroyPregnancy(struct Pregnancy* _Pregnancy) {
+	_Pregnancy->Mother->Pregnancy = NULL;
 	DestroyObject((struct Object*)_Pregnancy);
 	free(_Pregnancy);
 }
@@ -69,7 +70,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	struct Person* _Person = NULL;
 
 	_Person = (struct Person*) MemPoolAlloc(g_PersonPool);
-	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (int(*)(struct Object*))PersonThink, _Gender, _Nutrition, _Age);
+	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (ObjectThink) PersonThink, _Gender, _Nutrition, _Age);
 	_Person->Name = _Name;
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
@@ -83,8 +84,12 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 }
 
 void DestroyPerson(struct Person* _Person) {
+	//struct Family* _Family = _Person->Family;
+
 	DtorActor((struct Actor*)_Person);
 	SettlementRemovePerson(_Person->Family->HomeLoc, _Person);
+	//if(FamilySize(_Family) == 0)
+	//		DestroyFamily(_Family);
 	MemPoolFree(g_PersonPool, _Person);
 }
 
@@ -111,7 +116,7 @@ int PersonThink(struct Person* _Person) {
 			_Person->Pregnancy = CreatePregnancy(_Person);
 		}
 	} else {
-		if(YEAR(_Person->Age) > 18 && _Person->Family->People[HUSBAND] != _Person) {
+		/*if(YEAR(_Person->Age) > 18 && _Person->Family->People[HUSBAND] != _Person) {
 			struct LnkLst_Node* _Itr = _Family->HomeLoc->Families.Front;
 			struct Family* _BrideFam = NULL;
 
@@ -124,6 +129,8 @@ int PersonThink(struct Person* _Person) {
 						_NewFam->People[HUSBAND] = _Person;
 						_NewFam->People[WIFE] = _BrideFam->People[i];
 						_BrideFam->People[i] = NULL;
+						_Person->Family = _NewFam;
+						_NewFam->People[WIFE]->Family = _NewFam;
 						for(int j = 2; j < FAMILY_PEOPLESZ; ++j)
 							if(_Person == _Family->People[i]) {
 								_Family->People[i] = NULL;
@@ -134,22 +141,31 @@ int PersonThink(struct Person* _Person) {
 				}
 				_Itr = _Itr->Next;
 			}
-		}
+		}*/
 	}
-	ActorThink((struct Actor*) _Person);
+	ActorThink((struct Actor*) _Person, NULL);
 	for(int i = 0; i < _Family->Goods->Size; ++i) {
 		_Good = (struct Good*) _Family->Goods->Table[i];
-		if(_Good->Base->Category == EFOOD) {
+		if(_Good->Base->Category == GOOD_FOOD) {
 			_Nutrition += PersonEat(_Person, (struct Food*) _Good);
 			if(_Nutrition >= NUTRITION_DAILY)
 				goto sufficient_food;
 		}
 	}
-	EventPush(CreateEventStarvingFamily(_Family));
 	sufficient_food:
 	if(_Person->Nutrition <= 0)
 		PersonDeath(_Person);
 	return 1;
+}
+
+void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* _Family) {
+	struct Family* _NewFam = CreateFamily(_Family->Name, FamilyGetSettlement(_Family), _Family);
+
+	_NewFam->People[HUSBAND] = _Father;
+	_NewFam->People[WIFE] = _Mother;
+	_Father->Family = _NewFam;
+	_Mother->Family = _NewFam;
+	ArrayInsert_S(_NewFam->Fields, CreateField(_NewFam->HomeLoc->Pos.x, _NewFam->HomeLoc->Pos.y, NULL, 30, _Family));
 }
 
 double PersonEat(struct Person* _Person, struct Food* _Food) {
@@ -164,7 +180,7 @@ double PersonEat(struct Person* _Person, struct Food* _Food) {
 		for(int i = 0; i < _GoodSz; ++i) {
 			if(_Nut >= NUTRITION_DAILY)
 				break;
-			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == EFOOD) {
+			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == GOOD_FOOD) {
 				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
 				while(_FoodAmt < _FoodPtr->Quantity && _Nut < NUTRITION_DAILY) {
 					_Nut += _FoodPtr->Base->Nutrition;
@@ -188,12 +204,11 @@ double PersonEat(struct Person* _Person, struct Food* _Food) {
 }
 
 void PersonDeath(struct Person* _Person) {
-	int i;
 	struct Family* _Family = _Person->Family;
 
 	if(_Person->Pregnancy != NULL)
 		DestroyPregnancy(_Person->Pregnancy);
-	for(i = 0; i < _Family->NumChildren + CHILDREN; ++i)
+	for(int i = 0; i < _Family->NumChildren + CHILDREN; ++i) {
 		if(_Family->People[i] == _Person) {
 			_Family->People[i] = NULL;
 			if(i >= CHILDREN) {
@@ -203,10 +218,11 @@ void PersonDeath(struct Person* _Person) {
 			}
 			break;
 		}
-	RBDelete(&g_GameWorld.BigGuys, _Person);
+	}
+//	RBDelete(&g_GameWorld.BigGuys, _Person);
 	PushEvent(EVENT_DEATH, _Person, NULL);
 	++_Family->HomeLoc->YearDeaths;
-	--_Family->HomeLoc->NumPeople;
+	//DestroyPerson(_Person);
 }
 
 int PersonIsWarrior(const struct Person* _Person) {

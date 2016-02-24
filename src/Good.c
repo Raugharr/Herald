@@ -9,9 +9,13 @@
 #include "Herald.h"
 #include "World.h"
 #include "Crop.h"
+#include "Location.h"
+#include "Family.h"
+
 #include "sys/Log.h"
 #include "sys/LuaCore.h"
 #include "sys/Array.h"
+#include "sys/LinkedList.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,9 +44,19 @@ struct Good*(*g_GoodCopy[])(const struct Good*) = {
 	GoodCopy
 };
 
-int GoodOutputCmp(const void* _One, const void* _Two) {
-	return ((struct GoodOutput*)_One)->Output->Id - ((struct GoodOutput*)_Two)->Output->Id;
-}
+static const char* g_GoodCatStr[] = {
+	"Food",
+	"Ingredient",
+	"Animal",
+	"Seed",
+	"Tool",
+	"Material",
+	"Clothing",
+	"Weapon",
+	"Armor",
+	"Other",
+	NULL
+};
 
 int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two) {
 	return _One->Good->Id - _Two->Good->Id;
@@ -99,6 +113,38 @@ void DestroyGoodBase(struct GoodBase* _Good) {
 	free(_Good);
 }
 
+struct BuyRequest* CreateBuyRequest(struct Family* _Family, const struct GoodBase* _Base, int _Quantity) {
+	struct BuyRequest* _BuyReq = (struct BuyRequest*) malloc(sizeof(struct BuyRequest));
+
+	SDL_assert(_Base != NULL);
+	_BuyReq->Time = g_GameWorld.Date;
+	_BuyReq->Base = _Base;
+	_BuyReq->Owner = _Family;
+	_BuyReq->Quantity = _Quantity;
+	ILL_CREATE(_Family->HomeLoc->BuyOrders, _BuyReq);
+	return _BuyReq;
+}
+
+void DestroyBuyRequest(struct BuyRequest* _BuyReq) {
+	ILL_DESTROY(_BuyReq->Owner->HomeLoc->BuyOrders, _BuyReq);
+	free(_BuyReq);
+}
+
+struct SellRequest* CreateSellRequest(const struct Family* _Seller, const struct GoodBase* _Base, int _Quantity, int _Cost) {
+	struct SellRequest* _SellReq = (struct SellRequest*) malloc(sizeof(struct SellRequest));
+
+	_SellReq->Base = _Base;
+	_SellReq->Owner = _Seller;
+	_SellReq->Quantity = _Quantity;
+	_SellReq->Cost = _Cost;
+	ILL_CREATE(_Seller->HomeLoc->Market, _SellReq);
+	return _SellReq;
+}
+
+void DestroySellRequest(struct SellRequest* _SellReq) {
+	free(_SellReq);
+}
+
 struct Good* GoodCopy(const struct Good* _Good) {
 	struct Good* _NewGood = CreateGood(_Good->Base, _Good->Pos.x, _Good->Pos.y);
 
@@ -138,27 +184,25 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 						_Temp = lua_tostring(_State, -1);
 						_Return = 1;
 					if(!strcmp("Food", _Temp))
-						_Category = EFOOD;
+						_Category = GOOD_FOOD;
 					else if(!strcmp("Ingredient", _Temp))
-						_Category = EINGREDIENT;
+						_Category = GOOD_INGREDIENT;
 					else if(!strcmp("Animal", _Temp))
-						_Category = EANIMAL;
+						_Category = GOOD_ANIMAL;
 					else if(!strcmp("Seed", _Temp))
-						_Category = ESEED;
+						_Category = GOOD_SEED;
 					else if(!strcmp("Tool", _Temp))
-						_Category = ETOOL;
+						_Category = GOOD_TOOL;
 					else if(!strcmp("Material", _Temp))
-						_Category = EMATERIAL;
+						_Category = GOOD_MATERIAL;
 					else if(!strcmp("Clothing", _Temp))
-						_Category = ECLOTHING;
-					else if(!strcmp("Good", _Temp))
-						_Category = EGOOD;
+						_Category = GOOD_CLOTHING;
 					else if(!strcmp("Weapon", _Temp))
-						_Category = EWEAPON;
+						_Category = GOOD_WEAPON;
 					else if(!strcmp("Armor", _Temp))
-						_Category = EARMOR;
+						_Category = GOOD_ARMOR;
 					else if(!strcmp("Other", _Temp))
-						_Category = EOTHER;
+						_Category = GOOD_OTHER;
 					else _Return = -1;
 					}
 				if(_Category <= 0 && _Return <= 0) {
@@ -171,14 +215,24 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 	}
 	if(_Name == NULL)
 		goto fail;
-	if(_Category == ETOOL) {
+	if(_Category == GOOD_TOOL) {
 		int _Function = 0;
+		int _Quality = 0;
 
-		lua_getfield(_State, -1, "Function");
+		lua_pushstring(_State, "Function");
+		lua_rawget(_State, -2);
 		if(LuaGetString(_State, -1, &_Temp) == 0) {
 			Log(ELOG_WARNING, "Tool requires Function field.");
 			goto fail;
 		}
+		lua_pop(_State, 1);
+		lua_pushstring(_State, "Quality");
+		lua_rawget(_State, -2);
+		if(LuaGetInteger(_State, -1, &_Quality) == 0) {
+			Log(ELOG_WARNING, "Tool requires Quality field.");
+			goto fail;
+		}
+		lua_pop(_State, 1);
 		if(!strcmp(_Temp, "Plow"))
 			_Function = ETOOL_PLOW;
 		else if(!strcmp(_Temp, "Reap"))
@@ -191,16 +245,15 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 			Log(ELOG_WARNING, "Tool contains an invalid Function field: %s", _Temp);
 			goto fail;
 		}
-		lua_pop(_State, 1);
-		_Good = (struct GoodBase*) CreateToolBase(_Name, _Category, _Function);
-	} else if(_Category == EFOOD || _Category == EINGREDIENT || _Category == ESEED) {
+		_Good = (struct GoodBase*) CreateToolBase(_Name, _Category, _Function, _Quality);
+	} else if(_Category == GOOD_FOOD || _Category == GOOD_INGREDIENT || _Category == GOOD_SEED) {
 		_Good = (struct GoodBase*) CreateFoodBase(_Name, _Category, 0);
-	} else if(_Category == ECLOTHING) {
+	} else if(_Category == GOOD_CLOTHING) {
 		int* _Locations = NULL;
 
 		_Good = (struct GoodBase*) CreateClothingBase(_Name, _Category);
 		ClothingBaseLoad(_State, _Good, _Locations);
-	} else if(_Category == EWEAPON) {
+	} else if(_Category == GOOD_WEAPON) {
 		_Good = (struct GoodBase*) CreateWeaponBase(_Name, _Category);
 		if(WeaponBaseLoad(_State, (struct WeaponBase*)_Good) == 0) {
 			_Top = lua_gettop(_State);
@@ -214,8 +267,9 @@ struct GoodBase* GoodLoad(lua_State* _State, int _Index) {
 		//}
 	} else
 		_Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), _Name, _Category);
-	if(_Return > 0)
+	if(_Return > 0) {
 		return _Good;
+	}
 	fail:
 	if(_Good != NULL)
 		DestroyGoodBase(_Good);
@@ -239,6 +293,7 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 	lua_getglobal(_State, "Goods");
 	lua_pushstring(_State, _Good->Name);
 	lua_rawget(_State, -2);
+	SDL_assert(lua_type(_State, -1) == LUA_TTABLE);
 	lua_remove(_State, -2);
 	lua_pushstring(_State, "InputGoods");
 	lua_rawget(_State, -2);
@@ -265,9 +320,9 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 				if(LuaGetNumber(_State, -1, &_Req->Quantity) == -1) {
 					goto fail;
 				}
-				LnkLst_PushBack(&_List, _Req);
+				LnkLstPushBack(&_List, _Req);
 			} else {
-				Log(ELOG_WARNING, "Good %s cannot add %s as an input good: %s does not exist.", _Name, _Good->Name, _Name);
+				Log(ELOG_WARNING, "Good %s cannot add %s as an input good: %s does not exist.", _Good->Name, _Name, _Name);
 				goto fail;
 			}
 			lua_pop(_State, 2);
@@ -283,10 +338,10 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 		_Good->InputGoods[i] = (struct InputReq*)_Itr->Data;
 		_Itr = _Itr->Next;
 	}
-	if(_Good->Category == EFOOD || _Good->Category == EINGREDIENT || _Good->Category == ESEED)
+	if(_Good->Category == GOOD_FOOD || _Good->Category == GOOD_INGREDIENT || _Good->Category == GOOD_SEED)
 		GoodLoadConsumableInput(_State, _Good, &_List);
 	lua_pop(_State, 1);
-	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp);
+	InsertionSort(_Good->InputGoods, _Good->IGSize, GoodInpGdCmp, sizeof(*_Good->InputGoods));
 	LnkLstClear(&_List);
 	return 1;
 	fail:
@@ -299,25 +354,22 @@ int GoodLoadInput(lua_State* _State, struct GoodBase* _Good) {
 }
 
 int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
-	int _Time;
-	struct GoodMaker* _Maker = NULL;
 	struct GoodBase* _OutputGood = NULL;
-	struct GoodOutput* _Output = NULL;
-	struct LinkedList _List = {0, NULL, NULL};
-	struct LnkLst_Node* _Itr = NULL;
 
 	if(_Good == NULL)
 		return 0;
 	lua_getglobal(_State, "Goods");
 	lua_pushstring(_State, _Good->Name);
 	lua_rawget(_State, -2);
+	SDL_assert(lua_type(_State, -1) == LUA_TTABLE);
 	lua_remove(_State, -2);
 	lua_pushstring(_State, "OutputGoods");
 	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) == LUA_TNIL) {
 		lua_pop(_State, 2);
 		return 0;
-	}	lua_pushnil(_State);
+	}
+	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(lua_type(_State, -1) != LUA_TTABLE)
 			goto loop_end;
@@ -339,31 +391,11 @@ int GoodLoadOutput(lua_State* _State, struct GoodBase* _Good) {
 			continue;
 		}
 		lua_pop(_State, 1);
-		_Time = lua_tointeger(_State, -1);
-		_Output = (struct GoodOutput*) malloc(sizeof(struct GoodOutput));
-		_Output->Output = _OutputGood;
-		_Output->Makers = (struct GoodMaker**) calloc(2, sizeof(struct GoodMaker*));
-		_Maker = (struct GoodMaker*) malloc(sizeof(struct GoodMaker));
-		_Maker->Maker = _Good;
-		_Maker->Time = _Time;
-		_Output->Makers[0] = _Maker;
-		_Output->Makers[1] = NULL; 	
-		LnkLstPushBack(&_List, _Output);
+		//_Time = lua_tointeger(_State, -1);
 		loop_end:
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
-	_Itr = _List.Front;
-	while(_Itr != NULL) {
-		if((_Output = BinarySearch(_Itr->Data, g_GoodOutputs, g_GoodOutputsSz, GoodOutputCmp)) == NULL) {
-				g_GoodOutputs[g_GoodOutputsSz] = _Itr->Data;
-				++g_GoodOutputsSz;
-		}  else {
-			_Output->Makers = realloc(_Output->Makers, ArrayLen(_Output->Makers) + 1);
-			_Output->Makers[ArrayLen(_Output->Makers) - 2]->Maker = _Good;
-		}
-		_Itr = _Itr->Next;
-	}
 	return 1;
 }
 
@@ -376,6 +408,7 @@ void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Good, struct L
 		lua_rawget(_State, -2);
 		if(lua_tointeger(_State, -1) == 0) {
 			Log(ELOG_WARNING, "Warning: Good %s cannot be a food because it contains no InputGoods or a field named Nutrition containing an integer.", _Good->Name);
+			lua_pop(_State, 1);
 			return;
 		}
 		_Nutrition = lua_tointeger(_State, -1);
@@ -517,18 +550,19 @@ void DestroyGood(struct Good* _Good) {
 	free(_Good);
 }
 
-int GoodGBaseCmp(const struct Good* _One, const struct GoodBase* _Two) {
-	return _One->Base->Id - _Two->Id;
+int GoodGBaseCmp(const struct GoodBase* _One, const struct Good* _Two) {
+	return _One->Id - _Two->Base->Id;
 }
 
 int GoodBaseGoodCmp(const struct GoodBase* _One, const struct Good* _Two) {
 	return _One->Id - _Two->Base->Id;
 }
 
-struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function) {
+struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function, int _Quality) {
 	struct ToolBase* _Tool = (struct ToolBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ToolBase)), _Name, _Category);
 
 	_Tool->Function = _Function;
+	_Tool->Quality = _Quality;
 	return _Tool;
 }
 
@@ -622,7 +656,7 @@ double GoodNutVal(struct GoodBase* _Base) {
 	int i;
 
 	for(i = 0; i < _Base->IGSize; ++i) {
-		if(((struct GoodBase*)_Base->InputGoods[i]->Req)->Category == ESEED) {
+		if(((struct GoodBase*)_Base->InputGoods[i]->Req)->Category == GOOD_SEED) {
 			if((_Crop = HashSearch(&g_Crops, ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name)) == NULL) {
 				Log(ELOG_WARNING, "Crop %s not found.", ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name);
 				continue;
@@ -696,7 +730,7 @@ struct Good* GoodMostAbundant(struct Array* _Goods, int _Category) {
 
 	for(i = 0; i < _Goods->Size; ++i) {
 		_Good = (struct Good*)_Goods->Table[i];
-		if(_Good->Base->Category == ESEED) {
+		if(_Good->Base->Category == GOOD_SEED) {
 			_BestGood = _Good;
 			_BestQuantity = _Good->Quantity;
 			break;
@@ -705,7 +739,7 @@ struct Good* GoodMostAbundant(struct Array* _Goods, int _Category) {
 
 	for(; i < _Goods->Size; ++i) {
 		_Good = (struct Good*)_Goods->Table[i];
-		if(_Good->Base->Category == ESEED) {
+		if(_Good->Base->Category == GOOD_SEED) {
 			if(_Good->Quantity > _BestQuantity) {
 				_BestGood = _Good;
 				_BestQuantity = _Good->Quantity;
@@ -713,4 +747,125 @@ struct Good* GoodMostAbundant(struct Array* _Goods, int _Category) {
 		}
 	}
 	return _BestGood;
+}
+
+void GoodSell(const struct Family* _Seller, const struct GoodBase* _Base, int _Quantity) {
+	struct SellRequest* _SellReq = _Seller->HomeLoc->Market;
+
+	while(_SellReq != NULL) {
+		if(_SellReq->Owner == _Seller && _SellReq->Base == _Base) {
+			_SellReq->Quantity = _SellReq->Quantity + _Quantity;
+			return;
+		}
+		_SellReq = _SellReq->Next;
+	}
+
+	CreateSellRequest(_Seller, _Base, GoodGetValue(_Base), _Quantity);
+}
+
+int GoodBuy(struct Family* _Family, const struct GoodBase* _Base, int _Quantity) {
+	struct Settlement* _Settlement = _Family->HomeLoc;
+	struct SellRequest* _Itr = _Settlement->Market;
+	int _Sold = 0;
+			
+	while(_Itr != NULL) {
+		if(GoodBaseCmp(_Itr, _Base) == 0) {
+			if(_Itr->Quantity <= _Quantity) {
+				_Sold = _Sold + (_Quantity - GoodPay(_Family, _Itr));
+				_Quantity = _Quantity - _Sold;
+				ILL_DESTROY(_Settlement->Market, _Itr);
+			} else {
+				_Itr->Quantity = _Itr->Quantity - _Quantity;
+				GoodPay(_Family, _Itr);
+				return _Quantity;
+			}
+		}
+		_Itr = _Itr->Next;
+	}
+	CreateBuyRequest(_Family, _Base, _Quantity);
+	return _Sold;
+}
+
+int GoodPay(struct Family* _Buyer, const struct SellRequest* _SellReq) {
+	int _Quantity = 0;
+
+	GoodPayInKind(_Buyer, _SellReq->Cost, _SellReq->Base, &_Quantity);
+	SellItem(_Buyer, _SellReq);
+	return _Quantity;
+}
+
+const struct GoodBase* GoodPayInKind(const struct Family* _Buyer, int _Cost, const struct GoodBase* _PayGood, int* _Quantity) {
+	const struct Good* _Good = NULL;
+	int _Value = 0;
+
+	switch(_Buyer->Caste->Type) {
+		case CASTE_PEASANT:
+			for(int i = 0; i < _Buyer->Goods->Size; ++i) {
+				_Good = _Buyer->Goods->Table[i];
+				if(strcmp(_Good->Base->Name, "Flour") == 0) {
+					_Value = GoodGetValue(_Good->Base);
+					goto func_end;
+				}
+			}
+		break;
+	}
+	//Return the Good that will be sold and how many need to be sold.
+	func_end:
+	(*_Quantity) = _Cost / _Value;
+	if((*_Quantity) * _Value < _Cost)
+		++(*_Quantity);
+	return _Good->Base;
+}
+
+void SellItem(struct Family* _Buyer, const struct SellRequest* _SellReq) {
+	struct Array* _Goods = _Buyer->Goods;
+	struct Good* _Good = NULL;
+
+	//Search for the boughten good in the _Buyers good array.
+	for(int i = 0; _Goods->Size; ++i) {
+		_Good = (struct Good*) _Goods->Table[i];
+		if(GoodBaseCmp(_Good->Base, _SellReq) == 0) {
+			_Good->Quantity = _Good->Quantity + _SellReq->Quantity;
+			return;
+		}
+	}
+	//Good is not found create a good then add it to the good array.
+	_Good = CreateGood(_SellReq->Base, _Buyer->HomeLoc->Pos.x, _Buyer->HomeLoc->Pos.y);
+	_Good->Quantity = _SellReq->Quantity;
+	ArrayInsert_S(_Buyer->Goods, _Good);
+}
+
+int GoodGetValue(const struct GoodBase* _Base) {
+	return 1;
+}
+
+struct Good* GoodMake(const struct GoodBase* _Base, int _Quantity, struct Array* _Inputs, int _X, int _Y) {
+	struct Good* _Good = NULL;
+
+	for(int i = 0; i < _Base->IGSize; ++i) {
+		_Good = LinearSearch(_Base->InputGoods[i], _Inputs->Table, _Inputs->Size, (int(*)(const void*, const void*))InputReqGoodCmp);
+		_Good->Quantity -= _Quantity * _Base->InputGoods[i]->Quantity;
+	}
+	if((_Good = LinearSearch(_Base, _Inputs->Table, _Inputs->Size, (int(*)(const void*, const void*))GoodGBaseCmp)) == NULL) {
+		switch(_Base->Category) {
+		case GOOD_FOOD:
+			_Good =  (struct Good*) CreateFood((const struct FoodBase*)_Base, _X, _Y);
+			break;
+		default:
+			_Good = CreateGood(_Base, _X, _Y);
+			break;
+		}
+		ArrayInsert_S(_Inputs, _Good);
+	}
+	_Good->Quantity += _Quantity;
+	return _Good;
+}
+
+const struct LinkedList* GoodGetCategory(const char* _Category) {
+	for(int i = 0; g_GoodCatStr[i] != NULL; ++i) {
+		if(strcmp(_Category, g_GoodCatStr[i]) == 0) {
+			return &g_GoodCats[i];
+		}
+	}
+	return NULL;
 }

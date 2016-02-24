@@ -32,7 +32,7 @@ void FeudAddBigGuy(struct Feud* _Feud, const struct Family* _Family) {
 struct Feud* CreateFeud(struct BigGuy* _SideOne, struct BigGuy* _SideTwo) {
 	struct Feud* _Feud = (struct Feud*) malloc(sizeof(struct Feud));
 
-	CreateObject((struct Object*)_Feud, OBJECT_FEUD, (void(*)(struct Object*))FeudThink);
+	CreateObject((struct Object*)_Feud, OBJECT_FEUD, (ObjectThink) FeudThink);
 	_Feud->Level = 0;
 	_Feud->Side[0].Size = 0;
 	_Feud->Side[0].Front = NULL;
@@ -76,6 +76,7 @@ void FeudThink(struct Feud* _Feud) {
 	int _AnimalsTaken = 0;
 	int _PeopleKilled = 0;
 	struct BigGuyRelation* _Relation = NULL;
+	struct Good* _TakenGood = NULL;
 
 	if(_Feud->LastThink + (FEUD_THINKTIME / _Feud->Level) <= g_GameWorld.Tick)
 		return;
@@ -99,7 +100,8 @@ void FeudThink(struct Feud* _Feud) {
 	while(_GoodsTaken > 0) {
 		_Index = Random(0, _Family->Goods->Size - 1);
 		//_Quantity = Random(1, ((struct Good*)_Family->Goods->Table[_Index])->Quantity);
-		FamilyGetGood(_Taker, FamilyTakeGood(_Family, _Index, _Quantity));
+		_TakenGood = FamilyTakeGood(_Family, _Index, _Quantity);
+		FamilyGetGood(_Taker, _TakenGood, _TakenGood->Quantity);
 		//_GoodsTaken = _GoodsTaken - _Quantity;
 		--_GoodsTaken;
 	}

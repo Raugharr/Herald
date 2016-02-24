@@ -12,7 +12,9 @@
 #include "Family.h"
 #include "Location.h"
 
+#include "sys/LinkedList.h"
 #include "sys/Event.h"
+#include "sys/Math.h"
 
 #include <stdlib.h>
 
@@ -98,14 +100,56 @@ void DestroyBattle(struct Battle* _Battle) {
 	free(_Battle);
 }
 
-void BattleEnd(int _Victor, struct Battle* _Battle) {
-	int _AttackSize = ArmyGetSize(_Battle->Attacker.Army);
-	int _DefendSize = ArmyGetSize(_Battle->Defender.Army);
+void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
+	struct Army* _Army = _Side->Army;
+	struct Warband* _Warband = _Army->Warbands;
+	struct Warrior* _Warrior = NULL;
+	struct LnkLst_Node* _Itr = NULL;
+	struct LinkedList _List = LINKEDLIST();
+	struct Warrior* _Ptr = NULL;
+	struct BigGuy* _Guy = NULL;
+	int _CasteWarriorCt = 0;
+	int _AvgScore = 0;
 
-	_Battle->Attacker.Army->Leader->Prestige += (((float)_AttackSize) / _Battle->Attacker.StartingSize) / (((float)_DefendSize) / _Battle->Defender.StartingSize);
-	_Battle->Defender.Army->Leader->Prestige += (((float)_DefendSize) / _Battle->Defender.StartingSize) / (((float)_AttackSize) / _Battle->Attacker.StartingSize);
-	if(_Victor == BATTLE_ATTACKER)
-		GovernmentLesserJoin(_Battle->Attacker.Army->Government, _Battle->Defender.Army->Government, GOVREL_TRIBUTE);
+	while(_Warband != NULL) { 
+		_Warrior = _Warband->Warriors;
+		while(_Warrior != NULL) {
+			if(PERSON_CASTE(_Warrior->Person) != CASTE_WARRIOR) {
+				_Warrior = _Warrior->Next;
+				continue;
+			}
+			_Ptr = _Warrior;
+			LnkLstPushBack(&_List, _Ptr);
+			++_CasteWarriorCt;
+			_Warrior = _Warrior->Next;
+		}
+		_Warband = _Warband->Next;
+	}
+	_AvgScore = _TotalPrestige / _CasteWarriorCt;
+	_Itr = _List.Front;
+	while(_Itr != NULL) {
+		if((_Guy = RBSearch(&g_GameWorld.BigGuys, ((struct Warrior*)_Itr->Data)->Person)) != NULL) {
+			int _Score = _CasteWarriorCt * (_AvgScore / ((float)_TotalPrestige));
+			_Guy->Prestige += _Score;		
+			if(_Guy->Motivation == BGMOT_RULE)
+				_Guy->Prestige += max(1, _Score / 10);
+		} else 
+			_Army->Government->Location->Glory += _AvgScore;
+		_Itr = _Itr->Next;
+	}
+	LnkLstClear(&_List);
+}
+
+void BattleEnd(int _Victor, struct Battle* _Battle) {
+	int _AttkSize = ArmyGetSize(_Battle->Attacker.Army);
+	int _DefSize = ArmyGetSize(_Battle->Defender.Army);
+	int _DefPrestige = (((float)_DefSize) / _Battle->Defender.StartingSize) / (((float)_AttkSize) / _Battle->Attacker.StartingSize);
+	int _AttkPrestige = (((float)_AttkSize) / _Battle->Attacker.StartingSize) / (((float)_DefSize) / _Battle->Defender.StartingSize);
+
+	BattleDistPrestige(&_Battle->Attacker, _AttkPrestige);
+	BattleDistPrestige(&_Battle->Defender, _DefPrestige);
+	//if(_Victor == BATTLE_ATTACKER)
+	//	GovernmentLesserJoin(_Battle->Attacker.Army->Government, _Battle->Defender.Army->Government, GOVREL_TRIBUTE);
 	PushEvent(EVENT_BATTLE, _Battle, NULL);
 }
 
@@ -207,11 +251,11 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 				if(CreateCrisis(CRISIS_WARDEATH, _BGFather) == NULL)
 					break;
 				_Relation = CreateBigGuyRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader);
-				CreateBigGuyOpinion(_Relation, BGOPIN_NONE, -20);
+				CreateBigGuyOpinion(_Relation, OPINION_NONE, -20);
 			} else
-				BigGuyAddRelation(_BGFather, _Relation, BGOPIN_NONE, -20);
+				BigGuyAddRelation(_BGFather, _Relation, OPINION_NONE, -20);
 		}
-		DestroyPerson(_Warrior->Person);
+		PersonDeath(_Warrior->Person);
 		DestroyWarrior(_Warrior, _Warband);
 		--_Amount;
 	}

@@ -27,27 +27,36 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-int CropStatusGen(struct Field* _Field) {
-	return _Field->Acres * (WORKMULT / 10);
-}
-
-int CropStatusGrow(struct Field* _Field) {
-	return _Field->Crop->GrowingDegree;
-}
-
-int (*g_CropStatusFuncs[])(struct Field* _Field) = {CropStatusGen, CropStatusGen, CropStatusGen, CropStatusGen, CropStatusGrow, CropStatusGen};
-static int g_CropId = 0;
-
 #define NextStatus(_Crop)															\
 {																					\
 	if(_Crop->Status == EHARVESTING) {												\
 		_Crop->Status = EFALLOW;													\
 	} else {																		\
-		EventPush(CreateEventFarming(_Crop->Status, _Crop));	\
+		PushEvent(EVENT_FARMING, &_Crop->Status, _Crop);									\
 		++_Crop->Status;															\
 		_Crop->StatusTime = g_CropStatusFuncs[_Crop->Status](_Field);				\
 	}																				\
 }
+
+int CropStatusGen(const struct Field* _Field) {
+	return _Field->Acres * WORKMULT;
+}
+
+int CropStatusGrow(const struct Field* _Field) {
+	return _Field->Crop->GrowingDegree;
+}
+
+int CropStatusPlant(const struct Field* _Field) {
+	int _Days = (_Field->Crop->SeedsPerAcre / CROP_BUSHEL);
+
+	if(_Field->Crop->SeedsPerAcre * CROP_BUSHEL != _Days)
+		++_Days;
+	return _Days * _Field->Acres;
+}
+
+int (*g_CropStatusFuncs[])(const struct Field* _Field) = {CropStatusGen, CropStatusGen, CropStatusGen, CropStatusPlant, CropStatusGrow, CropStatusGen};
+static int g_CropId = 0;
+
 
 struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, double _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter) {
 	struct Crop* _Crop = NULL;
@@ -71,7 +80,8 @@ struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, double _NutV
 	_Crop->SurviveWinter = _SurviveWinter;
 	if((_Good = HashSearch(&g_Goods, _Name)))
 		DestroyGoodBase(_Good);
-	HashInsert(&g_Goods, _Name, CreateFoodBase(_Name, ESEED, _NutVal));	
+	HashInsert(&g_Goods, _Name, CreateFoodBase(_Name, GOOD_SEED, _NutVal));
+	Log(ELOG_INFO, "Crop loaded %s.", _Name);
 	return _Crop;
 }
 
@@ -174,26 +184,55 @@ void FieldReset(struct Field* _Crop) {
 }
 
 int FieldPlant(struct Field* _Field, struct Good* _Seeds) {
+	int _TempAcres = _Field->Acres;
+
 	if(_Field->Crop == NULL) {
 		FieldReset(_Field);
 		return 0;
 	}
 	if(_Field->Status != EFALLOW)
 		return 0;
-	FieldAcreage(_Field, _Seeds);
+	_Field->Acres = _Field->UnusedAcres;
+	_Field->UnusedAcres = _TempAcres;
 	_Seeds->Quantity -= _Field->Crop->SeedsPerAcre * _Field->Acres;
-	EventPush(CreateEventFarming(_Field->Status, _Field));
+	PushEvent(EVENT_FARMING, &_Field->Status, _Field);
 	_Field->Status = EPLOWING;
-	_Field->StatusTime = _Field->Acres * WORKMULT;
+	_Field->StatusTime = g_CropStatusFuncs[_Field->Status](_Field);
 	return 1;
 }
 
-void FieldWork(struct Field* _Field, int _Total) {
-	if(_Field->Status == EPLOWING)
-		_Total *= 10;
+void FieldWork(struct Field* _Field, int _Total, const struct Array* _Goods) {
+	int _Modifier = 1000;
+
 	if(_Field->Status == EGROWING)
 		return;
-	_Field->StatusTime -= _Total;
+	if(_Field->Status == EPLOWING) {
+		const struct ToolBase* _Tool = NULL;
+
+		for(int i = 0; i < _Goods->Size; ++i) {
+			_Tool = (struct ToolBase*) ((struct Good*)_Goods->Table[i])->Base;
+			if(_Tool->Category != GOOD_TOOL)
+				continue;
+			if((_Tool->Function & ETOOL_PLOW) != ETOOL_PLOW)
+				continue;
+			_Modifier = _Tool->Quality;
+			break;
+		}
+	}
+	if(_Field->Status == EHARVESTING) {
+		const struct ToolBase* _Tool = NULL;
+
+		for(int i = 0; i < _Goods->Size; ++i) {
+			_Tool = (struct ToolBase*) ((struct Good*)_Goods->Table[i])->Base;
+			if(_Tool->Category != GOOD_TOOL)
+				continue;
+			if((_Tool->Function & ETOOL_REAP) != ETOOL_REAP)
+				continue;
+			_Modifier = _Tool->Quality;
+			break;
+		}
+	}
+	_Field->StatusTime = _Field->StatusTime - (_Total * _Modifier) / MAX_WORKRATE;
 	if(_Field->StatusTime <= 0)
 		NextStatus(_Field);
 }
@@ -226,7 +265,7 @@ void FieldUpdate(struct Field* _Field) {
 		_Field->StatusTime -= GrowingDegree(_Temp, _Temp, _Field->Crop->GrowingBase);
 		if(_Field->StatusTime <= 0) {
 			_Field->YieldTotal = 100;
-			++_Field->Status;
+			NextStatus(_Field);
 		}
 	}
 }
@@ -367,19 +406,22 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Fam
 	struct Field* _CurrField = NULL;
 	struct Crop* _PlantedCrop = NULL;
 	int _Acres = 0;
+	int _FieldAcres = 0;
 	int _FieldIdx = 0;
 
 	FieldAbosrb(_Fields);
 	_Acres = ((struct Field*)_Fields->Table[0])->UnusedAcres;
 	while(_Itr != NULL) {
-		if(((struct InputReq*)_Itr->Data)->Quantity > 0 && (((struct InputReq*)_Itr->Data)->Quantity * CROP_ROTATIONS) < _Acres) {
+		_FieldAcres = ((struct InputReq*)_Itr->Data)->Quantity * CROP_ROTATIONS;
+		if(((struct InputReq*)_Itr->Data)->Quantity > 0 && _FieldAcres < _Acres) {
 			_PlantedCrop = (struct Crop*)((struct InputReq*)_Itr->Data)->Req;
 			if(_FieldIdx < _Fields->Size) {
 				_CurrField = (struct Field*) _Fields->Table[_FieldIdx];
-				FieldDivideAcres(_CurrField, ((struct InputReq*)_Itr->Data)->Quantity * CROP_ROTATIONS);
+				_CurrField->Acres = _FieldAcres;
+				//FieldDivideAcres(_CurrField, _FieldAcres);
 				++_FieldIdx;
 			} else {
-				_CurrField = CreateField(_Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y, NULL, ((struct InputReq*)_Itr->Data)->Quantity * CROP_ROTATIONS, _Family);
+				_CurrField = CreateField(_Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y, NULL, _FieldAcres, _Family);
 				ArrayInsert_S(_Fields, _CurrField);
 			}
 			_CurrField->Crop = _PlantedCrop;
@@ -391,6 +433,7 @@ void PlanFieldCrops(struct Array* _Fields, struct LinkedList* _Crops, struct Fam
 		_Itr = _Itr->Next;
 	}
 
+	SDL_assert(_Acres >= 0);
 	for(int i = _FieldIdx; i < _Fields->Size; ++i) {
 		DestroyField((struct Field*)_Fields->Table[i]);
 		_Fields->Table[i] = NULL;
@@ -413,4 +456,11 @@ void FieldAbosrb(struct Array* _Fields) {
 		_Field->UnusedAcres = 0;
 		_Field->Acres = 0;
 	}
+}
+
+void FieldSetStatus(struct Field* _Field, int _Status) {
+	SDL_assert(_Status >= ENONE && _Status <= EHARVESTING);
+	_Field->Status = _Status;
+	_Field->StatusTime = g_CropStatusFuncs[_Status](_Field);
+
 }

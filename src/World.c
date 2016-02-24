@@ -17,6 +17,8 @@
 #include "Mission.h"
 #include "BigGuy.h"
 #include "Government.h"
+#include "Profession.h"
+#include "Trait.h"
 
 #include "video/GuiLua.h"
 #include "video/Video.h"
@@ -49,6 +51,7 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 #include <SDL2/SDL.h>
+#include <malloc.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -96,6 +99,8 @@ static struct GameOnClick g_GameOnClick = {
 	NULL
 };
 
+struct Caste* g_Castes = NULL;
+
 struct TaskPool* g_TaskPool = NULL;
 struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
@@ -118,8 +123,6 @@ int FamilySCallback(const int* _One, const struct Family* _Two) {
 int FamilyTypeCmp(const void* _One, const void* _Two) {
 	return (((struct FamilyType*)_One)->Percent * 1000) - (((struct FamilyType*)_Two)->Percent * 1000);
 }
-
-#include "Feud.h"
 
 void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType** _FamilyTypes, int _X, int _Y) {
 	int _FamilySize = -1;
@@ -146,11 +149,11 @@ void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType*
 	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
 	while(_Population > 0) {
 		_FamilySize = Random(g_FamilySize[0]->Min, g_FamilySize[FAMILYSIZE - 1]->Max);
-		_Parent = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, FamilyNextId(), NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
+		_Parent = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 		RBInsert(&_World->Families, _Parent);
 		while(_FamilySize > 0) {
-			_Family = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, _Parent->FamilyId, _Parent, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
+			_Family = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, _Parent, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
 			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
 			RBInsert(&_World->Families, _Family);
 			_FamilySize -= FamilySize(_Family);
@@ -206,10 +209,10 @@ int PopulateWorld(struct GameWorld* _World) {
 		Log(ELOG_ERROR, "FamilyTypes is not defined.");
 		goto end;
 	}
-	_FamilyTypes = calloc(lua_rawlen(g_LuaState, -1) + 1, sizeof(struct FamilyType*));
+	_FamilyTypes = alloca(lua_rawlen(g_LuaState, -1) + 1 * sizeof(struct FamilyType*));
 	lua_pushnil(g_LuaState);
 	while(lua_next(g_LuaState, -2) != 0) {
-		_FamilyTypes[i] = malloc(sizeof(struct FamilyType));
+		_FamilyTypes[i] = alloca(sizeof(struct FamilyType));
 		lua_pushnil(g_LuaState);
 		lua_next(g_LuaState, -2);
 		LuaGetNumber(g_LuaState, -1, &_FamilyTypes[i]->Percent);
@@ -222,11 +225,11 @@ int PopulateWorld(struct GameWorld* _World) {
 		lua_pop(g_LuaState, 3);
 	}
 	lua_pop(g_LuaState, 1);
-	InsertionSort(_FamilyTypes, i, FamilyTypeCmp);
+	InsertionSort(_FamilyTypes, i, FamilyTypeCmp, sizeof(*_FamilyTypes));
 	_FamilyTypes[i] = NULL;
 	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 2,  4);
 	g_GameWorld.Player = PickPlayer();
-	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 4,  8);
+	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 4,  8);
 	//g_GameWorld.Player = PickPlayer(); //Remove when the Settlement placement function is completed for settlements on the edge of the map.
 	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 8,  4);
 	DestroyConstrntBnds((struct Constraint**)_ManorSize);
@@ -346,14 +349,103 @@ struct FoodBase** LoadHumanFood(lua_State* _State, struct FoodBase** _FoodArray,
 	return _FoodArray;
 }
 
-void WorldInit(int _Area) {
-	int i;
-	struct Array* _Array = NULL;
-	struct LinkedList _CropList = {0, NULL, NULL};
-	struct LinkedList _GoodList = {0, NULL, NULL};
-	struct LinkedList _BuildList = {0, NULL, NULL};
-	struct LinkedList _PopList = {0, NULL, NULL};
+void LoadCaste(lua_State* _State, const char* _Name, struct Caste* _Caste) {
+	struct Profession* _Profession = NULL;
+
+	lua_pushstring(_State, _Name);
+	lua_rawget(_State, -2);
+	lua_pushstring(_State, "Jobs");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		return;
+	}
+	lua_pushnil(_State);
+	while(lua_next(_State, -2) != 0) {
+		if((_Profession = HashSearch(&g_Professions, lua_tostring(_State, -1))) == NULL) {
+			Log(ELOG_WARNING, "%s is not a profession.", lua_tostring(_State, -1));
+			lua_pop(_State, 1);
+			continue;
+		}
+		LnkLstPushBack(&_Caste->JobList, _Profession);
+		lua_pop(_State, 1);
+	}
+	lua_pop(_State, 1);
+	lua_pushstring(_State, "Behavior");
+	lua_rawget(_State, -2);
+	_Caste->Behavior = LuaCheckClass(_State, -1, "Behavior");
+	lua_pop(_State, 2);
+}
+
+void GoodTableLoadInputs(lua_State* _State, struct GoodBase* _Base) {
+	if(HashSearch(&g_Crops, _Base->Name) != NULL)
+		return;
+	//Allow goods to be accessed by using their name as a key for GoodLoadInput and GoodLoadOutput to use.
+	if(GoodLoadInput(_State, _Base) == 0)
+		return;
+	GoodLoadOutput(_State, _Base);
+	Log(ELOG_INFO, "Good loaded %s.", _Base->Name);
+	//Set good categories.
+	LnkLstPushBack(&g_GoodCats[_Base->Category], _Base);
+}
+
+void LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _HashTable, void*(*_LoadFunc)(lua_State*, int), void(*_ListInsert)(struct LinkedList*, void*), size_t _NameOffset) {
+	struct LinkedList _List = LINKEDLIST();
 	struct LnkLst_Node* _Itr = NULL;
+
+	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0)
+		return;
+	_HashTable->TblSize = (_List.Size * 5) / 4;
+	_HashTable->Table = (struct HashNode**) calloc(_HashTable->TblSize, sizeof(struct HashNode*));
+	memset(_HashTable->Table, 0, _HashTable->TblSize * sizeof(struct HashNode*));
+	_Itr = _List.Front;
+	while(_Itr != NULL) {
+		const char** _KeyName = (const char**)(_Itr->Data + _NameOffset);
+
+		HashInsert(_HashTable, *_KeyName, _Itr->Data);
+		_Itr = _Itr->Next;
+	}
+	//LISTTOHASH(&_List, _Itr, _HashTable, (_Itr->Data) + _NameOffset);
+	LnkLstClear(&_List);
+}
+
+void LuaLookupTable(lua_State* _State, const char* _TableName, struct HashTable* _Table, void(*_CallFunc)(lua_State*, void*)) {
+	int _Len = 0;
+	struct HashItr* _Itr = NULL;
+
+	lua_getglobal(_State, _TableName);
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		Log(ELOG_WARNING, "%s is not a Lua table.", _TableName);
+		return;
+	}
+	_Len = lua_rawlen(_State, -1);
+	for(int i = 1; i <= _Len; ++i) {
+		lua_rawgeti(_State, -1, i);
+		if(lua_type(_State, -1) != LUA_TTABLE) {
+			lua_pop(_State, 1);
+			continue;
+		}
+		lua_pushstring(_State, "Name");
+		lua_rawget(_State, -2);
+		if(HashSearch(_Table, lua_tostring(_State, -1)) == NULL) {
+			lua_pop(_State, 2);
+			continue;
+		}
+		lua_pushvalue(_State, -2);
+		lua_remove(_State, -3);
+		lua_rawset(_State, -3);
+	}
+
+	_Itr = HashCreateItr(_Table);
+	while(_Itr != NULL) {
+		_CallFunc(_State, _Itr->Node->Pair);
+		_Itr = HashNext(_Table, _Itr);
+	}
+	HashDeleteItr(_Itr);
+	lua_pop(_State, 1);
+}
+
+void WorldInit(int _Area) {
+	struct Array* _Array = NULL;
 
 	Log(ELOG_INFO, "Creating World.");
 	++g_Log.Indents;
@@ -361,68 +453,39 @@ void WorldInit(int _Area) {
 	g_GameOnClick.OnClick = g_GameOnClickFuncs[0];
 	g_AIHash = CreateHash(32);
 	chdir(DATAFLD);
+
 	AIInit(g_LuaState);
 	_Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 1000000);
 	Family_Init(_Array);
-	if(LuaLoadList(g_LuaState, "goods.lua", "Goods", (void*(*)(lua_State*, int))&GoodLoad, &LnkLst_PushBack, &_GoodList) == 0)
-		goto end;
-	g_Goods.TblSize = (_GoodList.Size * 5) / 4;
-	g_Goods.Table = (struct HashNode**) calloc(g_Goods.TblSize, sizeof(struct HashNode*));
-	memset(g_Goods.Table, 0, g_Goods.TblSize * sizeof(struct HashNode*));
-	LISTTOHASH(&_GoodList, _Itr, &g_Goods, ((struct GoodBase*)_Itr->Data)->Name);
-	
-	if(LuaLoadList(g_LuaState, "crops.lua", "Crops", (void*(*)(lua_State*, int))&CropLoad, &LnkLst_PushBack, &_CropList) == 0)
-		goto end;
-	g_Crops.TblSize = (_CropList.Size * 5) / 4;
-	g_Crops.Table = (struct HashNode**) calloc(g_Crops.TblSize, sizeof(struct HashNode*));
-	memset(g_Crops.Table, 0, g_Crops.TblSize * sizeof(struct HashNode*));
-	LISTTOHASH(&_CropList, _Itr, &g_Crops, ((struct Crop*)_Itr->Data)->Name)
 
-	if(_GoodList.Size == 0) {
-		Log(ELOG_WARNING, "Failed to load goods.");
-		goto GoodLoadEnd;
-	}
 	if(LuaLoadFile(g_LuaState, "goods.lua", NULL) != LUA_OK)
 		goto end;
-	lua_getglobal(g_LuaState, "Goods");
-	i = 1;
-	_Itr = _GoodList.Front;
-	while(_Itr != NULL) {
-		lua_pushstring(g_LuaState, ((struct GoodBase*)_Itr->Data)->Name);
-		lua_rawgeti(g_LuaState, -2, i++);
-		lua_rawset(g_LuaState, -3);
-		_Itr = _Itr->Next;
+	LuaTableToHash("goods.lua", "Goods", &g_Goods, (void*(*)(lua_State*, int))&GoodLoad, LnkLstPushBack, offsetof(struct GoodBase, Name));
+	LuaTableToHash("traits.lua", "Traits", &g_Traits, (void*(*)(lua_State*, int))&TraitLoad, LnkLstPushBack, offsetof(struct Trait, Name));
+	LuaLookupTable(g_LuaState, "Traits", &g_Traits, (void(*)(lua_State*, void*)) TraitLoadRelations);
+	LuaTableToHash("crops.lua", "Crops", &g_Crops, (void*(*)(lua_State*, int))&CropLoad, LnkLstPushBack, offsetof(struct Crop, Name));
+	//Fill the Goods table with mappings to each element with their name as the key to be used for GoodLoadOutput and GoodLoadInput.
+	LuaLookupTable(g_LuaState, "Goods", &g_Goods, (void(*)(lua_State*, void*)) GoodTableLoadInputs);	
+	LuaTableToHash("populations.lua", "Populations", &g_Populations, (void*(*)(lua_State*, int))&PopulationLoad, LnkLstPushBack, offsetof(struct Population, Name));
+	LuaTableToHash("buildings.lua", "BuildMats", &g_BuildMats, (void*(*)(lua_State*, int))&BuildingLoad, (void (*)(struct LinkedList *, void *))LnkLstCatNode, offsetof(struct BuildMat, Name));
+	LuaTableToHash("professions.lua", "Professions", &g_Professions, (void*(*)(lua_State*, int))&LoadProfession, LnkLstPushBack, offsetof(struct Profession, Name));
+
+	g_Castes = calloc(CASTE_SIZE, sizeof(struct Caste));
+	if(LuaLoadFile(g_LuaState, "castes.lua", NULL) != LUA_OK) {
+		exit(1);
 	}
+	lua_getglobal(g_LuaState, "Castes");
+	LoadCaste(g_LuaState, "Serf", &g_Castes[CASTE_SERF]);
+	LoadCaste(g_LuaState, "Peasant", &g_Castes[CASTE_PEASANT]);
+	LoadCaste(g_LuaState, "Craftsman", &g_Castes[CASTE_CRAFTSMAN]);
+	LoadCaste(g_LuaState, "Warrior", &g_Castes[CASTE_WARRIOR]);
 	lua_pop(g_LuaState, 1);
-	g_GoodOutputs = realloc(g_GoodOutputs, sizeof(struct GoodOutput*) * (g_GoodOutputsSz + 1));
-	g_GoodOutputs[g_GoodOutputsSz] = NULL;
-	_Itr = _GoodList.Front;
-	while(_Itr != NULL) {
-		if(GoodLoadInput(g_LuaState, ((struct GoodBase*)_Itr->Data)) == 0)
-			goto goodload_loopend;
-		GoodLoadOutput(g_LuaState, ((struct GoodBase*)_Itr->Data));
-		Log(ELOG_INFO, "Good loaded %s.", ((struct GoodBase*)_Itr->Data)->Name);
-		goodload_loopend:
-		_Itr = _Itr->Next;
-	}
-	GoodLoadEnd:
-	if(LuaLoadList(g_LuaState, "populations.lua", "Populations", (void*(*)(lua_State*, int))&PopulationLoad, &LnkLst_PushBack,  &_PopList) == 0)
-		goto end;
-	g_Populations.TblSize = (_PopList.Size * 5) / 4;
-	g_Populations.Table = (struct HashNode**) calloc(g_Populations.TblSize, sizeof(struct HashNode*));
-	memset(g_Populations.Table, 0, g_Populations.TblSize * sizeof(struct HashNode*));
 
-	if(LuaLoadList(g_LuaState, "buildings.lua", "BuildMats", (void*(*)(lua_State*, int))&BuildingLoad, (void(*)(struct LinkedList*, void*))&LnkLst_CatNode, &_BuildList) == 0)
-		goto end;
-	g_BuildMats.TblSize = (_BuildList.Size * 5) / 4;
-	g_BuildMats.Table = (struct HashNode**) calloc(g_BuildMats.TblSize, sizeof(struct HashNode*));
-	memset(g_BuildMats.Table, 0, g_BuildMats.TblSize * sizeof(struct HashNode*));
-	g_GoodOutputs = calloc(_GoodList.Size + 1, sizeof(struct GoodOutput*));
-
-	LISTTOHASH(&_PopList, _Itr, &g_Populations, ((struct Population*)_Itr->Data)->Name);
-	LISTTOHASH(&_BuildList, _Itr, &g_BuildMats, ((struct BuildMat*)_Itr->Data)->Good->Name);
-
+	g_Castes[CASTE_SERF].Type = CASTE_SERF;
+	g_Castes[CASTE_PEASANT].Type = CASTE_PEASANT;
+	g_Castes[CASTE_CRAFTSMAN].Type = CASTE_CRAFTSMAN;
+	g_Castes[CASTE_WARRIOR].Type = CASTE_WARRIOR;
 	lua_getglobal(g_LuaState, "Human");
 	if(lua_isnil(g_LuaState, -1) != 0) {
 		Log(ELOG_WARNING, "Human table does not exist");
@@ -442,12 +505,17 @@ void WorldInit(int _Area) {
 }
 
 void WorldQuit() {
+	free(g_Castes);
 	AIQuit();
 	RBRemoveAll(&g_GameWorld.Families, (void(*)(void*))DestroyFamily);
 	LnkLstClear(&g_GameWorld.Settlements);
 	DestroyArray(g_GameWorld.AnFoodDeps);
 	DestroyRBTree(g_GameWorld.GoodDeps);
 	DestroyMemoryPool(g_PersonPool);
+	for(int i = 0; i < GOOD_SIZE; ++i)
+		LnkLstClear(&g_GoodCats[i]);
+	HashDeleteAll(&g_Goods, (void(*)(void*)) DestroyGoodBase);
+	HashDeleteAll(&g_Populations, (void(*)(void*)) DestroyPopulation);
 	Family_Quit();
 	DestroyHash(g_AIHash);
 }
@@ -478,6 +546,7 @@ int GameFyrdClick(const struct Object* _One, const struct Object* _Two) {
 			return MOUSESTATE_DEFAULT;
 		}
 	}
+	((struct Settlement*) _Settlement)->LastRaid = g_GameWorld.Date;
 	return MOUSESTATE_RAISEARMY;
 }
 
@@ -493,8 +562,9 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 			g_GameWorld.MapRenderer->Screen.y += 1;
 	}
 	if(_State->MouseButton == SDL_BUTTON_LEFT && _State->MouseState == SDL_RELEASED) {
-		struct LinkedList _List = {0, NULL, NULL};
+		struct LinkedList _List = LINKEDLIST();
 		struct Tile* _Tile = ScreenToTile(_World->MapRenderer, &_State->MousePos);
+
 		if(_Tile == NULL)
 			return;
 		SDL_Rect _TileRect = {_Tile->TilePos.x, _Tile->TilePos.y, 1, 1};
@@ -527,10 +597,9 @@ void GameWorldDraw(struct GameWorld* _World) {
 
 int World_Tick() {
 	//struct LnkLst_Node* _Settlement = g_GameWorld.Settlements.Front;
-	struct Event* _Event = NULL;
 	void* _SubObj = NULL;
 	void* _NextSubObj = NULL;
-	struct LinkedList _QueuedPeople = {0, NULL, NULL};
+	struct LinkedList _QueuedPeople = LINKEDLIST();
 	int _Ticks = 1;
 	int _OldMonth = MONTH(g_GameWorld.Date);
 	struct RBItrStack _Stack[g_GameWorld.Agents.Size];
@@ -549,27 +618,15 @@ int World_Tick() {
 		AgentThink((struct Agent*)_Stack[i].Node->Data);
 	}
 	ObjectsThink();
-		while((_Event = HandleEvents()) != NULL) {
-			EventHookUpdate(_Event);
-			if(_Event->Type == EVENT_FARMING) {
-				struct Array* _Field = g_GameWorld.Player->Person->Family->Fields;
-				for(int i = 0; i < _Field->Size; ++i)
-					if(((struct Field*)_Field->Table[i]) == ((struct EventFarming*)_Event)->Field) {
-						_Ticks = 0;
-						goto escape_events;
-					}
-			}
+	MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuyStates);
+	NextDay(&g_GameWorld.Date);
+	++g_GameWorld.Tick;
+	if(MONTH(g_GameWorld.Date) != _OldMonth) {
+		for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
+			g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
 		}
-		MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuyStates);
-		escape_events:
-		NextDay(&g_GameWorld.Date);
-		++g_GameWorld.Tick;
-		if(MONTH(g_GameWorld.Date) != _OldMonth) {
-			for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
-				g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
-			}
-		}
-		--_Ticks;
+	}
+	--_Ticks;
 	} while(_Ticks > 0);
 	LnkLstClear(&_QueuedPeople);
 	return 1;

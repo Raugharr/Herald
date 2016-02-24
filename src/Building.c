@@ -187,6 +187,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 				return NULL;
 			}
 			((struct BuildMat*)_First->Data)->Good = _Good;
+			((struct BuildMat*)_First->Data)->Name = _Good->Name;
 			lua_pop(_State, 1);
 			_Prev = _First;
 		}
@@ -200,6 +201,7 @@ struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {
 				continue;
 			}
 			((struct BuildMat*)_Node->Data)->Good = _Good;
+			((struct BuildMat*)_Node->Data)->Name = _Good->Name;
 			_Node->Next = NULL;
 			_Prev = _Node;
 			lua_pop(_State, 1);
@@ -227,5 +229,5 @@ struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat) {
 		_Size = snprintf(_Name, 64, "%s %s", _Mat->Good->Name, "Roof");
 	_RealName = calloc(_Size + 1, sizeof(char));
 	strcpy(_RealName, _Name);
-	return InitGoodBase((struct GoodBase*) malloc(sizeof(struct GoodBase)), _Name, EOTHER);
+	return InitGoodBase((struct GoodBase*) malloc(sizeof(struct GoodBase)), _Name, GOOD_OTHER);
 }

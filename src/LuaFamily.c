@@ -646,42 +646,12 @@ int LuaCreateBuilding(lua_State* _State) {
 	struct BuildMat* _FloorMat = NULL;
 	struct BuildMat* _WallMat = NULL;
 	struct BuildMat* _RoofMat = NULL;
-	struct Location* _Location = NULL;
+	struct Settlement* _Location = NULL;
 
-	//luaL_checktype(_State, 1, LUA_TTABLE);
-	_Location = lua_touserdata(_State, 4);
-	if(_Location->LocType != ELOC_SETTLEMENT)
-		luaL_error(_State, "Location is not a settlement.");
-	/*lua_pushvalue(_State, 1);
-	lua_pushnil(_State);
-	while(lua_next(_State, -2) != 0) {
-		if(lua_type(_State, -1) != LUA_TTABLE)
-			goto loop_end;
-		lua_rawgeti(_State, -1, 1);
-		if(lua_type(_State, -1) != LUA_TSTRING) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		lua_pop(_State, 1);
-		lua_rawgeti(_State, -1, 2);
-		if(lua_type(_State, -1) != LUA_TNUMBER) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		lua_pop(_State, 1);
-		lua_rawgeti(_State, -1, 3);
-		if(lua_type(_State, -1) != LUA_TNUMBER) {
-			lua_pop(_State, 1);
-			goto loop_end;
-		}
-		lua_pop(_State, 1);
-		loop_end:
-		lua_pop(_State, 1);
-	}
-	lua_pop(_State, 1);*/
 	_FloorMat = (struct BuildMat*) LuaToObject(_State, 1, "BuildMat");
 	_WallMat = (struct BuildMat*) LuaToObject(_State, 2, "BuildMat");
 	_RoofMat = (struct BuildMat*) LuaToObject(_State, 3, "BuildMat");
+	_Location = (struct Settlement*) LuaToObject(_State, 4, "Settlement");
 	_Type = luaL_optstring(_State, 5, "Human");
 	if(strcmp(_Type, "Human") == 0)
 		_ResType = ERES_HUMAN;

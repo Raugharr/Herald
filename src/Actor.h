@@ -12,14 +12,14 @@
 
 #include <SDL2/SDL.h>
 
-//FIXME: Remove this as humans and animals have different nutritional requirements.
-#define NUTRITION_LOSS (16)
 #define ActorPerformJob(_Actor) (TaskPoolAdd(g_TaskPool, g_TaskPool->Time + (_Actor)->Action->TotalTime, (int(*)(void*, void*))(_Actor)->Action->Job->Callback, (_Actor)->Action->Owner, &(_Actor)->Action->Pair))
+#define MAX_WORKRATE (100)
 
 extern struct RBTree g_ActorJobs;
 
 struct Object;
 struct Path;
+struct Population;
 
 struct Actor {
 	int Id;
@@ -34,15 +34,15 @@ struct Actor {
 	struct ActorJob* Action;
 };
 
-void CtorActor(struct Actor* _Actor, int _Type, int _X, int _Y, int(*_Think)(struct Object*), int _Gender, int _Nutrition, int _Age);
+void CtorActor(struct Actor* _Actor, int _Type, int _X, int _Y, ObjectThink _Think, int _Gender, int _Nutrition, int _Age);
 void DtorActor(struct Actor* _Actor);
 
 int ActorICallback(const void* _One, const void* _Two);
 int ActorSCallback(const void* _One, const void* _Two);
 
 void ActorDeath(struct Actor* _Actor);
-void ActorThink(struct Actor* _Actor);
+void ActorThink(struct Actor* _Actor, const struct Population* _PopType);
 void ActorFeed(struct Actor* _Actor, int _Amount);
-int ActorWorkMult(struct Actor* _Actor);
+int ActorWorkMult(struct Actor* _Actor, int _MatureAge, int _AdultNut);
 
 #endif

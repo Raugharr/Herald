@@ -123,12 +123,12 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 		_Family = _Person->Family;
 		for(int i = 0; i < _Family->Goods->Size; ++i) {
 			_Good = (struct Good*) _Family->Goods->Table[i];
-			if(_Good->Base->Category == EWEAPON) {
+			if(_Good->Base->Category == GOOD_WEAPON) {
 				if(((struct WeaponBase*)_Good->Base)->Range == MELEE_RANGE)
 					_MeleeWeapon = FamilyTakeGood(_Family, i, 1);
 				else
 					_RangeWeapon = FamilyTakeGood(_Family, i, 1);
-			} else if(_Good->Base->Category == EARMOR) {
+			} else if(_Good->Base->Category == GOOD_ARMOR) {
 				if(((struct ArmorBase*)_Good->Base)->ArmorType == EARMOR_BODY)
 					_Armor = FamilyTakeGood(_Family, i, 1);
 				else

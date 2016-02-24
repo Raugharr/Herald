@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define HARVESTMOD_MIN 0.4f
+#define HARVESTMOD_MAX 1.6f
+
 void LocationGetPoint(const struct Location* _Location, SDL_Point* _Point) {
 	(*_Point).x = _Location->Pos.x;
 	(*_Point).y = _Location->Pos.y;
@@ -50,8 +53,20 @@ struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovT
 	_Loc->People = NULL;
 	_Loc->YearBirths = 0;
 	_Loc->YearDeaths = 0;
-	_Loc->HarvestMod = 1.0f;
+	_Loc->HarvestMod = 1.0f;//Random(HARVESTMOD_MIN * 10, HARVESTMOD_MAX * 10) / 10;
 	_Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &_Loc->Pos);
+	_Loc->Meadow.Pos.x = _Loc->Pos.x;
+	_Loc->Meadow.Pos.y = _Loc->Pos.y;
+	_Loc->Meadow.Crop = HashSearch(&g_Crops, "Hay");
+	_Loc->Meadow.YieldTotal = 0;
+	_Loc->Meadow.Acres = 200;
+	_Loc->Meadow.UnusedAcres = 0;
+	_Loc->Meadow.Owner = NULL;
+	_Loc->BuyOrders = NULL;
+	_Loc->Market = NULL;
+	_Loc->LastRaid = 0;
+	_Loc->Bulitin = NULL;
+	FieldSetStatus(&_Loc->Meadow, EGROWING);
 	return _Loc;
 }
 
@@ -64,18 +79,38 @@ void DestroySettlement(struct Settlement* _Location) {
 	free(_Location);
 }
 
+//FIXME: These includes are temporary and should be removed.`
+#include "video/GuiLua.h"
+#include "sys/LuaCore.h"
 void SettlementThink(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
 
+	FieldUpdate(&_Settlement->Meadow);
 	while(_Itr != NULL) {
 		FamilyThink((struct Family*)_Itr->Data);
 		_Itr = _Itr->Next;
 	}
 	GovernmentThink(_Settlement->Government);
 	if(MONTH(g_GameWorld.Date) == 0 && DAY(g_GameWorld.Date) == 0) {
+		if(YEAR(g_GameWorld.Date) - YEAR(_Settlement->LastRaid) >= 1 && DAY(g_GameWorld.Date) == 0) {
+			MessageBox(g_LuaState, "You have not raided recently.");
+			_Itr = _Settlement->BigGuys.Front;
+			while(_Itr != NULL) {
+				if(_Settlement->Government->Leader == ((struct BigGuy*)_Itr->Data)) {
+					_Itr = _Itr->Next;
+					continue;
+				}
+				BigGuyChangeOpinion((struct BigGuy*)_Itr->Data, _Settlement->Government->Leader, ACTTYPE_WARLACK, -10); 
+				_Itr = _Itr->Next;
+			}
+		}
 		_Settlement->YearBirths = 0;
 		_Settlement->YearDeaths = 0;
-		_Settlement->HarvestMod = 0.4f + (((float)(Random(0, 6) + Random(0, 6))) / 10);
+		_Settlement->HarvestMod = _Settlement->HarvestMod + (((float)(Random(0, 6) + Random(0, 6))) / 10);
+		if(_Settlement->HarvestMod < HARVESTMOD_MIN)
+			_Settlement->HarvestMod = HARVESTMOD_MIN;
+		else if(_Settlement->HarvestMod > HARVESTMOD_MAX)
+			_Settlement->HarvestMod = HARVESTMOD_MAX;
 	}
 }
 
@@ -86,6 +121,7 @@ void SettlementDraw(const struct MapRenderer* _Renderer, struct Settlement* _Set
 }
 
 void SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family) {
+	_Location->Meadow.Acres = _Location->Meadow.Acres + 10;
 	LnkLstPushBack(&_Location->Families, _Family);
 }
 
@@ -134,7 +170,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 		_Family = (struct Family*)_Itr->Data;
 		_FamilyItr = _UniqueFamilies.Front;
 		while(_FamilyItr != NULL) {
-			if(((struct Family*)_FamilyItr->Data)->FamilyId == _Family->FamilyId)
+			if(((struct Family*)_FamilyItr->Data)->Id == _Family->Id)
 				goto skip_bigguy;
 			_FamilyItr = _FamilyItr->Next;
 		}

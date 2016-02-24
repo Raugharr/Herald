@@ -11,6 +11,7 @@
 #include "LuaSettlement.h"
 #include "LuaWorld.h"
 #include "Mission.h"
+#include "BigGuy.h"
 
 #include "video/GuiLua.h"
 #include "video/Video.h"
@@ -23,9 +24,11 @@
 #include "sys/TaskPool.h"
 #include "sys/ResourceManager.h"
 
+#include "sys/Coroutine.h"
+
 #include "AI/BehaviorTree.h"
 #include "AI/Setup.h"
-#include "AI/LuaAi.h"
+#include "AI/LuaAI.h"
 
 #include <SDL2/SDL_image.h>
 #include <lua/lua.h>
@@ -39,12 +42,55 @@
 	#include <sys/io.h>
 #endif
 
-#define GAME_TICK (400)
+#define GAME_TICK (200)
+
+void LuaSettlementObjects(lua_State* _State) {
+	lua_newtable(_State);
+	lua_pushstring(_State, "Relation");
+	lua_newtable(_State);
+
+	lua_pushstring(_State, "Token");
+	lua_pushinteger(_State, OPINION_TOKEN);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Small");
+	lua_pushinteger(_State, OPINION_SMALL);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Average");
+	lua_pushinteger(_State, OPINION_AVERAGE);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Great");
+	lua_pushinteger(_State, OPINION_GREAT);
+	lua_rawset(_State, -3);
+
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Action");
+	lua_newtable(_State);
+
+	lua_pushstring(_State, "Influence");
+	lua_pushinteger(_State, BGACT_IMRPOVEREL);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Sabotage");
+	lua_pushinteger(_State, BGACT_SABREL);
+	lua_rawset(_State, -3);
+
+	lua_pushstring(_State, "Duel");
+	lua_pushinteger(_State, BGACT_DUEL);
+	lua_rawset(_State, -3);
+
+	lua_rawset(_State, -3);
+	lua_setglobal(_State, "BigGuy");
+}
 
 int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+	LuaSettlementObjects(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
 
 	InitMissionLua(g_LuaState);
@@ -72,10 +118,27 @@ void QuitLuaSystem() {
 	QuitLuaCore();
 }
 
-int main(int argc, char* args[]) {
+void MainCoro() {
 	int _WorldTimer = 0;
 	int _DrawTimer = 0;
 	int _Ticks = 0;
+
+	while(g_VideoOk != 0) {
+		_Ticks = SDL_GetTicks();
+		Events();
+		if(_DrawTimer + 16 <= _Ticks) {
+			Draw();
+			_DrawTimer = _Ticks;
+		}
+		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + GAME_TICK) <= _Ticks) {
+			World_Tick();
+			_WorldTimer = _Ticks;
+		}
+		++g_TaskPool->Time;
+	}
+}
+
+int main(int argc, char* args[]) {
 	int _SysCt = 0;
 	struct PakFile _Pak;
 	struct System _Systems[] = {
@@ -104,22 +167,8 @@ int main(int argc, char* args[]) {
 	AnimationLoad(g_LuaState, "data/anim/test.lua");
 	WorldInit(300);
 
-	_WorldTimer = 0;
-	while(g_VideoOk != 0) {
-		_Ticks = SDL_GetTicks();
-		Events();
-		if(_DrawTimer + 16 <= _Ticks) {
-			Draw();
-			_DrawTimer = _Ticks;
-		}
-		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + GAME_TICK) <= _Ticks) {
-			World_Tick();
-			_WorldTimer = _Ticks;
-		}
-		++g_TaskPool->Time;
-	}
+	CoSchedule(MainCoro);
 	quit:
-	//DestroyPak(&_Pak);
 	ResourceManagementQuit();
 	WorldQuit();
 	IMG_Quit();

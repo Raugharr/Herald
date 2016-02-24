@@ -37,6 +37,7 @@ int LuaBGSetAction(lua_State* _State);
 int LuaBGImproveRelationTarget(lua_State* _State);
 int LuaBGGetSettlement(lua_State* _State);
 int LuaBGGetFamily(lua_State* _State);
+int LuaBGGetName(lua_State* _State);
 int LuaBGKill(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);
@@ -65,5 +66,16 @@ int LuaSettlementCountAcres(lua_State* _State);
 int LuaSettlementExpectedYield(lua_State* _State);
 int LuaSettlementYearlyDeaths(lua_State* _State);
 int LuaSettlementYearlyBirths(lua_State* _State);
+int LuaSettlementBulitinPost(lua_State* _State);
+int LuaSettlementGetBulitins(lua_State* _State);
+
+int LuaBulitinNext(lua_State* _State);
+int LuaBulitinPrev(lua_State* _State);
+int LuaBulitinNextItr(lua_State* _State);
+int LuaBulitinPrevItr(lua_State* _State);
+int LuaBulitinGetOwner(lua_State* _State);
+int LuaBulitinGetDaysRemaining(lua_State* _State);
+int LuaBulitinGetName(lua_State* _State);
+int LuaBulitinGetMission(lua_State* _State);
 
 #endif

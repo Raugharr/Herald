@@ -14,6 +14,8 @@
 #include "World.h"
 #include "Family.h"
 #include "Person.h"
+#include "Mission.h"
+#include "Bulitin.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -25,88 +27,104 @@
 #include <malloc.h>
 
 static luaL_Reg g_LuaFuncsArmy[] = {
-		{"GetLeader", LuaArmyGetLeader},
-		{"GetSize", LuaArmyGetSize},
-		{NULL, NULL}
+	{"GetLeader", LuaArmyGetLeader},
+	{"GetSize", LuaArmyGetSize},
+	{NULL, NULL}
 };
 
 static luaL_Reg g_LuaFuncsReformPassing[] = {
-		{"GetVotes", LuaReformPassingGetVotes},
-		{"GetMaxVotes", LuaReformPassingGetMaxVotes},
-		{NULL, NULL}
+	{"GetVotes", LuaReformPassingGetVotes},
+	{"GetMaxVotes", LuaReformPassingGetMaxVotes},
+	{NULL, NULL}
 };
 
 static luaL_Reg g_LuaFuncsReform[] = {
-		{"GetName", LuaReformGetName},
-		{NULL, NULL},
+	{"GetName", LuaReformGetName},
+	{NULL, NULL},
 };
 
 static const luaL_Reg g_LuaFuncsGovernment[] = {
-		{"PossibleReforms", LuaGovernmentPossibleReforms},
-		{"Structure", LuaGovernmentStructure},
-		{"Type", LuaGovernmentType},
-		{"Rule", LuaGovernmentRule},
-		{"PassReform", LuaGovernmentPassReform},
-		{"GetReform", LuaGovernmentGetReform},
-		{NULL, NULL}
+	{"PossibleReforms", LuaGovernmentPossibleReforms},
+	{"Structure", LuaGovernmentStructure},
+	{"Type", LuaGovernmentType},
+	{"Rule", LuaGovernmentRule},
+	{"PassReform", LuaGovernmentPassReform},
+	{"GetReform", LuaGovernmentGetReform},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsBigGuy[] = {
-		{"GetPerson", LuaBGGetPerson},
-		{"GetAuthority", LuaBGGetAuthority},
-		{"SetAuthority", LuaBGSetAuthority},
-		{"GetPrestige", LuaBGGetPrestige},
-		{"SetPrestige", LuaBGSetPrestige},
-		{"GetAdministration", LuaBGGetAdministration},
-		{"GetIntrigue", LuaBGGetIntrigue},
-		{"GetStrategy", LuaBGGetStrategy},
-		{"GetWarfare", LuaBGGetWarfare},
-		{"GetTactics", LuaBGGetTactics},
-		{"GetCharisma", LuaBGGetCharisma},
-		{"GetPiety", LuaBGGetPiety},
-		{"GetIntellegence", LuaBGGetIntellegence},
-		{"GetAgent", LuaBGGetAgent},
-		{"GetRelation", LuaBGGetRelation},
-		{"SetOpinion", LuaBGSetOpinion},
-		{"SetAction", LuaBGSetAction},
-		{"ImproveRelationTarget", LuaBGImproveRelationTarget},
-		{"GetSettlement", LuaBGGetSettlement},
-		{"GetFamily", LuaBGGetFamily},
-		{"Kill", LuaBGKill},
-		{NULL, NULL}
+	{"GetPerson", LuaBGGetPerson},
+	{"GetAuthority", LuaBGGetAuthority},
+	{"SetAuthority", LuaBGSetAuthority},
+	{"GetPrestige", LuaBGGetPrestige},
+	{"SetPrestige", LuaBGSetPrestige},
+	{"GetAdministration", LuaBGGetAdministration},
+	{"GetIntrigue", LuaBGGetIntrigue},
+	{"GetStrategy", LuaBGGetStrategy},
+	{"GetWarfare", LuaBGGetWarfare},
+	{"GetTactics", LuaBGGetTactics},
+	{"GetCharisma", LuaBGGetCharisma},
+	{"GetPiety", LuaBGGetPiety},
+	{"GetIntellegence", LuaBGGetIntellegence},
+	{"GetAgent", LuaBGGetAgent},
+	{"GetRelation", LuaBGGetRelation},
+	{"SetOpinion", LuaBGSetOpinion},
+	{"SetAction", LuaBGSetAction},
+	{"ImproveRelationTarget", LuaBGImproveRelationTarget},
+	{"GetSettlement", LuaBGGetSettlement},
+	{"GetFamily", LuaBGGetFamily},
+	{"GetName", LuaBGGetName},
+	{"Kill", LuaBGKill},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsBigGuyRelation[] = {
-		{"GetOpinion", LuaBGRelationGetOpinion},
-		{NULL, NULL}
+	{"GetOpinion", LuaBGRelationGetOpinion},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsSettlement[] = {
-		{"GetLeader", LuaSettlementGetLeader},
-		{"GetGovernment", LuaSettlementGetGovernment},
-		{"RaiseArmy", LuaSettlementRaiseArmy},
-		{"GetPopulation", LuaSettlementGetPopulation},
-		{"CountWarriors", LuaSettlementCountWarriors},
-		{"GetBigGuys", LuaSettlementGetBigGuys},
-		{"GetNutrition", LuaSettlementGetNutrition},
-		{"GetYearlyNutrition", LuaSettlementYearlyNutrition},
-		{"CountAcres", LuaSettlementCountAcres},
-		{"ExpectedYield", LuaSettlementExpectedYield},
-		{"YearlyDeaths", LuaSettlementYearlyDeaths},
-		{"YearlyBirths", LuaSettlementYearlyBirths},
-		{NULL, NULL}
+	{"GetLeader", LuaSettlementGetLeader},
+	{"GetGovernment", LuaSettlementGetGovernment},
+	{"RaiseArmy", LuaSettlementRaiseArmy},
+	{"GetPopulation", LuaSettlementGetPopulation},
+	{"CountWarriors", LuaSettlementCountWarriors},
+	{"GetBigGuys", LuaSettlementGetBigGuys},
+	{"GetNutrition", LuaSettlementGetNutrition},
+	{"GetYearlyNutrition", LuaSettlementYearlyNutrition},
+	{"CountAcres", LuaSettlementCountAcres},
+	{"ExpectedYield", LuaSettlementExpectedYield},
+	{"YearlyDeaths", LuaSettlementYearlyDeaths},
+	{"YearlyBirths", LuaSettlementYearlyBirths},
+	{"BulitinPost", LuaSettlementBulitinPost},
+	{"GetBulitins", LuaSettlementGetBulitins},
+	{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsBulitin[] = {
+	{"Next", LuaBulitinNext},
+	{"Prev", LuaBulitinPrev},
+	{"NextItr", LuaBulitinNextItr},
+	{"PrevItr", LuaBulitinPrevItr},
+	{"GetOwner", LuaBulitinGetOwner},
+	{"DaysLeft", LuaBulitinGetDaysRemaining},
+	{"GetName", LuaBulitinGetName},
+	{"GetMission", LuaBulitinGetMission},
+	{NULL, NULL}
 };
 
 const struct LuaObjectReg g_LuaSettlementObjects[] = {
-		{"Army", NULL, g_LuaFuncsArmy},
-		{"ReformPassing", NULL, g_LuaFuncsReformPassing},
-		{"Reform", NULL, g_LuaFuncsReform},
-		{"Government", NULL, g_LuaFuncsGovernment},
-		{"BigGuy", NULL, g_LuaFuncsBigGuy},
-		{"BigGuyRelation", NULL, g_LuaFuncsBigGuyRelation},
-		{"Settlement", NULL, g_LuaFuncsSettlement},
-		{"BuildMat", NULL, NULL},
-		{NULL, NULL, NULL}
+	{"Army", NULL, g_LuaFuncsArmy},
+	{"ReformPassing", NULL, g_LuaFuncsReformPassing},
+	{"Reform", NULL, g_LuaFuncsReform},
+	{"Government", NULL, g_LuaFuncsGovernment},
+	{"BigGuy", NULL, g_LuaFuncsBigGuy},
+	{"BigGuyRelation", NULL, g_LuaFuncsBigGuyRelation},
+	{"Settlement", NULL, g_LuaFuncsSettlement},
+	{"BuildMat", NULL, NULL},
+	{"Bulitin", NULL, g_LuaFuncsBulitin},
+	{NULL, NULL, NULL}
 };
 
 int LuaArmyGetLeader(lua_State* _State) {
@@ -301,10 +319,19 @@ int LuaBGGetFamily(lua_State* _State) {
 	return 1;
 }
 
+int LuaBGGetName(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	lua_pushstring(_State, _Guy->Person->Name);
+	return 1;
+
+}
+
 int LuaBGKill(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	DestroyBigGuy(_Guy);
+	PersonDeath(_Guy->Person);
+//	DestroyBigGuy(_Guy);
 	return 0;
 }
 
@@ -484,3 +511,108 @@ int LuaSettlementYearlyBirths(lua_State* _State) {
 	return 1;
 }
 
+int LuaSettlementBulitinPost(lua_State* _State) {
+	struct BulitinItem* _Item = NULL;
+	struct Mission* _Mission = NULL;
+	struct Mission* _MissionFail = NULL;
+	const char* _MissionStr = luaL_checkstring(_State, 1);
+	const char* _MissionFailStr = luaL_checkstring(_State, 2);
+	int _DaysLeft = luaL_checkint(_State, 3);
+	int _Priority = luaL_checkint(_State, 4);
+	
+	if((_Mission = StrToMission(_MissionStr)) == NULL) {
+		luaL_error(_State, "%s is not a mission name.", _MissionStr);
+	}
+	if((_MissionFail = StrToMission(_MissionFailStr)) == NULL) {
+		luaL_error(_State, "%s is not a mission name.", _MissionFailStr);
+	}
+	_Item = CreateBulitinItem(_Mission, NULL, MissionDataOwner(MissionDataTop()), _DaysLeft, _Priority);		 
+	ILL_CREATE(MissionDataOwner(MissionDataTop())->Person->Family->HomeLoc->Bulitin, _Item);
+	return 0;
+}
+int LuaSettlementGetBulitins(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	LuaCtor(_State, "Bulitin", _Settlement->Bulitin);
+	return 1;
+}
+
+int LuaBulitinNext(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+
+	LuaCtor(_State, "Bulitin", _Item->Next);
+	return 1;
+}
+
+int LuaBulitinPrev(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+
+	LuaCtor(_State, "Bulitin", _Item->Prev);
+	return 1;
+}
+
+int LuaBulitinNextItr_Aux(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), "Bulitin");
+
+	if(_Item == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "Bulitin", _Item);
+	LuaCtor(_State, "Bulitin", _Item->Next);
+	lua_replace(_State, lua_upvalueindex(1));
+	return 1;
+}
+
+int LuaBulitinNextItr(lua_State* _State) {
+	LuaCheckClass(_State, 1, "Bulitin");
+	lua_pushcclosure(_State, LuaBulitinNextItr_Aux, 1);
+	return 1;
+}
+
+int LuaBulitinPrevItr_Aux(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), "Bulitin");
+
+	if(_Item == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "Bulitin", _Item);
+	LuaCtor(_State, "Bulitin", _Item->Prev);
+	lua_replace(_State, lua_upvalueindex(1));
+	return 1;
+}
+
+int LuaBulitinPrevItr(lua_State* _State) {
+	lua_pushcfunction(_State, LuaBulitinPrev);
+	return 1;
+}
+
+int LuaBulitinGetOwner(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+
+	LuaConstCtor(_State, "BigGuy", _Item->Owner);
+	return 1;
+}
+
+int LuaBulitinGetDaysRemaining(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+	
+	lua_pushinteger(_State, _Item->DaysLeft);
+	return 1;
+}
+
+int LuaBulitinGetName(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+
+	lua_pushstring(_State, BulitinItemGetName(_Item));
+	//lua_pushstring(_State, _Item->Name);
+	return 1;
+}
+
+int LuaBulitinGetMission(lua_State* _State) {
+	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+
+	lua_pushinteger(_State, _Item->SuccMission->Id);
+	return 1;
+}

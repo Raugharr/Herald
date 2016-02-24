@@ -14,8 +14,11 @@
 #include "Good.h"
 #include "Population.h"
 #include "Mission.h"
+
+#include "AI/BehaviorTree.h"
 #include "AI/AIHelper.h"
 #include "AI/Pathfind.h"
+
 #include "sys/Stack.h"
 #include "sys/RBTree.h"
 #include "sys/Math.h"
@@ -29,6 +32,8 @@
 #include "sys/Rule.h"
 #include "sys/Event.h"
 #include "sys/GenIterator.h"
+#include "sys/StackAllocator.h"
+
 #include "video/Animation.h"
 
 #include <assert.h>
@@ -39,22 +44,30 @@
 #include <lua/lauxlib.h>
 
 #define AGEDIST_SIZE (17)
+#define STACKALLOC_SZ (2048)
 
+struct LinkedList g_GoodCats[GOOD_SIZE];
 struct HashTable g_Crops;
 struct HashTable g_Goods;
 struct HashTable g_BuildMats;
 struct HashTable g_Populations;
 struct HashTable g_Animations;
+struct HashTable g_Traits;
+struct HashTable g_Professions;
+struct HashTable g_BhvVars;
 int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
+struct LifoAllocator g_StackAllocator;
 
 struct ObjectList {
 	struct RBTree SearchTree;
 	struct LinkedList ThinkList;
 };
+
 struct MissionEngine g_MissionEngine;
 
+//TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
 	{0, NULL, NULL}
@@ -106,6 +119,10 @@ int HeraldInit() {
 	g_Animations.Table = NULL;
 	g_Animations.Size = 0;
 
+	g_BhvVars.TblSize = 0;
+	g_BhvVars.Table = calloc(sizeof(void*), 64);
+	g_BhvVars.Size = 64;
+
 	g_TaskPool = CreateTaskPool();
 
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
@@ -125,18 +142,18 @@ int HeraldInit() {
 
 	g_MissionEngine.Missions.Table = NULL;
 	g_MissionEngine.Missions.Size = 0;
-	g_MissionEngine.Missions.ICallback = (int(*)(const void*, const void*))MissionTreeInsert;
-	g_MissionEngine.Missions.SCallback = (int(*)(const void*, const void*))MissionTreeSearch;
+	g_MissionEngine.Missions.ICallback = (int(*)(const void*, const void*))MissionTreeIS;
+	g_MissionEngine.Missions.SCallback = (RBCallback)MissionTreeIS;
 
 	g_MissionEngine.UsedMissionTree.Table = NULL;
 	g_MissionEngine.UsedMissionTree.Size = 0;
-	g_MissionEngine.UsedMissionTree.ICallback = (int(*)(const void*, const void*))UsedMissionInsert;
-	g_MissionEngine.UsedMissionTree.SCallback = (int(*)(const void*, const void*))UsedMissionSearch;
+	g_MissionEngine.UsedMissionTree.ICallback = (RBCallback) UsedMissionInsert;
+	g_MissionEngine.UsedMissionTree.SCallback = (RBCallback) UsedMissionSearch;
 
 	g_MissionEngine.MissionId.Table = NULL;
 	g_MissionEngine.MissionId.Size = 0;
-	g_MissionEngine.MissionId.ICallback = (int(*)(const void*, const void*))MissionIdSearch;
-	g_MissionEngine.MissionId.SCallback = (int(*)(const void*, const void*))MissionIdInsert;
+	g_MissionEngine.MissionId.ICallback = (RBCallback) MissionIdSearch;
+	g_MissionEngine.MissionId.SCallback = (RBCallback) MissionIdInsert;
 
 	g_MissionEngine.Categories[MISSIONCAT_CRISIS].CreateItr = CrisisCreateItr;
 	g_MissionEngine.Categories[MISSIONCAT_CRISIS].DestroyItr = DestroyRBItr;
@@ -150,18 +167,14 @@ int HeraldInit() {
 	g_MissionEngine.Categories[MISSIONCAT_CRISIS].StateSz = CRISIS_SIZE;
 	g_MissionEngine.Categories[MISSIONCAT_CRISIS].ListIsEmpty = (int(*)(void*))MissionCatRBIsEmpty;
 
-	for(int i = 0; i < MISSIONCAT_SIZE; ++i) {
-		for(int j = 0; j < WORLDSTATE_ATOMSZ; ++j) {
-			g_MissionEngine.Categories[i].MissionList[j].Size = 0;
-			g_MissionEngine.Categories[i].MissionList[j].Front = NULL;
-			g_MissionEngine.Categories[i].MissionList[j].Back = NULL;
-		}
-	}
-	for(int i = 0; i < WORLDSTATE_ATOMSZ; ++i) {
-		g_MissionEngine.MissionList[i].Size = 0;
-		g_MissionEngine.MissionList[i].Front = NULL;
-		g_MissionEngine.MissionList[i].Back = NULL;
-	}
+	g_MissionEngine.EventMissions.Table = NULL;
+	g_MissionEngine.EventMissions.Size = 0;
+	g_MissionEngine.EventMissions.ICallback = (RBCallback) MissionEngineEvent;
+	g_MissionEngine.EventMissions.SCallback = (RBCallback) MissionEngineEvent; 
+
+	g_StackAllocator.ArenaSize = STACKALLOC_SZ;
+	g_StackAllocator.ArenaBot = malloc(g_StackAllocator.ArenaSize);
+	g_StackAllocator.ArenaTop = g_StackAllocator.ArenaBot;
 	InitMissions();
 	return 1;
 }
@@ -171,9 +184,10 @@ void HeraldDestroy() {
 
 	while(_Itr != NULL) {
 		DestroyAnimation(_Itr->Node->Pair);
-		HashNext(&g_Animations, _Itr);
+		_Itr = HashNext(&g_Animations, _Itr);
 	}
 	HashDeleteItr(_Itr);
+	free(g_BhvVars.Table);
 	DestroyTaskPool(g_TaskPool);
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
@@ -182,6 +196,7 @@ void HeraldDestroy() {
 	PathfindQuit();
 	DestroyMissionEngine(&g_MissionEngine);
 	QuitMissions();
+	free(g_StackAllocator.ArenaBot);
 }
 
 struct InputReq* CreateInputReq() {
@@ -300,7 +315,7 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	return _Return;
 }
 
-void CreateObject(struct Object* _Obj, int _Type, void (*_Think)(struct Object*)) {
+void CreateObject(struct Object* _Obj, int _Type, ObjectThink _Think) {
 	_Obj->Id = NextId();
 	_Obj->Type = _Type;
 	_Obj->Think = _Think;
@@ -333,6 +348,22 @@ void ObjectsThink() {
 
 int NextId() {return g_Id++;}
 
+void BhvHashFree(char* _Str) {
+	free(_Str);
+}
+
+void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family) {
+	HashDeleteAll(&g_BhvVars, (void(*)(void*)) BhvHashFree);
+	BHVRun(_Tree, _Family, &g_BhvVars);
+}
+
 int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
+}
+
+void* SAlloc(size_t _SizeOf) {
+	return LifoAlloc(&g_StackAllocator, _SizeOf);
+}
+void SFree(void* _Ptr) {
+	LifoFree(&g_StackAllocator, 1);
 }

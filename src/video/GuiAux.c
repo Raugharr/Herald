@@ -7,6 +7,8 @@
 
 #include "AABB.h"
 
+#include "../World.h"
+
 #include <stdlib.h>
 
 #include <SDL2/SDL_ttf.h>
@@ -82,6 +84,7 @@ int ButtonOnDraw(struct Widget* _Widget) {
 	SDL_RenderFillRect(g_Renderer, &_Widget->Rect);
 	return LabelOnDraw(_Widget);
 }
+
 struct Table* CreateTable(void) {
 	return (struct Table*) malloc(sizeof(struct Table));
 }
@@ -150,10 +153,8 @@ void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent
 }
 
 int ContextItemOnDraw(struct ContextItem* _Container) {
-	int i = 0;
-
 	if(_Container->ShowContexts != 0) {
-		for(i = 1; i < _Container->ChildCt; ++i)
+		for(int i = 1; i < _Container->ChildCt; ++i)
 			_Container->Children[i]->OnDraw(_Container->Children[i]);
 	}
 	if(_Container->ChildCt > 0)
@@ -179,3 +180,19 @@ int ContextHorzFocChange(const struct Container* _Container) {
 	//	return 1;
 	return 1;
 }
+
+/*struct GameWorldWidget* CreateGWWidget(void) {
+	return (struct GameWorldWidget*) malloc(sizeof(struct GameWorldWidget));
+}
+
+struct GameWorldWidget* ConstructGWWidget(struct GameWorldWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct GameWorld* _World) {
+	ConstructWidget((struct Widget*) _Widget, _Parent, _Rect, _State);
+	_Widget->OnDraw = GameWorldWidgetOnDraw;
+	_Widget->World = _World;
+	return _Widget;
+}
+
+int GameWorldWidgetOnDraw(struct Widget* _Widget) {
+	GameWorldDraw(((struct GameWorldWidget*) _Widget)->World);
+	return 1;
+}*/

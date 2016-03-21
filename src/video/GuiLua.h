@@ -47,7 +47,9 @@ struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);
 int LuaFixedContainer(lua_State* _State);
+int LuaMenuAsContainer(lua_State* _State);
 int LuaContextItem(lua_State* _State);
+//int LuaCreateWorldRender(lua_State* _State);
 
 int LuaBackgroundColor(lua_State* _State);
 int LuaGetFont(lua_State* _State);
@@ -58,9 +60,7 @@ int LuaCreateWindow(lua_State* _State);
 
 int LuaCreateImage(lua_State* _State);
 
-//void LuaWindowCtor(lua_State* _State, struct Container* _Container);
-//void LuaWindowDtor(lua_State* _State, struct Container* _Container);
-//void LuaWindowGetTable(lua_State* _State, int _Id);
+void GuiSetMenu(const char* _Menu, lua_State* _State);
 /**
  * Lua function that takes one argument of type string.
  * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.
@@ -105,7 +105,9 @@ int LuaWidgetGetX(lua_State* _State);
 int LuaWidgetSetY(lua_State* _State);
 int LuaWidgetGetY(lua_State* _State);
 int LuaWidgetGetWidth(lua_State* _State);
+int LuaWidgetSetWidth(lua_State* _State);
 int LuaWidgetGetHeight(lua_State* _State);
+int LuaWidgetSetHeight(lua_State* _State);
 int LuaWidgetGetParent(lua_State* _State);
 int LuaWidgetGetFocus(lua_State* _State);
 int LuaWidgetSetFocus(lua_State* _State);
@@ -125,6 +127,10 @@ int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
 int LuaContainerClose(lua_State* _State);
 int LuaContainerShrink(lua_State* _State);
+int LuaContainerLeftOf(lua_State* _State);
+int LuaContainerRightOf(lua_State* _State);
+int LuaContainerAbove(lua_State* _State);
+int LuaContainerBelow(lua_State* _State);
 
 /**
  * Label functions
@@ -151,7 +157,6 @@ int LuaFontHeight(lua_State* _State);
 
 int InitGUILua(lua_State* _State);
 int QuitGUILua(lua_State* _State);
-struct Container* GetScreen(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
 void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback);
 void LuaGuiGetRef(lua_State* _State);
@@ -161,8 +166,14 @@ void LuaGuiGetRef(lua_State* _State);
 int LuaWidgetRef(lua_State* _State);
 void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget);
 void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget);
+/**
+ * Retrieves the Menu global from the environment Menu and sets it as a global in the main environment.
+ */
 void LuaAddMenu(lua_State* _State, const char* _Name);
 
 void MessageBox(lua_State* _State, const char* _Text);
+void GuiSetParentHook(struct Container* _Container);
+struct Container* GuiGetParentHook(void);
+int LuaGuiClose(lua_State* _State);
 
 #endif

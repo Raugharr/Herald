@@ -576,7 +576,7 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 	}
 }
 
-void GameWorldDraw(struct GameWorld* _World) {
+void GameWorldDraw(const struct GameWorld* _World) {
 	struct Tile* _Tile = NULL;
 	struct LnkLst_Node* _Settlement = NULL;
 	struct SDL_Point _Pos;
@@ -596,7 +596,6 @@ void GameWorldDraw(struct GameWorld* _World) {
 }
 
 int World_Tick() {
-	//struct LnkLst_Node* _Settlement = g_GameWorld.Settlements.Front;
 	void* _SubObj = NULL;
 	void* _NextSubObj = NULL;
 	struct LinkedList _QueuedPeople = LINKEDLIST();

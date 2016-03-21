@@ -217,9 +217,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 }
 
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
-	int i = 0;
-
-	for(i = 0; (_Funcs[i].name != NULL && _Funcs[i].func != NULL); ++i)
+	for(int i = 0; (_Funcs[i].name != NULL && _Funcs[i].func != NULL); ++i)
 		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
 }
 
@@ -576,10 +574,10 @@ int LuaCallFunc(lua_State* _State, int _Args, int _Results, int _ErrFunc) {
 	//TODO: If in debug mode the stack should be checked to ensure its balanced.
 	int _Error = 0;
 
-//	lua_pushcfunction(_State, LuaCallFuncError);
-//	lua_insert(_State, -_Args - 1);
-	_Error = lua_pcall(_State, _Args, _Results, 0/*_Results, -1*/);
-//	lua_remove(_State, -_Results - 1);
+	lua_pushcfunction(_State, LuaCallFuncError);
+	lua_insert(_State, 1);
+	_Error = lua_pcall(_State, _Args, _Results, 1/*_Results, -1*/);
+	lua_remove(_State, 1);
 	if(_Error != 0)
 		goto error;
 	return 1;
@@ -676,6 +674,7 @@ void LuaPrintTable(lua_State* _State, int _Index) {
 
 	_Index = lua_absindex(_State, _Index);
 	lua_pushnil(_State);
+	Log(ELOG_INFO, "Table:");
 	while(lua_next(_State, _Index) != 0) {
 		LuaToPrimitive(_State, -2, &_Key);
 		LuaToPrimitive(_State, -1, &_Value);
@@ -687,9 +686,8 @@ void LuaPrintTable(lua_State* _State, int _Index) {
 
 void LuaStackToTable(lua_State* _State, int* _Table) {
 	int _Top = lua_gettop(_State);
-	int i;
 
-	for(i = 0; i < _Top; ++i)
+	for(int i = 0; i < _Top; ++i)
 		_Table[i] = lua_type(_State, i);
 }
 
@@ -700,7 +698,6 @@ void LuaCopyTable(lua_State* _State, int _Index) {
 		return;
 	if(lua_type(_State, -1) != LUA_TTABLE)
 		return;
-	//lua_pushvalue(_State, _Index);
 	lua_pushnil(_State);
 	while(lua_next(_State, _Index) != 0) {
 		lua_pushvalue(_State, -2);
@@ -708,7 +705,7 @@ void LuaCopyTable(lua_State* _State, int _Index) {
 		lua_rawset(_State, -5);
 		lua_pop(_State, 1);
 	}
-	lua_remove(g_LuaState, _Index);
+	lua_remove(_State, _Index);
 }
 
 void* LuaToClass(lua_State* _State, int _Index) {

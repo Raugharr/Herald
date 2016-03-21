@@ -7,6 +7,8 @@
 
 #include "Gui.h"
 
+struct GameWorld;
+
 struct Label {
 	DECLARE_WIDGET;
 	int (*SetText)(struct Widget*, SDL_Texture*);
@@ -31,6 +33,13 @@ struct Button {
 	SDL_Texture* Text;
 	SDL_Color Background;
 };
+
+/*
+struct GameWorldWidget {
+	DECLARE_WIDGET;
+	const struct GameWorld* World;
+};
+*/
 
 struct Label* CreateLabel(void);
 void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
@@ -57,5 +66,9 @@ int ContextItemOnDraw(struct ContextItem* _Container);
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);
 int ContextHorzFocChange(const struct Container* _Container);
+
+/*struct GameWorldWidget* CreateGWWidget(void);
+struct GameWorldWidget* ConstructGWWidget(struct GameWorldWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct GameWorld* _World);
+int GameWorldWidgetOnDraw(struct Widget* _Widget);*/
 
 #endif

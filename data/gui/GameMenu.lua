@@ -1,14 +1,13 @@
 Menu.__savestate = false;
 Menu.moveable = false;
 
-function Menu.Init(Menu, Width, Height, Data)
-	Menu.Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
-	Menu.MenuBar = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0}, Menu.Screen)
-	Menu.DateCont = GUI.HorizontalContainer(0, 0, 512, 50, 0, {0, 0, 0, 0}, Menu.Screen)
+function Menu.Init(Menu, Data)
+	Menu.DateCont = GUI.HorizontalContainer(0, 0, 512, 50, Menu):SetFocus(false)--(0, 0, 512, 50, 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.MenuBar = GUI.VerticalContainer(0, 0, 512, Menu:GetHeight(), Menu):Below(Menu.DateCont)--(0, 0, 512, Height, 0, {0, 0, 0, 0}, Menu.Screen)
 	
+--	Menu:CreateWorldRender();
 	World.Pause(false)
 	World.Render(true)
-	Menu.DateCont:SetFocus(false)
 	Menu.MenuBar:CreateButton("View Settlement",
 		function()
 			GUI.SetMenu("GovernmentMenu", {Settlement = World.GetSettlement()})
@@ -26,7 +25,6 @@ function Menu.Init(Menu, Width, Height, Data)
 			GUI.PopMenu() 
 		end)
 	Menu.MenuBar:Shrink()
-	return Menu.Screen
 end
 
 function Menu.Think(Menu)

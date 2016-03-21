@@ -17,6 +17,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rect.h>
 
+struct GuiStack {
+	struct Container* Top;
+	struct Container* Bot;
+};
+
 struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIMenuChange = 0;
 int g_GUIId = 0;
@@ -24,8 +29,7 @@ struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 struct Font* g_GUIFonts = NULL;
 struct Stack g_GUIStack = {NULL, 0};
-struct Container* g_GUIZTop = NULL;
-struct Container* g_GUIZBot = NULL;
+struct GuiStack g_GuiZBuff = {NULL, NULL};
 
 int NextGUIId(void) {return g_GUIId++;}
 
@@ -50,8 +54,36 @@ struct GUIFocus* CreateGUIFocus(void) {
 	return _New;
 }
 
+struct Container* GUIZTop(void) {
+	return g_GuiZBuff.Top;
+}
+
 struct Container* GUIZBot(void) {
-	return g_GUIZBot;
+	return g_GuiZBuff.Bot;
+}
+
+void GuiClear(lua_State* _State) {
+	struct Container* _Container = g_GuiZBuff.Top;
+	const char* _String = NULL;
+
+	while(g_GuiZBuff.Top != NULL) {
+		ILL_DESTROY(g_GuiZBuff.Top, _Container);
+		_Container->OnDestroy((struct Widget*) _Container, _State);
+		_Container = g_GuiZBuff.Top;	
+	}
+	/*free(StackPop(&g_GUIStack));
+	if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
+		g_VideoOk = 0;
+		return;
+	}
+	//GuiSetMenu(_String, _State);
+	*/
+	g_GuiZBuff.Bot = NULL;
+}
+
+void GuiEmpty() {
+	g_GuiZBuff.Top = NULL;
+	g_GuiZBuff.Bot = NULL;
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
@@ -80,6 +112,8 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 			WidgetGrow((struct Widget*)_Widget->Parent, _Widget->Rect.w, _Widget->Rect.h);
 			_Widget->IsVisible = WidgetCheckVisibility(_Widget);
 		}
+	} else if(GuiGetParentHook() != NULL) {
+		WidgetSetParent(GuiGetParentHook(), _Widget);
 	} else {
 		_Widget->Parent = NULL;
 	}
@@ -87,9 +121,9 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
-	ILL_CREATE(g_GUIZTop, _Widget);
-	if(g_GUIZBot == NULL)
-		g_GUIZBot = _Widget;
+	ILL_CREATE(g_GuiZBuff.Top, _Widget);
+	if(g_GuiZBuff.Bot == NULL)
+		g_GuiZBuff.Bot = _Widget;
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
 	_Widget->ChildCt = 0;
@@ -118,11 +152,10 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
-	int i;
 	int _X = _Parent->Margins.Left + _Parent->Rect.x;
 	int _Y = _Parent->Margins.Top + _Parent->Rect.y;
 
-	for(i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
+	for(int i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
 		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
 	}
@@ -191,6 +224,7 @@ struct Widget* WidgetOnDrag(struct Widget* _Widget, const struct SDL_Point* _Pos
 
 void DestroyWidget(struct Widget* _Widget, lua_State* _State) {
 	struct Container* _Parent = _Widget->Parent;
+
 	if(_Parent != NULL)
 		_Parent->RemChild(_Parent, _Widget);
 	if(GetFocusableWidget() == _Widget)
@@ -206,9 +240,9 @@ void DestroyContainer(struct Container* _Container, lua_State* _State) {
 			continue;
 		_Container->Children[i]->OnDestroy(_Container->Children[i], _State);
 	}
-	ILL_DESTROY(g_GUIZTop, _Container);
-	if(g_GUIZBot == _Container)
-		g_GUIZBot = NULL;
+	ILL_DESTROY(g_GuiZBuff.Top, _Container);
+	if(g_GuiZBuff.Bot == _Container)
+		g_GuiZBuff.Bot = NULL;
 	DestroyWidget((struct Widget*)_Container, _State);
 }
 
@@ -217,20 +251,27 @@ int ContainerOnDraw(struct Container* _Container) {
 
 	SDL_SetRenderDrawColor(g_Renderer, _Container->Background.r, _Container->Background.g, _Container->Background.b, _Container->Background.a);
 	SDL_RenderFillRect(g_Renderer, &_Container->Rect);
-	//FIXME: Is this needed? If _Container->Children is NULL then _Container->ChildCt should be 0 and the below loop should never be entered.
-	//if(_Container->Children == NULL)
-	//	return 1;
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		_Widget = _Container->Children[i];
 		/*if(_Widget->Rect.x >= _Container->Rect.x && _Widget->Rect.y >= _Container->Rect.y
 				&& _Widget->Rect.x + _Widget->Rect.w <= _Container->Rect.x + _Container->Rect.w
 				&& _Widget->Rect.y + _Widget->Rect.h <= _Container->Rect.y + _Container->Rect.h) {*/
 
-			if(_Widget->OnDraw(_Widget) == 0)
-				return 0;
+		if(_Widget->OnDraw(_Widget) == 0)
+			return 0;
 		//}
 	}
 	return 1;
+}
+
+int MenuOnDraw(struct Container* _Container) {
+	struct Widget* _Widget = NULL;
+
+	for(int i = 0; i < _Container->ChildCt; ++i) {
+		_Widget = _Container->Children[i];
+		if(_Widget->OnDraw(_Widget) == 0)
+			return 0;
+	}
 }
 
 void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point) {
@@ -277,6 +318,12 @@ struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _
 		if((_Widget = _Container->Children[i]->OnClick(_Container->Children[i], _Point)) != NULL)
 			return _Widget;
 	return (struct Widget*) _Container;
+}
+
+struct Widget* MenuOnClick(struct Container* _Container, const SDL_Point* _Point) {
+	struct Widget* _Widget = ContainerOnClick(_Container, _Point);
+
+	return (_Widget != ((struct Container*)_Container)) ? (_Widget) : (NULL);
 }
 
 void ContainerOnDebug(const struct Container* _Container) {
@@ -396,8 +443,17 @@ void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, 
 }
 
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos) {
+	struct Container* _Parent = _Widget->Parent;
+	
+	SDL_assert(_Pos->x >= 0 || _Pos->y >= 0);
 	_Widget->Rect.x = _Pos->x;
 	_Widget->Rect.y = _Pos->y;
+
+	SDL_assert(_Widget->Parent != NULL);
+	if((_Widget->Rect.x + _Widget->Rect.w) > (_Parent->Rect.x + _Parent->Rect.w))
+		_Widget->Rect.x = (_Widget->Rect.x + _Widget->Rect.w) - (_Parent->Rect.x + _Parent->Rect.w);
+	if((_Widget->Rect.y + _Widget->Rect.h) > (_Parent->Rect.y + _Parent->Rect.h))
+		_Widget->Rect.y = (_Widget->Rect.y + _Widget->Rect.h) - (_Parent->Rect.y + _Parent->Rect.h);
 }
 
 struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point) {

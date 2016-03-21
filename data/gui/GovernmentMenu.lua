@@ -1,13 +1,13 @@
 Menu.__savestate = false;
 Menu.moveable = true;
 
-function Menu.Init(Menu, Width, Height, Data)
-	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Height, 0, {0, 0, 0, 0})
+function Menu.Init(Menu, Data)
+	Menu.Screen = GUI.VerticalContainer(0, 0, 512, Menu:GetHeight(), 0, {0, 0, 0, 0})
 	Menu.VoteCont = GUI.VerticalContainer(0, 0, 512, 100, 0, {0, 0, 0, 0}, Menu.Screen)
 	Menu.Government = Data["Settlement"]
 	Menu.Reform = Menu.Government:GetReform()
 	
-	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Menu.Screen)
+	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30, 0, {0, 0, 0, 0}, Menu.Screen)
 	Menu.TitleCon:SetFocus(false)
 	Menu.Title = Menu.TitleCon:CreateLabel("Government")
 	Menu.Title:SetFocus(false)

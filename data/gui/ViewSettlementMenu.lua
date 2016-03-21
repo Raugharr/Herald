@@ -11,11 +11,10 @@ function RelationToStr(Guy, Target)
 	return Relation
 end
 
-function Menu.Init(Menu, Width, Height, Data)
-	Menu.Screen = GUI.FixedContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
-	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Width, 30, 0, {0, 0, 0, 0}, Menu.Screen)
-	Menu.Left = GUI.VerticalContainer(0, 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
-	Menu.Right = GUI.VerticalContainer((Width / 2), 30, (Width / 2), (Height - 30), 0, {0, 0, 0, 0}, Menu.Screen)
+function Menu.Init(Menu, Data)
+	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30)
+	Menu.Left = GUI.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30))
+	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30))
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
 	local BigGuyMenu = nil
 	local SettlementMenu = nil
@@ -33,7 +32,7 @@ function Menu.Init(Menu, Width, Height, Data)
 		function()
 			World.SetOnClick(1, Data["Settlement"].__self)
 			--Data["Settlement"]:RaiseArmy()
-			Menu.Screen:Close()
+			Gui.MenuPop()
 		end)
 	Menu.Left:CreateButton("View Settlement",
 		function()
@@ -83,9 +82,8 @@ function Menu.Init(Menu, Width, Height, Data)
 		end)
 	Menu.Left:CreateButton("Close",
 		function()
-			Menu.Screen:Close()
+			GUI.PopMenu()
 		end)
-	return Menu.Screen
 end
 
 function Menu.Think(Menu)

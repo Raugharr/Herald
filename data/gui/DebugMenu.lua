@@ -1,8 +1,8 @@
 Menu.__savestate = true;
 Menu.moveable = true;
 
-function Menu.Init(Menu, Width, Height, Data)
-	Menu.Screen = GUI.VerticalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
+function Menu.Init(Menu, Data)
+	Menu.Screen = GUI.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
 	local Columns = 16
 	local DTable = Screen:CreateTable(4, Columns, 0, {0, 0, 0, 0})

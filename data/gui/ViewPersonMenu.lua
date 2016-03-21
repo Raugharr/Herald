@@ -16,9 +16,8 @@ function NonPlayerActions(Menu, Person)
 		end)
 end
 
-function Menu.Init(Menu, Width, Height, Person)
-	Menu.Screen = GUI.HorizontalContainer(0, 0, Width, Height, 0, {0, 0, 0, 0})
-	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Height, 0, {0, 0, 0, 0}, Menu.Screen)
+function Menu.Init(Menu, Person)
+	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight())
 	Menu.Display = nil
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	local Guy = nil
@@ -41,7 +40,8 @@ function Menu.Init(Menu, Width, Height, Person)
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Menu.Screen:CreateTable(5, 16, 0, {0, 0, 0, 0})
+			Menu.Display = GUI.CreateTable(nil, 5, 16)	
+			Menu.Display:SetX(401)
 			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			
@@ -63,7 +63,8 @@ function Menu.Init(Menu, Width, Height, Person)
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Menu.Screen:CreateTable(2, 16, 0, {0, 0, 0, 0})
+			Menu.Display = GUI.CreateTable(nil, 2, 16)
+			Menu.Display:SetX(401)
 			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			Menu.Display:CreateLabel("Name"):SetFocus(false)
@@ -78,7 +79,8 @@ function Menu.Init(Menu, Width, Height, Person)
 			if(Menu.Display ~= nil) then
 				Menu.Display:Destroy()
 			end
-			Menu.Display = Menu.Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+			Menu.Display = GUI.CreateTable(nil, 3, 16)
+			Menu.Display:SetX(401)
 			Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 			Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 			Menu.Display:CreateLabel("Name"):SetFocus(false)
@@ -95,7 +97,8 @@ function Menu.Init(Menu, Width, Height, Person)
 		if(Menu.Display ~= nil) then
 			Menu.Display:Destroy()
 		end
-		Menu.Display = Menu.Screen:CreateTable(3, 16, 0, {0, 0, 0, 0})
+		Menu.Display = GUI.CreateTable(nil, 3, 16)
+		Menu.Display:SetX(401)
 		Menu.Display:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 		Menu.Display:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 		Menu.Display:CreateLabel("Width"):SetFocus(false)
@@ -106,9 +109,8 @@ function Menu.Init(Menu, Width, Height, Person)
 	end
 	Menu.MenuBar:CreateButton("Back",
 		function()
-			Menu.Screen:Close()
+			GUI.PopMenu()
 		end)
-	return Menu.Screen
 end
 
 function Menu.Think(Menu)

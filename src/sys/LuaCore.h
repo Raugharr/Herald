@@ -199,6 +199,7 @@ void LuaSetEnv(lua_State* _State, const char* _Env);
  * Get the environment _Env and pushes it into the stack.
  */
 void LuaGetEnv(lua_State* _State, const char* _Env);
+//Index function for Lua classes.
 int LuaClassIndex(lua_State* _State);
 
 void InitMissionLua(lua_State* _State);

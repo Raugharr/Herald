@@ -104,7 +104,10 @@ struct Container {
 struct Container* CreateContainer(void);
 struct GUIEvents* CreateGUIEvents(void);
 struct GUIFocus* CreateGUIFocus(void);
+struct Container* GUIZTop(void);
 struct Container* GUIZBot(void);
+void GuiClear(lua_State* _State);
+void GuiEmpty();
 
 /**
  * Constructors
@@ -130,11 +133,13 @@ void DestroyGUIEvents(struct GUIEvents* _Events);
 void DestroyFocus(struct GUIFocus* _Focus);
 
 int ContainerOnDraw(struct Container* _Container);
+int MenuOnDraw(struct Container* _Container);
 void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point);
 struct Widget* ContainerOnFocus(struct Container* _Container, const SDL_Point* _Point);
 int ContainerOnUnfocus(struct Container* _Container);
 int ContainerHorzFocChange(const struct Container* _Container);
 struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _Point);
+struct Widget* MenuOnClick(struct Container* _Container, const SDL_Point* _Point);
 void ContainerOnDebug(const struct Container* _Container);
 
 void VertConNewChild(struct Container* _Parent, struct Widget* _Child);

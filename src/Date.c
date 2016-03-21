@@ -17,9 +17,7 @@
 const char* g_ShortMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 DATE MonthToInt(const char* _Month) {
-	int i;
-
-	for(i = 0; i < MONTHS; ++i)
+	for(int i = 0; i < MONTHS; ++i)
 		if(strcmp(_Month, g_ShortMonths[i]) == 0)
 			return i;
 	return -1;
@@ -32,23 +30,23 @@ DATE DateAdd(DATE _One, DATE _Two) {
 
 	top:
 	if((_Month & 1) == 0 || _Month == 6) {
-		if(_Day >= 31) {
-			_Day = _Day - 31;
+		if(_Day >= DAYS_ODD) {
+			_Day = _Day - DAYS_ODD;
 			++_Month;
 			goto top;
 		}
 	} else if(_Month == 1) {
-		if(_Day >= 28) {
-			if(((_Year % 4) == 0 && _Day >= 29)) {
-				_Day = _Day - 29;
+		if(_Day >= DAYS_FEB) {
+			if(YearIsLeap(_Year) && _Day >= DAYS_LEAP) {
+				_Day = _Day - DAYS_LEAP;
 			} else {
-				_Day = _Day - 28;
+				_Day = _Day - DAYS_FEB;
 			}
 			++_Month;
 			goto top;
 		}
-	} else if(_Day >= 30) {
-		_Day = _Day - 30;
+	} else if(_Day >= DAYS_EVEN) {
+		_Day = _Day - DAYS_EVEN;
 		++_Month;
 		goto top;
 	}
@@ -59,33 +57,35 @@ DATE DateAdd(DATE _One, DATE _Two) {
 	return TO_DATE(_Year, _Month, _Day);
 }
 
-DATE DateAddInt(DATE _One, int _Two) {
-	int _Day = DAY(_One);
-	int _Month = MONTH(_One);
-	int _Year = YEAR(_One);
+DATE DateAddInt(DATE _Date, int _Two) {
+	int _Day = DAY(_Date);
+	int _Month = MONTH(_Date);
+	int _Year = YEAR(_Date);
 
 	top:
-	if((_Month & 1) == 0 || _Month == 6) {
-		if((_Day + _Two) >= 31) {
-			_Two = (_Two - (31 - _Day)) - 1;
+	if((_Month & 1) == 0 || _Month == 7) {
+		if((_Day + _Two) >= DAYS_EVEN) {
+			_Two = (_Two - (DAYS_EVEN - _Day));
 			_Day = 0;
 			++_Month;
 			goto top;
 		}
 	} else if(_Month == 1) {
 		if((_Day + _Two) >= 28) {
-			if(((_Year % 4) == 0 && (_Day + _Two) >= 29)) {
-				_Two = (_Two - (29 - _Day)) - 1;
+			if(YearIsLeap(_Year) ) {
+				if((_Day + _Two) >= DAYS_LEAP) {
+					_Two = (_Two - (DAYS_LEAP - _Day));
+				}
 
 			} else {
-				_Two = (_Two - (28 - _Day)) - 1;
+				_Two = (_Two - (DAYS_FEB - _Day));
 			}
 			_Day = 0;
 			++_Month;
 			goto top;
 		}
-	} else if((_Day + _Two) >= 30) {
-		_Two = (_Two - (30 - _Day)) - 1;
+	} else if((_Day + _Two) >= DAYS_ODD) {
+		_Two = (_Two - (DAYS_ODD - _Day));
 		_Day = 0;
 		++_Month;
 		goto top;
@@ -104,25 +104,31 @@ DATE DaysBetween(int _DateOne, int _DateTwo) {
 	return DateToDays(_DateTwo) - DateToDays(_DateOne);
 }
 
-int DateToDays(int _Date) {
+int DateToDays(DATE _Date) {
 	int _Total = 0;
 	int _Years = YEAR(_Date);
 	int _Months = MONTH(_Date);
 	int _Result = 0;
 
+	if(_Months == 0)
+		goto end;
 	_Total = _Years * YEAR_DAYS;
 	_Result = _Months / 2;
-	_Total += (_Result + 1) * 31;
-	_Total += _Result * 30;
-	if(_Months >= 1) {
-		if(_Years % 4 == 0)
-			_Total += 28;
+	if((_Months & 1) == 1)
+		_Total += (_Result + 1) * DAYS_EVEN;
+	else
+		_Total += _Result * DAYS_EVEN;
+	_Total += _Result * DAYS_ODD;
+	if(_Months > 1) {
+		if(YearIsLeap(_Years))
+			_Total -= DAYS_ODD - DAYS_LEAP;
 		else
-			_Total += 29;
+			_Total -= DAYS_ODD - DAYS_FEB;
 	}
-	if(_Months >= 8)
-		++_Total;
-	return _Total;
+	if(_Months >= 7)
+		_Total -= DAYS_EVEN - DAYS_ODD;
+	end:
+	return _Total + DAY(_Date);
 }
 
 /*
@@ -192,4 +198,17 @@ void NextDay(int* _Date) {
 	_Day = 0;
 	++_Month;
 	goto end;
+}
+
+int YearIsLeap(int _Year) {
+	if((_Year % 4) == 0) {
+		if((_Year % 100) == 0) {
+			if((_Year % 400) == 0) {
+				return 1;
+			}
+			return 0;
+		}
+		return 1;
+	}
+	return 0;
 }

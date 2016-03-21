@@ -1,4 +1,5 @@
 SRC=src/
+TEST=test/
 
 .PHONY: src clean
 
@@ -11,6 +12,11 @@ endif
 
 all:
 	$(MAKE) -C $(SRC)
+	$(MAKE) -C $(TEST)
+
+test:
+	$(MAKE) -C $(TEST)
+	./herald-test
 
 clean:
 #	rm ./src/obj/* 

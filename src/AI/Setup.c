@@ -241,7 +241,7 @@ void AIInit(lua_State* _State) {
 	}
 	LuaAILibInit(_State);
 	GoapInit();
-	BGSetup(NULL, g_BGStateStr, BGBYTE_SIZE, _Actions);
+	BGSetup(&g_Goap, g_BGStateStr, BGBYTE_SIZE, _Actions);
 }
 
 void AIQuit() {

@@ -19,8 +19,6 @@ typedef struct lua_State lua_State;
 typedef void(*AgentActions[])(struct GOAPPlanner*);
 
 extern struct Array g_BhvList;
-typedef int(*AgentActionFunc)(void*);
-typedef int(*AgentUtilityFunc)(const void*, int*, int*, struct WorldState*);
 
 const struct AgentUtility* GetBGPlanner();
 

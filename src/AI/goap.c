@@ -35,7 +35,7 @@ void GoapQuit() {
 	DestroyMemoryPool(g_GoapMemPool);
 }
 
-int GoapNoCost(const void* _Data, const void* _Extra) {
+int GoapNoCost(const struct Agent* _Agent) {
 	return 1;
 }
 
@@ -55,7 +55,7 @@ int GoapGetActionIndex(struct GOAPPlanner* _Planner, const char* _Action) {
 	return -1;
 }
 
-int GoapBestAction(const struct GOAPPlanner* _Planner, int _Atom, const void* _Data, const struct GoapPathNode* _Node) {
+int GoapBestAction(const struct GOAPPlanner* _Planner, int _Atom, const struct Agent* _Agent, const struct GoapPathNode* _Node) {
 	int _BestCost = 0;
 	int _Cost = 0;
 	int _BestIdx = 0;
@@ -63,12 +63,12 @@ int GoapBestAction(const struct GOAPPlanner* _Planner, int _Atom, const void* _D
 
 	if(_Planner->AtomActions[_Atom][0] != -1);
 	_BestIdx = _Planner->AtomActions[_Atom][0];
-	_BestCost = _Planner->ActionCosts[_BestIdx](_Data, _Node);
+	_BestCost = _Planner->ActionCosts[_BestIdx](_Agent);
 
 	for(int i = 1; i < _Planner->AtomCt; ++i) {
 		if(_Planner->AtomActions[_Atom][i] == -1)
 			return _BestIdx;
-		_Cost = _Planner->ActionCosts[_Planner->AtomActions[_Atom][i]](_Data, _Node);
+		_Cost = _Planner->ActionCosts[_Planner->AtomActions[_Atom][i]](_Agent);
 		switch(WorldStateGetOpCode(&_Node->State, _Atom)) {
 		case WSOP_EQUAL:
 			_Check = (_Cost == _BestCost);
@@ -167,7 +167,7 @@ void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const ch
 	WorldStateSetOpCode(&_Planner->Postconditions[_ActionIdx], _AtomIdx, _OpCode);
 }
 
-void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, int (*_Cost)(const void*, const void*)) {
+void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, GOAPActionCost _Cost) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
 
 	if(_ActionIdx == -1) {

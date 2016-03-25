@@ -12,15 +12,17 @@
 #define GOAP_ATOMOPS (8)
 #define UTILITYSZ (64)
 
-struct LifoAllocator;
 struct GoapPathNode;
+struct Agent;
 
 /*
  * Returns a pointer to any data that should be associated with the Action.
  *
  */
-typedef const void*(*GOAPActionCost)(struct LifoAllocator*, const void*, int*);
+typedef int (*GOAPActionCost)(const struct Agent*);
 typedef int (*GOAPAction)(void*);
+typedef int(*AgentActionFunc)(void*);
+typedef int(*AgentUtilityFunc)(const void*, int*, int*, struct WorldState*);
 typedef int (*UtilityCallback)(const void*, int*, int*, struct WorldState*);
 
 enum EUtilityFunctions {
@@ -35,7 +37,7 @@ struct GOAPPlanner {
 	int AtomCt;
 	struct WorldState Preconditions[GOAP_ACTIONS];
 	struct WorldState Postconditions[GOAP_ACTIONS];
-	int (*ActionCosts[GOAP_ACTIONS])(const void*, const void*);
+	GOAPActionCost ActionCosts[GOAP_ACTIONS];
 	const char* ActionNames[GOAP_ACTIONS];
 	GOAPAction Action[GOAP_ACTIONS];
 	int ActionCt;
@@ -52,7 +54,7 @@ void GoapClear(struct GOAPPlanner* _Planner);
 void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom);
 void GoapAddPrecond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode);
 void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode);
-void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, int (*_Cost)(const void*, const void*));
+void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, GOAPActionCost _Cost);
 void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAction _Action);
 
 /*

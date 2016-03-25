@@ -7,6 +7,7 @@
 
 #include "../sys/Math.h"
 #include "../sys/MemoryPool.h"
+#include "../sys/Log.h"
 
 #include <string.h>
 
@@ -125,28 +126,35 @@ void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom) {
 void GoapAddPrecond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
 
-	if(_ActionIdx == -1)
+	if(_ActionIdx == -1) {
+		Log(ELOG_WARNING, "Action %s does not exist.", _Action);
 		return;
-	for(int i = 0; i < _Planner->AtomCt; ++i)
+	}
+	for(int i = 0; i < _Planner->AtomCt; ++i) {
 		if(strcmp(_Planner->AtomNames[i], _Atom) == 0) {
 			WorldStateSetAtom(&_Planner->Preconditions[_ActionIdx], i, _Value);
 			WorldStateSetOpCode(&_Planner->Preconditions[_ActionIdx], i, _OpCode);
+			return;
 		}
+	}
+	Log(ELOG_WARNING, "Atom %s was not found.", _Atom);
 }
 
 void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
 	int _AtomIdx;
-	int i;
 
-	if(_ActionIdx == -1)
+	if(_ActionIdx == -1) {
+		Log(ELOG_WARNING, "Action %s does not exist.", _Action);
 		return;
+	}
 	for(_AtomIdx = 0; _AtomIdx < _Planner->AtomCt; ++_AtomIdx)
 		if(strcmp(_Planner->AtomNames[_AtomIdx], _Atom) == 0)
 			goto add_atom_action;
+	Log(ELOG_WARNING, "Atom %s was not found.", _Atom);
 	return;
 	add_atom_action:
-	for(i = 0; i < GOAP_ATOMOPS; ++i) {
+	for(int i = 0; i < GOAP_ATOMOPS; ++i) {
 		if(_Planner->AtomActions[_AtomIdx][i] == -1) {
 			_Planner->AtomActions[_AtomIdx][i] = _ActionIdx;
 			goto add_cond;
@@ -161,16 +169,20 @@ void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const ch
 void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, int (*_Cost)(const void*, const void*)) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
 
-	if(_ActionIdx == -1)
+	if(_ActionIdx == -1) {
+		Log(ELOG_WARNING, "Atom %s does not exist.", _Action);
 		return;
+	}
 	_Planner->ActionCosts[_ActionIdx] = _Cost;
 }
 
 void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAction _Action) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _ActionName);
 
-	if(_ActionIdx == -1)
+	if(_ActionIdx == -1) {
+		Log(ELOG_WARNING, "Atom %s does not exist.", _ActionName);
 		return;
+	}
 	_Planner->Action[_ActionIdx] = _Action;
 }
 
@@ -218,6 +230,7 @@ void GoapPlanAction(const struct GOAPPlanner* _Planner, const void* _Data, const
 	int _AtomIdx = 0;
 	int _BestAction = 0;
 
+	//Setup _Current state to the state of _Start and to only care about what _End cares about.
 	WorldStateClear(&_CurrentState);
 	WorldStateSetState(&_CurrentState, _Start);
 	WorldStateSetDontCare(&_CurrentState, _End);

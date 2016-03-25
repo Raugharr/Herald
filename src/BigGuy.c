@@ -38,7 +38,10 @@ const char* g_BGStateStr[BGBYTE_SIZE] = {
 		"Authority",
 		"Prestige",
 		"Feud",
-		"FyrdRaised"
+		"FyrdRaised",
+		"SufficientFriends",
+		"SufficientEnemies",
+		"IsMarried"
 };
 
 const char* g_BGMission[BGACT_SIZE] = {

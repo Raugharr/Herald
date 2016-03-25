@@ -196,6 +196,8 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		return 1;
 	} else if(_State->MouseState == SDL_RELEASED) {
 		_Container = GUIZTop();
+		//Go from top most container to bottom most looking for a container that returns a value indicating
+		//that it can be clicked.
 		while(_Container != NULL) {
 			if((_Widget = _Container->OnClick((struct Widget*)_Container, &_State->MousePos)) != NULL)
 				break;
@@ -204,6 +206,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		 if(_Widget == NULL) {
 			 return 0;
 		}
+			GuiZToTop(_Container);
 			if(_Widget->LuaOnClickFunc >= 0) {
 				LuaGuiGetRef(g_LuaState);
 				lua_rawgeti(g_LuaState, -1, _Widget->LuaOnClickFunc);

@@ -23,14 +23,6 @@ int AgentSCallback(const struct BigGuy* _One, const struct Agent* _Two) {
 	return _Two->Agent->Id - _One->Id;
 }
 
-/*void AgentOnDeath(int _EventId, struct Agent* _Agent, struct Person* _Person, void* _None) {
-	EventHookRemove(_EventId, _Agent, NULL);
-	DestroyBigGuy(_Agent->Agent);
-	DestroyPerson(_Person);
-	RBDelete(&g_GameWorld.Agents, _Agent);
-	DestroyAgent(_Agent);
-}*/
-
 struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	struct Agent* _Agent = (struct Agent*) malloc(sizeof(struct Agent));
 

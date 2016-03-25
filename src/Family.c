@@ -359,30 +359,7 @@ void FamilyAddGoods(struct Family* _Family, lua_State* _State, struct FamilyType
 			lua_getfield(_State, -1, "AI");
 			if(lua_type(_State, -1) != LUA_TFUNCTION)
 				luaL_error(_State, "Lua function expected, got %s", lua_typename(_State, lua_type(_State, -1)));
-			/*for(int j = 0; j < _Family->NumChildren + 2; ++j) {
-				if(_Family->People[j] == NULL)
-					continue;
-				lua_pushvalue(_State, -1);
-				lua_pushlightuserdata(_State, _Family->People[j]);
-				LuaPushPerson(_State, -1);
-				lua_remove(_State, -2);
-				if(LuaCallFunc(_State, 1, 1, 0) == 0) {
-					--g_Log.Indents;
-					return;
-				}
-				if(lua_isstring(_State, -1) == 0)
-					luaL_error(_State, "string expected, got %s.", lua_typename(_State, lua_type(_State, -1)));
-				_Cmp.Name = (char*) lua_tostring(_State, -1);
-				if((_Behavior = BinarySearch(&_Cmp, g_BhvList.Table, g_BhvList.Size, LuaBhvCmp)) == NULL) {
-					--g_Log.Indents;
-					Log(ELOG_WARNING, "%s is not a behavior", _Cmp.Name);
-					return;
-				}
-				_Family->People[j]->Behavior = _Behavior->Behavior;
-				lua_pop(_State, 1);
-			}*/
 			_Family->Profession = _Profession;
-			//_Cmp.Name = NULL;
 			lua_pop(_State, 2);
 			--g_Log.Indents;
 			break;

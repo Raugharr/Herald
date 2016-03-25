@@ -484,3 +484,20 @@ struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
 int WidgetOnUnfocus(struct Widget* _Widget) {
 	return 1;
 }
+
+struct Container* WidgetTopParent(struct Widget* _Widget) {
+	struct Container* _Parent = _Widget->Parent;
+
+	while(_Parent != NULL) {
+		_Parent = _Parent->Parent;
+	}
+	return _Parent;
+}
+
+void GuiZToTop(struct Container* _Container) {
+	ILL_DESTROY(g_GuiZBuff.Top, _Container);
+	if(g_GuiZBuff.Bot == _Container)
+		g_GuiZBuff.Bot = NULL;
+	ILL_CREATE(g_GuiZBuff.Top, _Container);
+
+}

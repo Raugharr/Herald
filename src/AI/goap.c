@@ -108,6 +108,7 @@ void GoapClear(struct GOAPPlanner* _Planner) {
 	}
 	_Planner->ActionCt = 0;
 	_Planner->AtomCt = 0;
+	_Planner->UtilityCt = 0;
 }
 
 void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom) {
@@ -302,4 +303,59 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 
 int GoapPathGetAction(const struct GoapPathNode* _Node) {
 	return _Node->Action;
+}
+
+double AUtilityFunction(double _Num, int _Func) {
+	switch(_Func) {
+		case UTILITY_LINEAR:
+			break;
+		case UTILITY_QUADRATIC:
+			_Num = _Num * _Num;
+			break;
+	}
+	if((_Func & UTILITY_INVERSE) == UTILITY_INVERSE)
+		_Num = 1 - _Num;
+	return _Num;
+}
+
+void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, UtilityCallback _Callback, int _Func) {
+	if(_Planner->UtilityCt == UTILITYSZ)
+		return;
+	_Planner->Utilities[_Planner->UtilityCt] = _Callback;
+	_Planner->UtilityFunction[_Planner->UtilityCt] = _Func;
+	_Planner->UtilityNames[_Planner->UtilityCt] = _Utility;
+	++_Planner->UtilityCt;
+}
+
+void GoapBestUtility(const struct GOAPPlanner* _Planner, const void* _Data, struct WorldState* _BestState) {
+	struct WorldState _State;
+	int _Min = 0;
+	int _Max = 0;
+	double _Best = 0.0;
+	double _Utility = 0.0;
+
+	if(_Planner->UtilityCt < 1)
+		return;
+	WorldStateClear(&_State);
+	_Utility = _Planner->Utilities[0](_Data, &_Min, &_Max, _BestState);
+	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[0]);
+	for(int i = 1; i < _Planner->UtilityCt; ++i) {
+		WorldStateClear(&_State);
+		_Utility = _Planner->Utilities[i](_Data, &_Min, &_Max, &_State);
+		_Utility = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[i]);
+		if(_Utility > _Best) {
+			_Best =	_Utility;
+			WorldStateSetState(_BestState, &_State);
+		//	WorldStateCopy(_BestState, &_State);
+		}
+	}
+}
+
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, const void* _Data, const struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path) {
+	struct WorldState _EndState;
+
+	WorldStateClear(&_EndState);
+	GoapBestUtility(_Planner, _Data, &_EndState);
+	WorldStateAdd(&_EndState, _State);
+	GoapPlanAction(_Planner, _Data, _State, &_EndState, _PathSize, _Path);
 }

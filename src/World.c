@@ -38,7 +38,6 @@
 #include "sys/LuaCore.h"
 
 #include "AI/Setup.h"
-#include "AI/AIHelper.h"
 #include "AI/Agent.h"
 
 #include "Warband.h"

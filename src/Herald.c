@@ -16,7 +16,6 @@
 #include "Mission.h"
 
 #include "AI/BehaviorTree.h"
-#include "AI/AIHelper.h"
 #include "AI/Pathfind.h"
 
 #include "sys/Stack.h"

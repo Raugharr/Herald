@@ -16,7 +16,7 @@ struct WorldState;
 struct AgentUtility;
 struct GOAPPlanner;
 typedef struct lua_State lua_State;
-typedef void(*AgentActions[])(struct GOAPPlanner*, struct AgentUtility*);
+typedef void(*AgentActions[])(struct GOAPPlanner*);
 
 extern struct Array g_BhvList;
 typedef int(*AgentActionFunc)(void*);
@@ -24,10 +24,11 @@ typedef int(*AgentUtilityFunc)(const void*, int*, int*, struct WorldState*);
 
 const struct AgentUtility* GetBGPlanner();
 
-void BGSetup(struct AgentUtility* _AgentPlan, const char** _Atoms, int _AtomSz, AgentActions _Actions);
+void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions);
 void AIInit(lua_State* _State);
 void AIQuit();
 
 extern int g_BhvActionsSz;
+extern struct GOAPPlanner g_Goap;
 
 #endif

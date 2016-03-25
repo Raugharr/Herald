@@ -15,9 +15,6 @@
 #include "Trait.h"
 #include "Mission.h"
 
-#include "AI/Utility.h"
-#include "AI/goap.h"
-#include "AI/Setup.h"
 #include "AI/Agent.h"
 
 #include "sys/Math.h"

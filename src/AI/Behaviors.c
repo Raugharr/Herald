@@ -1,3 +1,8 @@
+/*
+ * File: Behaviors.c
+ * Author: David Brotz
+ */
+
 #include "Behaviors.h"
 
 #include "../sys/Array.h"

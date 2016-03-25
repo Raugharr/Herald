@@ -8,7 +8,6 @@
 #include "World.h"
 
 #include "sys/RBTree.h"
-#include "AI/AIHelper.h"
 
 #include <SDL2/SDL.h>
 

@@ -5,31 +5,9 @@
 
 #include "BehaviorTree.h"
 
-//#include "../sys/HashTable.h"
-
 #include <stdlib.h>
 #include <stdarg.h>
 
-/*
-#define BHV_HASHSZ (8)
-#define HASHTABLE_SIZE (32)
-
-static struct HashTable g_BhvHash[BHV_HASHSZ];
-
-void InitBehaviorEngine() {
-	for(int i = 0; i < BHV_HASHSZ; ++i) {
-		g_BhvHash[i].Size = 0;
-		g_BhvHash[i].TblSz = HASHTABLE_SIZE;
-		g_BhvHash[i].Table = calloc(HASHTABLE_SIZE, sizeof(struct HashTableNode*));
-	}
-}
-
-void QuitBehaviorEngine() {
-	for(int i = 0; i < BHV_HASHSZ; ++i) {
-		free(g_BhvHash[i].Table);
-	}
-}
-*/
 int BhvSelector(const struct Behavior* _Bhv, struct Family* _Family, struct HashTable* _Vars) {
 	int i;
 	int _Ret = 0;

@@ -1,3 +1,7 @@
+/*
+ * File: Behaviors.h
+ * Author: David Brotz
+ */
 #ifndef __BEHAVIORS_H
 #define __BEHAVIORS_H
 

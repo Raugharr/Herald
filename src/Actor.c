@@ -9,7 +9,6 @@
 #include "World.h"
 #include "Population.h"
 
-#include "AI/AIHelper.h"
 #include "AI/Pathfind.h"
 
 #include "sys/LinkedList.h"

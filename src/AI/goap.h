@@ -10,8 +10,10 @@
 #define GOAP_ATOMS (64)
 #define GOAP_ACTIONS (64)
 #define GOAP_ATOMOPS (8)
+#define UTILITYSZ (64)
 
 struct LifoAllocator;
+struct GoapPathNode;
 
 /*
  * Returns a pointer to any data that should be associated with the Action.
@@ -19,8 +21,13 @@ struct LifoAllocator;
  */
 typedef const void*(*GOAPActionCost)(struct LifoAllocator*, const void*, int*);
 typedef int (*GOAPAction)(void*);
+typedef int (*UtilityCallback)(const void*, int*, int*, struct WorldState*);
 
-struct GoapPathNode;
+enum EUtilityFunctions {
+	UTILITY_INVERSE = (1 << 0),
+	UTILITY_LINEAR = (1 << 1),
+	UTILITY_QUADRATIC = (1 << 2)
+};
 
 struct GOAPPlanner {
 	const char* AtomNames[GOAP_ATOMS];
@@ -32,6 +39,10 @@ struct GOAPPlanner {
 	const char* ActionNames[GOAP_ACTIONS];
 	GOAPAction Action[GOAP_ACTIONS];
 	int ActionCt;
+	UtilityCallback Utilities[UTILITYSZ];
+	int UtilityFunction[UTILITYSZ]; //Contains a bitset of values from EUtilityFunctions.
+	int UtilityCt;
+	const char* UtilityNames[UTILITYSZ];
 };
 
 void GoapInit();
@@ -52,4 +63,7 @@ void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAc
 void GoapPlanAction(const struct GOAPPlanner* _Planner, const void* _Data, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path);
 int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNode* _Node, struct WorldState* _State, void* _Data);
 int GoapPathGetAction(const struct GoapPathNode* _Node);
+void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, UtilityCallback _Callback, int _Func);
+void GoapBestUtility(const struct GOAPPlanner* _Planner, const void* _Data, struct WorldState* _BestState);
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, const void* _Data, const struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
 #endif

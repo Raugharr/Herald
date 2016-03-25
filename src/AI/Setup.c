@@ -8,9 +8,7 @@
 #include "BehaviorTree.h"
 #include "Behaviors.h"
 #include "LuaLib.h"
-#include "AIHelper.h"
 #include "goap.h"
-#include "Utility.h"
 
 #include "../Location.h"
 #include "../Family.h"
@@ -34,11 +32,7 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-static struct AgentUtility g_BigGuyPlanner;
-
-const struct AgentUtility* GetBGPlanner() {
-	return &g_BigGuyPlanner;
-}
+struct GOAPPlanner g_Goap;
 
 int BGImproveRelations(const void* _Data, const void* _Extra) {
 	return 120;
@@ -185,55 +179,52 @@ int UtilitySufficientEnemies(const struct BigGuy* _Guy, int* _Min, int* _Max, st
 	return 1;
 }
 
-void AgentActionImproveRelations(struct GOAPPlanner* _GoPlan, struct AgentUtility* _AgentPlan) {
+void AgentActionImproveRelations(struct GOAPPlanner* _GoPlan) {
 	GoapAddPostcond(_GoPlan, "Improve Relations", "ImproveRelations", 1, WSOP_ADD);
 	GoapSetActionCost(_GoPlan, "Improve Relations", BGImproveRelations);
 	GoapSetAction(_GoPlan, "Improve Relations", (AgentActionFunc) BGImproveRelationsAction);
-	AUtilityAdd(_AgentPlan, "ImrpoveRelations", (AgentUtilityFunc)UtilityMakeFriends, (UTILITY_INVERSE | UTILITY_LINEAR));
+	GoapAddUtility(_GoPlan, "ImrpoveRelations", (AgentUtilityFunc)UtilityMakeFriends, (UTILITY_INVERSE | UTILITY_LINEAR));
 }
 
-void AgentActionChallangeLeader(struct GOAPPlanner* _GoPlan, struct AgentUtility* _AgentPlan) {
+void AgentActionChallangeLeader(struct GOAPPlanner* _GoPlan) {
 	//Both of these should use the ImproveRelations action as a precond.
 	GoapAddPrecond(_GoPlan, "Challenge Leader", "SufficientEnemies", 1, WSOP_EQUAL);
 	GoapAddPrecond(_GoPlan, "Challenge Leader", "SufficientFriends", 1, WSOP_EQUAL);
 	GoapAddPostcond(_GoPlan, "Challenge Leader", "IsLeader", 1, WSOP_SET);
 	GoapSetActionCost(_GoPlan, "Challenge Leader", BGChallangeLeader);
 	GoapSetAction(_GoPlan, "Challenge Leader", (AgentActionFunc) BGChallangeLeaderAction);
-	AUtilityAdd(_AgentPlan, "Challenge Leader", (AgentUtilityFunc)UtilityChallangeLeader, UTILITY_LINEAR);
+	GoapAddUtility(_GoPlan, "Challenge Leader", (AgentUtilityFunc)UtilityChallangeLeader, UTILITY_LINEAR);
 }
 
-void AgentActionRaid(struct GOAPPlanner* _GoPlan, struct AgentUtility* _AgentPlan) {
+void AgentActionRaid(struct GOAPPlanner* _GoPlan) {
 	GoapAddPrecond(_GoPlan, "Raid", "FyrdRaised", 0, WSOP_EQUAL);
 	GoapAddPostcond(_GoPlan, "Raid", "FyrdRaised", 1, WSOP_SET);
 	GoapAddPostcond(_GoPlan, "Raid", "Prestige", 2, WSOP_ADD);
 	GoapSetActionCost(_GoPlan, "Raid", BGRaiseFyrd);
 	GoapSetAction(_GoPlan, "Raid", (AgentActionFunc) BGRaiseFyrdAction);
-	AUtilityAdd(_AgentPlan, "Raid", (AgentUtilityFunc) UtilityRaiseFyrdFood, (UTILITY_INVERSE | UTILITY_QUADRATIC));
+	GoapAddUtility(_GoPlan, "Raid", (AgentUtilityFunc) UtilityRaiseFyrdFood, (UTILITY_INVERSE | UTILITY_QUADRATIC));
 }
 
-void AgentActionSufficientFriends(struct GOAPPlanner* _GoPlan, struct AgentUtility* _AgentPlan) {
+void AgentActionSufficientFriends(struct GOAPPlanner* _GoPlan) {
 	GoapAddPostcond(_GoPlan, "Sufficient Friends", "SufficientFriends", 1, WSOP_SET);
 	GoapSetActionCost(_GoPlan, "Sufficient Friends", BGSufficientFriends);
 	GoapSetAction(_GoPlan, "Sufficient Friends", (AgentActionFunc) BGSufficientFriendsAction);
-	AUtilityAdd(_AgentPlan, "SufficientFriends", (AgentUtilityFunc) UtilitySufficientFriends, UTILITY_LINEAR);
+	GoapAddUtility(_GoPlan, "SufficientFriends", (AgentUtilityFunc) UtilitySufficientFriends, UTILITY_LINEAR);
 }
 
-void AgentActionSufficientEnemies(struct GOAPPlanner* _GoPlan, struct AgentUtility* _AgentPlan) {
+void AgentActionSufficientEnemies(struct GOAPPlanner* _GoPlan) {
 	GoapAddPostcond(_GoPlan, "Sufficient Enemies", "SufficientEnemies", 1, WSOP_SET);
 	GoapSetActionCost(_GoPlan, "Sufficient Friends", BGSufficientEnemies);
 	GoapSetAction(_GoPlan, "Sufficient Enemies", (AgentActionFunc) BGSufficientEnemiesAction);
-	AUtilityAdd(_AgentPlan, "SufficientFriends", (AgentUtilityFunc) UtilitySufficientEnemies, UTILITY_LINEAR);	
+	GoapAddUtility(_GoPlan, "SufficientFriends", (AgentUtilityFunc) UtilitySufficientEnemies, UTILITY_LINEAR);	
 }
 
-void BGSetup(struct AgentUtility* _AgentPlan, const char** _Atoms, int _AtomSz, AgentActions _Actions) {
-	struct GOAPPlanner* _Planner = AUtilityGetGoap(_AgentPlan);
-
+void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions) {
 	GoapClear(_Planner);
-	AUtilityClear(_AgentPlan);
 	for(int i = 0; i < _AtomSz; ++i)
 		GoapAddAtom(_Planner, _Atoms[i]);
 	for(int i = 0; _Actions[i] != NULL; ++i)
-		_Actions[i](_Planner, _AgentPlan);
+		_Actions[i](_Planner);
 }
 
 void AIInit(lua_State* _State) {
@@ -250,7 +241,7 @@ void AIInit(lua_State* _State) {
 	}
 	LuaAILibInit(_State);
 	GoapInit();
-	BGSetup(&g_BigGuyPlanner, g_BGStateStr, BGBYTE_SIZE, _Actions);
+	BGSetup(NULL, g_BGStateStr, BGBYTE_SIZE, _Actions);
 }
 
 void AIQuit() {

@@ -7,8 +7,8 @@
 
 #define AGENT_PLANSZ (16)
 #define AGENT_NOPLAN (-1)
-#define AgentPlan(_Agent) \
-	AUtilityPlan(GetBGPlanner(), (_Agent)->Agent, &(_Agent)->Agent->State, &(_Agent)->PlanSz, (_Agent)->Plan);	\
+#define AgentPlan(_Goap, _Agent) \
+	GoapPlanUtility(_Goap, (_Agent)->Agent, &(_Agent)->Agent->State, &(_Agent)->PlanSz, (_Agent)->Plan);	\
 	(_Agent)->PlanIdx = 0
 #define AgentHasPlan(_Agent) (_Agent->PlanIdx != AGENT_NOPLAN)
 

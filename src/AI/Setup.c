@@ -10,7 +10,7 @@
 #include "LuaLib.h"
 #include "goap.h"
 
-#include "actions/Action.h"
+#include "Action.h"
 
 #include "../Location.h"
 #include "../Family.h"

@@ -6,6 +6,8 @@
 #ifndef __SETUP_H
 #define __SETUP_H
 
+#include "goap.h"
+
 #include "../sys/Array.h"
 
 #ifndef NULL
@@ -16,7 +18,6 @@ struct WorldState;
 struct AgentUtility;
 struct GOAPPlanner;
 typedef struct lua_State lua_State;
-typedef void(*AgentActions[])(struct GOAPPlanner*);
 
 extern struct Array g_BhvList;
 

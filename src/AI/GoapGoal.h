@@ -22,6 +22,6 @@ struct GoapGoal {
 };
 
 void InitGoapGoal(struct GoapGoal* _Goal);
-int GoapGoalAddAction(struct GoapGoal* _Goal, int _Index);
+int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action);
 
 #endif

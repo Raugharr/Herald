@@ -13,6 +13,7 @@
 #define UTILITYSZ (64)
 
 struct GoapPathNode;
+struct GOAPPlanner;
 struct Agent;
 
 /*
@@ -22,8 +23,9 @@ struct Agent;
 typedef int (*GOAPActionCost)(const struct Agent*);
 typedef int (*GOAPAction)(void*);
 typedef int(*AgentActionFunc)(void*);
+typedef void(*AgentActions[])(struct GOAPPlanner*);
+typedef void(*AgentGoals[])(struct GOAPPlanner*);
 typedef int(*AgentUtilityFunc)(const void*, int*, int*, struct WorldState*);
-typedef int (*UtilityCallback)(const void*, int*, int*, struct WorldState*);
 
 enum EUtilityFunctions {
 	UTILITY_INVERSE = (1 << 0),
@@ -41,7 +43,7 @@ struct GOAPPlanner {
 	const char* ActionNames[GOAP_ACTIONS];
 	GOAPAction Action[GOAP_ACTIONS];
 	int ActionCt;
-	UtilityCallback Utilities[UTILITYSZ];
+	AgentUtilityFunc Utilities[UTILITYSZ];
 	int UtilityFunction[UTILITYSZ]; //Contains a bitset of values from EUtilityFunctions.
 	int UtilityCt;
 	const char* UtilityNames[UTILITYSZ];
@@ -56,6 +58,7 @@ void GoapAddPrecond(struct GOAPPlanner* _Planner, const char* _Action, const cha
 void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode);
 void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, GOAPActionCost _Cost);
 void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAction _Action);
+int GoapGetActionIndex(struct GOAPPlanner* _Planner, const char* _Action);
 
 /*
  * Generates a plan based on the possible actions available in _Planner to transition from the WorldState _Start to the WorldState _End.
@@ -65,7 +68,7 @@ void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAc
 void GoapPlanAction(const struct GOAPPlanner* _Planner, const void* _Data, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path);
 int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNode* _Node, struct WorldState* _State, void* _Data);
 int GoapPathGetAction(const struct GoapPathNode* _Node);
-void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, UtilityCallback _Callback, int _Func);
+void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, AgentUtilityFunc _Callback, int _Func);
 void GoapBestUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState);
 void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
 #endif

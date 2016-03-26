@@ -15,10 +15,12 @@ void InitGoapGoal(struct GoapGoal* _Goal) {
 	_Goal->Planner = NULL;
 }
 
-int GoapGoalAddAction(struct GoapGoal* _Goal, int _Index) {
-	if(_Goal->Planner == NULL || (_Index < 0 || _Index >= _Goal->Planner->ActionCt))
+int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action) {
+	int _ActionIdx = GoapGetActionIndex(_Goal->Planner, _Action);
+
+	if(_Goal->Planner == NULL || (_ActionIdx < 0 || _ActionIdx >= _Goal->Planner->ActionCt))
 		return 0;
-	_Goal->Actions[_Goal->ActionCt] = _Index;
+	_Goal->Actions[_Goal->ActionCt] = _ActionIdx;
 	++_Goal->ActionCt;
 	return 1;
 }

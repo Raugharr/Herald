@@ -318,7 +318,7 @@ double AUtilityFunction(double _Num, int _Func) {
 	return _Num;
 }
 
-void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, UtilityCallback _Callback, int _Func) {
+void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, AgentUtilityFunc _Callback, int _Func) {
 	if(_Planner->UtilityCt == UTILITYSZ)
 		return;
 	_Planner->Utilities[_Planner->UtilityCt] = _Callback;

@@ -12,6 +12,8 @@
 	(_Agent)->PlanIdx = 0
 #define AgentHasPlan(_Agent) (_Agent->PlanIdx != AGENT_NOPLAN)
 
+#include "Blackboard.h"
+
 struct BigGuy;
 struct GoapPathNode;
 
@@ -20,6 +22,7 @@ struct Agent {
 	int PlanIdx; //The current plan we are impelenting -1 if none.
 	int PlanSz;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
+	struct Blackboard Blackboard;
 };
 
 int AgentICallback(const struct Agent* _One, const struct Agent* _Two);

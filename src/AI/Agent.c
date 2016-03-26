@@ -27,6 +27,7 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	_Agent->PlanIdx = AGENT_NOPLAN;
 	_Agent->PlanSz = AGENT_PLANSZ;
 	_Agent->Plan[0] = NULL;
+	InitBlackboard(&_Agent->Blackboard);
 	return _Agent;
 }
 void DestroyAgent(struct Agent* _Agent) {

@@ -48,6 +48,7 @@ struct LuaBhvAction g_BhvActions[] = {
 	{"HasGood", PAIHasGood, 1},
 	{"Nothing", BHVNothing, 0},
 	{"Season", BHVNothing, 1},
+	{"Hunt", BHVNothing, 0},
 	{"WorkFields", BHVNothing, 0},
 	{"SlaughterAnimals", BHVNothing, 0},
 	{NULL, NULL}

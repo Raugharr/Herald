@@ -327,7 +327,7 @@ void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, UtilityC
 	++_Planner->UtilityCt;
 }
 
-void GoapBestUtility(const struct GOAPPlanner* _Planner, const void* _Data, struct WorldState* _BestState) {
+void GoapBestUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState) {
 	struct WorldState _State;
 	int _Min = 0;
 	int _Max = 0;
@@ -337,11 +337,11 @@ void GoapBestUtility(const struct GOAPPlanner* _Planner, const void* _Data, stru
 	if(_Planner->UtilityCt < 1)
 		return;
 	WorldStateClear(&_State);
-	_Utility = _Planner->Utilities[0](_Data, &_Min, &_Max, _BestState);
+	_Utility = _Planner->Utilities[0](_Agent, &_Min, &_Max, _BestState);
 	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[0]);
 	for(int i = 1; i < _Planner->UtilityCt; ++i) {
 		WorldStateClear(&_State);
-		_Utility = _Planner->Utilities[i](_Data, &_Min, &_Max, &_State);
+		_Utility = _Planner->Utilities[i](_Agent, &_Min, &_Max, &_State);
 		_Utility = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[i]);
 		if(_Utility > _Best) {
 			_Best =	_Utility;
@@ -351,11 +351,11 @@ void GoapBestUtility(const struct GOAPPlanner* _Planner, const void* _Data, stru
 	}
 }
 
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, const void* _Data, const struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path) {
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
 	struct WorldState _EndState;
 
 	WorldStateClear(&_EndState);
-	GoapBestUtility(_Planner, _Data, &_EndState);
+	GoapBestUtility(_Planner, _Agent, &_EndState);
 	WorldStateAdd(&_EndState, _State);
-	GoapPlanAction(_Planner, _Data, _State, &_EndState, _PathSize, _Path);
+	GoapPlanAction(_Planner, _Agent, _State, &_EndState, _PathSize, _Path);
 }

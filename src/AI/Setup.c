@@ -20,12 +20,8 @@
 #include "../ArmyGoal.h"
 #include "../Warband.h"
 
-#include "../sys/LinkedList.h"
-#include "../sys/HashTable.h"
 #include "../sys/Log.h"
-#include "../sys/Stack.h"
 #include "../sys/LuaCore.h"
-#include "../sys/Math.h"
 
 #include <math.h>
 #include <string.h>
@@ -36,12 +32,16 @@
 
 struct GOAPPlanner g_Goap;
 
-void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions) {
+void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions, AgentGoals _Goals) {
 	GoapClear(_Planner);
 	for(int i = 0; i < _AtomSz; ++i)
 		GoapAddAtom(_Planner, _Atoms[i]);
 	for(int i = 0; _Actions[i] != NULL; ++i)
 		_Actions[i](_Planner);
+	for(int i = 0; i < GOAP_GOALSZ && _Goals[i] != NULL; ++i) {
+		_Goals[i](_Planner, &_Planner->Goals[_Planner->GoalCt]);
+		++_Planner->GoalCt;
+	}
 }
 
 void AIInit(lua_State* _State) {
@@ -51,7 +51,7 @@ void AIInit(lua_State* _State) {
 	}
 	LuaAILibInit(_State);
 	GoapInit();
-	BGSetup(&g_Goap, g_BGStateStr, BGBYTE_SIZE, g_GOAPActionList);
+	BGSetup(&g_Goap, g_BGStateStr, BGBYTE_SIZE, g_GOAPActionList, g_GOAPGoalList);
 }
 
 void AIQuit() {

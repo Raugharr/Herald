@@ -23,7 +23,7 @@ extern struct Array g_BhvList;
 
 const struct AgentUtility* GetBGPlanner();
 
-void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions);
+void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions, AgentGoals _Goals);
 void AIInit(lua_State* _State);
 void AIQuit();
 

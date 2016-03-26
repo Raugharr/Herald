@@ -109,6 +109,7 @@ void GoapClear(struct GOAPPlanner* _Planner) {
 	_Planner->ActionCt = 0;
 	_Planner->AtomCt = 0;
 	_Planner->UtilityCt = 0;
+	_Planner->GoalCt = 0;
 }
 
 void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom) {

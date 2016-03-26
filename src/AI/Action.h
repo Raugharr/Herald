@@ -3,7 +3,11 @@
  * Author: David Brotz
  */
 
+#ifndef __ACTION_H
+#define __ACTION_H
+
 #include "goap.h"
+#include "Goals.h"
 
 #include "actions/ActionImproveRelations.h"
 #include "actions/ActionRaid.h"
@@ -15,3 +19,9 @@ static AgentActions g_GOAPActionList = {
 	ActionDuel,
 	NULL
 };
+
+static AgentGoals g_GOAPGoalList = {
+	GoalBigGuy,
+	NULL
+};
+#endif

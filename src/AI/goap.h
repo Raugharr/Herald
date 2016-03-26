@@ -7,10 +7,13 @@
 
 #include "../WorldState.h"
 
+#include "GoapGoal.h"
+
 #define GOAP_ATOMS (64)
 #define GOAP_ACTIONS (64)
 #define GOAP_ATOMOPS (8)
 #define UTILITYSZ (64)
+#define GOAP_GOALSZ (8)
 
 struct GoapPathNode;
 struct GOAPPlanner;
@@ -24,7 +27,7 @@ typedef int (*GOAPActionCost)(const struct Agent*);
 typedef int (*GOAPAction)(void*);
 typedef int(*AgentActionFunc)(void*);
 typedef void(*AgentActions[])(struct GOAPPlanner*);
-typedef void(*AgentGoals[])(struct GOAPPlanner*);
+typedef void(*AgentGoals[])(struct GOAPPlanner*, struct GoapGoal*);
 typedef int(*AgentUtilityFunc)(const void*, int*, int*, struct WorldState*);
 
 enum EUtilityFunctions {
@@ -47,6 +50,8 @@ struct GOAPPlanner {
 	int UtilityFunction[UTILITYSZ]; //Contains a bitset of values from EUtilityFunctions.
 	int UtilityCt;
 	const char* UtilityNames[UTILITYSZ];
+	struct GoapGoal Goals[GOAP_GOALSZ];
+	int GoalCt;
 };
 
 void GoapInit();
@@ -59,6 +64,7 @@ void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const ch
 void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, GOAPActionCost _Cost);
 void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAction _Action);
 int GoapGetActionIndex(struct GOAPPlanner* _Planner, const char* _Action);
+
 
 /*
  * Generates a plan based on the possible actions available in _Planner to transition from the WorldState _Start to the WorldState _End.

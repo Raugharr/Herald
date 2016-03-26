@@ -11,17 +11,18 @@
 #define GOAPGOAL_ACTIONS (12)
 	
 struct Agent; 
+struct GOAPPlanner;
 typedef int (*GoapGoalUtility)(const struct Agent*);
 
 struct GoapGoal {
+	const char* Name;
 	int Actions[GOAPGOAL_ACTIONS]; //Contains the index of the action.
 	int ActionCt;
 	struct WorldState GoalState;
 	GoapGoalUtility UtilityFunc;
-	struct GOAPPlanner* Planner;
 };
 
 void InitGoapGoal(struct GoapGoal* _Goal);
-int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action);
+int GoapGoalAddAction(struct GOAPPlanner* _Planner, struct GoapGoal* _Goal, const char* _Action);
 
 #endif

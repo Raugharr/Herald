@@ -9,12 +9,11 @@
 #include <string.h>
 
 unsigned int Hash(const char* _Key) {
-	int _Len = strlen(_Key);
 	int _Hash = 0;
 	int _One = 63689;
 	int _Two = 378551;
 
-	for(int i = 0; i < _Len; ++i) {
+	for(int i = 0; _Key[i] != '\0'; ++i) {
 		_Hash = _Hash * _One + _Key[i];
 		_One *= _Two;
 	}

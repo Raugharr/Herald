@@ -3,11 +3,11 @@
  * Author: David Brotz
  */
 
-#include "../goap.h"
+#include "goap.h"
 
-#include "ActionImproveRelations.h"
-#include "ActionRaid.h"
-#include "ActionDuel.h"
+#include "actions/ActionImproveRelations.h"
+#include "actions/ActionRaid.h"
+#include "actions/ActionDuel.h"
 
 static AgentActions g_GOAPActionList = {
 	ActionImproveRelations,

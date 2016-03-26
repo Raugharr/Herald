@@ -38,14 +38,8 @@ static int ActionFunction(struct Agent* _Agent) {
 			_Itr = _Itr->Next;
 		}
 		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Person, NULL);
-		return 0;
-	}
-	//Commented out as BigGuySetAction will most likely be removed.
-	/*_Relation = BigGuyGetRelation((struct BigGuy*)_Guy->Action.Target, _Guy);
-	if(_Relation->Modifier >= BIGGUY_LIKEMIN) {
-		BigGuySetAction(_Guy, BGACT_NONE, NULL, NULL);
 		return 1;
-	}*/
+	}
 	return 0;
 }
 

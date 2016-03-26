@@ -20,11 +20,8 @@ static int ActionCost(const struct Agent* _Agent) {
 
 static int ActionFunction(struct Agent* _Agent) {
 	struct BigGuy* _Guy = _Agent->Agent;
-	struct Government* _Government = FamilyGetSettlement(_Guy->Person->Family)->Government;
-	struct BigGuy* _Leader = _Government->Leader;
 
-	if(_Guy->Stats.Warfare > _Leader->Stats.Warfare)
-		GovernmentSetLeader(_Government, _Guy);
+	BigGuySetAction(_Guy, BGACT_DUEL, _Agent->Blackboard.Target, NULL);
 	return 1;
 }
 

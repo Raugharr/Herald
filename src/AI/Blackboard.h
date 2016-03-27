@@ -9,6 +9,7 @@ struct BigGuy;
 
 struct Blackboard {
 	struct BigGuy* Target;	
+	int ShouldReplan;
 };
 
 void InitBlackboard(struct Blackboard* _Blackboard);

@@ -9,4 +9,5 @@
 
 void InitBlackboard(struct Blackboard* _Blackboard) {
 	_Blackboard->Target = NULL;
+	_Blackboard->ShouldReplan = 1;
 }

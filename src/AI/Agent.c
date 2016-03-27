@@ -35,7 +35,7 @@ void DestroyAgent(struct Agent* _Agent) {
 }
 
 void AgentThink(struct Agent* _Agent) {
-	if(AgentHasPlan(_Agent) == 0) {
+	if(_Agent->Blackboard.ShouldReplan == 1) {
 		AgentPlan(&g_Goap, _Agent);
 	}
 	if(GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->Agent->State, _Agent->Agent) == 1) {

@@ -7,7 +7,16 @@
 
 #include <stdlib.h>
 
-void InitBlackboard(struct Blackboard* _Blackboard) {
+static inline void BlackboardWipe(struct Blackboard* _Blackboard) {
 	_Blackboard->Target = NULL;
+}
+
+void InitBlackboard(struct Blackboard* _Blackboard) {
+	BlackboardWipe(_Blackboard);
 	_Blackboard->ShouldReplan = 1;
+}
+
+void BlackboardClear(struct Blackboard* _Blackboard) {
+	BlackboardWipe(_Blackboard);
+	_Blackboard->ShouldReplan = 0;
 }

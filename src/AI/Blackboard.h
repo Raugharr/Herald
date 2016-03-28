@@ -13,5 +13,6 @@ struct Blackboard {
 };
 
 void InitBlackboard(struct Blackboard* _Blackboard);
+void BlackboardClear(struct Blackboard* _Blackboard);
 
 #endif

@@ -21,7 +21,7 @@ static AgentActions g_GOAPActionList = {
 };
 
 static AgentGoals g_GOAPGoalList = {
-	GoalBigGuy,
+	GoalChallangeLeader,
 	NULL
 };
 #endif

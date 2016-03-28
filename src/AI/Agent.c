@@ -44,6 +44,8 @@ void AgentThink(struct Agent* _Agent) {
 			_Agent->PlanIdx = AGENT_NOPLAN;
 			_Agent->PlanSz = AGENT_PLANSZ;
 		}
+	} else {
+		_Agent->Blackboard.ShouldReplan = 1;
 	}
 }
 

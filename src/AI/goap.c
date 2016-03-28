@@ -352,11 +352,33 @@ void GoapBestUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Ag
 	}
 }
 
+void GoapBestGoalUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState) {
+	int _Min = 0;
+	int _Max = 0;
+	int _BestIdx = 0;
+	double _Best = 0.0;
+	double _Utility = 0.0;
+
+	if(_Planner->GoalCt < 1)
+		return;
+	_Utility = _Planner->Goals[0].UtilityFunc(_Agent, &_Min, &_Max);
+	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->Goals[0].Utility);
+	for(int i = 1; i < _Planner->GoalCt; ++i) {
+		_Utility = _Planner->Goals[i].UtilityFunc(_Agent, &_Min, &_Max);
+		_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->Goals[i].Utility);
+		if(_Utility > _Best) {
+			_Best = _Utility;
+			_BestIdx = i;
+		}
+	}
+	WorldStateSetState(_BestState, &_Planner->Goals[_BestIdx].GoalState);
+}
+
 void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
 	struct WorldState _EndState;
 
 	WorldStateClear(&_EndState);
-	GoapBestUtility(_Planner, _Agent, &_EndState);
+	GoapBestGoalUtility(_Planner, _Agent, &_EndState);
 	WorldStateAdd(&_EndState, _State);
 	GoapPlanAction(_Planner, _Agent, _State, &_EndState, _PathSize, _Path);
 }

@@ -76,5 +76,6 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 int GoapPathGetAction(const struct GoapPathNode* _Node);
 void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, AgentUtilityFunc _Callback, int _Func);
 void GoapBestUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState);
+void GoapBestGoalUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState);
 void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
 #endif

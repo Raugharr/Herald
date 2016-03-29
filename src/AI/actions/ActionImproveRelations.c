@@ -24,23 +24,16 @@ static int ActionFunction(struct Agent* _Agent) {
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
 	struct BigGuy* _Person = NULL;
-	int _Rand = Random(0, _Settlement->BigGuys.Size - 1);
-	int _Ct = 0;
 
 	if(_Guy->ActionFunc == NULL) {
-		while(_Itr != NULL) {
-			_Person = (struct BigGuy*)_Itr->Data;
-			if(_Person != _Guy) {
-				 if(_Ct >= _Rand)
-					 break;
-				++_Ct;
-			}
-			_Itr = _Itr->Next;
-		}
-		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Person, NULL);
+		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Agent->Blackboard, NULL);
 		return 1;
 	}
 	return 0;
+}
+
+static int IsActionComplete(const struct Agent* _Agent) {
+	return 1;
 }
 
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {

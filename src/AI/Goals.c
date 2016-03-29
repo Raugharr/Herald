@@ -31,7 +31,6 @@ double GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _M
 }
 
 void GoalChallangeLeader(struct GOAPPlanner* _Planner, struct GoapGoal* _Goal) {
-	GoapGoalAddAction(_Goal, _Planner, "Improve  Relation");
 	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
 	GoapGoalAddAction(_Goal, _Planner, "Duel");	
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);

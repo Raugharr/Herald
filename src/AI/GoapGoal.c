@@ -15,7 +15,7 @@ void InitGoapGoal(struct GoapGoal* _Goal) {
 	_Goal->UtilityFunc = NULL;
 }
 
-int GoapGoalAddAction(struct GOAPPlanner* _Planner, struct GoapGoal* _Goal, const char* _Action) {
+int GoapGoalAddAction(struct GoapGoal* _Goal, struct GOAPPlanner* _Planner, const char* _Action) {
 	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
 
 	if(_Planner == NULL || (_ActionIdx < 0 || _ActionIdx >= _Planner->ActionCt))

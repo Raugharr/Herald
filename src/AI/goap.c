@@ -39,36 +39,23 @@ int GoapNoCost(const struct Agent* _Agent) {
 	return 1;
 }
 
-int GoapGetActionIndex(struct GOAPPlanner* _Planner, const char* _Action) {
-	int i;
-
-	for(i = 0; i < _Planner->ActionCt; ++i) {
-		if(strcmp(_Planner->ActionNames[i], _Action) == 0)
-			return i;
-	}
-	if(i < GOAP_ACTIONS) {
-		_Planner->ActionNames[i] = _Action;
-		_Planner->ActionCosts[i] = GoapNoCost;
-		++_Planner->ActionCt;
-		return _Planner->ActionCt - 1;
-	}
-	return -1;
-}
-
 int GoapBestAction(const struct GOAPPlanner* _Planner, int _Atom, const struct Agent* _Agent, const struct GoapPathNode* _Node) {
 	int _BestCost = 0;
 	int _Cost = 0;
 	int _BestIdx = 0;
 	int _Check = 0;
+	const struct GoapAction* _Action = NULL;
 
 	if(_Planner->AtomActions[_Atom][0] != -1);
 	_BestIdx = _Planner->AtomActions[_Atom][0];
-	_BestCost = _Planner->ActionCosts[_BestIdx](_Agent);
+	_Action = &_Planner->Actions[_BestIdx];
+	_BestCost = _Action->Cost(_Agent);
 
 	for(int i = 1; i < _Planner->AtomCt; ++i) {
 		if(_Planner->AtomActions[_Atom][i] == -1)
 			return _BestIdx;
-		_Cost = _Planner->ActionCosts[_Planner->AtomActions[_Atom][i]](_Agent);
+		_Action = &_Planner->Actions[_Planner->AtomActions[_Atom][i]];
+		_Cost = _Action->Cost(_Agent);
 		switch(WorldStateGetOpCode(&_Node->State, _Atom)) {
 		case WSOP_EQUAL:
 			_Check = (_Cost == _BestCost);
@@ -94,21 +81,17 @@ int GoapBestAction(const struct GOAPPlanner* _Planner, int _Atom, const struct A
 	return _BestIdx;
 }
 
+struct GoapAction* GoapGetAction(struct GOAPPlanner* _Planner, const char* _Action) {
+	for(int i = 0; i < _Planner->ActionCt; ++i) {
+		if(strcmp(_Planner->Actions[i].Name, _Action) == 0)
+			return &_Planner->Actions[i];
+	}
+	return NULL;
+}
+
 void GoapClear(struct GOAPPlanner* _Planner) {
-	for(int i = 0; i < GOAP_ATOMS; ++i) {
-		for(int j = 0; j < GOAP_ATOMOPS; ++j)
-			_Planner->AtomActions[i][j] = -1;
-		WorldStateClear(&_Planner->Postconditions[i]);
-		WorldStateClear(&_Planner->Preconditions[i]);
-		_Planner->AtomNames[i] = NULL;
-	}
-	for(int i = 0; i < GOAP_ACTIONS; ++i) {
-		_Planner->ActionCosts[i] = 0;
-		_Planner->ActionNames[i] = 0;
-	}
-	_Planner->ActionCt = 0;
 	_Planner->AtomCt = 0;
-	_Planner->UtilityCt = 0;
+	_Planner->ActionCt = 0;
 	_Planner->GoalCt = 0;
 }
 
@@ -125,68 +108,6 @@ void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom) {
 	}
 }
 
-void GoapAddPrecond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode) {
-	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
-
-	if(_ActionIdx == -1) {
-		Log(ELOG_WARNING, "Action %s does not exist.", _Action);
-		return;
-	}
-	for(int i = 0; i < _Planner->AtomCt; ++i) {
-		if(strcmp(_Planner->AtomNames[i], _Atom) == 0) {
-			WorldStateSetAtom(&_Planner->Preconditions[_ActionIdx], i, _Value);
-			WorldStateSetOpCode(&_Planner->Preconditions[_ActionIdx], i, _OpCode);
-			return;
-		}
-	}
-	Log(ELOG_WARNING, "Atom %s was not found.", _Atom);
-}
-
-void GoapAddPostcond(struct GOAPPlanner* _Planner, const char* _Action, const char* _Atom, int _Value, int _OpCode) {
-	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
-	int _AtomIdx;
-
-	if(_ActionIdx == -1) {
-		Log(ELOG_WARNING, "Action %s does not exist.", _Action);
-		return;
-	}
-	for(_AtomIdx = 0; _AtomIdx < _Planner->AtomCt; ++_AtomIdx)
-		if(strcmp(_Planner->AtomNames[_AtomIdx], _Atom) == 0)
-			goto add_atom_action;
-	Log(ELOG_WARNING, "Atom %s was not found.", _Atom);
-	return;
-	add_atom_action:
-	for(int i = 0; i < GOAP_ATOMOPS; ++i) {
-		if(_Planner->AtomActions[_AtomIdx][i] == -1) {
-			_Planner->AtomActions[_AtomIdx][i] = _ActionIdx;
-			goto add_cond;
-		}
-	}
-	return;
-	add_cond:
-	WorldStateSetAtom(&_Planner->Postconditions[_ActionIdx], _AtomIdx, _Value);
-	WorldStateSetOpCode(&_Planner->Postconditions[_ActionIdx], _AtomIdx, _OpCode);
-}
-
-void GoapSetActionCost(struct GOAPPlanner* _Planner, const char* _Action, GOAPActionCost _Cost) {
-	int _ActionIdx = GoapGetActionIndex(_Planner, _Action);
-
-	if(_ActionIdx == -1) {
-		Log(ELOG_WARNING, "Atom %s does not exist.", _Action);
-		return;
-	}
-	_Planner->ActionCosts[_ActionIdx] = _Cost;
-}
-
-void GoapSetAction(struct GOAPPlanner* _Planner, const char* _ActionName, GOAPAction _Action) {
-	int _ActionIdx = GoapGetActionIndex(_Planner, _ActionName);
-
-	if(_ActionIdx == -1) {
-		Log(ELOG_WARNING, "Atom %s does not exist.", _ActionName);
-		return;
-	}
-	_Planner->Action[_ActionIdx] = _Action;
-}
 
 void CtorGoapPathNode(struct GoapPathNode* _Node, const struct GoapPathNode* _Prev, int _Action, int g, int h) {
 	WorldStateClear(&_Node->State);
@@ -271,12 +192,12 @@ void GoapPlanAction(const struct GOAPPlanner* _Planner, const void* _Data, const
 					if(GoapNodeInList(&_OpenList[_OpenSize], _OpenList, _OpenSize, _ClosedList, _ClosedSize) == 0) {
 						WorldStateClear(&_OpenList[_OpenSize].State);
 						WorldStateCare(&_OpenList[_OpenSize].State);
-						WorldStateAdd(&_OpenList[_OpenSize].State, &_Planner->Postconditions[_BestAction]);
+						WorldStateAdd(&_OpenList[_OpenSize].State, &_Planner->Actions[_BestAction].Postconditions);
 						++_OpenSize;
 					}
 				} else if(_OpenList[_OpenSize - 1].Action == _BestAction) {
 					++_OpenList[_OpenSize - 1].ActionCt;
-					WorldStateAdd(&_OpenList[_OpenSize - 1].State, &_Planner->Postconditions[_BestAction]);
+					WorldStateAdd(&_OpenList[_OpenSize - 1].State, &_Planner->Actions[_BestAction].Postconditions);
 				}
 			} while(WorldStateTruthAtom(&_OpenList[_OpenSize - 1].State, _End, _AtomIdx - 1) == 0);
 			WorldStateClearAtom(&_ItrState, _AtomIdx - 1);
@@ -296,7 +217,7 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 
 	if(_Node->Action < 0 && _Node->Action < _Planner->ActionCt)
 		return 1;
-	_Cont = _Planner->Action[_Node->Action](_Data);
+	_Cont = _Planner->Actions[_Node->Action].Action(_Data);
 	if(_Cont != 0)
 		WorldStateAdd(_State, &_Node->State);
 	return _Cont;
@@ -317,39 +238,6 @@ double AUtilityFunction(double _Num, int _Func) {
 	if((_Func & UTILITY_INVERSE) == UTILITY_INVERSE)
 		_Num = 1 - _Num;
 	return _Num;
-}
-
-void GoapAddUtility(struct GOAPPlanner* _Planner, const char* _Utility, AgentUtilityFunc _Callback, int _Func) {
-	if(_Planner->UtilityCt == UTILITYSZ)
-		return;
-	_Planner->Utilities[_Planner->UtilityCt] = _Callback;
-	_Planner->UtilityFunction[_Planner->UtilityCt] = _Func;
-	_Planner->UtilityNames[_Planner->UtilityCt] = _Utility;
-	++_Planner->UtilityCt;
-}
-
-void GoapBestUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState) {
-	struct WorldState _State;
-	int _Min = 0;
-	int _Max = 0;
-	double _Best = 0.0;
-	double _Utility = 0.0;
-
-	if(_Planner->UtilityCt < 1)
-		return;
-	WorldStateClear(&_State);
-	_Utility = _Planner->Utilities[0](_Agent, &_Min, &_Max, _BestState);
-	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[0]);
-	for(int i = 1; i < _Planner->UtilityCt; ++i) {
-		WorldStateClear(&_State);
-		_Utility = _Planner->Utilities[i](_Agent, &_Min, &_Max, &_State);
-		_Utility = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->UtilityFunction[i]);
-		if(_Utility > _Best) {
-			_Best =	_Utility;
-			WorldStateSetState(_BestState, &_State);
-		//	WorldStateCopy(_BestState, &_State);
-		}
-	}
 }
 
 void GoapBestGoalUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState) {

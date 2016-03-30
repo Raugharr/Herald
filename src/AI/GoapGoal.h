@@ -16,7 +16,7 @@ typedef double (*GoapGoalUtility)(const struct Agent*, int*, int*);
 
 struct GoapGoal {
 	const char* Name;
-	int Actions[GOAPGOAL_ACTIONS]; //Contains the index of the action.
+	struct GoapAction* Actions[GOAPGOAL_ACTIONS]; //Contains the index of the action.
 	int ActionCt;
 	struct WorldState GoalState;
 	GoapGoalUtility UtilityFunc;

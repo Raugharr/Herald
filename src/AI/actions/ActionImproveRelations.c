@@ -14,6 +14,7 @@
 
 #include "../Agent.h"
 #include "../goap.h"
+#include "../GoapAction.h"
 
 static int ActionCost(const struct Agent* _Agent) {
 	return 120;
@@ -21,12 +22,9 @@ static int ActionCost(const struct Agent* _Agent) {
 
 static int ActionFunction(struct Agent* _Agent) {
 	struct BigGuy* _Guy = _Agent->Agent;
-	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
-	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
-	struct BigGuy* _Person = NULL;
 
 	if(_Guy->ActionFunc == NULL) {
-		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Agent->Blackboard, NULL);
+		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Agent->Blackboard.Target, NULL);
 		return 1;
 	}
 	return 0;
@@ -60,9 +58,10 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 //	return _Friends;
 }
 
-void ActionImproveRelations(struct GOAPPlanner* _GoPlan) {
-	GoapAddPostcond(_GoPlan, "Improve Relations", "ImproveRelations", 1, WSOP_ADD);
-	GoapSetActionCost(_GoPlan, "Improve Relations", ActionCost);
-	GoapSetAction(_GoPlan, "Improve Relations", (AgentActionFunc) ActionFunction);
-	GoapAddUtility(_GoPlan, "ImrpoveRelations", (AgentUtilityFunc) ActionUtility, (UTILITY_INVERSE | UTILITY_LINEAR));
+void ActionImproveRelations(struct GOAPPlanner* _Planner, struct GoapAction* _Action){
+	GoapActionAddPrecond(_Action, _Planner, "ImproveRelations", 1, WSOP_ADD);
+	_Action->Cost = ActionCost;
+	_Action->Action = ActionFunction;
+	_Action->Utility = ActionUtility;
+	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_LINEAR);
 }

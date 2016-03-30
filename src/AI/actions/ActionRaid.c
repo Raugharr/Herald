@@ -14,6 +14,7 @@
 
 #include "../Agent.h"
 #include "../goap.h"
+#include "../GoapAction.h"
 
 static int ActionCost(const struct Agent* _Agent) {
 	return 1;
@@ -48,11 +49,12 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	WorldStateSetAtom(_State, BGBYTE_FYRDRAISED, 1);
 	return _Nutrition;
 }
-void ActionRaid(struct GOAPPlanner* _GoPlan) {
-	GoapAddPrecond(_GoPlan, "Raid", "FyrdRaised", 0, WSOP_EQUAL);
-	GoapAddPostcond(_GoPlan, "Raid", "FyrdRaised", 1, WSOP_SET);
-	GoapAddPostcond(_GoPlan, "Raid", "Prestige", 2, WSOP_ADD);
-	GoapSetActionCost(_GoPlan, "Raid", ActionCost);
-	GoapSetAction(_GoPlan, "Raid", (AgentActionFunc) ActionFunction);
-	GoapAddUtility(_GoPlan, "Raid", (AgentUtilityFunc) ActionUtility, (UTILITY_INVERSE | UTILITY_QUADRATIC));
+void ActionRaid(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
+	GoapActionAddPrecond(_Action, _Planner, "FyrdRaised", 0, WSOP_EQUAL);
+	GoapActionAddPostcond(_Action, _Planner, "FyrdRaised", 1, WSOP_SET);
+	GoapActionAddPostcond(_Action, _Planner, "Prestige", 2, WSOP_ADD);
+	_Action->Cost = ActionCost;
+	_Action->Action = ActionFunction;
+	_Action->Utility = ActionUtility;
+	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_QUADRATIC);
 }

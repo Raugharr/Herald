@@ -13,6 +13,7 @@
 
 #include "../Agent.h"
 #include "../goap.h"
+#include "../GoapAction.h"
 
 static int ActionCost(const struct Agent* _Agent) {
 	return 1;
@@ -41,12 +42,12 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	return (_Utility >= 255) ? (255) : (_Utility);
 }
 
-void ActionDuel(struct GOAPPlanner* _GoPlan) {
+void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	//Both of these should use the ImproveRelations action as a precond.
-	GoapAddPrecond(_GoPlan, "Challenge Leader", "SufficientEnemies", 1, WSOP_EQUAL);
-	GoapAddPrecond(_GoPlan, "Challenge Leader", "SufficientFriends", 1, WSOP_EQUAL);
-	GoapAddPostcond(_GoPlan, "Challenge Leader", "IsLeader", 1, WSOP_SET);
-	GoapSetActionCost(_GoPlan, "Challenge Leader", ActionCost);
-	GoapSetAction(_GoPlan, "Challenge Leader", (AgentActionFunc) ActionFunction);
-	GoapAddUtility(_GoPlan, "Challenge Leader", (AgentUtilityFunc)ActionUtility, UTILITY_LINEAR);
+	GoapActionAddPrecond(_Action, _Planner, "SufficientEnemies", 1, WSOP_EQUAL);
+	GoapActionAddPostcond(_Action, _Planner, "IsLeader", 1, WSOP_SET);
+	_Action->Cost = ActionCost;
+	_Action->Action = ActionFunction;
+	_Action->Utility = ActionUtility;
+	_Action->UtilityFunction = UTILITY_LINEAR;
 }

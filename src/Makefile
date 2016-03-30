@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS+= -Wall -std=c99 -pg -ggdb
+#CFLAGS+= -Wall -std=c99 -pg -ggdb
 OBJFLD=obj/
 DEPS=Herald.h Building.h Crop.h Family.h Good.h Person.h Population.h World.h Actor.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
 WorldState.h Date.h Feud.h Profession.h Trait.h Bulitin.h

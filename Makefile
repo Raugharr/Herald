@@ -5,14 +5,15 @@ TEST=test/
 
 DEBUG ?=1
 ifeq ($(DEBUG), 1)
-	export CFLAGS := -DDEBUG -ggdb
+	export CFLAGS := -Wall -std=c99 -DDEBUG -ggdb -pg
 else
-	export CFLAGS := -DNDEBUG
+	export CFLAGS := -Wall -std=c99 -DNDEBUG
 endif
+export CC := gcc 
 
 all:
 	$(MAKE) -C $(SRC)
-	$(MAKE) -C $(TEST)
+	#$(MAKE) -C $(TEST)
 
 test:
 	$(MAKE) -C $(TEST)

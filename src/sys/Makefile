@@ -1,5 +1,5 @@
-CC=gcc
-CFLAGS+=-Wall -std=c99 -pg -ggdb
+#CC=gcc
+#CFLAGS+=-Wall -std=c99 -pg -ggdb
 OBJFLD=../obj/
 DEPS = Math.h MemoryPool.h HashTable.h LinkedList.h Queue.h Array.h RBTree.h Constraint.h Stack.h \
 Log.h Event.h BinaryHeap.h TaskPool.h Trie.h Rule.h LuaCore.h StackAllocator.h ResourceManager.h  GenIterator.h Coroutine.h

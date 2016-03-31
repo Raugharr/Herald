@@ -38,11 +38,13 @@ void AgentThink(struct Agent* _Agent) {
 	if(_Agent->Blackboard.ShouldReplan == 1) {
 		AgentPlan(&g_Goap, _Agent);
 	}
-	if(GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->Agent->State, _Agent->Agent) == 1) {
-		++_Agent->PlanIdx;
-		if(_Agent->PlanIdx >= _Agent->PlanSz) {
-			_Agent->PlanIdx = AGENT_NOPLAN;
-			_Agent->PlanSz = AGENT_PLANSZ;
+	if(GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->Agent->State, _Agent) == 1) {
+		if(g_Goap.Actions[GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx])].IsComplete(_Agent) != 0) {
+			++_Agent->PlanIdx;
+			if(_Agent->PlanIdx >= _Agent->PlanSz) {
+				_Agent->PlanIdx = AGENT_NOPLAN;
+				_Agent->PlanSz = AGENT_PLANSZ;
+			}
 		}
 	} else {
 		_Agent->Blackboard.ShouldReplan = 1;

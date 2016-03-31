@@ -13,6 +13,7 @@ void InitGoapGoal(struct GoapGoal* _Goal) {
 	_Goal->Name = NULL;
 	_Goal->ActionCt = 0;
 	_Goal->UtilityFunc = NULL;
+	_Goal->Setup = NULL;
 }
 
 int GoapGoalAddAction(struct GoapGoal* _Goal, struct GOAPPlanner* _Planner, const char* _Action) {

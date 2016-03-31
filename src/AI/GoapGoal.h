@@ -12,7 +12,9 @@
 	
 struct Agent; 
 struct GOAPPlanner;
+
 typedef double (*GoapGoalUtility)(const struct Agent*, int*, int*);
+typedef void (*GoapGoalSetup)(struct Agent*);
 
 struct GoapGoal {
 	const char* Name;
@@ -20,6 +22,7 @@ struct GoapGoal {
 	int ActionCt;
 	struct WorldState GoalState;
 	GoapGoalUtility UtilityFunc;
+	GoapGoalSetup Setup;
 	int Utility;
 };
 

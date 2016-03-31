@@ -30,10 +30,15 @@ double GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _M
 	return _Owner->Stats.Warfare;	  
 }
 
+void GoalChallangeLeaderSetup(struct Agent* _Agent) {
+	_Agent->Blackboard.Target = FamilyGetSettlement(_Agent->Agent->Person->Family)->Government->Leader;
+}
+
 void GoalChallangeLeader(struct GOAPPlanner* _Planner, struct GoapGoal* _Goal) {
-	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
+//	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
 	GoapGoalAddAction(_Goal, _Planner, "Duel");	
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);
 	_Goal->Utility = UTILITY_QUADRATIC;
 	_Goal->UtilityFunc = GoalChallangeLeaderUtility;
+	_Goal->Setup = GoalChallangeLeaderSetup;
 }

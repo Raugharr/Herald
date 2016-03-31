@@ -36,8 +36,10 @@ void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, Age
 	GoapClear(_Planner);
 	for(int i = 0; i < _AtomSz; ++i)
 		GoapAddAtom(_Planner, _Atoms[i]);
-	for(int i = 0; _Actions[i] != NULL; ++i)
+	for(int i = 0; _Actions[i] != NULL; ++i) {
+		++_Planner->ActionCt;
 		_Actions[i](_Planner, &_Planner->Actions[i]);
+	}
 	for(int i = 0; i < GOAP_GOALSZ && _Goals[i] != NULL; ++i) {
 		WorldStateClear(&_Planner->Goals[_Planner->GoalCt].GoalState);
 		_Goals[i](_Planner, &_Planner->Goals[_Planner->GoalCt]);

@@ -28,6 +28,9 @@
 #include "../Government.h"
 #include "../Warband.h"
 
+#include <string.h>
+#include <stdlib.h>
+
 struct LuaBhvAction g_BhvActions[] = {
 	{"BuildHouse", PAIBuildHouse, 0},
 	{"CanFarm", PAICanFarm, 0},

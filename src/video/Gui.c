@@ -64,20 +64,12 @@ struct Container* GUIZBot(void) {
 
 void GuiClear(lua_State* _State) {
 	struct Container* _Container = g_GuiZBuff.Top;
-	const char* _String = NULL;
 
 	while(g_GuiZBuff.Top != NULL) {
 		ILL_DESTROY(g_GuiZBuff.Top, _Container);
 		_Container->OnDestroy((struct Widget*) _Container, _State);
 		_Container = g_GuiZBuff.Top;	
 	}
-	/*free(StackPop(&g_GUIStack));
-	if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
-		g_VideoOk = 0;
-		return;
-	}
-	//GuiSetMenu(_String, _State);
-	*/
 	g_GuiZBuff.Bot = NULL;
 }
 
@@ -272,6 +264,7 @@ int MenuOnDraw(struct Container* _Container) {
 		if(_Widget->OnDraw(_Widget) == 0)
 			return 0;
 	}
+	return 1;
 }
 
 void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point) {
@@ -323,7 +316,7 @@ struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _
 struct Widget* MenuOnClick(struct Container* _Container, const SDL_Point* _Point) {
 	struct Widget* _Widget = ContainerOnClick(_Container, _Point);
 
-	return (_Widget != ((struct Container*)_Container)) ? (_Widget) : (NULL);
+	return (_Widget != ((struct Widget*)_Container)) ? (_Widget) : (NULL);
 }
 
 void ContainerOnDebug(const struct Container* _Container) {

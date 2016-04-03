@@ -64,4 +64,6 @@ void ActionImproveRelations(struct GOAPPlanner* _Planner, struct GoapAction* _Ac
 	_Action->Action = ActionFunction;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_LINEAR);
+	_Action->IsComplete = IsActionComplete;
+	GoapActionSetName(_Action, "Improve Relations");
 }

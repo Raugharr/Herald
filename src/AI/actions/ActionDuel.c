@@ -42,12 +42,18 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	return (_Utility >= 255) ? (255) : (_Utility);
 }
 
+static int ActionIsComplete(const struct Agent* _Agent) {
+	return 1;
+}
+
 void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	//Both of these should use the ImproveRelations action as a precond.
 	GoapActionAddPrecond(_Action, _Planner, "SufficientEnemies", 1, WSOP_EQUAL);
 	GoapActionAddPostcond(_Action, _Planner, "IsLeader", 1, WSOP_SET);
 	_Action->Cost = ActionCost;
 	_Action->Action = ActionFunction;
+	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_LINEAR;
+	GoapActionSetName(_Action, "Duel");
 }

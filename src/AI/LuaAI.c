@@ -22,6 +22,6 @@ const struct LuaObjectReg g_LuaAIObjects[] = {
 int LuaAgentGetAction(lua_State* _State) {
 	struct Agent* _Agent = LuaCheckClass(_State, 1, "Agent");
 
-	lua_pushinteger(_State, AgentGetAction(_Agent));
+	lua_pushinteger(_State, 0);//AgentGetAction(_Agent));
 	return 1;
 }

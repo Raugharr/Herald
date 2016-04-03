@@ -26,7 +26,8 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	_Agent->Agent = _Guy;
 	_Agent->PlanIdx = AGENT_NOPLAN;
 	_Agent->PlanSz = AGENT_PLANSZ;
-	_Agent->Plan[0] = NULL;
+	for(int i = 0; i < AGENT_PLANSZ; ++i)
+		_Agent->Plan[i] = NULL;
 	InitBlackboard(&_Agent->Blackboard);
 	return _Agent;
 }
@@ -38,8 +39,9 @@ void AgentThink(struct Agent* _Agent) {
 	if(_Agent->Blackboard.ShouldReplan == 1) {
 		AgentPlan(&g_Goap, _Agent);
 	}
-	if(GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->Agent->State, _Agent) == 1) {
-		if(g_Goap.Actions[GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx])].IsComplete(_Agent) != 0) {
+	if(_Agent->PlanIdx != -1 && GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->Agent->State, _Agent) == 1) {
+		const struct GoapAction* _Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
+		if(_Action != NULL && _Action->IsComplete(_Agent) != 0) {
 			++_Agent->PlanIdx;
 			if(_Agent->PlanIdx >= _Agent->PlanSz) {
 				_Agent->PlanIdx = AGENT_NOPLAN;
@@ -51,8 +53,8 @@ void AgentThink(struct Agent* _Agent) {
 	}
 }
 
-int AgentGetAction(const struct Agent* _Agent) {
+const struct GoapAction* AgentGetAction(const struct Agent* _Agent) {
 	if(_Agent->PlanIdx == AGENT_NOPLAN)
-		return AGENT_NOPLAN;
+		return NULL;
 	return GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
 }

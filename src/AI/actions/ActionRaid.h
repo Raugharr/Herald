@@ -5,8 +5,8 @@
 
 #ifndef __ACTIONRAID_H
 #define __ACTIONRAID_H
-struct GOAPPlanner;
 struct GoapAction;
+struct GOAPPlanner;
 
 void ActionRaid(struct GOAPPlanner* _Planner, struct GoapAction* _Action);
 #endif

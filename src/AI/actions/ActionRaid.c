@@ -57,4 +57,5 @@ void ActionRaid(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	_Action->Action = ActionFunction;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_QUADRATIC);
+	GoapActionSetName(_Action, "Raid");
 }

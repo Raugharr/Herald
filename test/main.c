@@ -3,13 +3,84 @@
  * File: main.c
  */
 
+#include "GoapTest.h"
+
 #include "../src/sys/LuaCore.h"
 #include "../src/Date.h"
+#include "../src/sys/LinkedList.h"
 
 #include <lua/lualib.h>
 #include <lua/lauxlib.h>
 #include <stdlib.h>
 #include <check.h>
+
+START_TEST(LinkedListPushBackTest) {
+	struct LinkedList _List =  {0};
+	int _Tbl[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+	LnkLstPushBack(&_List, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
+	LnkLstPushBack(&_List, &_Tbl[1]);
+	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[1]);
+	LnkLstPushBack(&_List, &_Tbl[2]);
+	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[2]);
+}
+END_TEST
+
+START_TEST(LinkedListPushFrontTest) {
+	struct LinkedList _List = {0};
+	int _Tbl[] = {0, 1, 2};
+
+	LnkLstPushFront(&_List, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
+	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
+	LnkLstPushFront(&_List, &_Tbl[1]);
+	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[1]);
+	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
+}
+END_TEST
+
+START_TEST(LinkedListPopFrontTest) {
+	struct LinkedList _List = {0};
+	int _Tbl[] = {0, 1, 2};
+
+	LnkLstPushFront(&_List, &_Tbl[0]);
+	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[0]);
+	ck_assert_int_eq(_List.Size, 0);
+	ck_assert_ptr_eq(_List.Front, NULL);
+	ck_assert_ptr_eq(_List.Back, NULL);
+	LnkLstPushBack(&_List, &_Tbl[1]);
+	LnkLstPushBack(&_List, &_Tbl[2]);
+	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[1]);
+	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[2]);
+	ck_assert_int_eq(_List.Size, 0);
+	ck_assert_ptr_eq(_List.Front, NULL);
+	ck_assert_ptr_eq(_List.Back, NULL);
+}
+END_TEST
+
+START_TEST(LinkedListPopBackTest) {
+	struct LinkedList _List = {0};
+	int _Tbl[] = {0, 1, 2};
+
+	LnkLstPushBack(&_List, &_Tbl[0]);
+	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[0]);
+	ck_assert_int_eq(_List.Size, 0);
+	ck_assert_ptr_eq(_List.Front, NULL);
+	ck_assert_ptr_eq(_List.Back, NULL);
+	LnkLstPushBack(&_List, &_Tbl[1]);
+	LnkLstPushBack(&_List, &_Tbl[2]);
+	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[2]);
+	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[1]);
+	ck_assert_int_eq(_List.Size, 0);
+	ck_assert_ptr_eq(_List.Front, NULL);
+	ck_assert_ptr_eq(_List.Back, NULL);
+
+}
+END_TEST
 
 START_TEST(DateAddIntBaseTest) {
 	DATE _Date = 0;
@@ -89,6 +160,18 @@ Suite* CoreSuite(void) {
 	return _Suite;
 }
 
+Suite* LinkedListSuite(void) {
+	Suite* _Suite = suite_create("LinkedList");
+	TCase* _PushBack = tcase_create("PushBack");
+
+	tcase_add_test(_PushBack, LinkedListPushBackTest);
+	tcase_add_test(_PushBack, LinkedListPushFrontTest);
+	tcase_add_test(_PushBack, LinkedListPopFrontTest);
+	tcase_add_test(_PushBack, LinkedListPopBackTest);
+	suite_add_tcase(_Suite, _PushBack);
+	return _Suite;
+}
+
 Suite* LuaSuite(void) {
 	Suite* _Suite = suite_create("Lua");
 	TCase* _Case = tcase_create("Core");
@@ -101,9 +184,12 @@ Suite* LuaSuite(void) {
 
 int main(void) {
 	Suite* _Suite = CoreSuite();
-	SRunner* _Runner = srunner_create(_Suite);
+	SRunner* _Runner = NULL;	
 	int _FailedCt = 0;
 
+	_Runner = srunner_create(_Suite);
+	srunner_add_suite(_Runner, LinkedListSuite());
+	srunner_add_suite(_Runner, GoapSuite());
 	srunner_run_all(_Runner, CK_NORMAL);
 	_FailedCt = srunner_ntests_failed(_Runner);
 	srunner_free(_Runner);

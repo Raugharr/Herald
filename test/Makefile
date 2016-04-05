@@ -1,9 +1,9 @@
 CC=gcc
-CFLAGS+= -Wall -std=c99 -pg -ggdb -fprofile-arcs -ftest-coverage
+CFLAGS+=-Wall -std=c99 -pg -ggdb -fprofile-arcs -ftest-coverage
 OBJFLD=obj/
 SRCOBJFLD=../src/obj/
-DEPS=
-OBJ=$(SRCOBJFLD)*
+DEPS=GoapTest.h
+OBJ=$(SRCOBJFLD)* GoapTest.o
 LIB=-lm -lcheck -lpthread -lrt -llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
 NAME=herald-test
 

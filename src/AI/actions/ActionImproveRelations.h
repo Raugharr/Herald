@@ -5,8 +5,8 @@
 
 #ifndef __ACTIONIMRPOVERELATIONS_H
 #define __ACTIONIMRPOVERELATIONS_H
-struct GOAPPlanner;
 struct GoapAction;
+struct GOAPPlanner;
 
 void ActionImproveRelations(struct GOAPPlanner* _Planner, struct GoapAction* _Action);
 #endif

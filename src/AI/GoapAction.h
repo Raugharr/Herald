@@ -28,8 +28,9 @@ struct GoapAction {
 	GoapActionComplete IsComplete;
 };
 
-void GoapActionAddPrecond(struct GoapAction* _Action, struct GOAPPlanner* _Planner, const char* _Atom, int _Value, int _OpCode); 
-void GoapActionAddPostcond(struct GoapAction* _Action, struct GOAPPlanner* _Planner, const char* _Atom, int _Value, int _OpCode); 
+void GoapActionSetName(struct GoapAction* _Action, const char* _Name);
+void GoapActionAddPrecond(struct GoapAction* _Action, struct GOAPPlanner* _Planner, const char* _Atom, int _Value, int _OpCode);
+void GoapActionAddPostcond(struct GoapAction* _Action, struct GOAPPlanner* _Planner, const char* _Atom, int _Value, int _OpCode);
 void GoapActionClear(struct GoapAction* _Action);
 
 #endif

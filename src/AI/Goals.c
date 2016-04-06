@@ -34,9 +34,9 @@ void GoalChallangeLeaderSetup(struct Agent* _Agent) {
 	_Agent->Blackboard.Target = FamilyGetSettlement(_Agent->Agent->Person->Family)->Government->Leader;
 }
 
-void GoalChallangeLeader(struct GOAPPlanner* _Planner, struct GoapGoal* _Goal) {
+void GoalChallangeLeader(struct GoapGoal* _Goal) {
 //	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
-	GoapGoalAddAction(_Goal, _Planner, "Duel");	
+	GoapGoalAddAction(_Goal, "Duel");
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);
 	_Goal->Utility = UTILITY_QUADRATIC;
 	_Goal->UtilityFunc = GoalChallangeLeaderUtility;

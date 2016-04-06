@@ -33,6 +33,6 @@ struct Agent* CreateAgent(struct BigGuy* _Guy);
 void DestroyAgent(struct Agent* _Agent);
 
 void AgentThink(struct Agent* _Agent);
-int AgentGetAction(const struct Agent* _Agent);
+const struct GoapAction* AgentGetAction(const struct Agent* _Agent);
 
 #endif

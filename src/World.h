@@ -80,6 +80,7 @@ struct GameWorld {
 	struct RBTree BigGuyStates;
 	struct RBTree Agents;
 	struct RBTree Crisis;
+	struct RBTree ActionHistory;
 	struct LinkedList MissionData;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;

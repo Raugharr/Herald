@@ -132,6 +132,16 @@ struct BigGuyAction {
 	void* Data;
 };
 
+/**
+ * Note: Owner and ActionType are declared first to allow an incomplete BigGuyActionHist to 
+ * search for a BigGuyActionHist.
+ */
+struct BigGuyActionHist {
+	struct BigGuy* Owner;
+	int ActionType;
+	DATE DayDone;
+};
+
 struct BigGuy {
 	int Id;
 	int Type;
@@ -160,6 +170,10 @@ struct Crisis {
 	int TriggerMask;
 	struct BigGuy* Guy;
 };
+
+struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action);
+void DestroyBGActionHist(struct BigGuyActionHist* _Hist);
+int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two);
 
 struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy);
 void DestroyCrisis(struct Crisis* _Crisis);

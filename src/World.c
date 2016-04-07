@@ -71,6 +71,7 @@ struct GameWorld g_GameWorld = {
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
+		{NULL, 0, NULL, NULL},
 		{0, NULL, NULL},
 		NULL,
 		NULL
@@ -303,6 +304,11 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->Crisis.Size = 0;
 	_GameWorld->Crisis.ICallback = (int(*)(const void*, const void*))CrisisSearch;
 	_GameWorld->Crisis.SCallback = (int(*)(const void*, const void*))CrisisInsert;
+
+	_GameWorld->ActionHistory.Table = NULL;
+	_GameWorld->ActionHistory.Size = 0;
+	_GameWorld->ActionHistory.ICallback = (RBCallback) BigGuyActionHistIS;
+	_GameWorld->ActionHistory.SCallback = (RBCallback) BigGuyActionHistIS;
 
 	_GameWorld->MissionData.Size = 0;
 	_GameWorld->MissionData.Front = NULL;

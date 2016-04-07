@@ -86,6 +86,27 @@ struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int 
 	return _Opinion;
 }
 
+struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action) {
+	struct BigGuyActionHist* _Hist = (struct BigGuyActionHist*) malloc(sizeof(struct BigGuyActionHist));
+
+	_Hist->Owner = _Owner;
+	_Hist->ActionType = _Action;
+	_Hist->DayDone = g_GameWorld.Date;
+	return _Hist;
+}
+
+int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two) {
+	int _Diff = _One->Owner - _Two->Owner;
+	
+	if(_Diff != 0)
+		return _Diff;
+	return _One->ActionType - _Two->ActionType;
+}
+
+void DestroyBGActionHist(struct BigGuyActionHist* _Hist) {
+	free(_Hist);
+}
+
 struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy) {
 	struct Crisis* _Crisis = NULL;
 	struct BigGuy* _Ruler = _Guy->Person->Family->HomeLoc->Government->Leader;
@@ -374,12 +395,15 @@ void BGSetPrestige(struct BigGuy* _Guy, float _Prestige) {
 }
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data) {
+	struct RBNode* _Node = NULL;
+	struct BigGuyActionHist* _Hist = NULL;
+	struct BigGuyActionHist _Search = {_Guy, _Action, 0};
+
 	_Guy->Action.Target = _Target;
 	_Guy->Action.Data = _Data;
 	_Guy->Action.Type = _Action;
 	EventHookRemove(EventUserOffset() + EVENT_DEATH, _Guy, _Target->Person, NULL);
 	EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Guy, _Target->Person, NULL);
-
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
 		_Guy->ActionFunc = BigGuyActionImproveRel;
@@ -402,6 +426,12 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	default:
 		_Guy->ActionFunc = NULL;
 		return;
+	}
+	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
+		_Hist = (struct BigGuyActionHist*) _Node->Data;
+		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) < 30) {
+			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
+		}
 	}
 }
 

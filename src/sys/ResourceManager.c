@@ -183,6 +183,7 @@ struct FileTableEntry* CreateFileTableEntryBuff(const char* _Buffer) {
 	int _Index = 0;
 	struct FileTableEntry* _Entry = (struct FileTableEntry*) malloc(sizeof(struct FileTableEntry));
 
+	memset(_Entry->Filename, 0, sizeof(_Entry->Filename));
 	for(int i = 0; i < FILETABLE_NAMESIZE; i++) {
 		_Entry->Filename[i] = READ(_Buffer, _Index, sizeof(char));
 	}
@@ -196,6 +197,7 @@ struct FileTableEntry* CreateFileTableEntryBuff(const char* _Buffer) {
 struct FileTableEntry* CreateFileTableEntry(const char* _Name, Uint16 _FileSize) {
 	struct FileTableEntry* _FileTable = (struct FileTableEntry*) malloc(sizeof(struct FileTableEntry));
 
+	memset(_FileTable->Filename, 0, sizeof(_FileTable->Filename));
 	for(int i = 0; i < FILETABLE_NAMESIZE; i++)
 		_FileTable->Filename[i] = _Name[i];
 	if(((struct Folder*)_FileTable)->IsFile == 0)
@@ -262,6 +264,7 @@ struct FileTableEntry* NextFile(DIR* _Dir) {
 
 		if(S_ISDIR(_Stat.st_mode)) {
 			struct Folder* _Folder = (struct Folder*) malloc(sizeof(struct Folder));
+			memset(_Folder->Filename, 0, sizeof(_Folder->Filename));
 			for(int i = 0; i < FILETABLE_NAMESIZE; i++)
 				_Folder->Filename[i] = _Dirent->d_name[i];
 			_Folder->FileCt = 0;
@@ -423,6 +426,8 @@ void CreatePak(const char* _DirName) {
 	 */
 	_Header.Version = PAK_VERSION;
 	_Header.FlTblCt = _Ct;
+	memset(_Header.Sig, 0, sizeof(_Header.Version)); 
+	memset(_Header.Name, 0, sizeof(_Header.Name));
 	_Header.Sig[0] = '\0';
 	strcpy(_Header.Sig, PAK_SIG);
 	strcat(_PakName, _DirName);
@@ -438,7 +443,7 @@ void CreatePak(const char* _DirName) {
 		Log(ELOG_ERROR, FILE_ERROR, _Header.Name, strerror(errno));
 		goto end;
 	}
-	if((_Error = write(_OutFile, (char*)&_Header, sizeof(struct FileTableHeader))) != sizeof(struct FileTableHeader)) {
+	if((_Error = write(_OutFile, &_Header, sizeof(struct FileTableHeader))) != sizeof(struct FileTableHeader)) {
 		Log(ELOG_ERROR, FILE_ERROR, _Header.Name, strerror(errno));
 		goto end;
 	}

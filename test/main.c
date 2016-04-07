@@ -8,6 +8,7 @@
 #include "../src/sys/LuaCore.h"
 #include "../src/Date.h"
 #include "../src/sys/LinkedList.h"
+#include "../src/sys/HashTable.h"
 
 #include <lua/lualib.h>
 #include <lua/lauxlib.h>
@@ -79,6 +80,19 @@ START_TEST(LinkedListPopBackTest) {
 	ck_assert_ptr_eq(_List.Front, NULL);
 	ck_assert_ptr_eq(_List.Back, NULL);
 
+}
+END_TEST
+
+START_TEST(HashTableInsertTest) {
+	struct HashTable _Table = {NULL, 0, 0};
+	int _Data = 5;
+
+	_Table.Table = calloc(sizeof(struct HashNode*), 20);
+	//Should not add a element add not crash the test.
+	HashInsert(&_Table, "Hello", &_Data);
+	_Table.TblSize = 20;
+	HashInsert(&_Table, "Hello", &_Data);
+	ck_assert_ptr_eq(HashSearch(&_Table, "Hello"), &_Data);
 }
 END_TEST
 
@@ -160,15 +174,19 @@ Suite* CoreSuite(void) {
 	return _Suite;
 }
 
-Suite* LinkedListSuite(void) {
-	Suite* _Suite = suite_create("LinkedList");
-	TCase* _PushBack = tcase_create("PushBack");
+Suite* DataStructureSuite(void) {
+	Suite* _Suite = suite_create("Data Structures");
+	TCase* _LinkedList = tcase_create("LinkedList");
+	TCase* _HashTable = tcase_create("HashTable");
 
-	tcase_add_test(_PushBack, LinkedListPushBackTest);
-	tcase_add_test(_PushBack, LinkedListPushFrontTest);
-	tcase_add_test(_PushBack, LinkedListPopFrontTest);
-	tcase_add_test(_PushBack, LinkedListPopBackTest);
-	suite_add_tcase(_Suite, _PushBack);
+	tcase_add_test(_LinkedList, LinkedListPushBackTest);
+	tcase_add_test(_LinkedList, LinkedListPushFrontTest);
+	tcase_add_test(_LinkedList, LinkedListPopFrontTest);
+	tcase_add_test(_LinkedList, LinkedListPopBackTest);
+
+	tcase_add_test(_HashTable, HashTableInsertTest);
+	suite_add_tcase(_Suite, _LinkedList);
+	suite_add_tcase(_Suite, _HashTable);
 	return _Suite;
 }
 
@@ -188,7 +206,7 @@ int main(void) {
 	int _FailedCt = 0;
 
 	_Runner = srunner_create(_Suite);
-	srunner_add_suite(_Runner, LinkedListSuite());
+	srunner_add_suite(_Runner, DataStructureSuite());
 	srunner_add_suite(_Runner, GoapSuite());
 	srunner_run_all(_Runner, CK_NORMAL);
 	_FailedCt = srunner_ntests_failed(_Runner);

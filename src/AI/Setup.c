@@ -42,7 +42,8 @@ void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, Age
 	}
 	for(int i = 0; i < GOAP_GOALSZ && _Goals[i] != NULL; ++i) {
 		WorldStateClear(&_Planner->Goals[_Planner->GoalCt].GoalState);
-		_Goals[i](_Planner, &_Planner->Goals[_Planner->GoalCt]);
+		_Planner->Goals[_Planner->GoalCt].Planner = _Planner;
+		_Goals[i](&_Planner->Goals[_Planner->GoalCt]);
 		++_Planner->GoalCt;
 	}
 }

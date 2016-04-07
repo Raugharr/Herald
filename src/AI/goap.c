@@ -5,6 +5,8 @@
 
 #include "goap.h"
 
+#include "Blackboard.h"
+
 #include "../sys/Math.h"
 #include "../sys/MemoryPool.h"
 #include "../sys/Log.h"
@@ -40,7 +42,7 @@ void GoapClear(struct GOAPPlanner* _Planner) {
 	for(int i = 0; i < GOAP_ACTIONS; ++i)
 		GoapActionClear(&_Planner->Actions[i]);
 	for(int i = 0; i < GOAP_GOALSZ; ++i)
-		InitGoapGoal(&_Planner->Goals);
+		InitGoapGoal(&_Planner->Goals[i]);
 	_Planner->AtomCt = 0;
 	_Planner->ActionCt = 0;
 	_Planner->GoalCt = 0;
@@ -58,7 +60,6 @@ void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom) {
 		++_Planner->AtomCt;
 	}
 }
-
 
 void CtorGoapPathNode(struct GoapPathNode* _Node, const struct GoapPathNode* _Prev, const struct GoapAction* _Action, int g, int h) {
 	WorldStateClear(&_Node->State);
@@ -92,7 +93,7 @@ int GoapNodeInList(const struct GoapPathNode* _Node, struct GoapPathNode* _OpenL
 	return 0;
 }
 
-void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const void* _Data, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path) {
+void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const struct Agent* _Agent, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path) {
 	struct WorldState _CurrentState;
 	struct WorldState _ItrState;
 	struct GoapPathNode _OpenList[GOAP_OPENLIST];
@@ -102,7 +103,6 @@ void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _
 	int _BestOpen = 0;
 	int _BestOpenIdx = 0;
 	int _AtomIdx = 0;
-	const struct GoapAction* _BestAction = NULL;
 
 	//Setup _Current state to the state of _Start and to only care about what _End cares about.
 	WorldStateClear(&_CurrentState);
@@ -135,35 +135,31 @@ void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _
 			/*Choose the best action for (_AtomIdx - 1). If the best action does not satisfy the _End WorldState (_AtomIdx - 1) continue to get the best action
 			 * until the best action is different or the _End WorldState (_AtomIdx - 1) is satisfied.
 			*/
-			//do {
-				//if((_BestAction = GoapGoalBestAction(_Goal, _AtomIdx - 1, _Data, &_ClosedList[_ClosedSize])) == NULL)
-				//	break;
-				for(int i = 0; i < GOAP_ATOMOPS; ++i) {
-					int _Found = 0;
+			for(int i = 0; i < GOAP_ATOMOPS; ++i) {
+				int _Found = 0;
 
-					if(_Goal->AtomActions[_AtomIdx - 1][i] == -1)
+				if(_Goal->AtomActions[_AtomIdx - 1][i] == -1)
+					break;
+				for(int j = 0; j < _ClosedSize; ++j) {
+					if(_ClosedList[j].Action == _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]) {
+						_Found = 1;
 						break;
-					for(int j = 0; j < _ClosedSize; ++j) {
-						if(_ClosedList[j].Action == _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]) {
-							_Found = 1;
-							break;
-						}
-					}
-					for(int j = 0; j < _OpenSize; ++j) {
-						if(_OpenList[j].Action == _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]) {
-							_Found = 1;
-							break;
-						}
-					}
-					if(_Found == 0) {
-						CtorGoapPathNode(&_OpenList[_OpenSize], &_ClosedList[_ClosedSize - 1], _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]], _ClosedList[_ClosedSize - 1].g + 1, WorldStateDist(_End, &_CurrentState));
-						WorldStateClear(&_OpenList[_OpenSize].State);
-						WorldStateCare(&_OpenList[_OpenSize].State);
-						WorldStateAdd(&_OpenList[_OpenSize].State, &_Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]->Postconditions);
-						++_OpenSize;
 					}
 				}
-			//} while(WorldStateTruthAtom(&_OpenList[_OpenSize - 1].State, _End, _AtomIdx - 1) == 0);
+				for(int j = 0; j < _OpenSize; ++j) {
+					if(_OpenList[j].Action == _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]) {
+						_Found = 1;
+						break;
+					}
+				}
+				if(_Found == 0 && _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]->ProPrecondition(_Agent) != 0) {
+					CtorGoapPathNode(&_OpenList[_OpenSize], &_ClosedList[_ClosedSize - 1], _Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]], _ClosedList[_ClosedSize - 1].g + 1, WorldStateDist(_End, &_CurrentState));
+					WorldStateClear(&_OpenList[_OpenSize].State);
+					WorldStateCare(&_OpenList[_OpenSize].State);
+					WorldStateAdd(&_OpenList[_OpenSize].State, &_Goal->Actions[_Goal->AtomActions[_AtomIdx - 1][i]]->Postconditions);
+					++_OpenSize;
+				}
+			}
 			WorldStateClearAtom(&_ItrState, _AtomIdx - 1);
 			_AtomIdx = WorldStateFirstAtom(&_ItrState);
 		}
@@ -176,12 +172,12 @@ void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _
 	}
 }
 
-int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNode* _Node, struct WorldState* _State, void* _Data) {
+int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNode* _Node, struct WorldState* _State, struct Agent* _Agent) {
 	int _Cont = 0;
 
 	if(_Node == 0 || _Node->Action == NULL)
 		return 0;
-	_Cont = _Node->Action->Action(_Data);
+	_Cont = _Node->Action->Action(_Agent);
 	if(_Cont != 0)
 		WorldStateAdd(_State, &_Node->State);
 	return _Cont;
@@ -225,9 +221,6 @@ const struct GoapGoal* GoapBestGoalUtility(const struct GOAPPlanner* _Planner, c
 	}
 	WorldStateSetState(_BestState, &_Planner->Goals[_BestIdx].GoalState);
 	WorldStateSetDontCare(_BestState, &_Planner->Goals[_BestIdx].GoalState);
-	if(_BestState->State[0] == 1280) {
-		int a = 5;
-	}
 	return &_Planner->Goals[_BestIdx];
 }
 
@@ -239,6 +232,5 @@ void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Ag
 	if((_Goal = GoapBestGoalUtility(_Planner, _Agent, &_EndState)) == NULL)
 		return;
 	_Goal->Setup(_Agent);
-	//WorldStateAdd(&_EndState, _State);
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
 }

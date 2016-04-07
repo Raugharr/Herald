@@ -68,14 +68,14 @@ void RandGenNumbers() {
 	//g_SeedY = _Seed >> 16;
 }
 
- int min(int _One, int _Two) {
-	 return (_One <= _Two) ? (_One) : (_Two);
- }
+int min(int _One, int _Two) {
+	return (_One <= _Two) ? (_One) : (_Two);
+}
 
- int max(int _One, int _Two) {
+int max(int _One, int _Two) {
 	return (_One >= _Two) ? (_One) : (_Two);
- }
+}
 
- double Normalize(int _Num, int _Min, int _Max) {
+double Normalize(int _Num, int _Min, int _Max) {
 	return ((double)_Num) / (_Min + _Max);
- }
+}

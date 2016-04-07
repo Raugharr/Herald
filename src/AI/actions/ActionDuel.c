@@ -46,12 +46,20 @@ static int ActionIsComplete(const struct Agent* _Agent) {
 	return 1;
 }
 
+static int ActionPrecondition(const struct Agent* _Agent) {
+	struct BigGuyActionHist _Search = {_Agent->Agent, BGACT_DUEL, 0};
+
+	return (RBSearch(&g_GameWorld.ActionHistory, &_Search) == NULL) ? (1) : (0);
+}
+
 void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	//Both of these should use the ImproveRelations action as a precond.
 	GoapActionAddPrecond(_Action, _Planner, "SufficientEnemies", 1, WSOP_EQUAL);
 	GoapActionAddPostcond(_Action, _Planner, "IsLeader", 1, WSOP_SET);
+	_Action->Name = "Duel";
 	_Action->Cost = ActionCost;
 	_Action->Action = ActionFunction;
+	_Action->ProPrecondition = ActionPrecondition;
 	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_LINEAR;

@@ -9,6 +9,9 @@
 
 static inline void BlackboardWipe(struct Blackboard* _Blackboard) {
 	_Blackboard->Target = NULL;
+	_Blackboard->Item = NULL;
+	_Blackboard->Animal = NULL;
+	_Blackboard->Building = NULL;
 }
 
 void InitBlackboard(struct Blackboard* _Blackboard) {

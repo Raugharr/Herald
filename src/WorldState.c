@@ -21,7 +21,13 @@ void WorldStateClear(struct WorldState* _State) {
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		_State->State[i] = 0;
 		_State->DontCare[i] = -1;
-		_State->OpCode[i] = 0x0101010101010101;
+		_State->OpCode[i] = 0;
+		//_State->OpCode[i] = 0x0101010101010101;
+	}
+	for(int i = 0; i < WORLDSTATESZ; ++i) {
+		for(int j = 0; j < sizeof(WorldState_t); ++j) {
+			_State->OpCode[i] = _State->OpCode[i] | (WSOP_ADD << (sizeof(WorldState_t) * j * 2));
+		}
 	}
 }
 

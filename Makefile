@@ -7,13 +7,13 @@ DEBUG ?=1
 ifeq ($(DEBUG), 1)
 	export CFLAGS := -Wall -std=c99 -DDEBUG -ggdb -pg
 else
-	export CFLAGS := -Wall -std=c99 -DNDEBUG
+	export CFLAGS := -Wall -std=c99 -DNDEBUG -O3
 endif
 export CC := gcc 
 
 all:
 	$(MAKE) -C $(SRC)
-	#$(MAKE) -C $(TEST)
+	$(MAKE) -C $(TEST)
 
 test:
 	$(MAKE) -C $(TEST)

@@ -141,6 +141,8 @@ void* LnkLstPopFront(struct LinkedList* _List) {
 		_List->Front->Prev = NULL;
 	free(_Node);
 	--_List->Size;
+	if(_List->Size == 0)
+		_List->Back = NULL;
 	return _Data;
 }
 
@@ -151,10 +153,13 @@ void* LnkLstPopBack(struct LinkedList* _List) {
 	if(_Node == NULL)
 		return NULL;
 	_Data = _Node->Data;
+	if(_List->Front != _Node)
+		_List->Back->Next = NULL;
 	_List->Back = _Node->Prev;
-	_List->Back->Next = NULL;
 	free(_Node);
 	--_List->Size;
+	if(_List->Size == 0)
+		_List->Front = NULL;
 	return _Data;
 }
 

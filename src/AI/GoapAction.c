@@ -36,7 +36,9 @@ void GoapActionAddPostcond(struct GoapAction* _Action, struct GOAPPlanner* _Plan
 void GoapActionClear(struct GoapAction* _Action) {
 	_Action->Name = NULL;
 	WorldStateClear(&_Action->Postconditions);
+	_Action->ProPostcondition = NULL;
 	WorldStateClear(&_Action->Preconditions);
+	_Action->ProPrecondition = NULL;
 	_Action->Action = NULL;
 	_Action->Utility = NULL;
 	_Action->Cost = NULL;

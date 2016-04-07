@@ -83,7 +83,7 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 	int i;
 	struct HashNode* _Node = NULL;
 
-	if(_Key == NULL)
+	if(_Key == NULL || _Hash->TblSize <= _Hash->Size)
 		return;
 	_Str = (char*) calloc(strlen(_Key) + 1, sizeof(char));
 	_HashVal = Hash(_Key) % _Hash->TblSize;

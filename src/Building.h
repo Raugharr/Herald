@@ -7,7 +7,6 @@
 #define __BUILDING_H
 
 #include <SDL2/SDL.h>
-
 typedef struct lua_State lua_State;
 struct GoodBase;
 struct HashTable;

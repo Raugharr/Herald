@@ -6,9 +6,17 @@
 #define __BLACKBOARD_H
 
 struct BigGuy;
+struct Good;
+struct Animal;
+struct Building;
+struct Location;
 
 struct Blackboard {
 	struct BigGuy* Target;	
+	struct Good* Item;
+	struct Animal* Animal;
+	struct Building* Building;
+	struct Location* Location;
 	int ShouldReplan;
 };
 

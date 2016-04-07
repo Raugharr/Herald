@@ -55,11 +55,10 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	}
 	WorldStateSetAtom(_State, BGBYTE_IMPROVINGRELATION, 1);
 	return *_Max;
-//	return _Friends;
 }
 
 void ActionImproveRelations(struct GOAPPlanner* _Planner, struct GoapAction* _Action){
-	GoapActionAddPrecond(_Action, _Planner, "ImproveRelations", 1, WSOP_ADD);
+	GoapActionAddPostcond(_Action, _Planner, "ImproveRelations", 1, WSOP_ADD);
 	_Action->Cost = ActionCost;
 	_Action->Action = ActionFunction;
 	_Action->Utility = ActionUtility;

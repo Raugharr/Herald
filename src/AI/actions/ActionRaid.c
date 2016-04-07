@@ -49,6 +49,7 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	WorldStateSetAtom(_State, BGBYTE_FYRDRAISED, 1);
 	return _Nutrition;
 }
+
 void ActionRaid(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	GoapActionAddPrecond(_Action, _Planner, "FyrdRaised", 0, WSOP_EQUAL);
 	GoapActionAddPostcond(_Action, _Planner, "FyrdRaised", 1, WSOP_SET);

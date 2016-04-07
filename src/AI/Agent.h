@@ -17,6 +17,16 @@
 
 struct BigGuy;
 struct GoapPathNode;
+struct Agent;
+struct AgentSensor;
+
+typedef void (*AgentSensorCall)(struct AgentSensor*, struct Agent*);
+
+struct AgentSensor {
+	AgentSensorCall Update;
+	int TickTime; //How much time is left before this sensor updates.
+	int TickMax; //interval of this sensor.
+};
 
 struct Agent {
 	struct BigGuy* Agent;
@@ -24,6 +34,7 @@ struct Agent {
 	int PlanSz;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
 	struct Blackboard Blackboard;
+	struct AgentSensor Sensors[16];
 };
 
 int AgentICallback(const struct Agent* _One, const struct Agent* _Two);

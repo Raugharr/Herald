@@ -334,6 +334,8 @@ int CropListAdd(struct LinkedList* _CropList, struct Family* _Family, struct Cro
 	struct InputReq* _CropInput = (struct InputReq*) malloc(sizeof(struct InputReq));
 	struct InputReq* _CropSearch = NULL;
 
+	_CropInput->Req = NULL;
+	_CropInput->Quantity = 0;
 	for(int i = 0; i < _Family->Goods->Size; ++i) {
 		if(((struct Good*)_Family->Goods->Table[i])->Base->Id == _CropGood->Id) {
 			_CropInput->Req = _Crop;

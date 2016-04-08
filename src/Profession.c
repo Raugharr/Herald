@@ -117,7 +117,7 @@ struct Profession* LoadProfession(lua_State* _State, int _Index) {
 	lua_pop(_State, 1);
 	_GoodSize = _List.Size;
 	_GoodList = alloca(sizeof(const struct GoodBase*) * (_GoodSize + 1));
-	for(int i = 0; i < _List.Size; ++i) {
+	for(int i = 0; i < _GoodSize; ++i) {
 		_GoodList[i] = _List.Front->Data;
 		LnkLstPopFront(&_List);
 	}

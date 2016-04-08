@@ -87,16 +87,14 @@ void EventQuit() {
 void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2) {
 	struct EventObserver* _Obs = NULL;
 	struct EventObserver* _New = NULL;
+	struct RBNode* _Node = NULL;
 
 	SDL_assert(_EventType >= 0 && _EventType < EVENT_SIZE);
 	//SDL_assert(_EventType < g_EventTypes[0] || _EventType > g_EventTypes[EVENT_SIZE]);
 	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
-	if((_Obs = RBSearch(g_EventHooks[_EventType], &_Data1)) != NULL) {
-		struct EventObserver* _Temp = _Obs;
-
-		while(_Temp->Next != NULL)
-			_Temp = _Temp->Next;
-		_Temp->Next = _New;
+	if((_Node = RBSearchNode(g_EventHooks[_EventType], &_Data1)) != NULL) {
+		_New->Next = (struct EventObserver*) _Node->Data;
+		_Node->Data = _New->Next;
 	} else {
 		RBInsert(g_EventHooks[_EventType], _New);
 	}

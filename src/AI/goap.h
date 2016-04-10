@@ -37,6 +37,7 @@ struct GOAPPlanner {
 	struct GoapAction Actions[GOAP_ACTIONS];
 	int ActionCt;
 	struct GoapGoal Goals[GOAP_GOALSZ];
+	struct GoapGoalSet** GoalSets;
 	int GoalCt;
 };
 
@@ -58,6 +59,7 @@ void GoapClear(struct GOAPPlanner* _Planner);
 void GoapAddAtom(struct GOAPPlanner* _Planner, const char* _Atom);
 int GoapGetActionIndex(struct GOAPPlanner* _Planner, const char* _Action);
 struct GoapAction* GoapGetAction(struct GOAPPlanner* _Planner, const char* _Action);
+struct GoapGoal* GoapGetGoal(struct GOAPPlanner* _Planner, const char* _Name);
 
 /**
  * Generates a plan based on the possible actions available in _Planner to transition from the WorldState _Start to the WorldState _End.
@@ -70,6 +72,6 @@ const struct GoapAction* GoapPathGetAction(const struct GoapPathNode* _Node);
 /**
  * Returns the goal that has the best utility.
  */
-const struct GoapGoal* GoapBestGoalUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState);
+const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _GoalSet, const struct Agent* _Agent, struct WorldState* _BestState);
 void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
 #endif

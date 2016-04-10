@@ -38,6 +38,7 @@ void GoalChallangeLeader(struct GoapGoal* _Goal) {
 //	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
 	GoapGoalAddAction(_Goal, "Duel");
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);
+	_Goal->Name = "Challange Leader";
 	_Goal->Utility = UTILITY_QUADRATIC;
 	_Goal->UtilityFunc = GoalChallangeLeaderUtility;
 	_Goal->Setup = GoalChallangeLeaderSetup;

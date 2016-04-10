@@ -28,6 +28,7 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	_Agent->PlanSz = AGENT_PLANSZ;
 	for(int i = 0; i < AGENT_PLANSZ; ++i)
 		_Agent->Plan[i] = NULL;
+	_Agent->GoalSet = g_Goap.GoalSets[_Guy->Motivation];
 	InitBlackboard(&_Agent->Blackboard);
 	return _Agent;
 }

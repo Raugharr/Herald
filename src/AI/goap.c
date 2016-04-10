@@ -6,6 +6,7 @@
 #include "goap.h"
 
 #include "Blackboard.h"
+#include "Agent.h"
 
 #include "../sys/Math.h"
 #include "../sys/MemoryPool.h"
@@ -34,6 +35,14 @@ struct GoapAction* GoapGetAction(struct GOAPPlanner* _Planner, const char* _Acti
 	for(int i = 0; i < _Planner->ActionCt; ++i) {
 		if(strcmp(_Planner->Actions[i].Name, _Action) == 0)
 			return &_Planner->Actions[i];
+	}
+	return NULL;
+}
+
+struct GoapGoal* GoapGetGoal(struct GOAPPlanner* _Planner, const char* _Name) {
+	for(int i = 0; i < _Planner->GoalCt; ++i) {
+		if(strcmp(_Name, _Planner->Goals[i].Name) == 0)
+			return &_Planner->Goals[i];
 	}
 	return NULL;
 }
@@ -200,37 +209,37 @@ double AUtilityFunction(double _Num, int _Func) {
 	return _Num;
 }
 
-const struct GoapGoal* GoapBestGoalUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _BestState) {
+const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _GoalSet, const struct Agent* _Agent, struct WorldState* _BestState) {
 	int _Min = 0;
 	int _Max = 0;
 	int _BestIdx = 0;
 	double _Best = 0.0;
 	double _Utility = 0.0;
 
-	if(_Planner->GoalCt < 1)
+	if(_GoalSet == NULL)
 		return NULL;
-	_Utility = _Planner->Goals[0].UtilityFunc(_Agent, &_Min, &_Max);
-	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->Goals[0].Utility);
-	for(int i = 1; i < _Planner->GoalCt; ++i) {
-		_Utility = _Planner->Goals[i].UtilityFunc(_Agent, &_Min, &_Max);
-		_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _Planner->Goals[i].Utility);
-		if(_Utility > _Best) {
-			_Best = _Utility;
-			_BestIdx = i;
+	_Utility = _GoalSet->Goals[0]->UtilityFunc(_Agent, &_Min, &_Max);
+	_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _GoalSet->Goals[0]->Utility);
+		for(int i = 1; _GoalSet->Goals[i] != NULL; ++i) {
+			_Utility = _GoalSet->Goals[i]->UtilityFunc(_Agent, &_Min, &_Max);
+			_Best = AUtilityFunction(Normalize(_Utility, _Min, _Max), _GoalSet->Goals[i]->Utility);
+			if(_Utility > _Best) {
+				_Best = _Utility;
+				_BestIdx = i;
+			}
 		}
+		WorldStateSetState(_BestState, &_GoalSet->Goals[_BestIdx]->GoalState);
+		WorldStateSetDontCare(_BestState, &_GoalSet->Goals[_BestIdx]->GoalState);
+		return _GoalSet->Goals[_BestIdx];
 	}
-	WorldStateSetState(_BestState, &_Planner->Goals[_BestIdx].GoalState);
-	WorldStateSetDontCare(_BestState, &_Planner->Goals[_BestIdx].GoalState);
-	return &_Planner->Goals[_BestIdx];
-}
 
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
-	struct WorldState _EndState;
-	const struct GoapGoal* _Goal = NULL;
+	void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
+		struct WorldState _EndState;
+		const struct GoapGoal* _Goal = NULL;
 
-	WorldStateClear(&_EndState);
-	if((_Goal = GoapBestGoalUtility(_Planner, _Agent, &_EndState)) == NULL)
-		return;
-	_Goal->Setup(_Agent);
-	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
-}
+		WorldStateClear(&_EndState);
+		if((_Goal = GoapBestGoalUtility(_Agent->GoalSet, _Agent, &_EndState)) == NULL)
+			return;
+		_Goal->Setup(_Agent);
+		GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
+	}

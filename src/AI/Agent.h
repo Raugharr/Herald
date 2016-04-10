@@ -32,6 +32,7 @@ struct Agent {
 	struct BigGuy* Agent;
 	int PlanIdx; //The current plan we are impelenting -1 if none.
 	int PlanSz;
+	const struct GoapGoalSet* GoalSet;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
 	struct Blackboard Blackboard;
 	struct AgentSensor Sensors[16];

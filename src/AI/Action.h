@@ -8,6 +8,7 @@
 
 #include "goap.h"
 #include "Goals.h"
+#include "GoapGoal.h"
 
 #include "actions/ActionImproveRelations.h"
 #include "actions/ActionRaid.h"
@@ -22,6 +23,17 @@ static AgentActions g_GOAPActionList = {
 
 static AgentGoals g_GOAPGoalList = {
 	GoalChallangeLeader,
+	NULL
+};
+
+const char* g_GoalSetOverthrow[] = {
+	"Overthrow Ruler",
+	"Challange Leader",
+	NULL
+};
+
+const char** g_GoapGoalSetList[] = {
+	g_GoalSetOverthrow,
 	NULL
 };
 #endif

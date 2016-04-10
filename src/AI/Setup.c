@@ -33,6 +33,8 @@
 struct GOAPPlanner g_Goap;
 
 void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, AgentActions _Actions, AgentGoals _Goals) {
+	int _GoalSetSize = 0;
+
 	GoapClear(_Planner);
 	for(int i = 0; i < _AtomSz; ++i)
 		GoapAddAtom(_Planner, _Atoms[i]);
@@ -46,6 +48,22 @@ void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, Age
 		_Goals[i](&_Planner->Goals[_Planner->GoalCt]);
 		++_Planner->GoalCt;
 	}
+	_GoalSetSize = ArrayLen(g_GoapGoalSetList);
+	_Planner->GoalSets = calloc(sizeof(struct GoapGoalSet*), _GoalSetSize + 1);	
+	for(int i = 0; i < _GoalSetSize; ++i) {
+		const char* _Name = g_GoapGoalSetList[i][0];
+		struct GoapGoalSet* _GoalSet = malloc(sizeof(struct GoapGoalSet));
+		int _GoalCt = 1;
+
+		_GoalSet->Name = _Name;
+		memset(_GoalSet->Goals, GOAPGS_GOALMAX, sizeof(struct GoapGoal*));
+		for(;g_GoapGoalSetList[i][_GoalCt] != NULL && (_GoalCt - 1) < GOAPGS_GOALMAX; ++_GoalCt) {
+			_GoalSet->Goals[_GoalCt - 1] = GoapGetGoal(_Planner, g_GoapGoalSetList[i][_GoalCt]);
+		}
+
+		_Planner->GoalSets[i] = _GoalSet;
+	}
+	_Planner->GoalSets[_GoalSetSize] = NULL;
 }
 
 void AIInit(lua_State* _State) {

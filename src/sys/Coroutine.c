@@ -9,10 +9,9 @@
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-#define CO_MAX 4
-#define COSCH_MAX 10
+#define COSCH_MAX 32
 
-struct Coroutine g_Coroutines[CO_MAX];
+struct Coroutine g_Coroutines[COSCH_MAX];
 jmp_buf g_CoScheduleJmp;
 void* g_ScheduleStack;
 int g_CoRun = 0;

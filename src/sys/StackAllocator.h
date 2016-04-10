@@ -26,6 +26,7 @@ struct LifoAllocator {
 void* StackAllocNew(struct StackAllocator* _Alloc, size_t _Size);
 void StackAllocFree(struct StackAllocator* _Alloc, size_t _Size);
 
+void InitLifoAlloc(struct LifoAllocator* _LifoAlloc, size_t _Size);
 void* LifoAlloc(struct LifoAllocator* _Alloc, size_t _Size);
 void LifoFree(struct LifoAllocator* _Alloc, size_t _Size);
 

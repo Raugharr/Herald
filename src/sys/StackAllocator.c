@@ -5,7 +5,8 @@
 
 #include "StackAllocator.h"
 
-#include <SDL2/SDL.h>
+#include <stdlib.h>
+#include <assert.h>
 
 void* StackAllocNew(struct StackAllocator* _Alloc, size_t _Size) {
 	void* _Block = NULL;
@@ -33,10 +34,16 @@ void StackAllocFree(struct StackAllocator* _Alloc, size_t _Size) {
 	}
 }
 
+void InitLifoAlloc(struct LifoAllocator* _LifoAlloc, size_t _Size) {
+	_LifoAlloc->ArenaBot = malloc(_Size);
+	_LifoAlloc->ArenaTop = _LifoAlloc->ArenaBot;
+	_LifoAlloc->ArenaSize = _Size;
+}
+
 void* LifoAlloc(struct LifoAllocator* _Alloc, size_t _Size) {
 	void* _AllocZone = NULL;
 
-	if((_Alloc->ArenaTop - _Alloc->ArenaBot) + (void*) _Size > (_Alloc->ArenaBot + _Alloc->ArenaSize))
+	if(((void*) (_Alloc->ArenaTop - _Alloc->ArenaBot) + _Size) > (_Alloc->ArenaBot + _Alloc->ArenaSize))
 		return NULL;
 	_AllocZone = _Alloc->ArenaTop;
 	_Alloc->ArenaTop += _Size;
@@ -44,7 +51,6 @@ void* LifoAlloc(struct LifoAllocator* _Alloc, size_t _Size) {
 }
 
 void LifoFree(struct LifoAllocator* _Alloc, size_t _Size) {
-	_Alloc->ArenaBot = (void*) (_Alloc->ArenaBot - _Size);
-	SDL_assert(_Alloc->ArenaBot >= _Alloc->ArenaTop);
-
+	_Alloc->ArenaTop = (void*) (_Alloc->ArenaTop - _Size);
+	assert(_Alloc->ArenaBot <= _Alloc->ArenaTop);
 }

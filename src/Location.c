@@ -164,9 +164,15 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = NULL;
 	struct Family* _Family = NULL;
 	struct BigGuyStats _BGStats;
+	struct BigGuy* _Guy = NULL;
+	int _Motivations[BGMOT_SIZE] = {2, 3};
+	int _MotCt = 0;
+	int _Count = 5;
 
 	_Itr = _Settlement->Families.Front;
 	while(_Itr != NULL) {
+		if(_Count <= 0)
+			break;
 		_Family = (struct Family*)_Itr->Data;
 		_FamilyItr = _UniqueFamilies.Front;
 		while(_FamilyItr != NULL) {
@@ -175,8 +181,12 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 			_FamilyItr = _FamilyItr->Next;
 		}
 		BGStatsWarlord(&_BGStats, Random(40, 60));
-		CreateBigGuy(_Family->People[0], &_BGStats);
+		CreateBigGuy(_Family->People[0], &_BGStats, _MotCt);
+		--_Motivations[_MotCt];
+		if(_Motivations[_MotCt] <= 0)
+			++_MotCt;
 		LnkLstPushBack(&_UniqueFamilies, _Family);
+		--_Count;
 		skip_bigguy:
 		_Itr = _Itr->Next;
 	}

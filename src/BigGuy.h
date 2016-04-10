@@ -31,6 +31,7 @@ struct Agent;
 
 #define BIGGUY_PERSONALITIES (4)
 
+
 enum {
 	BGBYTE_PASSREFORM = 0,
 	BGBYTE_ISLEADER,
@@ -84,6 +85,7 @@ enum {
 
 enum {
 	BGMOT_RULE,
+	BGMOT_WEALTH,
 	BGMOT_SIZE
 };
 
@@ -95,6 +97,14 @@ enum {
 extern const char* g_BGStateStr[BGBYTE_SIZE];
 extern const char* g_BGMission[BGACT_SIZE];
 extern const char* g_CrisisStateStr[CRISIS_SIZE];
+static int g_BGActCooldown[BGACT_SIZE] = {
+	0,
+	30,
+	30,
+	30,
+	30,
+	180
+}
 
 struct BigGuyMission {
 	int Type;
@@ -183,7 +193,7 @@ int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
 struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);
 struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int _Action, int _Modifier);
-struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats);
+struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats, int _Motivation);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
 
 void BigGuyThink(struct BigGuy* _Guy);

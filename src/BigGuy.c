@@ -178,7 +178,7 @@ void BGOnTargetDeath(int _EventId, struct BigGuy* _Guy, struct Person* _Person, 
 	//AgentThink(_Guy->Agent);
 }
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats) {
+struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats, int _Motivation) {
 	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
 	_BigGuy->Person = _Person;
@@ -191,6 +191,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats) 
 	_BigGuy->Stats = *_Stats;
 	_BigGuy->ActionFunc = NULL;
 	_BigGuy->TriggerMask = 0;
+	_BigGuy->Motivation = _Motivation;
 	_BigGuy->Agent = CreateAgent(_BigGuy);
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
@@ -273,7 +274,7 @@ struct BigGuy* BigGuyLeaderType(struct Person* _Person) {
 			struct BigGuyStats _Stats;
 
 			BGStatsWarlord(&_Stats, 50);
-			return CreateBigGuy(_Person, &_Stats); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
+			return CreateBigGuy(_Person, &_Stats, BGMOT_RULE); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
 		}
 		_Person = _Person->Next;
 	}
@@ -404,6 +405,21 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	_Guy->Action.Type = _Action;
 	EventHookRemove(EventUserOffset() + EVENT_DEATH, _Guy, _Target->Person, NULL);
 	EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Guy, _Target->Person, NULL);
+	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
+		_Hist = (struct BigGuyActionHist*) _Node->Data;
+		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= 30) {
+			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
+			free(_Hist);
+		} else {
+			return;
+		}
+	} else {
+		_Hist = malloc(sizeof(struct BigGuyActionHist));
+		_Hist->Owner = _Guy;
+		_Hist->ActionType = _Action;
+		_Hist->DayDone = g_GameWorld.Date;
+		RBInsert(&g_GameWorld.ActionHistory, _Hist);
+	}
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
 		_Guy->ActionFunc = BigGuyActionImproveRel;
@@ -426,12 +442,6 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	default:
 		_Guy->ActionFunc = NULL;
 		return;
-	}
-	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
-		_Hist = (struct BigGuyActionHist*) _Node->Data;
-		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) < 30) {
-			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
-		}
 	}
 }
 

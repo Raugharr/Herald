@@ -9,23 +9,29 @@
 #include "../../Location.h"
 #include "../../Family.h"
 #include "../../Person.h"
+#include "../../Bulitin.h"
 
 #include "../../sys/Math.h"
+#include "../../sys/LuaCore.h"
 
 #include "../Agent.h"
 #include "../goap.h"
 #include "../GoapAction.h"
 
 static int ActionCost(const struct Agent* _Agent) {
-	return 120;
+	return 12;
 }
 
 static int ActionFunction(struct Agent* _Agent) {
 	struct BigGuy* _Guy = _Agent->Agent;
+	struct BulitinItem* _Item = _Guy->Person->Family->HomeLoc->Bulitin;
 
-	if(_Guy->ActionFunc == NULL) {
-		BigGuySetAction(_Guy, BGACT_IMRPOVEREL, _Agent->Blackboard.Target, NULL);
-		return 1;
+	while(_Item != NULL) {
+		if(_Item->Owner == _Agent->Blackboard.Target) {
+			BulitinItemOnClick(_Item, g_LuaState, _Guy);
+			return 1;
+		}
+		_Item = _Item->Next;
 	}
 	return 0;
 }

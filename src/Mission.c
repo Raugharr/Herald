@@ -512,17 +512,21 @@ void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, stru
 
 void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _Owner, struct BigGuy* _Sender) {
 	struct MissionData* _Data = CreateMissionData(_Sender, _Owner, _Mission);
+	const char* _NewDesc = _Mission->Description;
 
 	g_MissionData = _Data;
 	if(_Mission->OnTrigger != NULL)
 		RuleEval(_Mission->OnTrigger);
 	if(g_GameWorld.Player == _Owner) {
 		if(_Mission->TextFormat != NULL) {
+			//Breaks when MissionFormatText is run on a coroutine other than the main coroutine.
+			//because the rule used points to the main coroutine's lua_State.
 			const char** restrict _Strings = alloca(sizeof(char*) * ArrayLen(_Mission->TextFormat));
 			char* restrict _DescStr = alloca(MissionFormatText(_State, _Mission, _Strings));
 
 			_DescStr[0] = '\0';
 			vsprintf(_DescStr, _Mission->Description, (va_list)_Strings); 
+			_NewDesc = _DescStr;
 		}
 		lua_settop(_State, 0);
 		lua_pushstring(_State, "MissionMenu");
@@ -530,12 +534,19 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 		lua_pushstring(_State, "Mission");
 		LuaConstCtor(_State, "Mission", _Mission);
 		lua_rawset(_State, -3);
+
 		lua_pushstring(_State, "BigGuy");
 		LuaCtor(_State, "BigGuy", _Owner);
 		lua_rawset(_State, -3);
+
 		lua_pushstring(_State, "Data");
 		lua_pushlightuserdata(_State, _Data);
 		lua_rawset(_State, -3);
+
+		lua_pushstring(_State, "Description");
+		lua_pushstring(_State, _NewDesc);
+		lua_rawset(_State, -3);
+
 		lua_pushinteger(_State, 512);
 		lua_pushinteger(_State, 512);
 		LuaCreateWindow(_State);
@@ -587,9 +598,7 @@ void DestroyMissionEngine(struct MissionEngine* _Engine) {
 		}
 		free(_CatList);
 	}
-	while(_Engine->Missions.Size > 0) {
-
-	}
+	_Engine->Missions.Size = 0;
 	free(_Engine->Missions.Table);
 	free(_Engine->MissionQueue.Table);
 	free(_Engine->UsedMissionQueue.Table);

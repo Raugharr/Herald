@@ -11,7 +11,7 @@ function Menu.Init(Menu, Data)
 	Menu.Title = Menu.TitleCon:CreateLabel(Menu.Mission:GetName())
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
-	Menu.Screen:Paragraph(Menu.Mission:GetDescription())
+	Menu.Screen:Paragraph(Data["Description"])
 	for k, v in ipairs(Menu.Mission:GetOptions()) do
 		if v:ConditionSatisfied() == true then
 			Menu.Screen:CreateButton(v:GetName(),

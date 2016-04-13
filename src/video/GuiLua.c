@@ -1220,7 +1220,8 @@ int LuaContainerParagraph(lua_State* _State) {
 	}
 	func_end:
 	ContainerShrink(_NewContainer);
-	return 0;
+	LuaCtor(_State, "Container", _NewContainer);
+	return 1;
 }
 
 int LuaLabelSetText(lua_State* _State) {
@@ -1573,7 +1574,7 @@ int LuaContainerBelow(lua_State* _State) {
 	if(_Rel->Parent != _Base->Parent)
 		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
 	_Pos.x = _Rel->Rect.x;
-	_Pos.y = _Rel->Rect.y + _Base->Rect.h;
+	_Pos.y = _Base->Rect.y + _Base->Rect.h;
 	_Base->SetPosition((struct Widget*) _Rel, &_Pos);
 	lua_pushvalue(_State, 1);
 	return 1;

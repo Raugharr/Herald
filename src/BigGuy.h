@@ -97,14 +97,7 @@ enum {
 extern const char* g_BGStateStr[BGBYTE_SIZE];
 extern const char* g_BGMission[BGACT_SIZE];
 extern const char* g_CrisisStateStr[CRISIS_SIZE];
-static int g_BGActCooldown[BGACT_SIZE] = {
-	0,
-	30,
-	30,
-	30,
-	30,
-	180
-}
+extern int g_BGActCooldown[BGACT_SIZE];
 
 struct BigGuyMission {
 	int Type;

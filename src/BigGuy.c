@@ -49,6 +49,15 @@ const char* g_CrisisStateStr[CRISIS_SIZE] = {
 	"WarDeath"
 };
 
+int g_BGActCooldown[BGACT_SIZE] = {
+	0,
+	30,
+	30,
+	30,
+	30,
+	180
+};
+
 void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
 	struct BigGuyRelation* _Relation = NULL;
 	int _Mod = _Action->Modifier;
@@ -407,7 +416,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Guy, _Target->Person, NULL);
 	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
 		_Hist = (struct BigGuyActionHist*) _Node->Data;
-		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= 30) {
+		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= g_BGActCooldown[_Hist->ActionType]) {
 			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
 			free(_Hist);
 		} else {

@@ -15,17 +15,17 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-int(*g_RuleFuncLookup[])(const struct Rule*) = {
+RuleFunc g_RuleFuncLookup[] = {
 		RuleTrue,
-		(int(*)(const struct Rule*))RuleBoolean,
-		(int(*)(const struct Rule*))RuleGreaterThan,
-		(int(*)(const struct Rule*))RuleLessThan,
-		(int(*)(const struct Rule*))RuleLuaCall,
-		(int(*)(const struct Rule*))RulePrimitive,
-		(int(*)(const struct Rule*))RuleIfThenElse,
+		(RuleFunc) RuleBoolean,
+		(RuleFunc) RuleGreaterThan,
+		(RuleFunc) RuleLessThan,
+		(RuleFunc) RuleLuaCall,
+		(RuleFunc) RulePrimitive,
+		(RuleFunc) RuleIfThenElse,
 		RuleTrue,
-		(int(*)(const struct Rule*))RuleBlock,
-		(int(*)(const struct Rule*))RuleLuaObject
+		(RuleFunc) RuleBlock,
+		(RuleFunc) RuleLuaObject
 };
 
 struct Primitive* CreatePrimitive() {
@@ -226,75 +226,75 @@ void DestroyRuleLuaObj(struct RuleLuaObj* _Obj) {
 	free(_Obj);
 }
 
-int RuleTrue(const struct Rule* _Rule) {
+int RuleTrue(const struct Rule* _Rule, lua_State* _State) {
 	return 1;
 }
 
-int RuleFalse(const struct Rule* _Rule) {
+int RuleFalse(const struct Rule* _Rule, lua_State* _State) {
 	return 0;
 }
 
-int RuleGreaterThan(const struct RuleComparator* _Rule) {
+int RuleGreaterThan(const struct RuleComparator* _Rule, lua_State* _State) {
 	return (RuleEval(_Rule->Left) > RuleEval(_Rule->Right));
 }
 
-int RuleLessThan(const struct RuleComparator* _Rule) {
+int RuleLessThan(const struct RuleComparator* _Rule, lua_State* _State) {
 	return (RuleEval(_Rule->Left) < RuleEval(_Rule->Right));
 }
 
-int RuleLuaCall(const struct RuleLuaCall* _Rule) {
+int RuleLuaCall(const struct RuleLuaCall* _Rule, lua_State* _State) {
 	int _Len = 0;
 	int _Table = 0;
 	struct RuleLuaCall* _RuleArg = NULL;
 
-	lua_rawgeti(_Rule->State, LUA_REGISTRYINDEX, _Rule->TblRef);
-	_Table = lua_absindex(_Rule->State, -1);
-	_Len = lua_rawlen(_Rule->State, _Table);
+	lua_rawgeti(_State, LUA_REGISTRYINDEX, _Rule->TblRef);
+	_Table = lua_absindex(_State, -1);
+	_Len = lua_rawlen(_State, _Table);
 	if(_Len == 0) {
-		return luaL_error(_Rule->State, "LuaCall: table has no function to call.");
+		return luaL_error(_State, "LuaCall: table has no function to call.");
 	}
 	//Unwrap all elements in order the first is a function and the follwing elements are its arguments.
 	for(int i = 1; i <= _Len; ++i) {
-		lua_rawgeti(_Rule->State, _Table, i);
-		if(lua_type(_Rule->State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_Rule->State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
-			RuleLuaCall(_RuleArg);
-			lua_remove(_Rule->State, -2);
+		lua_rawgeti(_State, _Table, i);
+		if(lua_type(_State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
+			RuleLuaCall(_RuleArg, _State);
+			lua_remove(_State, -2);
 		}
 	}
-	LuaCallFunc(_Rule->State, _Len - 1, 1, 0); //Len - 1 args because the element in the table is the function.
-	lua_remove(_Rule->State, _Table);//pop _Rule->TblRef.
-	if(lua_isnumber(_Rule->State, -1) != 0) {
-		int _Return = lua_tointeger(_Rule->State, -1);
+	LuaCallFunc(_State, _Len - 1, 1, 0); //Len - 1 args because the element in the table is the function.
+	lua_remove(_State, _Table);//pop _Rule->TblRef.
+	if(lua_isnumber(_State, -1) != 0) {
+		int _Return = lua_tointeger(_State, -1);
 
-		lua_pop(_Rule->State, 1);
+		lua_pop(_State, 1);
 		return _Return;
 	}
 	return 0;
 }
 
-int RulePrimitive(const struct RulePrimitive* _Primitive) {
+int RulePrimitive(const struct RulePrimitive* _Primitive, lua_State* _State) {
 	if(_Primitive->Value.Type == PRIM_INTEGER)
 		return _Primitive->Value.Value.Int;
 	return 0;
 }
 
-int RuleIfThenElse(const struct RuleIfThenElse* _Rule) {
+int RuleIfThenElse(const struct RuleIfThenElse* _Rule, lua_State* _State) {
 	if(RuleEval((struct Rule*) _Rule->Comparator) != 0)
 		return RuleEval(_Rule->OnTrue);
 	return RuleEval(_Rule->OnFalse);
 }
 
-int RuleBoolean(const struct RuleBoolean* _Rule) {
+int RuleBoolean(const struct RuleBoolean* _Rule, lua_State* _State) {
 	return _Rule->Boolean != 0;
 }
 
-int RuleBlock(const struct RuleBlock* _Block) {
+int RuleBlock(const struct RuleBlock* _Block, lua_State* _State) {
 	for(int i = 0; i < _Block->ListSz; ++i)
 		RuleEval(_Block->RuleList[i]);
 	return 0;
 }
 
-int RuleLuaObject(const struct RuleLuaObj* _Obj) {
+int RuleLuaObject(const struct RuleLuaObj* _Obj, lua_State* _State) {
 	return 1;
 }
 

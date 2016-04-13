@@ -5,9 +5,14 @@
 #ifndef __RULE_H
 #define __RULE_H
 
-typedef struct lua_State lua_State;
+struct Rule;
 
-#define RuleEval(_Rule) g_RuleFuncLookup[(_Rule)->Type]((_Rule))
+typedef struct lua_State lua_State;
+typedef int(*RuleFunc)(const struct Rule*, lua_State*); 
+
+#define RuleEval(_Rule) LuaRuleEval(_Rule, g_LuaState)
+#define LuaRuleEval(_Rule, _State) g_RuleFuncLookup[(_Rule)->Type]((_Rule), _State)
+
 
 enum {
 	PRIM_FLOAT,
@@ -73,8 +78,8 @@ struct RuleBoolean {
 struct RuleLuaCall {
 	int Type;
 	void (*Destroy)(struct Rule*);
-	lua_State* State;
 	int TblRef;
+	lua_State* State;
 };
 
 struct RulePrimitive {
@@ -144,20 +149,20 @@ void DestroyRuleBlock(struct RuleBlock* _Rule);
 struct RuleLuaObj* CreateRuleLuaObj(void* _Object, const char* _Class);
 void DestroyRuleLuaObj(struct RuleLuaObj* _Obj);
 
-int RuleTrue(const struct Rule* _Rule);
-int RuleFalse(const struct Rule* _Rule);
-int RuleGreaterThan(const struct RuleComparator* _Rule);
-int RuleLessThan(const struct RuleComparator* _Rule);
+int RuleTrue(const struct Rule* _Rule, lua_State* _State);
+int RuleFalse(const struct Rule* _Rule, lua_State* _State);
+int RuleGreaterThan(const struct RuleComparator* _Rule, lua_State* _State);
+int RuleLessThan(const struct RuleComparator* _Rule, lua_State* _State);
 
-int RuleLuaCall(const struct RuleLuaCall* _Rule);
-int RulePrimitive(const struct RulePrimitive* _Primitive);
-int RuleIfThenElse(const struct RuleIfThenElse* _Rule);
-int RuleBoolean(const struct RuleBoolean* _Rule);
-int RuleBlock(const struct RuleBlock* _Block);
-int RuleLuaObject(const struct RuleLuaObj* _Obj);
+int RuleLuaCall(const struct RuleLuaCall* _Rule, lua_State* _State);
+int RulePrimitive(const struct RulePrimitive* _Primitive, lua_State* _State);
+int RuleIfThenElse(const struct RuleIfThenElse* _Rule, lua_State* _State);
+int RuleBoolean(const struct RuleBoolean* _Rule, lua_State* _State);
+int RuleBlock(const struct RuleBlock* _Block, lua_State* _State);
+int RuleLuaObject(const struct RuleLuaObj* _Obj, lua_State* _State);
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);
 
-extern int(*g_RuleFuncLookup[])(const struct Rule*);
+extern RuleFunc g_RuleFuncLookup[];
 
 #endif /* __RULE_H */

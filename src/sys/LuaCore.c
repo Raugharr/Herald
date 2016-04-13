@@ -139,18 +139,15 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 };
 
 int LuaCallFuncError(lua_State* _State) {
-	//lua_Debug _Debug;
-
-	//lua_getstack(_State, 1 , &_Debug);
-	//lua_getinfo(_State, "Snl", &_Debug);
 	if(lua_isstring(_State, -1) == 0)
 		return 0;
 	lua_getglobal(_State, "debug");
 	lua_getfield(_State, -1, "traceback");
-	//lua_pushvalue(_State, 1);
-	//lua_pushinteger(_State, 2);
 	lua_call(_State, 0, 1);
-	//const char* _Foo = lua_tostring(_State, -1);
+	//lua_insert(_State, 2);
+	//lua_pop(_State, 2);
+	lua_pushvalue(_State, 1);
+	lua_concat(_State, 2);
 	return 1;
 }
 

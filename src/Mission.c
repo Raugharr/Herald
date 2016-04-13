@@ -511,12 +511,14 @@ void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, stru
 }
 
 void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _Owner, struct BigGuy* _Sender) {
-	struct MissionData* _Data = CreateMissionData(_Sender, _Owner, _Mission);
-	const char* _NewDesc = _Mission->Description;
+	struct MissionData* _Data = NULL;
+	const char* _NewDesc = NULL;
 
+	if(_Mission == NULL)
+		return;
+	_Data = CreateMissionData(_Sender, _Owner, _Mission);
+	_NewDesc = _Mission->Description;
 	g_MissionData = _Data;
-	if(_Mission->OnTrigger != NULL)
-		RuleEval(_Mission->OnTrigger);
 	if(g_GameWorld.Player == _Owner) {
 		if(_Mission->TextFormat != NULL) {
 			//Breaks when MissionFormatText is run on a coroutine other than the main coroutine.
@@ -528,6 +530,8 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 			vsprintf(_DescStr, _Mission->Description, (va_list)_Strings); 
 			_NewDesc = _DescStr;
 		}
+		if(_Mission->OnTrigger != NULL)
+			RuleEval(_Mission->OnTrigger);
 		lua_settop(_State, 0);
 		lua_pushstring(_State, "MissionMenu");
 		lua_createtable(_State, 0, 3);
@@ -706,7 +710,8 @@ int MissionFormatText(lua_State* _State, const struct Mission* _Mission, const c
 	int _ExtraSz = 0;
 
 	for(int i = 0; _Mission->TextFormat[i] != NULL; ++i) {
-		RuleEval(_Mission->TextFormat[i]);
+		if(LuaRuleEval(_Mission->TextFormat[i], _State) == 0)
+			return;
 		if(lua_type(_State, -1) != LUA_TSTRING) {
 			lua_pop(_State, 1);
 			_Strings[i] = NULL;

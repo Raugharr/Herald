@@ -15,6 +15,7 @@ function Menu.Init(Menu, Data)
 	Menu.Date = Menu.DateCont:CreateLabel(PrintDate(World.GetDate()))
 	Menu.Authority = Menu.DateCont:CreateLabel(World.GetPlayer():GetAuthority())
 	Menu.Date:SetFocus(false)
+	Menu.DateCont:SetX(Menu:GetHorizontalCenter(Menu.DateCont))
 	Menu.DateCont:Shrink()
 	Menu.MenuBar:CreateButton("View Self",
 		function()

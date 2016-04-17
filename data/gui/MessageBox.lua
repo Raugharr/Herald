@@ -2,17 +2,17 @@ Menu.__savestate = false
 Menu.moveable = true
 
 function Menu.Init(Menu, Data)
-	Menu.Screen = GUI.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), 0, {0, 0, 0, 0})
 	Menu.TextBox = Data["Text"]
 	
 	if Menu.TextBox == nil then
 		Menu.TextBox = ""
 	end
-	Menu.Text = Menu.Screen:Paragraph(Menu.TextBox)
-	Menu.TextBox = Menu.Screen:CreateButton("Ok", 
+	Menu.Text = Menu:Paragraph(Menu.TextBox)
+	Menu.TextBox = Menu:CreateButton("Ok", 
 		function()
-			Menu.Screen:Close()
+			Menu:Close()
 		end)
+	Menu.TextBox:Below(Menu.Text)
 end
 
 function Menu.Think(Menu)

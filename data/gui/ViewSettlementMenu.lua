@@ -12,9 +12,9 @@ function RelationToStr(Guy, Target)
 end
 
 function Menu.Init(Menu, Data)
-	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30)
-	Menu.Left = GUI.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30))
-	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30))
+	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu)
+	Menu.Left = GUI.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
+	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
 	local BigGuyMenu = nil
 	local SettlementMenu = nil

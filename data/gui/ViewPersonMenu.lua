@@ -14,10 +14,14 @@ function NonPlayerActions(Menu, Person)
 		function()
 			World.GetPlayer():SetAction(BigGuy.Action.Duel, Person)
 		end)
+	Menu:CreateButton("Steal Cattle",
+		function()
+			World.GetPlayer():SetAction(BigGuy.Action.StealCattle, Person)
+		end)
 end
 
 function Menu.Init(Menu, Person)
-	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight())
+	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
 	Menu.Display = nil
 	local String = Person:GetName() .. " is of the family " .. Person:GetFamily():GetName() .. ". " .. "He owns " .. Person:GetFamily():GetBuildingCt() .. " buildings and " .. Person:GetFamily():GetAnimalCt() .. " animals."
 	local Guy = nil

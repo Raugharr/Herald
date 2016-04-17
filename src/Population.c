@@ -481,3 +481,13 @@ struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index) {
 	--_Array->Size;
 	return _Animal;
 }
+
+int CountAnimal(const struct Population* _PopType, const struct Animal** _List, size_t _ListSz) {
+	int _AnCt = 0;
+
+	for(int i = 0; i < _ListSz; ++i) {
+		if(_List[i]->PopType == _PopType)
+			++_AnCt;
+	}
+	return _AnCt;
+}

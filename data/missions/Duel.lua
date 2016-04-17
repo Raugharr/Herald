@@ -1,6 +1,7 @@
 Mission.Load {
 	Name = "Duel 1",
-	Description = "You have lost the duel.",
+	Description = "You have lost the duel and have been kiled by %s.",
+	TextFormat = {BigGuy.GetName(Mission.Sender())},
 	Options = {
 		{
 			Text = "Ok", 
@@ -28,12 +29,12 @@ Mission.Load {
 				BigGuy.GetWarfare(Mission.Owner())
 				),
 			Rule.Block(
-				Mission.CallById("DUEL.1", Mission.Owner()),
-				Mission.CallById("DUEL.3", Mission.Sender())
+				Mission.CallById("DUEL.3", Mission.Sender(), Mission.Owner()),
+				Mission.CallById("DUEL.1", Mission.Owner(), Mission.Sender())
 				),
 			Rule.Block(
-				Mission.CallById("DUEL.1", Mission.Sender()),
-				Mission.CallById("DUEL.3", Mission.Owner())
+				Mission.CallById("DUEL.3", Mission.Owner(), Mission.Sender()),
+				Mission.CallById("DUEL.1", Mission.Sender(), Mission.Owner())
 				)
 			),
 			Utility = Mission.Normalize(1, 1)
@@ -41,7 +42,7 @@ Mission.Load {
 		{
 			Text = "Look for a champion.",
 			Condition = Rule.True(),
-			Trigger = Rule.Block(Mission.CallById("DUEL.6", Mission.Owner(), Mission.Sender()), Settlement.BulitinPost("DUEL.4", "DUEL.5", 30, 2)),
+			Trigger = Rule.Block(Mission.CallById("DUEL.6", Mission.Sender(), Mission.Owner()), Settlement.BulitinPost("DUEL.4", "DUEL.5", 30, 2)),
 			Utility = Mission.Normalize(1, 1)
 		}
 	},
@@ -52,11 +53,12 @@ Mission.Load {
 
 Mission.Load {
 	Name = "Duel 3",
-	Description = "You have won the duel.",
+	Description = "You have won the duel and have slain %s.",
+	TextFormat = {BigGuy.GetName(Mission.Sender())},
 	Options = {
 		{
 			Text = "Ok", 
-			Trigger = Settlement.BulitinPost("DUEL.4", "DUEL.5", 30, 2), --Rule.True(),
+			Trigger = Rule.True(),
 			Utility = Mission.Normalize(1, 1)
 		}
 		},

@@ -139,24 +139,16 @@ struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos)
 }
 
 void Draw(void) {
-	struct Container* _Container = GUIZBot();
 	if(g_VideoOk == 0)
 		return;
 	SDL_RenderClear(g_Renderer);
 
 	GameWorldDraw(&g_GameWorld);
 	LuaMenuThink(g_LuaState);
-		while(_Container != NULL) {
-			(_Container)->OnDraw((struct Widget*) _Container);
-			_Container = _Container->Prev;
-		}
-		SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
-		_Container = GUIZBot();
-		while(_Container != NULL) {
-			_Container->OnDebug((struct Widget*)_Container);
-			_Container = _Container->Prev;
-		}
-		SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+	GuiDraw();
+	SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
+	GuiDrawDebug();
+	SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderPresent(g_Renderer);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
 		SDL_Delay(SDL_GetTicks() - g_VideoTimer);
@@ -170,24 +162,14 @@ int VideoEvents(const struct KeyMouseState* _State) {
 	if(_State->MouseMove != 0) {
 		if(g_FocusWidget != NULL)
 			g_FocusWidget->OnUnfocus(g_FocusWidget);
-		_Container = GUIZBot();
-		while(_Container != NULL) {
-			if((g_FocusWidget = _Container->OnFocus((struct Widget*)_Container, &_State->MousePos)) != NULL)
-				break;
-			_Container = _Container->Prev;
-		}
+		g_FocusWidget = GuiFind(offsetof(struct Widget, OnFocus), &_State->MousePos);	
 		if(g_DraggableWidget.Widget != NULL) {
 			SDL_Point _Pos = {_State->MousePos.x - g_DraggableWidget.Offset.x, _State->MousePos.y - g_DraggableWidget.Offset.y};
 			g_DraggableWidget.Widget->SetPosition(g_DraggableWidget.Widget, &_Pos);
 		}
 	}
 	if(_State->MouseState == SDL_PRESSED) {
-		_Container = GUIZBot();
-		while(_Container != NULL) {
-			if((_Widget = _Container->OnDrag((struct Widget*)_Container, &_State->MousePos)) != NULL)
-				break;
-			_Container = _Container->Prev;
-		}
+		_Widget = GuiFind(offsetof(struct Widget, OnDrag), &_State->MousePos);
 		if(_Widget == NULL || _Widget->IsDraggable == 0)
 			return 1;
 		g_DraggableWidget.Widget = _Widget;
@@ -195,14 +177,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		g_DraggableWidget.Offset.y = _State->MousePos.y - _Widget->Rect.y;
 		return 1;
 	} else if(_State->MouseState == SDL_RELEASED) {
-		_Container = GUIZTop();
-		//Go from top most container to bottom most looking for a container that returns a value indicating
-		//that it can be clicked.
-		while(_Container != NULL) {
-			if((_Widget = _Container->OnClick((struct Widget*)_Container, &_State->MousePos)) != NULL)
-				break;
-			_Container = _Container->Next;
-		}
+		_Widget = GuiFind(offsetof(struct Widget, OnClick), &_State->MousePos);
 		 if(_Widget == NULL) {
 			 return 0;
 		}

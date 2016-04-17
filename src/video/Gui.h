@@ -43,8 +43,6 @@ typedef void (*GuiCallDestroy) (struct Widget*, lua_State*);
 	void (*RemChild)(struct Container*, struct Widget*);			\
 	int(*HorzFocChange)(const struct Container*);					\
 	struct Widget** Children;										\
-	struct Container* Next;											\
-	struct Container* Prev;											\
 	int ChildrenSz;													\
 	int ChildCt;													\
 	int Spacing;													\
@@ -179,4 +177,17 @@ int WidgetOnUnfocus(struct Widget* _Widget);
 struct Container* WidgetTopParent(struct Widget* _Widget);
 //Sets the Z position of _Container to the top most container.
 void GuiZToTop(struct Container* _Container);
+void GuiDraw(void);
+void GuiDrawDebug(void);
+/**
+ * Generic function used to query the Z buffer to determine if a struct Widget's query function 
+ * such as OnDrag, or OnFocus returns a struct Widget* or not.
+ * _FuncOffset must be the offset to a function pointer that is defined in a struct Widget that
+ * takes two arguments, a struct Widget* and a SDL_Point*.
+ * _FuncOffset should be obtained by using offsetof.
+ * _MousePos is contains the position of the mouse position.
+ */
+struct Widget* GuiFind(int _FuncOffset, const SDL_Point* _MousePos);
+void GuiZBuffAdd(struct Container* _Container);
+void GuiZBuffRem(struct Container* _Container);
 #endif

@@ -17,11 +17,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rect.h>
 
-struct GuiStack {
-	struct Container* Top;
-	struct Container* Bot;
-};
-
 struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
 int g_GUIMenuChange = 0;
 int g_GUIId = 0;
@@ -29,7 +24,7 @@ struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 struct Font* g_GUIFonts = NULL;
 struct Stack g_GUIStack = {NULL, 0};
-struct GuiStack g_GuiZBuff = {NULL, NULL};
+struct LinkedList g_GuiZBuff = {0, NULL, NULL};
 
 int NextGUIId(void) {return g_GUIId++;}
 
@@ -55,27 +50,28 @@ struct GUIFocus* CreateGUIFocus(void) {
 }
 
 struct Container* GUIZTop(void) {
-	return g_GuiZBuff.Top;
+	return (struct Container*) g_GuiZBuff.Front->Data;
 }
 
 struct Container* GUIZBot(void) {
-	return g_GuiZBuff.Bot;
+	return (struct Container*) g_GuiZBuff.Back->Data;
 }
 
 void GuiClear(lua_State* _State) {
-	struct Container* _Container = g_GuiZBuff.Top;
-
-	while(g_GuiZBuff.Top != NULL) {
-		ILL_DESTROY(g_GuiZBuff.Top, _Container);
+	struct Container* _Container = NULL;
+	
+	if(g_GuiZBuff.Front == NULL)
+		return;
+	_Container = (struct Container*) g_GuiZBuff.Front->Data;
+	while(g_GuiZBuff.Front != NULL) {
+		_Container = (struct Container*) g_GuiZBuff.Front->Data;
 		_Container->OnDestroy((struct Widget*) _Container, _State);
-		_Container = g_GuiZBuff.Top;	
+		LnkLstPopFront(&g_GuiZBuff);
 	}
-	g_GuiZBuff.Bot = NULL;
 }
 
 void GuiEmpty() {
-	g_GuiZBuff.Top = NULL;
-	g_GuiZBuff.Bot = NULL;
+	LnkLstClear(&g_GuiZBuff);
 }
 
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
@@ -113,9 +109,6 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 
 void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
-	ILL_CREATE(g_GuiZBuff.Top, _Widget);
-	if(g_GuiZBuff.Bot == NULL)
-		g_GuiZBuff.Bot = _Widget;
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
 	_Widget->ChildCt = 0;
@@ -232,10 +225,8 @@ void DestroyContainer(struct Container* _Container, lua_State* _State) {
 			continue;
 		_Container->Children[i]->OnDestroy(_Container->Children[i], _State);
 	}
-	ILL_DESTROY(g_GuiZBuff.Top, _Container);
-	if(g_GuiZBuff.Bot == _Container)
-		g_GuiZBuff.Bot = NULL;
 	DestroyWidget((struct Widget*)_Container, _State);
+	GuiZBuffRem(_Container);
 }
 
 int ContainerOnDraw(struct Container* _Container) {
@@ -465,7 +456,7 @@ int WidgetCheckVisibility(const struct Widget* _Widget) {
 }
 
 int GetHorizontalCenter(const struct Container* _Parent, const struct Widget* _Widget) {
-	return _Parent->Rect.x + (((_Parent ->Rect.w) / 2) - (_Widget ->Rect.w / 2));
+	return _Parent->Rect.x + (((_Parent->Rect.w) / 2) - (_Widget->Rect.w / 2));
 }
 
 struct Widget* WidgetOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
@@ -488,9 +479,71 @@ struct Container* WidgetTopParent(struct Widget* _Widget) {
 }
 
 void GuiZToTop(struct Container* _Container) {
-	ILL_DESTROY(g_GuiZBuff.Top, _Container);
-	if(g_GuiZBuff.Bot == _Container)
-		g_GuiZBuff.Bot = NULL;
-	ILL_CREATE(g_GuiZBuff.Top, _Container);
+	struct LnkLst_Node* _Itr = g_GuiZBuff.Front;
 
+	while(_Itr != NULL) {
+		if((struct Container*) _Itr->Data == _Container) {
+			LnkLstRemove(&g_GuiZBuff, _Itr);
+			LnkLstPushFront(&g_GuiZBuff, _Itr);
+			break;
+		}
+		_Itr = _Itr->Next;
+	}
+}
+
+void GuiDraw(void) {
+	struct LnkLst_Node* _Itr = g_GuiZBuff.Back;
+	struct Container* _Container = NULL;
+
+	while(_Itr != NULL) {
+		_Container = (struct Container*) _Itr->Data;
+		_Container->OnDraw((struct Widget*) _Container);
+		_Itr = _Itr->Prev;
+	}
+}
+
+void GuiDrawDebug(void) {
+	struct LnkLst_Node* _Itr = g_GuiZBuff.Back;
+	struct Container* _Container = NULL;
+
+	while(_Itr != NULL) {
+		_Container = (struct Container*) _Itr->Data;
+		_Container->OnDebug((struct Widget*) _Container);
+		_Itr = _Itr->Prev;
+	}
+}
+
+struct Widget* GuiFind(int _FuncOffset, const SDL_Point* _MousePos) {
+	typedef struct Widget*(*GuiFindFunc)(struct Widget*, const SDL_Point*);
+
+	struct LnkLst_Node* _Itr = g_GuiZBuff.Front;
+	struct Container* _Container = NULL;
+	struct Widget* _FoundWidget = NULL;
+	GuiFindFunc* _Func = NULL;
+
+	while(_Itr != NULL) {
+		_Container = (struct Container*) _Itr->Data;
+		_Func = (GuiFindFunc*) (((uint8_t*)_Container) + _FuncOffset);
+		if((_FoundWidget = (*_Func)((struct Widget*) _Container, _MousePos)) != NULL) {
+			return _FoundWidget;
+		}
+		_Itr = _Itr->Next;
+	}
+	return NULL;
+}
+
+void GuiZBuffAdd(struct Container* _Container) {
+	LnkLstPushFront(&g_GuiZBuff, _Container);
+}
+
+void GuiZBuffRem(struct Container* _Container) {
+	struct LnkLst_Node* _Itr = g_GuiZBuff.Front;
+	
+	while(_Itr != NULL) {
+		if(_Itr->Data == _Container) {
+			LnkLstRemove(& g_GuiZBuff, _Itr);
+			return;
+		}
+		_Itr = _Itr->Next;	
+	}
 }

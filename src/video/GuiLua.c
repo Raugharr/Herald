@@ -88,6 +88,10 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{"SetFocus", LuaWidgetSetFocus},
 		{"OnKey", LuaOnKey},
 		{"OnClick", LuaWidgetOnClick},
+		{"Above", LuaContainerAbove},
+		{"LeftOf", LuaContainerLeftOf},
+		{"RightOf", LuaContainerRightOf},
+		{"Below", LuaContainerBelow},
 		{"Destroy", LuaWidgetDestroy},
 		{NULL, NULL}
 };
@@ -110,10 +114,6 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"GetHorizontalCenter", LuaContainerHorizontalCenter},
 		{"Close", LuaContainerClose},
 		{"Shrink", LuaContainerShrink},
-		{"Above", LuaContainerAbove},
-		{"LeftOf", LuaContainerLeftOf},
-		{"RightOf", LuaContainerRightOf},
-		{"Below", LuaContainerBelow},
 		{NULL, NULL}
 };
 
@@ -413,6 +413,7 @@ int LuaCreateWindow(lua_State* _State) {
 	GuiSetParentHook(NULL);
 	//WidgetSetParent(NULL, (struct Widget*) _Container);
 	_Container->IsDraggable = 1;
+	GuiZBuffAdd(_Container);
 	return 1;
 }
 
@@ -604,6 +605,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		lua_pop(_State, 5);
 		g_VideoOk = 1;
 		g_GUIMenuChange = 1;
+		GuiZBuffAdd(_MenuContainer);
 		return 0;
 	}
 	lua_pop(_State, 1); //pop __savestate.
@@ -661,6 +663,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	}
 	lua_pop(_State, 3);
 	g_VideoOk = 1;
+	GuiZBuffAdd(_MenuContainer);
 	return 0;
 }
 
@@ -1525,8 +1528,8 @@ int LuaGuiMenuHorCenter(lua_State* _State) {
 }
 
 int LuaContainerLeftOf(lua_State* _State) {
-	struct Container* _Rel = LuaCheckClass(_State, 1, "Container");
-	struct Container* _Base = LuaCheckClass(_State, 2, "Container");
+	struct Widget* _Rel = LuaCheckClass(_State, 1, "Widget");
+	struct Widget* _Base = LuaCheckClass(_State, 2, "Widget");
 	SDL_Point _Pos = {0, 0};
 	
 	if(_Rel->Parent != _Base->Parent)
@@ -1539,8 +1542,8 @@ int LuaContainerLeftOf(lua_State* _State) {
 }
 
 int LuaContainerRightOf(lua_State* _State) {
-	struct Container* _Rel = LuaCheckClass(_State, 1, "Container");
-	struct Container* _Base = LuaCheckClass(_State, 2, "Container");
+	struct Widget* _Rel = LuaCheckClass(_State, 1, "Widget");
+	struct Widget* _Base = LuaCheckClass(_State, 2, "Widget");
 	SDL_Point _Pos = {0, 0};
 	
 	if(_Rel->Parent != _Base->Parent)
@@ -1553,8 +1556,8 @@ int LuaContainerRightOf(lua_State* _State) {
 }
 
 int LuaContainerAbove(lua_State* _State) {
-	struct Container* _Rel = LuaCheckClass(_State, 1, "Container");
-	struct Container* _Base = LuaCheckClass(_State, 2, "Container");
+	struct Widget* _Rel = LuaCheckClass(_State, 1, "Widget");
+	struct Widget* _Base = LuaCheckClass(_State, 2, "Widget");
 	SDL_Point _Pos = {0, 0};
 	
 	if(_Rel->Parent != _Base->Parent)
@@ -1567,15 +1570,15 @@ int LuaContainerAbove(lua_State* _State) {
 }
 
 int LuaContainerBelow(lua_State* _State) {
-	struct Container* _Rel = LuaCheckClass(_State, 1, "Container");
-	struct Container* _Base = LuaCheckClass(_State, 2, "Container");
+	struct Widget* _Rel = LuaCheckClass(_State, 1, "Widget");
+	struct Widget* _Base = LuaCheckClass(_State, 2, "Widget");
 	SDL_Point _Pos = {0, 0};
 	
 	if(_Rel->Parent != _Base->Parent)
 		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
 	_Pos.x = _Rel->Rect.x;
 	_Pos.y = _Base->Rect.y + _Base->Rect.h;
-	_Base->SetPosition((struct Widget*) _Rel, &_Pos);
+	_Rel->SetPosition((struct Widget*)_Rel, &_Pos);
 	lua_pushvalue(_State, 1);
 	return 1;
 }

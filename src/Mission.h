@@ -164,4 +164,6 @@ struct GenIterator* CrisisCreateItr(void* _Tree);
 
 struct MissionData* MissionDataTop();
 struct BigGuy* MissionDataOwner(struct MissionData* _Data);
+int LuaMissionSetVar(lua_State* _State);
+int LuaMissionGetVar(lua_State* _State);
 #endif

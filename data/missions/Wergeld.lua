@@ -20,8 +20,8 @@ Mission.Load {
 		{
 			Text = "Give a cow.",
 			Trigger = Mission.CallById("WERGEL.1", Mission.Sender(), Mission.Owner()),
-			Condition = Rule.GreaterThan(Mission.Data("CowCt"), 0),
-			Utility = Mission.Normalize(Mission.Data("CowCt"), Mission.Data("CowCt"))
+			Condition = Rule.GreaterThan(Mission.Var("CowCt"), 0),
+			Utility = Mission.Normalize(Mission.Var("CowCt"), Mission.Var("CowCt"))
 		},
 		{
 			Text = "Give him nothing.",
@@ -29,7 +29,7 @@ Mission.Load {
 			Utility = Mission.Normalize(Rule.GreaterThan(BigGuy.GetRelation(Mission.Owner(), Mission.Sender()),  BigGuy.Like))
 		}
 	},
-	OnTrigger = Mission.AddData("CowCt", Family.CountAnimal(BigGuy.GetFamily(Mission.Owner()), "Cow")),
+	OnTrigger = Mission.SetVar("CowCt", Family.CountAnimal(BigGuy.GetFamily(Mission.Owner()), "Cow")),
 	OnlyTriggered = true,
 	Id = "WERGEL.2"
 }

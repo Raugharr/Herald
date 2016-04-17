@@ -39,7 +39,7 @@
 #include <ctype.h>
 #include <unistd.h>
 
-#define MISSION_STACKSZ (8)
+#define MISSION_STACKSZ (16)
 #define USEDMISSION_ARRAYSZ (10)
 #define MISSION_LUASTR ("InitMission")
 #define MISSION_QELEMENTS (2048)
@@ -56,17 +56,18 @@ static int g_PlayerMisCall = 0;
 static struct MissionData* g_MissionData = NULL;
 
 struct MissionDataType {
-	void* Data;
-	char* Class;
+	const char* Name;
+	struct Primitive Var;
 };
 
 struct MissionData {
 	struct BigGuy* Sender;
 	struct BigGuy* Target;
-	struct BigGuy* Stack[MISSION_STACKSZ];
+	struct MissionDataType Stack[MISSION_STACKSZ];
 	int StackSz;
+	struct BigGuy* BGStack[MISSION_STACKSZ];
+	int BGStackSz;
 	int IsOptSel;
-	struct HashTable Data;
 	const struct Mission* Mission;
 };
 
@@ -129,24 +130,14 @@ struct MissionData* CreateMissionData(struct BigGuy* _Sender, struct BigGuy* _Ta
 	_MissionData->Sender = _Sender;
 	_MissionData->Target = _Target;
 	LnkLstPushBack(&g_GameWorld.MissionData, _MissionData);
-	_MissionData->Data.Size = 0;
-	_MissionData->Data.TblSize = MISSIONDATA_HASHSZ;
-	_MissionData->Data.Table = calloc(MISSIONDATA_HASHSZ, sizeof(void*));
 	_MissionData->StackSz = 0;
+	_MissionData->BGStackSz = 0;
 	_MissionData->Mission = _Mission;
 	_MissionData->IsOptSel = 0;
 	return _MissionData;
 }
 
 void DestroyMissionData(struct MissionData* _MissionData) {
-	struct HashItr* _Itr = HashCreateItr(&_MissionData->Data);
-
-	while(_Itr != NULL) {
-		((struct Rule*)_Itr->Node->Pair)->Destroy((struct Rule*)_Itr->Node->Pair);
-		_Itr = HashNext(&g_MissionData->Data, _Itr);
-	}
-	HashDeleteItr(_Itr);
-	free(_MissionData->Data.Table);
 	free(_MissionData);
 }
 
@@ -325,12 +316,14 @@ int MissionTreeIS(const struct MissionCatList* _TriggerType, const struct Missio
 void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine) {
 	DIR* _Dir = NULL;
 	struct dirent* _Dirent = NULL;
+	const char* _Ext = NULL;
 
 	chdir("data/missions");
 	_Dir = opendir("./");
 	lua_settop(_State, 0);
 	while((_Dirent = readdir(_Dir)) != NULL) {
-		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
+		if(((!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, "..")))
+			|| ((_Ext = strrchr(_Dirent->d_name, '.')) == NULL) || strncmp(_Ext, ".lua", 4) != 0)
 			continue;
 		//FIXME: If one Mission cannot be loaded then all missions after it will not be loaded either.
 		if(LuaLoadFile(_State, _Dirent->d_name, "Mission") != LUA_OK) {
@@ -503,6 +496,7 @@ void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, stru
 	if(g_MissionData->IsOptSel == 0) {
 		g_MissionData->IsOptSel = 1;
 		CoResume(g_PlayerMisCall);
+		g_PlayerMisCall = 0;
 	}
 	g_MissionData = _Data;
 	RuleEval(_Mission->Options[_Option].Action);
@@ -518,14 +512,26 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 		return;
 	_Data = CreateMissionData(_Sender, _Owner, _Mission);
 	_NewDesc = _Mission->Description;
+	if(g_MissionData != NULL) {
+		for(int i = 0; i < g_MissionData->StackSz; ++i) {
+			_Data->Stack[i] = g_MissionData->Stack[i];
+		}
+		_Data->StackSz = g_MissionData->StackSz;
+	}
 	g_MissionData = _Data;
 	if(g_GameWorld.Player == _Owner) {
 		if(_Mission->TextFormat != NULL) {
 			//Breaks when MissionFormatText is run on a coroutine other than the main coroutine.
 			//because the rule used points to the main coroutine's lua_State.
 			const char** restrict _Strings = alloca(sizeof(char*) * ArrayLen(_Mission->TextFormat));
-			char* restrict _DescStr = alloca(MissionFormatText(_State, _Mission, _Strings));
+			size_t _SizeOf = MissionFormatText(_State, _Mission, _Strings);
+			char* restrict _DescStr = NULL;
 
+			if(_SizeOf == 0) {
+				Log(ELOG_WARNING, "Mission %s failed: MissionFormatText failed to format text.", _Mission->Name);
+				return;
+			}
+			_DescStr = alloca(_SizeOf);
 			_DescStr[0] = '\0';
 			vsprintf(_DescStr, _Mission->Description, (va_list)_Strings); 
 			_NewDesc = _DescStr;
@@ -711,21 +717,21 @@ int MissionFormatText(lua_State* _State, const struct Mission* _Mission, const c
 
 	for(int i = 0; _Mission->TextFormat[i] != NULL; ++i) {
 		if(LuaRuleEval(_Mission->TextFormat[i], _State) == 0)
-			return;
-		if(lua_type(_State, -1) != LUA_TSTRING) {
-			lua_pop(_State, 1);
-			_Strings[i] = NULL;
-			continue;
+			return 0;
+		switch(lua_type(_State, -1)) {
+			case LUA_TSTRING:
+			case LUA_TNUMBER:
+				_Strings[i] = lua_tostring(_State, -1);
+				_ExtraSz += strlen(_Strings[i]) - 2; //minus 2 for the %s.
+				lua_pop(_State, 1);
+			break;
+			default:
+				lua_pop(_State, 1);
+				_Strings[i] = NULL;
+				continue;
 		}
-		_Strings[i] = lua_tostring(_State, -1);
-		_ExtraSz += strlen(_Strings[i]) - 2; //minus 2 for the %s.
-		lua_pop(_State, 1);
 	}
-	//_NewSz = 
 	return strlen(_Mission->Description) + _ExtraSz + 1;
-	//_NewString = calloc(_NewSz, sizeof(char));
-	//vsprintf(_NewString, _Mission->Description, _Strings);
-	//return _NewString;
 }
 
 struct Mission* StrToMission(const char* _Str) {
@@ -774,7 +780,7 @@ int LuaMissionGetRandomPerson_Aux(lua_State* _State) {
 	int _SkipedGuys = 0;
 
 	luaL_checktype(_State, 1, LUA_TBOOLEAN);
-	if(g_MissionData->StackSz >= MISSION_STACKSZ)
+	if(g_MissionData->BGStackSz >= MISSION_STACKSZ)
 		return luaL_error(_State, "LuaMissionGetRandomPerson: Stack is full.");
 	_Settlement = FamilyGetSettlement(g_MissionData->Sender->Person->Family);
 	assert(_Settlement->BigGuys.Size != 0 && "LuaMissionGetRandomPerson: Settlement has no BigGuys.");
@@ -791,8 +797,8 @@ int LuaMissionGetRandomPerson_Aux(lua_State* _State) {
 			goto loop_end;
 		}
 		if(_IsUnique != 0) {
-			for(int i = 0; i < g_MissionData->StackSz; ++i) {
-				if(_Guy == g_MissionData->Stack[i]) {
+			for(int i = 0; i < g_MissionData->BGStackSz; ++i) {
+				if(_Guy == g_MissionData->BGStack[i]) {
 					++_SkipedGuys;
 					goto loop_end;
 				}
@@ -808,8 +814,8 @@ int LuaMissionGetRandomPerson_Aux(lua_State* _State) {
 		_Itr = _Settlement->BigGuys.Front;
 		goto loop_start;
 	}
-	g_MissionData->Stack[g_MissionData->StackSz] = _Guy;
-	++g_MissionData->StackSz;
+	g_MissionData->BGStack[g_MissionData->BGStackSz] = _Guy;
+	++g_MissionData->BGStackSz;
 	LuaCtor(_State, "BigGuy", _Guy);
 	return 1;
 	error:
@@ -876,60 +882,6 @@ int LuaMissionNormalize(lua_State* _State) {
 	return 1;
 }
 
-int LuaMissionData_Aux(lua_State* _State) {
-	const char* _Str = luaL_checkstring(_State, 1);
-	struct Rule* _Rule = HashSearch(&g_MissionData->Data, _Str);
-
-	if(_Rule == NULL) {
-		lua_pushnil(_State);
-		return 1;
-	}
-	if(_Rule->Type == RULE_PRIMITIVE)
-		PrimitiveLuaPush(_State, &((struct RulePrimitive*)_Rule)->Value);
-	else if(_Rule->Type == RULE_LUAOBJ) {
-		LuaCtor(_State, ((struct RuleLuaObj*)_Rule)->Class, ((struct RuleLuaObj*)_Rule)->Object);
-	} else {
-		return luaL_error(_State, "Invalid rule type");
-	}
-	return 1;
-}
-
-int LuaMissionData(lua_State* _State) {
-	lua_pushcfunction(_State, LuaMissionData_Aux);
-	lua_insert(_State, 1);
-	LuaRuleLuaCall(_State);
-	return 1;
-}
-
-int LuaMissionAddData_Aux(lua_State* _State) {
-	const char* _Str = luaL_checkstring(_State, 1);
-	const char* _Class = NULL;
-	struct Rule* _Rule = NULL;
-
-	if(lua_type(_State, 2) == LUA_TTABLE) {
-		_Class = luaL_checkstring(_State, 3);
-		lua_pushstring(_State, "__self");
-		lua_rawget(_State, 2);
-		if(lua_type(_State, -1) != LUA_TLIGHTUSERDATA)
-			return luaL_error(_State, "Argument #2 is not an object.");
-		_Rule = (struct Rule*) CreateRuleLuaObj(lua_touserdata(_State, -1), _Class);
-	} else {
-		struct Primitive _Primitive;
-
-		LuaToPrimitive(_State, 2, &_Primitive);
-		_Rule = (struct Rule*) CreateRulePrimitive(&_Primitive);
-	}
-	HashInsert(&g_MissionData->Data, _Str, _Rule);
-	return 0;
-}
-
-int LuaMissionAddData(lua_State* _State) {
-	lua_pushcfunction(_State, LuaMissionAddData_Aux);
-	lua_insert(_State, 1);
-	LuaRuleLuaCall(_State);
-	return 1;
-}
-
 void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 	const char* _Text = NULL;
 	struct Rule* _Condition = NULL;
@@ -938,8 +890,26 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 
 	lua_pushstring(_State, "Options");
 	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TTABLE)
-		luaL_error(_State, "Mission's options is not a table.");
+	if(lua_type(_State, -1) != LUA_TTABLE) {
+		if(lua_type(_State, -1) != LUA_TNIL)
+			return (void) luaL_error(_State, "Mission's options is not a table.");
+		/* If we leave out the Options table assume we want a single
+		 * option that has the text "Ok" and does nothing.
+		 */
+		_Mission->OptionCt = 1;
+		_Mission->Options[0].Name = "Ok";
+		_Mission->Options[0].Condition = (struct Rule*) CreateRuleBoolean(1);
+		_Mission->Options[0].Action = (struct Rule*) CreateRuleBoolean(1);
+		lua_createtable(_State, 3, 0);
+		lua_pushcfunction(_State, LuaMissionNormalize_Aux);
+		lua_rawseti(_State, -2, 1);
+		lua_pushinteger(_State, 1);
+		lua_rawseti(_State, -2, 2);
+		lua_pushinteger(_State, 1);
+		lua_rawseti(_State, -2, 3);
+		_Mission->Options[0].Utility = (struct Rule*) CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX)); 
+		return;
+	}
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(_Mission->OptionCt >= MISSION_MAXOPTIONS) {
@@ -1191,6 +1161,50 @@ int LuaMissionLoad(lua_State* _State) {
 	MissionInsert(&g_MissionEngine, _Mission);
 	Log(ELOG_INFO, "Loaded mission %s", _Mission->Name);
 	return 0;
+}
+
+int LuaMissionSetVar_Aux(lua_State* _State) {
+	struct MissionData* _Data = g_MissionData;
+	const char* _Name = luaL_checkstring(_State, 1);
+	
+	for(int i = 0; i < _Data->StackSz; ++i) {
+		if(strcmp(_Data->Stack[i].Name, _Name) == 0) {
+			LuaToPrimitive(_State, 2, &_Data->Stack[_Data->StackSz].Var);
+			return 0;
+		}
+	}
+	LuaToPrimitive(_State, 2, &_Data->Stack[_Data->StackSz].Var);
+	_Data->Stack[_Data->StackSz].Name = malloc(strlen(_Name) + 1);
+	strcpy((char*) _Data->Stack[_Data->StackSz].Name, _Name);
+	++_Data->StackSz;
+	return 0;
+}
+
+int LuaMissionSetVar(lua_State* _State) {
+	lua_pushcfunction(_State, LuaMissionSetVar_Aux);
+	lua_insert(_State, 1);
+	LuaRuleLuaCall(_State);
+	return 1;
+}
+
+int LuaMissionGetVar_Aux(lua_State* _State) {
+	struct MissionData* _Data = g_MissionData;
+	const char* _Name = luaL_checkstring(_State, 1);
+
+	for(int i = 0; i < _Data->StackSz; ++i) {
+		if(strcmp(_Name, _Data->Stack[i].Name) == 0) {
+			PrimitiveLuaPush(_State, &_Data->Stack[i].Var);
+			return 1;
+		}
+	}
+	return luaL_error(_State, "%s is not defined.", _Name);
+}
+
+int LuaMissionGetVar(lua_State* _State) {
+	lua_pushcfunction(_State, LuaMissionGetVar_Aux);
+	lua_insert(_State, 1);
+	LuaRuleLuaCall(_State);
+	return 1;
 }
 
 int LuaMissionFuncWrapper(lua_State* _State) {

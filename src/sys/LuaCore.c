@@ -119,10 +119,10 @@ static const luaL_Reg g_LuaMissionRuleFuncs[] = {
 		{"Sender", LuaMissionGetSender},
 		{"GetRandomPerson", LuaMissionGetRandomPerson},
 		{"CallById", LuaMissionCallById},
-		{"Data", LuaMissionData},
-		{"AddData", LuaMissionAddData},
 		{"Load", LuaMissionLoad},
 		{"Normalize", LuaMissionNormalize},
+		{"Var", LuaMissionGetVar},
+		{"SetVar", LuaMissionSetVar},
 		{NULL, NULL},
 };
 
@@ -1154,5 +1154,9 @@ void InitMissionLua(lua_State* _State) {
 		lua_rawset(_State, 1);
 		lua_pop(_State, 1);
 	}
+	lua_pushstring(_State, "Random");
+	lua_pushcfunction(_State, LuaRandom);
+	lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
+	lua_rawset(_State, -3);
 	LuaSetEnv(_State, "Mission");
 }

@@ -43,6 +43,10 @@
 #endif
 
 #define GAME_TICK (200)
+#define LuaAddEnumToTable(_State, _String, _Int)	\
+	lua_pushstring(_State, _String);				\
+	lua_pushinteger(_State, _Int);					\
+	lua_rawset(_State, -3)
 
 void LuaSettlementObjects(lua_State* _State) {
 	lua_newtable(_State);
@@ -73,6 +77,8 @@ void LuaSettlementObjects(lua_State* _State) {
 	lua_pushstring(_State, "Influence");
 	lua_pushinteger(_State, BGACT_IMRPOVEREL);
 	lua_rawset(_State, -3);
+
+	LuaAddEnumToTable(_State, "StealCattle", BGACT_STEALCATTLE);
 
 	lua_pushstring(_State, "Sabotage");
 	lua_pushinteger(_State, BGACT_SABREL);

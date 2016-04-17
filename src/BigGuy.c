@@ -441,9 +441,8 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		_Guy->ActionFunc = BigGuyActionGift;
 		_Guy->Action.Modifier = 1;
 		break;
-	case BGACT_STEALANIMAL:
-		_Guy->ActionFunc = NULL;
-		_Guy->Action.Modifier = 1;
+	case BGACT_STEALCATTLE:
+		MissionAction("STLCT.1", _Guy, _Target);
 		break;
 	case BGACT_DUEL:
 		MissionAction("DUEL.2", _Target, _Guy);

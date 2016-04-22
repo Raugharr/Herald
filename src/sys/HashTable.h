@@ -37,7 +37,14 @@ void DestroyHash(struct HashTable* _Hash);
 struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key);
 void* HashSearch(const struct HashTable* _Hash, const char* _Key);
 void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair);
+/**
+ * Removes all elements from _Hash.
+ */
 void HashClear(struct HashTable* _Hash);
+/**
+ * Removes element _Key from _Hash.
+ * Returns 1 if _Key was removed and 0 if _Key was not found.
+ */
 int HashDelete(struct HashTable* _Hash, const char* _Key);
 void HashDeleteAll(struct HashTable* _Hash, void(*_Callback)(void*));
 

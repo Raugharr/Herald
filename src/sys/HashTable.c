@@ -31,9 +31,7 @@ struct HashTable* CreateHash(int _Size) {
 }
 
 void DestroyHash(struct HashTable* _Hash) {
-	int i;
-	
-	for(i = 0; i < _Hash->TblSize; ++i) 
+	for(int i = 0; i < _Hash->TblSize; ++i) 
 		if(_Hash->Table[i] != NULL) {
 			free(_Hash->Table[i]->Key);
 			free(_Hash->Table[i]);
@@ -103,6 +101,7 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
 	++_Hash->Size;
 }
 
+//FIXME: Does not free any memory.
 void HashClear(struct HashTable* _Hash) {
 	memset(_Hash->Table, 0, _Hash->TblSize);
 	_Hash->Size = 0;

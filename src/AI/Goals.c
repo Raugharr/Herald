@@ -35,8 +35,8 @@ void GoalChallangeLeaderSetup(struct Agent* _Agent) {
 }
 
 void GoalChallangeLeader(struct GoapGoal* _Goal) {
-//	GoapGoalAddAction(_Goal, _Planner, "Sabotage Relation");
 	GoapGoalAddAction(_Goal, "Duel");
+	GoapGoalAddAction(_Goal, "Murder");
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);
 	_Goal->Name = "Challange Leader";
 	_Goal->Utility = UTILITY_QUADRATIC;

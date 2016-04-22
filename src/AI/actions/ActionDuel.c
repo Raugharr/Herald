@@ -28,7 +28,7 @@ static int ActionFunction(struct Agent* _Agent) {
 
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
 	const struct BigGuy* _Guy = _Agent->Agent;
-	struct BigGuy* _Leader =  FamilyGetSettlement(_Guy->Person->Family)->Government->Leader;
+	struct BigGuy* _Leader =  _Agent->Blackboard.Target;
 	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Leader);
 	int _Utility = 0;
 
@@ -63,5 +63,4 @@ void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_LINEAR;
-	GoapActionSetName(_Action, "Duel");
 }

@@ -11,12 +11,48 @@ function RelationToStr(Guy, Target)
 	return Relation
 end
 
+function DisplaySettlement(Menu, Left, Right)
+	Right:Clear()
+	Right:Paragraph("This village currently has " .. tostring(Menu.Settlement:GetPopulation()) .. " people.")
+end
+
+function DisplayBigGuys(Menu, Left, Right)
+	local Table = Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
+	local Agent = nil
+	local Player = World.GetPlayer()
+	local Relation = nil
+	
+	Right:Clear()
+	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:CreateLabel("Name")
+	Table:CreateLabel("Action");
+	Table:CreateLabel("Our Opinion");
+	Table:CreateLabel("Their Opinion");
+	for Guy in Data["Settlement"]:GetBigGuys():Front() do
+		if Guy:Equal(World:GetPlayer()) == false then
+			Table:CreateButton(Guy:GetPerson():GetName(),
+				function()
+					GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
+				end)
+			Agent = Guy:GetAgent()
+			if Agent ~= nil then
+				Table:CreateLabel(Agent:GetAction())
+				else
+					Table:CreateLabel("Player")
+			end
+			Table:CreateLabel(RelationToStr(Player, Guy))
+			Table:CreateLabel(RelationToStr(Guy, Player))
+		end
+	end
+end
+
 function Menu.Init(Menu, Data)
 	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu)
 	Menu.Left = GUI.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
 	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
-	local BigGuyMenu = nil
+	Menu.Settlement = Data["Settlement"]
 	local SettlementMenu = nil
 	
 	Menu.TitleCon:SetFocus(false)
@@ -31,7 +67,6 @@ function Menu.Init(Menu, Data)
 	Menu.Left:CreateButton("Raise Fyrd",
 		function()
 			World.SetOnClick(1, Data["Settlement"].__self)
-			--Data["Settlement"]:RaiseArmy()
 			Gui.MenuPop()
 		end)
 	Menu.Left:CreateButton("View Settlement",
@@ -39,42 +74,11 @@ function Menu.Init(Menu, Data)
 			if SettlementMenu ~= nil then
 				return
 			end
-			SettlementMenu = Menu.Right:CreateLabel(tostring(Data["Settlement"]:GetPopulation()))
+			DisplaySettlement(Menu, Menu.Left, Menu.Right)
 		end)
 	Menu.Left:CreateButton("View big guys",
 		function()
-			if BigGuyMenu ~= nil then
-				return
-			end
-
-			local Table = Menu.Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
-			local Agent = nil
-			local Player = World.GetPlayer()
-			local Relation = nil
-			
-			BigGuyMenu = Table
-			Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-			Table:CreateLabel("Name")
-			Table:CreateLabel("Action");
-			Table:CreateLabel("Our Opinion");
-			Table:CreateLabel("Their Opinion");
-			for Guy in Data["Settlement"]:GetBigGuys():Front() do
-				if Guy:Equal(World:GetPlayer()) == false then
-					Table:CreateButton(Guy:GetPerson():GetName(),
-						function()
-							GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
-						end)
-					Agent = Guy:GetAgent()
-					if Agent ~= nil then
-						Table:CreateLabel(Agent:GetAction())
-						else
-							Table:CreateLabel("Player")
-					end
-					Table:CreateLabel(RelationToStr(Player, Guy))
-					Table:CreateLabel(RelationToStr(Guy, Player))
-				end
-			end
+			DisplayBigGuys(Menu, Menu.Left, Menu.Right)
 		end)
 	Menu.Left:CreateButton("Bulitin",
 		function()
@@ -82,7 +86,7 @@ function Menu.Init(Menu, Data)
 		end)
 	Menu.Left:CreateButton("Close",
 		function()
-			GUI.PopMenu()
+			Menu:Close()
 		end)
 end
 

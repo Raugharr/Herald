@@ -37,7 +37,8 @@ enum EMissionCategories {
 enum EMissionFlags {
 	MISSION_FNONE = 0,
 	MISSION_FONLYTRIGGER = (1 << 0),
-	MISSION_FEVENT = (1 << 1)
+	MISSION_FEVENT = (1 << 1),
+	MISSION_FNOMENU = (1 << 2)
 };
 
 typedef struct lua_State lua_State;

@@ -538,6 +538,8 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 		}
 		if(_Mission->OnTrigger != NULL)
 			RuleEval(_Mission->OnTrigger);
+		if((_Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU)
+			return;
 		lua_settop(_State, 0);
 		lua_pushstring(_State, "MissionMenu");
 		lua_createtable(_State, 0, 3);
@@ -569,6 +571,10 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 		float _BestUtility = -1.0;
 		float _Utility = 0.0;
 
+		if(_Mission->OnTrigger != NULL)
+			RuleEval(_Mission->OnTrigger);
+		if((_Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU)
+			return;
 		for(int i = 0; i < _Mission->OptionCt; ++i) {
 			if(RuleEval(_Mission->Options[i].Condition) == 0)
 				continue;
@@ -896,6 +902,10 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 		/* If we leave out the Options table assume we want a single
 		 * option that has the text "Ok" and does nothing.
 		 */
+		 if((_Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU) {
+			_Mission->OptionCt = 0;
+			return;
+		 }
 		_Mission->OptionCt = 1;
 		_Mission->Options[0].Name = "Ok";
 		_Mission->Options[0].Condition = (struct Rule*) CreateRuleBoolean(1);
@@ -910,6 +920,8 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 		_Mission->Options[0].Utility = (struct Rule*) CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX)); 
 		return;
 	}
+	if((_Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU)
+		return (void) luaL_error(_State, "Mission cannot have NoMenu be true and have an option table.");
 	lua_pushnil(_State);
 	while(lua_next(_State, -2) != 0) {
 		if(_Mission->OptionCt >= MISSION_MAXOPTIONS) {
@@ -1116,6 +1128,15 @@ int LuaMissionLoad(lua_State* _State) {
 			return luaL_error(_State, "Mission.Trigger is not a table.");
 		MissionLoadTriggerList(_State, _Mission);
 		lua_pop(_State, 1);
+	}
+	lua_pushstring(_State, "NoMenu");
+	lua_rawget(_State, 1);
+	if(lua_type(_State, -1) != LUA_TNIL) {
+		if(lua_type(_State, -1) == LUA_TBOOLEAN) {
+			_Mission->Flags = _Mission->Flags | MISSION_FNOMENU;
+		} else {
+			return luaL_error(_State, "Mission.NoMenu must be a boolean.");
+		}
 	}
 
 	lua_pushstring(_State, "MeanTime");

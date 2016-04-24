@@ -52,6 +52,8 @@ void GoapClear(struct GOAPPlanner* _Planner) {
 		GoapActionClear(&_Planner->Actions[i]);
 	for(int i = 0; i < GOAP_GOALSZ; ++i)
 		InitGoapGoal(&_Planner->Goals[i]);
+	for(int i = 0; i < GOAP_ATOMS; ++i) 
+		_Planner->AtomNames[i] = NULL;
 	_Planner->AtomCt = 0;
 	_Planner->ActionCt = 0;
 	_Planner->GoalCt = 0;
@@ -233,13 +235,13 @@ const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _Goal
 		return _GoalSet->Goals[_BestIdx];
 	}
 
-	void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
-		struct WorldState _EndState;
-		const struct GoapGoal* _Goal = NULL;
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
+	struct WorldState _EndState;
+	const struct GoapGoal* _Goal = NULL;
 
-		WorldStateClear(&_EndState);
-		if((_Goal = GoapBestGoalUtility(_Agent->GoalSet, _Agent, &_EndState)) == NULL)
-			return;
-		_Goal->Setup(_Agent);
-		GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
-	}
+	WorldStateClear(&_EndState);
+	if((_Goal = GoapBestGoalUtility(_Agent->GoalSet, _Agent, &_EndState)) == NULL)
+		return;
+	_Goal->Setup(_Agent);
+	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
+}

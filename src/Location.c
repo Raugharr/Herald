@@ -10,6 +10,7 @@
 #include "Government.h"
 #include "Warband.h"
 #include "Crop.h"
+#include "Bulitin.h"
 
 #include "sys/Math.h"
 #include "sys/ResourceManager.h"
@@ -84,6 +85,7 @@ void DestroySettlement(struct Settlement* _Location) {
 #include "sys/LuaCore.h"
 void SettlementThink(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
+	struct BulitinItem* _Bulitin = _Settlement->Bulitin;
 
 	FieldUpdate(&_Settlement->Meadow);
 	while(_Itr != NULL) {
@@ -111,6 +113,17 @@ void SettlementThink(struct Settlement* _Settlement) {
 			_Settlement->HarvestMod = HARVESTMOD_MIN;
 		else if(_Settlement->HarvestMod > HARVESTMOD_MAX)
 			_Settlement->HarvestMod = HARVESTMOD_MAX;
+	}
+	while(_Bulitin != NULL) {
+		--_Bulitin->DaysLeft;
+		if(_Bulitin->DaysLeft <= 0) {
+			struct BulitinItem* _BulitinNext = _Bulitin->Next;
+			
+			ILL_DESTROY(_Settlement->Bulitin, _Bulitin);
+			_Bulitin = _BulitinNext;
+			continue;
+		}
+		_Bulitin = _Bulitin->Next;
 	}
 }
 
@@ -163,11 +176,10 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _FamilyItr = NULL;
 	struct LnkLst_Node* _Itr = NULL;
 	struct Family* _Family = NULL;
-	struct BigGuyStats _BGStats;
-	struct BigGuy* _Guy = NULL;
+	uint8_t _BGStats[BGSKILL_SIZE];
 	int _Motivations[BGMOT_SIZE] = {2, 3};
 	int _MotCt = 0;
-	int _Count = 5;
+	int _Count = 5; //How many big guys to make.
 
 	_Itr = _Settlement->Families.Front;
 	while(_Itr != NULL) {
@@ -180,8 +192,8 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 				goto skip_bigguy;
 			_FamilyItr = _FamilyItr->Next;
 		}
-		BGStatsWarlord(&_BGStats, Random(40, 60));
-		CreateBigGuy(_Family->People[0], &_BGStats, _MotCt);
+		BGStatsWarlord(_BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+		CreateBigGuy(_Family->People[0], _BGStats, _MotCt);
 		--_Motivations[_MotCt];
 		if(_Motivations[_MotCt] <= 0)
 			++_MotCt;
@@ -190,7 +202,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 		skip_bigguy:
 		_Itr = _Itr->Next;
 	}
-	_Settlement->Government->NewLeader(_Settlement->Government);
+	GovernmentSetLeader(_Settlement->Government, (struct BigGuy*) _Settlement->BigGuys.Front->Data);
 	LnkLstClear(&_UniqueFamilies);
 }
 

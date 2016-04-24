@@ -25,7 +25,8 @@ RuleFunc g_RuleFuncLookup[] = {
 		(RuleFunc) RuleIfThenElse,
 		RuleTrue,
 		(RuleFunc) RuleBlock,
-		(RuleFunc) RuleLuaObject
+		(RuleFunc) RuleLuaObject,
+		(RuleFunc) RuleCond
 };
 
 struct Primitive* CreatePrimitive() {
@@ -210,6 +211,27 @@ void DestroyRuleBlock(struct RuleBlock* _Rule) {
 	free(_Rule);
 }
 
+struct RuleCond* CreateRuleCond(int _Conditions) {
+	struct RuleCond* _Rule = (struct RuleCond*) malloc(sizeof(struct RuleCond));
+
+	_Rule->Type = RULE_COND;
+	_Rule->Destroy = (RuleDestroy) DestroyRuleCond;
+	_Rule->Conditions = calloc(_Conditions, sizeof(struct RuleBoolean*));
+	_Rule->Actions = calloc(_Conditions, sizeof(struct Rule*));
+	_Rule->ListSz = _Conditions;
+	return _Rule;
+}
+
+void DestroyRuleCond(struct RuleCond* _Rule) {
+	for(int i = 0; i < _Rule->ListSz; ++i) {
+		_Rule->Conditions[i]->Destroy((struct Rule*) _Rule->Conditions[i]);
+		_Rule->Actions[i]->Destroy(_Rule->Actions[i]);
+	}
+	free(_Rule->Conditions);
+	free(_Rule->Actions);
+	free(_Rule);
+}
+
 struct RuleLuaObj* CreateRuleLuaObj(void* _Object, const char* _Class) {
 	struct RuleLuaObj* _Rule = (struct RuleLuaObj*) malloc(sizeof(struct RuleLuaObj));
 
@@ -257,19 +279,21 @@ int RuleLuaCall(const struct RuleLuaCall* _Rule, lua_State* _State) {
 	for(int i = 1; i <= _Len; ++i) {
 		lua_rawgeti(_State, _Table, i);
 		if(lua_type(_State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_State, -1, "Rule")) != NULL && _Rule->Type == RULE_LUACALL) {
-			RuleLuaCall(_RuleArg, _State);
+			if(RuleLuaCall(_RuleArg, _State) == 0)
+				return 0;
 			lua_remove(_State, -2);
 		}
 	}
-	LuaCallFunc(_State, _Len - 1, 1, 0); //Len - 1 args because the element in the table is the function.
+	if(LuaCallFunc(_State, _Len - 1, 1, 0) == 0) //Len - 1 args because the element in the table is the function.
+		return 0;
 	lua_remove(_State, _Table);//pop _Rule->TblRef.
-	if(lua_isnumber(_State, -1) != 0) {
+	/*if(lua_isnumber(_State, -1) != 0) {
 		int _Return = lua_tointeger(_State, -1);
 
 		lua_pop(_State, 1);
 		return _Return;
-	}
-	return 0;
+	}*/
+	return 1;
 }
 
 int RulePrimitive(const struct RulePrimitive* _Primitive, lua_State* _State) {
@@ -296,6 +320,16 @@ int RuleBlock(const struct RuleBlock* _Block, lua_State* _State) {
 
 int RuleLuaObject(const struct RuleLuaObj* _Obj, lua_State* _State) {
 	return 1;
+}
+
+int RuleCond(const struct RuleCond* _Obj, lua_State* _State) {
+	for(int i = 0; i < _Obj->ListSz; ++i) {
+		if(LuaRuleEval((struct Rule*) _Obj->Conditions[i], _State) != 0) {
+			LuaRuleEval(_Obj->Actions[i], _State);
+			return 1;	
+		}
+	}
+	return 0;
 }
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two) {

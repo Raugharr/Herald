@@ -9,10 +9,16 @@ struct Rule;
 
 typedef struct lua_State lua_State;
 typedef int(*RuleFunc)(const struct Rule*, lua_State*); 
+typedef void(*RuleDestroy)(struct Rule*);
 
-#define RuleEval(_Rule) LuaRuleEval(_Rule, g_LuaState)
+#define RuleEval(_Rule) LuaRuleEval((_Rule), g_LuaState)
 #define LuaRuleEval(_Rule, _State) g_RuleFuncLookup[(_Rule)->Type]((_Rule), _State)
 
+/**
+ * TODO: There are several rule types that are very common such as RuleBoolean(0) and RuleBoolean(1)
+ * used to represent true and false respectivly. It should be looked into to determine if caching common
+ * rules would be able to save a significant amount of memory.
+ */
 
 enum {
 	PRIM_FLOAT,
@@ -33,7 +39,8 @@ enum {
 	RULE_IFTHENELSE,
 	RULE_EVENT,
 	RULE_BLOCK,
-	RULE_LUAOBJ
+	RULE_LUAOBJ,
+	RULE_COND
 };
 
 union UPrimitive {
@@ -102,6 +109,14 @@ struct RuleBlock {
 	int ListSz;
 };
 
+struct RuleCond {
+	int Type;
+	void (*Destroy)(struct Rule*);
+	struct RuleBoolean** Conditions;
+	struct Rule** Actions;
+	int ListSz;
+};
+
 struct RuleLuaObj {
 	int Type;
 	void (*Destroy)(struct Rule*);
@@ -146,6 +161,9 @@ void DestroyRuleEvent(struct RuleEvent* _Rule);
 struct RuleBlock* CreateRuleBlock(int _Size);
 void DestroyRuleBlock(struct RuleBlock* _Rule);
 
+struct RuleCond* CreateRuleCond(int _Conditions);
+void DestroyRuleCond(struct RuleCond* _Rule);
+
 struct RuleLuaObj* CreateRuleLuaObj(void* _Object, const char* _Class);
 void DestroyRuleLuaObj(struct RuleLuaObj* _Obj);
 
@@ -160,6 +178,7 @@ int RuleIfThenElse(const struct RuleIfThenElse* _Rule, lua_State* _State);
 int RuleBoolean(const struct RuleBoolean* _Rule, lua_State* _State);
 int RuleBlock(const struct RuleBlock* _Block, lua_State* _State);
 int RuleLuaObject(const struct RuleLuaObj* _Obj, lua_State* _State);
+int RuleCond(const struct RuleCond* _Obj, lua_State* _State);
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);
 

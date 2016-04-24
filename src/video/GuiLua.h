@@ -112,6 +112,10 @@ int LuaWidgetGetParent(lua_State* _State);
 int LuaWidgetGetFocus(lua_State* _State);
 int LuaWidgetSetFocus(lua_State* _State);
 int LuaWidgetDestroy(lua_State* _State);
+int LuaContainerLeftOf(lua_State* _State);
+int LuaContainerRightOf(lua_State* _State);
+int LuaContainerAbove(lua_State* _State);
+int LuaContainerBelow(lua_State* _State);
 
 /**
  * Container functions
@@ -125,12 +129,10 @@ int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerGetMargins(lua_State* _State);
 int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
+int LuaContainerClear(lua_State* _State);
 int LuaContainerClose(lua_State* _State);
 int LuaContainerShrink(lua_State* _State);
-int LuaContainerLeftOf(lua_State* _State);
-int LuaContainerRightOf(lua_State* _State);
-int LuaContainerAbove(lua_State* _State);
-int LuaContainerBelow(lua_State* _State);
+int LuaContainerAddChild(lua_State* _State);
 
 /**
  * Label functions

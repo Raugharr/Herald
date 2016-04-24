@@ -96,9 +96,6 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 		{NULL, NULL}
 };
 
-/*
- * TODO: Create a function to remove all children.
- */
 static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"SetChild", LuaContainerSetChild},
 		{"GetChildCt", LuaContainerGetChildCt},
@@ -108,12 +105,13 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"CreateTable", LuaCreateTable},
 		{"CreateButton", LuaCreateButton},
 		{"CreateImage", LuaCreateImage},
-		//{"CreateWorldRender", LuaCreateWorldRender},
 		{"Children", LuaContainerGetChildren},
 		{"Paragraph", LuaContainerParagraph},
 		{"GetHorizontalCenter", LuaContainerHorizontalCenter},
 		{"Close", LuaContainerClose},
+		{"Clear", LuaContainerClear},
 		{"Shrink", LuaContainerShrink},
+		{"AddChild", LuaContainerAddChild},
 		{NULL, NULL}
 };
 
@@ -1134,6 +1132,22 @@ int LuaContainerHorizontalCenter(lua_State* _State) {
 	return 1;
 }
 
+int LuaContainerClear(lua_State* _State) {
+	struct Container* _Container = LuaToObject(_State, 1, "Container");
+	GuiParentFunc _RemChild = _Container->RemChild;
+
+
+	_Container->RemChild = StaticRemChild;
+	for(int i = 0; i < _Container->ChildCt; ++i) {
+		if(_Container->Children[i] != NULL) {
+			_Container->Children[i]->OnDestroy(_Container->Children[i], _State);
+		}
+	}
+	_Container->ChildCt = 0;
+	_Container->RemChild = _RemChild;
+	return 0;
+}
+
 int LuaContainerClose(lua_State* _State) {
 	struct Container* _Container = LuaToObject(_State, 1, "Container");
 
@@ -1145,6 +1159,14 @@ int LuaContainerShrink(lua_State* _State) {
 	struct Container* _Container = LuaToObject(_State, 1, "Container");
 
 	ContainerShrink(_Container);
+	return 0;
+}
+
+int LuaContainerAddChild(lua_State* _State) {
+	struct Container* _Container = LuaToObject(_State, 1, "Container");
+	struct Widget* _Widget = LuaToObject(_State, 2, "Widget");
+
+	WidgetSetParent(_Container, _Widget);
 	return 0;
 }
 

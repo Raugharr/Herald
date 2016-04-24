@@ -11,6 +11,8 @@
 #include "BigGuy.h"
 
 #include "video/Video.h"
+
+#include "sys/Event.h"
 #include "sys/Log.h"
 
 #include <stdlib.h>
@@ -76,6 +78,10 @@ void (*g_GovernmentSucession[GOVSUCESSION_SIZE])(struct Government*) = {
 		MonarchyNewLeader,
 		ElectiveMonarchyNewLeader
 };
+
+void GovOnLeaderDeath(int _EventId, struct BigGuy* _Guy, struct Government* _Gov, void* _None) {
+	_Gov->NewLeader(_Gov);	
+}
 
 int InitReforms(void) {
 	struct LinkedList _List = {0, NULL, NULL};
@@ -362,10 +368,9 @@ void GovernmentCreateLeader(struct Government* _Gov) {
 }
 
 void MonarchyNewLeader(struct Government* _Gov) {
-	int i = 0;
 	struct Family* _Family = _Gov->Leader->Person->Family;
 
-	for(i = 0; i < FAMILY_PEOPLESZ; ++i)
+	for(int i = 0; i < FAMILY_PEOPLESZ; ++i)
 		if(_Family->People[i]->Gender == EMALE && _Family->People[i]->Age >= ADULT_AGE) {
 			_Gov->Leader->Person = _Family->People[i];
 			return;
@@ -418,4 +423,5 @@ void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
 		BigGuySetState(_Gov->Leader, BGBYTE_ISLEADER, 0);
 	_Gov->Leader = _Guy;
 	BigGuySetState(_Guy, BGBYTE_ISLEADER, 1);
+	EventHook(EVENT_DEATH, (EventCallback) GovOnLeaderDeath, _Guy, _Gov, NULL);
 }

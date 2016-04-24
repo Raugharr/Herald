@@ -124,6 +124,7 @@ void LnkLstPushFront(struct LinkedList* _List, void* _Value) {
 		return;
 	}
 	_Node->Next = _List->Front;
+	_List->Front->Prev = _Node;
 	_Node->Prev = NULL;
 	_List->Front = _Node;
 	++_List->Size;

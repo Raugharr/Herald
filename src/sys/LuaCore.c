@@ -85,6 +85,7 @@ static const luaL_Reg g_LuaFuncsRule[] = {
 		{"IfThenElse", LuaRuleIfThenElse},
 		{"EventFired", LuaRuleEventFired},
 		{"Block", LuaRuleBlock},
+		{"Cond", LuaRuleCond},
 		{NULL, NULL}
 };
 
@@ -938,6 +939,22 @@ int LuaRuleBlock(lua_State* _State) {
 	_Rule = CreateRuleBlock(_Args);
 	for(int i = 0; i < _Args; ++i)
 		_Rule->RuleList[i] = LuaCheckClass(_State, i + 1, "Rule");
+	LuaCtor(_State, "Rule", _Rule);
+	return 1;
+}
+
+int LuaRuleCond(lua_State* _State) {
+	struct RuleCond* _Rule = NULL;
+	int _Args = lua_gettop(_State);
+
+	if((_Args & 1) == 1) {
+		return luaL_error(_State, "Cond requires an even amount of arguments.");
+	}
+	_Rule = CreateRuleCond(_Args / 2);
+	for(int i = 1, _Ct = 0; i <= _Args; i += 2, ++_Ct) {
+		_Rule->Conditions[_Ct] = LuaCheckClass(_State, i, "Rule");
+		_Rule->Actions[_Ct] = LuaCheckClass(_State, i + 1, "Rule"); 
+	}
 	LuaCtor(_State, "Rule", _Rule);
 	return 1;
 }

@@ -178,6 +178,7 @@ int LuaRuleFalse(lua_State* _State);
 int LuaRuleIfThenElse(lua_State* _State);
 int LuaRuleEventFired(lua_State* _State);
 int LuaRuleBlock(lua_State* _State);
+int LuaRuleCond(lua_State* _State);
 
 int LuaMissionGetName(lua_State* _State);
 int LuaMissionGetDesc(lua_State* _State);

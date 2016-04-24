@@ -25,8 +25,7 @@
 #include "sys/LinkedList.h"
 
 #include <stdlib.h>
-
-#define RELATIONS_PER_TICK (2)
+#include <assert.h>
 
 const char* g_BGStateStr[BGBYTE_SIZE] = {
 		"PassReform",
@@ -62,7 +61,7 @@ void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Act
 	struct BigGuyRelation* _Relation = NULL;
 	int _Mod = _Action->Modifier;
 
-	if(_Mod > 0 && Random(BIGGUYSTAT_MIN, BIGGUYSTAT_MAX) > _Guy->Stats.Charisma)
+	if(_Mod > 0 && Random(BIGGUYSTAT_MIN, BIGGUYSTAT_MAX) > _Guy->Stats[BGSKILL_CHARISMA])
 		--_Mod;
 	if((_Relation = BigGuyGetRelation(_Action->Target, _Guy)) == NULL) {
 		_Relation = CreateBigGuyRelation(_Action->Target, _Guy);
@@ -187,7 +186,7 @@ void BGOnTargetDeath(int _EventId, struct BigGuy* _Guy, struct Person* _Person, 
 	//AgentThink(_Guy->Agent);
 }
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats, int _Motivation) {
+struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation) {
 	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
 	_BigGuy->Person = _Person;
@@ -197,7 +196,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats, 
 	_BigGuy->Prestige = 0;
 	_BigGuy->IsDirty = 1;
 	_BigGuy->Relations = NULL;
-	_BigGuy->Stats = *_Stats;
+	memcpy(&_BigGuy->Stats, _Stats, sizeof(uint8_t) * BGSKILL_SIZE);
 	_BigGuy->ActionFunc = NULL;
 	_BigGuy->TriggerMask = 0;
 	_BigGuy->Motivation = _Motivation;
@@ -280,9 +279,9 @@ void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value) {
 struct BigGuy* BigGuyLeaderType(struct Person* _Person) {
 	while(_Person != NULL) {
 		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
-			struct BigGuyStats _Stats;
+			uint8_t _Stats[BGSKILL_SIZE];
 
-			BGStatsWarlord(&_Stats, 50);
+			BGStatsWarlord(_Stats, 50);
 			return CreateBigGuy(_Person, &_Stats, BGMOT_RULE); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
 		}
 		_Person = _Person->Next;
@@ -383,15 +382,16 @@ void BGStatsRandom(int _Points, int _StatCt, ...) {
 	va_end(_Valist);
 }
 
-void BGStatsWarlord(struct BigGuyStats* _Stats, int _Points) {
-	int _WarPoints = _Points / 2;
+void BGStatsWarlord(uint8_t _Stats[BGSKILL_SIZE], int _Points) {
+	int _WarPoints = (_Points <= 400) ? (_Points / 2) : (240);
 	int _RemainPoints = _Points - _WarPoints;
 
 	/*
 	 * TODO: The percentages given to each stat should be randomized slightly.
 	 */
-	BGStatsRandom(_WarPoints, 3, &_Stats->Strategy, &_Stats->Tactics, &_Stats->Warfare, 0.5, 0.25, 0.25);
-	BGStatsRandom(_RemainPoints, 5, &_Stats->Administration, &_Stats->Charisma, &_Stats->Intellegence, &_Stats->Intrigue, &_Stats->Piety, 0.3, 0.3, 0.15, 0.15, 0.1);
+	BGStatsRandom(_WarPoints, 3, &_Stats[BGSKILL_STRATEGY], &_Stats[BGSKILL_TACTICS], &_Stats[BGSKILL_WARFARE], 0.36, 0.32, 0.32);
+	BGStatsRandom(_RemainPoints, 5, &_Stats[BGSKILL_ADMINISTRATION], &_Stats[BGSKILL_CHARISMA], &_Stats[BGSKILL_INTELLEGENCE]
+		, &_Stats[BGSKILL_INTRIGUE], &_Stats[BGSKILL_PIETY], 0.22, 0.2, 0.2, 0.2, 0.18);
 }
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority) {
@@ -432,7 +432,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
 		_Guy->ActionFunc = BigGuyActionImproveRel;
-		_Guy->Action.Modifier = RELATIONS_PER_TICK;
+		//_Guy->Action.Modifier = RELATIONS_PER_TICK;
 		break;
 	case BGACT_SABREL:
 		MissionAction("RUMOR.1", _Guy, _Target);
@@ -446,6 +446,9 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		break;
 	case BGACT_DUEL:
 		MissionAction("DUEL.2", _Target, _Guy);
+		break;
+	case BGACT_MURDER:
+		MissionAction("MURDR.1", _Target, _Guy);
 		break;
 	default:
 		_Guy->ActionFunc = NULL;
@@ -477,4 +480,14 @@ double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target)
 	static double _TableMod[][4] = {{2, 1.5, 1, .5}, {1.5, 2, .5, 1}, {.5, 1, 2, 1.5}, {1, .5, 1.5, 2}};
 
 	return _TableMod[_Guy->Personality][_Target->Personality];
+}
+
+int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill) {
+	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
+	return (Random(1, 100) + _One->Stats[_Skill]) - (Random(1, 100) + _Two->Stats[_Skill]) / 10;
+}
+
+int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill) {
+	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
+	return ((Random(1, 100) + _Guy->Stats[_Skill]) >= 100);
 }

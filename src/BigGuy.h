@@ -19,8 +19,11 @@ struct Object;
 struct Feud;
 struct Agent;
 
-#define BIGGUYSTAT_MIN (0)
+#define BIGGUYSTAT_MIN (1)
 #define BIGGUYSTAT_MAX (100)
+
+#define BG_MINGENSTATS (BGSKILL_SIZE * 60)
+#define BG_MAXGENSTATS (BGSKILL_SIZE * 80)
 
 #define BIGGUY_RELMAX (100)
 #define BIGGUY_HATEMIN (-76)
@@ -80,6 +83,7 @@ enum {
 	BGACT_GIFT,
 	BGACT_STEALCATTLE,
 	BGACT_DUEL,
+	BGACT_MURDER,
 	BGACT_SIZE
 };
 
@@ -94,6 +98,18 @@ enum {
 	CRISIS_SIZE
 };
 
+enum {
+	BGSKILL_ADMINISTRATION,
+	BGSKILL_INTRIGUE,
+	BGSKILL_STRATEGY,
+	BGSKILL_WARFARE,
+	BGSKILL_TACTICS,
+	BGSKILL_CHARISMA,
+	BGSKILL_PIETY,
+	BGSKILL_INTELLEGENCE,
+	BGSKILL_SIZE
+};
+
 extern const char* g_BGStateStr[BGBYTE_SIZE];
 extern const char* g_BGMission[BGACT_SIZE];
 extern const char* g_CrisisStateStr[CRISIS_SIZE];
@@ -101,17 +117,6 @@ extern int g_BGActCooldown[BGACT_SIZE];
 
 struct BigGuyMission {
 	int Type;
-};
-
-struct BigGuyStats {
-	uint8_t Administration;
-	uint8_t Intrigue;
-	uint8_t Strategy;
-	uint8_t Warfare;
-	uint8_t Tactics;
-	uint8_t Charisma;
-	uint8_t Piety;
-	uint8_t Intellegence;
 };
 
 struct BigGuyOpinion {
@@ -159,7 +164,7 @@ struct BigGuy {
 	float Authority;
 	float Prestige;
 	struct BigGuyRelation* Relations;
-	struct BigGuyStats Stats;
+	uint8_t Stats[BGSKILL_SIZE];
 	struct BigGuyAction Action;
 	struct LinkedList Feuds;
 	int Personality;
@@ -186,7 +191,7 @@ int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
 struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);
 struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int _Action, int _Modifier);
-struct BigGuy* CreateBigGuy(struct Person* _Person, struct BigGuyStats* _Stats, int _Motivation);
+struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
 
 void BigGuyThink(struct BigGuy* _Guy);
@@ -217,7 +222,7 @@ void BGStatsRandom(int _Points, int _StatCt, ...);
 /*
  * Creates a big guy with a stat emphasis on warfare.
  */
-void BGStatsWarlord(struct BigGuyStats* _Stats, int _Points);
+void BGStatsWarlord(uint8_t _Stats[BGSKILL_SIZE], int _Points);
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
 void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
@@ -231,4 +236,16 @@ void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
 int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 
+/**
+ * Compares  the  _Stat of _One and _Two and returns how sucessful the winner was.
+ * If _One has a lower score than _Two a negative value will be returned.
+ * If they are equal 0 will be returned.
+ * If _Two is greater than _One in the check a positive value will be returned.
+ * The value returned will be the diference of the two rolls divided by 10.
+ */
+int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill); 
+/**
+ * Returns a positive integer on sucess and a negative number on failure.
+ */
+int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill);
 #endif

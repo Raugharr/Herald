@@ -21,13 +21,13 @@ double GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _M
 
 	if(_Owner == _Leader)
 		return 0.0f;
-	*_Min = _Leader->Stats.Warfare * 0.75;
-	*_Max = _Leader->Stats.Warfare * 1.25;
-	if(_Owner->Stats.Warfare <= *_Min)
+	*_Min = _Leader->Stats[BGSKILL_WARFARE] * 0.75;
+	*_Max = _Leader->Stats[BGSKILL_WARFARE] * 1.25;
+	if(_Owner->Stats[BGSKILL_WARFARE] <= *_Min)
 		return 0.0f;
-	else if(_Owner->Stats.Warfare >= *_Max)
+	else if(_Owner->Stats[BGSKILL_WARFARE] >= *_Max)
 		return 1.0f;
-	return _Owner->Stats.Warfare;	  
+	return _Owner->Stats[BGSKILL_WARFARE];
 }
 
 void GoalChallangeLeaderSetup(struct Agent* _Agent) {

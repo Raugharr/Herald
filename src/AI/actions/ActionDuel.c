@@ -34,9 +34,9 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 
 	*_Min = 0;
 	*_Max = 255;
-	if(_Guy->Stats.Warfare < _Leader->Stats.Warfare || (_Relation != NULL && _Relation->Relation == BGREL_LOVE))
+	if(_Guy->Stats[BGSKILL_WARFARE] < _Leader->Stats[BGSKILL_WARFARE] || (_Relation != NULL && _Relation->Relation == BGREL_LOVE))
 		return 0;
-	_Utility = _Utility + ((_Guy->Stats.Warfare - _Leader->Stats.Warfare) * 5);
+	_Utility = _Utility + ((_Guy->Stats[BGSKILL_WARFARE] - _Leader->Stats[BGSKILL_WARFARE]) * 5);
 	if(_Relation != NULL)
 		_Utility = _Utility + ((-_Relation->Modifier) * 2);
 	return (_Utility >= 255) ? (255) : (_Utility);

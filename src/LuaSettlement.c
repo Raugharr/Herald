@@ -67,6 +67,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"GetCharisma", LuaBGGetCharisma},
 	{"GetPiety", LuaBGGetPiety},
 	{"GetIntellegence", LuaBGGetIntellegence},
+	{"OpposedChallange", LuaBGOpposedChallanged},
 	{"GetAgent", LuaBGGetAgent},
 	{"GetRelation", LuaBGGetRelation},
 	{"SetOpinion", LuaBGSetOpinion},
@@ -181,56 +182,68 @@ int LuaBGSetPrestige(lua_State* _State) {
 int LuaBGGetAdministration(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Administration);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_ADMINISTRATION]);
 	return 1;
 }
 
 int LuaBGGetIntrigue(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Intrigue);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTRIGUE]);
 	return 1;
 }
 
 int LuaBGGetStrategy(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Strategy);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_STRATEGY]);
 	return 1;
 }
 
 int LuaBGGetWarfare(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Warfare);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_WARFARE]);
 	return 1;
 }
 
 int LuaBGGetTactics(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Tactics);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_TACTICS]);
 	return 1;
 }
 
 int LuaBGGetCharisma(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Charisma);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_CHARISMA]);
 	return 1;
 }
 
 int LuaBGGetPiety(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Piety);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_PIETY]);
 	return 1;
 }
 
 int LuaBGGetIntellegence(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats.Intellegence);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTELLEGENCE]);
+	return 1;
+}
+
+int LuaBGOpposedChallanged(lua_State* _State) {
+	struct BigGuy* _One = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Two = LuaCheckClass(_State, 2, "BigGuy");
+
+	if(_One == NULL)
+		return luaL_error(_State, "Agument #1 is not a BigGuy.");
+	if(_Two == NULL)
+		return luaL_error(_State, "Agument #2 is not a BigGuy.");
+	lua_pushinteger(_State, BigGuyOpposedCheck(_One, _Two, luaL_checkinteger(_State, 3)));
 	return 1;
 }
 

@@ -30,6 +30,7 @@ int LuaBGGetTactics(lua_State* _State);
 int LuaBGGetCharisma(lua_State* _State);
 int LuaBGGetPiety(lua_State* _State);
 int LuaBGGetIntellegence(lua_State* _State);
+int LuaBGOpposedChallanged(lua_State* _State);
 int LuaBGGetAgent(lua_State* _State);
 int LuaBGGetRelation(lua_State* _State);
 int LuaBGSetOpinion(lua_State* _State);

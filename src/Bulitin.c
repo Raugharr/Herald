@@ -18,8 +18,11 @@ void BulitinItemOnClick(struct BulitinItem* _Item, lua_State* _State, struct Big
 
 struct BulitinItem* CreateBulitinItem(const struct Mission* _SuccMission, const struct Mission* _FailMission,
 	 struct BigGuy* _Owner, int _DaysLeft, int _Priority) {
-	struct BulitinItem* _Item = (struct BulitinItem*) malloc(sizeof(struct BulitinItem));
+	struct BulitinItem* _Item = NULL;
 
+	if(_SuccMission == NULL || _Owner == NULL)
+		return NULL;
+	_Item = (struct BulitinItem*) malloc(sizeof(struct BulitinItem));
 	_Item->SuccMission = _SuccMission;
 	_Item->FailMission = _FailMission;
 	_Item->Owner = _Owner;

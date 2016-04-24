@@ -20,6 +20,12 @@ extern struct RBTree g_ActorObservers;
 struct Location;
 struct MissionEngine;
 
+/**
+ * Function prototype for all functions that are used in event callbacks.
+ * The first argument is the Id of the event and the second is the "owner" of
+ * the callback. The third and fourth arguments are pointers to additional data
+ * that is set when the callback is initiated.
+ */
 typedef void (*EventCallback)(int, void*, void*, void*); 
 
 enum {

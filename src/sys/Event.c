@@ -45,16 +45,18 @@ const char* g_EventNames[] = {
 		NULL
 };
 
-int EventCmp(const void** _Vars, const struct EventObserver* _Event) {
+/*int EventCmp(const void** _Vars, const struct EventObserver* _Event) {
 	int _Result = _Vars[0] - _Event->One;
 
 	if(_Result != 0)
 		return _Result;
-	//if((_Result = _Vars[1] - _Event->One) != 0)
-	//	return _Result;
 	if((_Result = _Vars[1] - _Event->Two) != 0)
 		return _Result;
 	return _Result;
+}*/
+
+int EventCmp(const void* _Owner, const struct EventObserver* _Event) {
+	return _Owner - _Event->OwnerObj;
 }
 
 int EventInsert(const struct EventObserver* _One, const struct EventObserver* _Two) {
@@ -92,9 +94,9 @@ void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Dat
 	SDL_assert(_EventType >= 0 && _EventType < EVENT_SIZE);
 	//SDL_assert(_EventType < g_EventTypes[0] || _EventType > g_EventTypes[EVENT_SIZE]);
 	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
-	if((_Node = RBSearchNode(g_EventHooks[_EventType], &_Data1)) != NULL) {
+	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
 		_New->Next = (struct EventObserver*) _Node->Data;
-		_Node->Data = _New->Next;
+		_Node->Data = _New;
 	} else {
 		RBInsert(g_EventHooks[_EventType], _New);
 	}
@@ -106,23 +108,24 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 
 	SDL_assert(_EventType >= g_EventTypes[0] && _EventType <=  g_EventTypes[EVENT_SIZE - 1]);
 	_EventType = _EventType -  g_EventTypes[0];
-	if((_Node = RBSearchNode(g_EventHooks[_EventType], &_Data1)) != NULL) {
+	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
 		_Obs = _Node->Data;
 		do {
 			//One and Two should be equal by definition of being in the RB node.
-			if(_Obs->OwnerObj == _Owner /*&& _Obs->One == _Data1 && _Obs->Two == _Data2*/) {
+			if(_Obs->One == _Data1 && _Obs->Two == _Data2) {
 				ILL_DESTROY(_Node->Data, _Obs);
 				DestroyEventObserver(_Obs);
 				_Obs = _Node->Data;
 				if(_Obs == NULL) {
 					RBDeleteNode(g_EventHooks[_EventType], _Node);
-					break;
+					return;
 				}
 				continue;
 			}
 			_Obs = _Obs->Next;
 		} while(_Obs != NULL);
 	}
+	assert(1);
 }
 
 void EventHookUpdate(const SDL_Event* _Event) {
@@ -130,7 +133,7 @@ void EventHookUpdate(const SDL_Event* _Event) {
 	void* _Vars[] = {_Event->user.data1, _Event->user.data2};
 
 	SDL_assert(_Event->type  >= g_EventTypes[0] && _Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
-	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Vars);
+	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Event->user.data1/*_Vars*/);
 	while(_Obs != NULL) {
 		_Obs->OnEvent(_Event->type, _Obs->OwnerObj, _Obs->One, _Obs->Two);
 		_Obs = _Obs->Next;
@@ -202,9 +205,10 @@ void Events() {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
 				MessageBox(g_LuaState, "A feud has occured.");
 		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
-			if(_Event.user.data1 == g_GameWorld.Player->Person)
+			if(_Event.user.data1 == g_GameWorld.Player->Person) {
 				MessageBox(g_LuaState, "You have died.");
-		//	DestroyPerson(_Event.user.data1);
+				
+			}
 		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
 			struct Battle* _Battle = _Event.user.data1;
 			char _Buffer[256];

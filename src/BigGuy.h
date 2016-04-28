@@ -7,6 +7,7 @@
 
 #include "Herald.h"
 #include "WorldState.h"
+#include "BigGuyRelation.h"
 
 #include "sys/LinkedList.h"
 
@@ -49,32 +50,6 @@ enum {
 	BGBYTE_SIZE
 };
 
-enum {
-	BGREL_HATE,
-	BGREL_DISLIKE,
-	BGREL_NEUTURAL,
-	BGREL_LIKE,
-	BGREL_LOVE
-};
-
-enum {
-	OPINION_NONE,
-	OPINION_TOKEN,
-	OPINION_SMALL,
-	OPINION_AVERAGE,
-	OPINION_GREAT
-};
-
-enum {
-	ACTTYPE_THEFT,
-	ACTTYPE_RUMOR,
-	ACTTYPE_TRAIT,
-	ACTTYPE_RAISEFYRD,
-	ACTTYPE_ATTACK,
-	ACTTYPE_GIFT,
-	ACTTYPE_WARLACK,
-	ACTTYPE_SIZE
-};
 //These actions should be removed and only GOAP acions should be used instead.
 enum {
 	BGACT_NONE,
@@ -119,19 +94,6 @@ struct BigGuyMission {
 	int Type;
 };
 
-struct BigGuyOpinion {
-	int Action;
-	int RelMod;
-	struct BigGuyOpinion* Next;
-};
-
-struct BigGuyRelation {
-	int Relation;
-	int Modifier;
-	struct BigGuy* Person;
-	struct BigGuyOpinion* Opinions;
-	struct BigGuyRelation* Next;
-};
 
 struct BigGuyAction {
 	int Type;
@@ -159,6 +121,7 @@ struct BigGuy {
 	struct Person* Person;
 	struct Agent* Agent;
 	int IsDirty;
+	int Popularity; //number of non-big guys adults who like this person. To calculate how popular this person is to everyone call BigGuyPopularity.
 	struct WorldState State;
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Authority;
@@ -189,8 +152,6 @@ void DestroyCrisis(struct Crisis* _Crisis);
 int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
 int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
-struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);
-struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int _Action, int _Modifier);
 struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
 
@@ -204,13 +165,6 @@ void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value);
 
 struct BigGuy* BigGuyLeaderType(struct Person* _Person);
 
-void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, int _Action, int _Modifier);
-void BigGuyChangeOpinion(struct BigGuy* _Guy, struct BigGuy* _Target, int _Action, int _Modifier);
-/*
- * Recalculates the modifier variable of _Relation and then updates Relation if applicable.
- */
-void BigGuyRelationUpdate(struct BigGuyRelation* _Relation);
-struct BigGuyRelation* BigGuyGetRelation(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 
 /*
  * Randomly distributes points to the stats that are provided in the variable argument.
@@ -248,4 +202,5 @@ int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int
  * Returns a positive integer on sucess and a negative number on failure.
  */
 int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill);
+int BigGuyPopularity(const struct BigGuy* _Guy);
 #endif

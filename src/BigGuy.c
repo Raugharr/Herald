@@ -186,6 +186,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	_BigGuy->TriggerMask = 0;
 	_BigGuy->Motivation = _Motivation;
 	_BigGuy->Agent = CreateAgent(_BigGuy);
+	_BigGuy->Popularity = BGRandPopularity(_BigGuy);
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	RBInsert(&g_GameWorld.Agents, _BigGuy->Agent);
@@ -290,6 +291,13 @@ void BGStatsRandom(int _Points, int _StatCt, ...) {
 	va_end(_Valist);
 }
 
+int BGRandPopularity(const struct BigGuy* _Guy) {
+	int _PopPer = (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
+	int _AdultPop = SettlementAdultPop(_Guy->Person->Family->HomeLoc) - SettlementBigGuyCt(_Guy->Person->Family->HomeLoc);
+
+	return (_AdultPop * _PopPer) / 100; //Divide like this to prevent using floting point numbers.
+}
+
 void BGStatsWarlord(uint8_t _Stats[BGSKILL_SIZE], int _Points) {
 	int _WarPoints = (_Points <= 400) ? (_Points / 2) : (240);
 	int _RemainPoints = _Points - _WarPoints;
@@ -325,6 +333,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= g_BGActCooldown[_Hist->ActionType]) {
 			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
 			free(_Hist);
+			EventHookRemove(EventUserOffset() + EVENT_DEATH, _Target->Person, _Guy, NULL);
 		} else {
 			return;
 		}
@@ -334,9 +343,8 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		_Hist->ActionType = _Action;
 		_Hist->DayDone = g_GameWorld.Date;
 		RBInsert(&g_GameWorld.ActionHistory, _Hist);
+		EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Target->Person, _Guy, NULL);
 	}
-	EventHookRemove(EventUserOffset() + EVENT_DEATH, _Target->Person, _Guy, NULL);
-	EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Target->Person, _Guy, NULL);
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
 		_Guy->ActionFunc = BigGuyActionImproveRel;

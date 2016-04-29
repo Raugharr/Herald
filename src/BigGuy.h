@@ -173,6 +173,7 @@ struct BigGuy* BigGuyLeaderType(struct Person* _Person);
  * a random integer will receive.
  */
 void BGStatsRandom(int _Points, int _StatCt, ...);
+int BGRandPopularity(const struct BigGuy* _Guy);
 /*
  * Creates a big guy with a stat emphasis on warfare.
  */

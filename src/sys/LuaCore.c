@@ -39,6 +39,7 @@ static const char* g_LuaMissionEnv[] = {
 
 static const luaL_Reg g_LuaObjectFuncs[] = {
 		{"Equal", LuaObjectIsEqual},
+		{"GetClassName", LuaObjectGetClassName},
 		{NULL, NULL}
 };
 
@@ -233,6 +234,24 @@ void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
 	lua_pushnil(_State);
 }
 
+const char* LuaObjectClass(lua_State* _State, int _Arg) {
+	const char* _Name = NULL;
+
+	if(lua_type(_State, _Arg) != LUA_TTABLE)
+		return NULL;
+	if(lua_getmetatable(_State, _Arg) == 0)
+		return NULL;
+	lua_pushstring(_State, "__class");
+	lua_rawget(_State, -2);
+	if(lua_type(_State, -1) != LUA_TSTRING) {
+		lua_pop(_State, 2);
+		return NULL;
+	}
+	_Name = lua_tostring(_State, -1);
+	lua_pop(_State, 2);
+	return _Name;	
+}
+
 int LuaArrayCreate(lua_State* _State) {
 	int _Size = luaL_checkinteger(_State, 1);
 	struct Array* _Array = CreateArray(_Size);
@@ -409,6 +428,11 @@ int LuaObjectIsEqual(lua_State* _State) {
 	void* _Obj2 = LuaToClass(_State, 2);
 
 	lua_pushboolean(_State, _Obj1 == _Obj2);
+	return 1;
+}
+
+int LuaObjectGetClassName(lua_State* _State) {
+	LuaObjectClass(_State, 1);
 	return 1;
 }
 
@@ -1176,4 +1200,20 @@ void InitMissionLua(lua_State* _State) {
 	lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
 	lua_rawset(_State, -3);
 	LuaSetEnv(_State, "Mission");
+}
+
+int LuaClassError(lua_State* _State, int _Arg, const char* _Class) {
+	const char* _ArgType = NULL;
+
+	_Arg = lua_absindex(_State, _Arg);
+	_ArgType = LuaObjectClass(_State, _Arg);
+	if(_ArgType == NULL)
+		_ArgType = lua_typename(_State, lua_type(_State, _Arg));
+	else {
+		lua_pushstring(_State, "__self");
+		lua_rawget(_State, _Arg);	
+		if(lua_touserdata(_State, -1) == NULL)
+			return luaL_error(_State, "Error argument #%d is of type \"%s\" but is NULL.", _Arg, _Class);
+	}
+	return luaL_error(_State, "Error argument #%d is of type \"%s\" but expected \"%s\".", _Arg, _ArgType, _Class); 
 }

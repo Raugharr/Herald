@@ -77,6 +77,7 @@ void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
  * Sets the table at the top of the stack to have _Class as its metatable, and an element __self with _Ptr as its value.
  */
 void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr);
+const char* LuaObjectClass(lua_State* _State, int _Arg);
 
 int LuaArrayCreate(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
@@ -103,6 +104,7 @@ void* LuaToObject(lua_State* _State, int _Index, const char* _Class);
  */
 int LuaConstraint(lua_State* _State);
 int LuaObjectIsEqual(lua_State* _State);
+int LuaObjectGetClassName(lua_State* _State);
 /**
  * A Lua variant of CreateConstrntVaBnds.
  */
@@ -204,5 +206,6 @@ void LuaGetEnv(lua_State* _State, const char* _Env);
 int LuaClassIndex(lua_State* _State);
 
 void InitMissionLua(lua_State* _State);
+int LuaClassError(lua_State* _State, int _Arg, const char* _Class);
 
 #endif

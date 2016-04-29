@@ -11,6 +11,7 @@
 #include "../BigGuy.h"
 
 #include <stdlib.h>
+#include <assert.h>
 
 int AgentICallback(const struct Agent* _One, const struct Agent* _Two) {
 	return _One->Agent->Id - _Two->Agent->Id;
@@ -29,6 +30,7 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	for(int i = 0; i < AGENT_PLANSZ; ++i)
 		_Agent->Plan[i] = NULL;
 	_Agent->GoalSet = g_Goap.GoalSets[_Guy->Motivation];
+	assert(_Guy->Motivation < g_Goap.GoalSetCt);
 	InitBlackboard(&_Agent->Blackboard);
 	return _Agent;
 }

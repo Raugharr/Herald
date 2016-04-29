@@ -38,6 +38,7 @@ struct GoapGoalSet {
 };
 
 void InitGoapGoal(struct GoapGoal* _Goal);
+void GoapGSClear(struct GoapGoalSet* _GoalSet);
 int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action);
 const struct GoapAction* GoapGoalBestAction(const struct GoapGoal* _Goal, int _Atom, const struct Agent* _Agent, const struct GoapPathNode* _Node);
 #endif

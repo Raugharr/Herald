@@ -24,6 +24,11 @@ void InitGoapGoal(struct GoapGoal* _Goal) {
 	}
 }
 
+void GoapGSClear(struct GoapGoalSet* _GoalSet) {
+	for(int i = 0; i < GOAPGS_GOALMAX; ++i)
+		_GoalSet->Goals[i] = NULL;
+}
+
 int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action) {
 	struct GoapAction* _GoapAction = GoapGetAction(_Goal->Planner, _Action);
 	struct WorldState _TempState;

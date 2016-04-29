@@ -14,6 +14,7 @@
 
 #include "sys/Event.h"
 #include "sys/Log.h"
+#include "sys/Math.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -27,24 +28,20 @@ enum {
 };
 
 enum {
-	GOVNONE,// = 0,
-	//GOVSET = (1 << 0),
-	//GOVSUB = (1 << 1),
-	//GOVADD = (1 << 2),
-	//GOVINTR = GOVADD,
-	GOVSET_SUCESSION,// = (GOVINTR | GOVSET),
+	GOVNONE,
+	GOVSET_SUCCESSION,
 	GOVSET_RULERGENDER,
 	GOVSET_MILLEADER,
 	GOVSET_AUTHORITY,
-	GOVSUB_AUTHORITY,// = (GOVINTR | GOVSUB),
-	GOVADD_AUTHORITY,// = (GOVINTR | GOVADD)
+	GOVSUB_AUTHORITY,
+	GOVADD_AUTHORITY,
 };
 
 enum {
-	GOVSUCESSION_ELECTED,
-	GOVSUCESSION_MONARCHY, //Used for change from elected leader to monarchy. Will determine proper inheritance law.
-	GOVSUCESSION_ELECTIVEMONARCHY,
-	GOVSUCESSION_SIZE
+	GOVSUCCESSION_ELECTED,
+	GOVSUCCESSION_MONARCHY, //Used for change from elected leader to monarchy. Will determine proper inheritance law.
+	GOVSUCCESSION_ELECTIVEMONARCHY,
+	GOVSUCCESSION_SIZE
 };
 
 enum {
@@ -73,14 +70,17 @@ const char* g_GovernmentTypeStr[] = {
 		"Chiefdom",
 		"Clan"
 };
-void (*g_GovernmentSucession[GOVSUCESSION_SIZE])(struct Government*) = {
+GovernmentSuccession g_GovernmentSuccession[GOVSUCCESSION_SIZE] = {
 		ElectiveNewLeader,
 		MonarchyNewLeader,
 		ElectiveMonarchyNewLeader
 };
 
-void GovOnLeaderDeath(int _EventId, struct BigGuy* _Guy, struct Government* _Gov, void* _None) {
-	_Gov->NewLeader(_Gov);	
+void GovOnLeaderDeath(int _EventId, struct Person* _Person, struct Government* _Gov, void* _None) {
+	EventHookRemove(_EventId, _Person, _Gov, NULL);
+	PushEvent(EVENT_NEWLEADER, _Gov->Leader, _Gov->NextLeader);
+	_Gov->Leader = _Gov->NextLeader;
+	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
 }
 
 int InitReforms(void) {
@@ -89,8 +89,8 @@ int InitReforms(void) {
 	struct ReformOp _OpCode;
 	int i = 0;
 
-	_OpCode.OpCode = GOVSET_SUCESSION;
-	_OpCode.Value = GOVSUCESSION_ELECTED;
+	_OpCode.OpCode = GOVSET_SUCCESSION;
+	_OpCode.Value = GOVSUCCESSION_ELECTED;
 	LnkLstPushBack(&_List, CreateReform("Elected Leader", GOVSTCT_TRIBAL, GOVRANK_ALL, GOVCAT_INTERNALLEADER | GOVCAT_LEADER, &_OpCode));
 	_OpCode.OpCode = GOVSET_MILLEADER;
 	_OpCode.Value = GOVMILLEADER_RULER;
@@ -104,11 +104,9 @@ int InitReforms(void) {
 }
 
 void QuitReforms(void) {
-	int i = 0;
-
 	if(g_Reforms == NULL)
 		return;
-	for(i = 0; g_Reforms[i] != NULL; ++i)
+	for(int i = 0; g_Reforms[i] != NULL; ++i)
 		DestroyReform(g_Reforms[i]);
 	free(g_Reforms);
 }
@@ -136,11 +134,11 @@ struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlemen
 	_Gov->PassedReforms.Front = NULL;
 	_Gov->PassedReforms.Back = NULL;
 	_Gov->PassedReforms.Size = 0;
-	_Gov->NewLeader = g_GovernmentSucession[(_GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1];
 	_Gov->Owner.Government = NULL;
 	_Gov->Owner.Relation = GOVREL_NONE;
 	_Gov->Reform = NULL;
 	_Gov->Leader = NULL;
+	_Gov->NextLeader = NULL;
 
 	for(int i = 0; g_Reforms[i] != NULL; ++i) {
 		if(g_Reforms[i]->Prev == NULL
@@ -220,10 +218,6 @@ void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform) {
 	const struct ReformOp* _OpCode = &_Reform->OpCode;
 
 	switch(_OpCode->OpCode) {
-		case GOVSET_SUCESSION:
-			if(_OpCode->Value < GOVSUCESSION_SIZE)
-				_Gov->NewLeader = g_GovernmentSucession[_OpCode->Value];
-			break;
 		case GOVSET_RULERGENDER:
 			_Gov->RulerGender = _OpCode->Value;
 			break;
@@ -271,28 +265,6 @@ void GovernmentThink(struct Government* _Gov) {
 			_Gov->Reform = NULL;
 		}
 	}
-	//if(_Gov->Owner.Government != NULL && _Gov->Owner.Relation == GOVREL_TRIBUTE && IsNewMonth(g_GameWorld.Date) != 0) {
-	//}
-}
-
-int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement) {
-	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
-	struct BigGuy* _Best = NULL;
-	int _BestAuth = 0;
-
-	while(_Itr != NULL) {
-		if(((struct BigGuy*)_Itr->Data)->Authority > _BestAuth) {
-			_Best = (struct BigGuy*)_Itr->Data;
-			_BestAuth = ((struct BigGuy*)_Itr->Data)->Authority;
-		}
-		_Itr = _Itr->Next;
-	}
-	if(_Best == NULL) {
-		Log(ELOG_WARNING, "GovernmentLeaderElection has no leader possible.");
-		return 1;
-	}
-	_Settlement->Government->Leader = _Best;
-	return 1;
 }
 
 void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects) {
@@ -360,39 +332,50 @@ void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform) {
 		}
 		_Itr = _Itr->Next;
 	}
-
-}
-void GovernmentCreateLeader(struct Government* _Gov) {
-	_Gov->Leader = BigGuyLeaderType(_Gov->Location->People);
-	BigGuySetState(_Gov->Leader, BGBYTE_ISLEADER, 1);
 }
 
-void MonarchyNewLeader(struct Government* _Gov) {
+struct BigGuy* MonarchyNewLeader(const struct Government* _Gov) {
 	struct Family* _Family = _Gov->Leader->Person->Family;
+	struct BigGuy* _Guy = NULL;
 
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i)
 		if(_Family->People[i]->Gender == EMALE && _Family->People[i]->Age >= ADULT_AGE) {
-			_Gov->Leader->Person = _Family->People[i];
-			return;
+			if((_Guy = RBSearch(&g_GameWorld.BigGuys, _Family->People[i])) == NULL) {
+				uint8_t _BGStats[BGSKILL_SIZE];
+
+				BGStatsWarlord(_BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+				return CreateBigGuy(_Family->People[i], _BGStats, BGMOT_WEALTH);
+			}
+			return _Guy;	
 		}
+	return NULL;
 }
 
-void ElectiveNewLeader(struct Government* _Gov) {
+struct BigGuy* ElectiveNewLeader(const struct Government* _Gov) {
 	struct LnkLst_Node* _Itr = _Gov->Location->BigGuys.Front;
+	struct BigGuy* _Guy = NULL;
 	struct Person* _Person = NULL;
+	struct BigGuy* _BestCanidate = NULL;
+	int _BestPopularity = 0;
+	int _Popularity = 0;
 
 	while(_Itr != NULL) {
-		_Person = ((struct BigGuy*)_Itr->Data)->Person;
-		if(_Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
-			GovernmentSetLeader(_Gov, ((struct BigGuy*)_Itr->Data));
-			return;
+		_Guy = ((struct BigGuy*)_Itr->Data);
+		_Person = _Guy->Person;
+		if(_Gov->Leader->Person != _Person 
+			&& (_Person->Gender &_Gov->RulerGender) != 0 
+			&& _Person->Age >= ADULT_AGE
+			&& (_Popularity = BigGuyPopularity(_Guy)) > _BestPopularity) {
+			_BestCanidate = _Guy;
+			_BestPopularity = _Popularity;
 		}
 		_Itr = _Itr->Next;
 	}
+	return _BestCanidate;
 }
 
-void ElectiveMonarchyNewLeader(struct Government* _Gov) {
-	struct Settlement* _Settlement = FamilyGetSettlement(_Gov->Leader->Person->Family);
+struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov) {
+	struct Settlement* _Settlement = _Gov->Location; 
 	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
 	struct Person* _Person = NULL;
 	_Person = ((struct BigGuy*)_Itr->Data)->Person;
@@ -400,12 +383,11 @@ void ElectiveMonarchyNewLeader(struct Government* _Gov) {
 	while(_Itr != NULL) {
 		_Person = ((struct BigGuy*)_Itr->Data)->Person;
 		if(_Person->Family->Id == _Person->Family->Id && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
-			_Gov->Leader->Person = _Person;
-			return;
+			return (struct BigGuy*)_Itr->Data;
 		}
 		_Itr = _Itr->Next;
 	}
-	GovernmentCreateLeader(_Gov);
+	return NULL;
 }
 
 struct Government* GovernmentTop(struct Government* _Gov) {
@@ -423,5 +405,6 @@ void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
 		BigGuySetState(_Gov->Leader, BGBYTE_ISLEADER, 0);
 	_Gov->Leader = _Guy;
 	BigGuySetState(_Guy, BGBYTE_ISLEADER, 1);
-	EventHook(EVENT_DEATH, (EventCallback) GovOnLeaderDeath, _Guy, _Gov, NULL);
+	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
+	EventHook(EVENT_DEATH, (EventCallback) GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
 }

@@ -25,6 +25,8 @@ extern struct Reform** g_Reforms;
 
 struct Government;
 
+typedef struct BigGuy*(*GovernmentSuccession)(const struct Government*);
+
 enum {
 	GOVREL_NONE,
 	GOVREL_TRIBUTE
@@ -115,16 +117,15 @@ struct Government {
 	int AllowedMilLeaders;
 	int AuthorityLevel;
 	int RulerGender;
-	int PublicOpinion; //How well the general public likes the current leader.
 	struct Settlement* Location;
 	struct BigGuy* Leader;
+	struct BigGuy* NextLeader;
 	struct GovRelation Owner;
 	struct ReformPassing* Reform;
 	struct LinkedList SubGovernments;
 	struct LinkedList PossibleReforms;
 	struct LinkedList PassedReforms;
 	struct LinkedList Advisors;
-	void (*NewLeader)(struct Government*);
 	SDL_Color ZoneColor;
 };
 
@@ -158,7 +159,6 @@ void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform);
 int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform);
 
 void GovernmentThink(struct Government* _Gov);
-int GovernmentLeaderElection(const struct Reform* _Reform, struct Settlement* _Settlement);
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
 /**
  * Sets _Gov's government rank to _NewRank. If _Gov cannot contain all of its subjects because of its new rank they will be
@@ -174,11 +174,10 @@ void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedLis
 void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject, int _Relation);
 void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
 void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);
-void GovernmentCreateLeader(struct Government* _Gov);
 
-void MonarchyNewLeader(struct Government* _Gov);
-void ElectiveNewLeader(struct Government* _Gov);
-void ElectiveMonarchyNewLeader(struct Government* _Gov);
+struct BigGuy* MonarchyNewLeader(const struct Government* _Gov);
+struct BigGuy* ElectiveNewLeader(const struct Government* _Gov);
+struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov);
 /*
  * Returns the top most parent of _Gov.
  */

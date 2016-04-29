@@ -50,11 +50,13 @@ void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, Age
 	}
 	_GoalSetSize = ArrayLen(g_GoapGoalSetList);
 	_Planner->GoalSets = calloc(sizeof(struct GoapGoalSet*), _GoalSetSize + 1);	
+	_Planner->GoalSetCt = _GoalSetSize + 1;
 	for(int i = 0; i < _GoalSetSize; ++i) {
 		const char* _Name = g_GoapGoalSetList[i][0];
 		struct GoapGoalSet* _GoalSet = malloc(sizeof(struct GoapGoalSet));
 		int _GoalCt = 1;
 
+		GoapGSClear(_GoalSet);
 		_GoalSet->Name = _Name;
 		memset(_GoalSet->Goals, GOAPGS_GOALMAX, sizeof(struct GoapGoal*));
 		for(;g_GoapGoalSetList[i][_GoalCt] != NULL && (_GoalCt - 1) < GOAPGS_GOALMAX; ++_GoalCt) {

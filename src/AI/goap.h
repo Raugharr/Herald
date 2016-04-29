@@ -37,8 +37,9 @@ struct GOAPPlanner {
 	struct GoapAction Actions[GOAP_ACTIONS];
 	int ActionCt;
 	struct GoapGoal Goals[GOAP_GOALSZ];
-	struct GoapGoalSet** GoalSets;
 	int GoalCt;
+	struct GoapGoalSet** GoalSets;
+	int GoalSetCt;
 };
 
 struct GoapPathNode {

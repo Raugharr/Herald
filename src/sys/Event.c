@@ -92,7 +92,6 @@ void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Dat
 	struct RBNode* _Node = NULL;
 
 	SDL_assert(_EventType >= 0 && _EventType < EVENT_SIZE);
-	//SDL_assert(_EventType < g_EventTypes[0] || _EventType > g_EventTypes[EVENT_SIZE]);
 	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
 	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
 		_New->Next = (struct EventObserver*) _Node->Data;
@@ -114,18 +113,19 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 			//One and Two should be equal by definition of being in the RB node.
 			if(_Obs->One == _Data1 && _Obs->Two == _Data2) {
 				ILL_DESTROY(_Node->Data, _Obs);
-				DestroyEventObserver(_Obs);
 				_Obs = _Node->Data;
 				if(_Obs == NULL) {
 					RBDeleteNode(g_EventHooks[_EventType], _Node);
+					DestroyEventObserver(_Obs);
 					return;
 				}
+				DestroyEventObserver(_Obs);
 				continue;
 			}
 			_Obs = _Obs->Next;
 		} while(_Obs != NULL);
 	}
-	assert(1);
+	assert(0);
 }
 
 void EventHookUpdate(const SDL_Event* _Event) {
@@ -207,7 +207,6 @@ void Events() {
 		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
 			if(_Event.user.data1 == g_GameWorld.Player->Person) {
 				MessageBox(g_LuaState, "You have died.");
-				
 			}
 		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
 			struct Battle* _Battle = _Event.user.data1;
@@ -217,6 +216,11 @@ void Events() {
 					_Battle->Stats.AttkCas, _Battle->Stats.AttkBegin, _Battle->Stats.DefCas, _Battle->Stats.DefBegin);
 			MessageBox(g_LuaState, _Buffer);
 			DestroyBattle(_Battle);
+		} else if(_Event.type == g_EventTypes[EVENT_NEWLEADER]) {
+			char _Buffer[256];
+
+			sprintf(_Buffer, "%s has died, all hail %s", ((struct BigGuy*)_Event.user.data1)->Person->Name, ((struct BigGuy*)_Event.user.data2)->Person->Name);
+			MessageBox(g_LuaState, _Buffer);
 		}
 	}
 

@@ -77,6 +77,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"GetFamily", LuaBGGetFamily},
 	{"GetName", LuaBGGetName},
 	{"Kill", LuaBGKill},
+	{"Popularity", LuaBGPopularity},
 	{NULL, NULL}
 };
 
@@ -100,6 +101,7 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{"YearlyBirths", LuaSettlementYearlyBirths},
 	{"BulitinPost", LuaSettlementBulitinPost},
 	{"GetBulitins", LuaSettlementGetBulitins},
+	{"CountAdults", LuaSettlementCountAdults},
 	{NULL, NULL}
 };
 
@@ -251,6 +253,8 @@ int LuaBGGetAgent(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 	struct Agent* _Agent = RBSearch(&g_GameWorld.Agents, _Guy);
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	if(_Agent == NULL) {
 		lua_pushnil(_State);
 		goto end;
@@ -310,6 +314,8 @@ int LuaBGSetAction(lua_State* _State) {
 int LuaBGImproveRelationTarget(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	if(_Guy->Action.Type == BGACT_IMRPOVEREL) {
 		LuaCtor(_State, "BigGuy", _Guy->Action.Target);
 	} else {
@@ -321,6 +327,8 @@ int LuaBGImproveRelationTarget(lua_State* _State) {
 int LuaBGGetSettlement(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	LuaCtor(_State, "Settlement", FamilyGetSettlement(_Guy->Person->Family));
 	return 1;
 }
@@ -328,6 +336,8 @@ int LuaBGGetSettlement(lua_State* _State) {
 int LuaBGGetFamily(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	LuaCtor(_State, "Family", _Guy->Person->Family);
 	return 1;
 }
@@ -335,17 +345,29 @@ int LuaBGGetFamily(lua_State* _State) {
 int LuaBGGetName(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	lua_pushstring(_State, _Guy->Person->Name);
 	return 1;
-
 }
 
 int LuaBGKill(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
 	PersonDeath(_Guy->Person);
 //	DestroyBigGuy(_Guy);
 	return 0;
+}
+
+int LuaBGPopularity(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
+	lua_pushinteger(_State, BigGuyPopularity(_Guy));
+	return 1; 
 }
 
 int LuaBGRelationGetOpinion(lua_State* _State) {
@@ -492,6 +514,8 @@ int LuaSettlementGetNutrition(lua_State* _State) {
 int LuaSettlementYearlyNutrition(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	lua_pushinteger(_State, SettlementYearlyNutrition(_Settlement));
 	return 1;
 }
@@ -499,6 +523,8 @@ int LuaSettlementYearlyNutrition(lua_State* _State) {
 int LuaSettlementCountAcres(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	lua_pushinteger(_State, SettlementCountAcres(_Settlement));
 	return 1;
 }
@@ -506,6 +532,8 @@ int LuaSettlementCountAcres(lua_State* _State) {
 int LuaSettlementExpectedYield(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	lua_pushinteger(_State, SettlementExpectedYield(_Settlement));
 	return 1;
 }
@@ -513,6 +541,8 @@ int LuaSettlementExpectedYield(lua_State* _State) {
 int LuaSettlementYearlyDeaths(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	lua_pushinteger(_State, _Settlement->YearDeaths);
 	return 1;
 }
@@ -520,6 +550,8 @@ int LuaSettlementYearlyDeaths(lua_State* _State) {
 int LuaSettlementYearlyBirths(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	lua_pushinteger(_State, _Settlement->YearBirths);
 	return 1;
 }
@@ -543,10 +575,22 @@ int LuaSettlementBulitinPost(lua_State* _State) {
 	ILL_CREATE(MissionDataOwner(MissionDataTop())->Person->Family->HomeLoc->Bulitin, _Item);
 	return 0;
 }
+
 int LuaSettlementGetBulitins(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
 
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
 	LuaCtor(_State, "Bulitin", _Settlement->Bulitin);
+	return 1;
+}
+
+int LuaSettlementCountAdults(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+
+	if(_Settlement == NULL)
+		return LuaClassError(_State, 1, "Settlement");
+	lua_pushinteger(_State, SettlementAdultPop(_Settlement));
 	return 1;
 }
 

@@ -206,6 +206,14 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 	LnkLstClear(&_UniqueFamilies);
 }
 
+int SettlementBigGuyCt(const struct Settlement* _Settlement) {
+	return _Settlement->BigGuys.Size;
+}
+
+int SettlementAdultPop(const struct Settlement* _Settlement) {
+	return _Settlement->Families.Size;
+}
+
 int SettlementGetNutrition(const struct Settlement* _Settlement) {
 	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
 	int _Nutrition = 0;

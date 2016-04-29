@@ -63,7 +63,7 @@ struct Settlement {
 	 */
 	float HarvestMod;
 	struct LinkedList Families;
-	struct Field Meadow;
+	struct Field Meadow; //Common area that anyone can use to feed their animals.
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
 	int Glory;
@@ -96,6 +96,8 @@ void SettlementRemovePerson(struct Settlement* _Settlement, struct Person* _Pers
  */
 int SettlementCountWarriors(const struct Settlement* _Settlement);
 void TribalCreateBigGuys(struct Settlement* _Settlement);
+int SettlementBigGuyCt(const struct Settlement* _Settlement);
+int SettlementAdultPop(const struct Settlement* _Settlement);
 
 /**
  * Returns the cumulative nutritional value the people in _Settlement have.

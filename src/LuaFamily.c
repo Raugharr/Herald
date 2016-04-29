@@ -59,9 +59,9 @@ static const luaL_Reg g_LuaFuncsGood[] = {
 
 static const luaL_Reg g_LuaFuncsFamily[] = {
 		{"GetId", LuaFamilyGetId},
-		{"LuaFamilyChildrenCt", LuaFamilyChildrenCt},
+		{"ChildrenCt", LuaFamilyChildrenCt},
 		{"GetName", LuaFamilyGetName},
-		{"LuaFamilyGetPeople", LuaFamilyGetPeople},
+		{"GetPeople", LuaFamilyGetPeople},
 		{"GetFields", LuaFamilyGetFields},
 		{"GetBuildings", LuaFamilyGetBuildings},
 		{"GetBuildingCt", LuaFamilyGetBulidingCt},
@@ -161,6 +161,8 @@ int LuaPersonGetAge(lua_State* _State) {
 int LuaPersonGetName(lua_State* _State) {
 	struct Person* _Person = (struct Person*) LuaToObject(_State, 1, "Person");
 
+	if(_Person == NULL)
+		return LuaClassError(_State, 1, "Person");
 	lua_pushstring(_State, _Person->Name);
 	return 1;
 }
@@ -205,6 +207,8 @@ int LuaFamilyGetId(lua_State* _State) {
 int LuaFamilyChildrenCt(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
+	if(_Family == NULL)
+		return LuaClassError(_State, 1, "Family");
 	lua_pushinteger(_State, _Family->NumChildren);
 	return 1;
 }
@@ -212,20 +216,23 @@ int LuaFamilyChildrenCt(lua_State* _State) {
 int LuaFamilyGetName(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
+	if(_Family == NULL)
+		return LuaClassError(_State, 1, "Family");
 	lua_pushstring(_State, _Family->Name);
 	return 1;
 }
 
 int LuaFamilyGetPeople(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
-		int i;
 
-		lua_createtable(_State, 10, 0);
-		for(i = 0; i < FAMILY_PEOPLESZ; ++i) {
-			lua_pushlightuserdata(_State, _Family->People[i]);
-			lua_rawseti(_State, -2, i + 1);
-		}
-		return 1;
+	if(_Family == NULL)
+		return LuaClassError(_State, 1, "Family");
+	lua_createtable(_State, FAMILY_PEOPLESZ, 0);
+	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
+		LuaCtor(_State, "Person", _Family->People[i]);
+		lua_rawseti(_State, -2, i + 1);
+	}
+	return 1;
 }
 
 int LuaFamilyGetFields(lua_State* _State) {

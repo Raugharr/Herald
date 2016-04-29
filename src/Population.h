@@ -78,6 +78,6 @@ struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size);
 void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal);
 struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index);
 
-int CountAnimal(const struct Population* _PopType);
+int CountAnimal(const struct Population* _PopType, const struct Animal** _List, size_t _ListSz);
 
 #endif

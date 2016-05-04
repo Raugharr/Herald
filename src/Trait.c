@@ -68,34 +68,44 @@ struct Trait* TraitLoad(lua_State* _State, int _Index) {
 	return _Trait;
 }
 
-#define TraitLoadGetList(_Name, _Index, _List)				\
-	lua_pushstring(_State, (_Name));						\
-	lua_rawget(_State, -2);									\
-	if(lua_type(_State, -1) != LUA_TTABLE)					\
-		goto error;											\
-	if(((_List) = TraitList(_State, -1)) == NULL)			\
-		goto error;											\
-	_List = TraitList(_State, -1);							\
-	lua_pop(_State, 1)
-
-void TraitLoadRelations(lua_State* _State, struct Trait* _Trait) {
-	struct Trait** _Likes = NULL;
-	struct Trait** _Dislikes = NULL;
-	struct Trait** _Prevents = NULL;
-
-	lua_pushstring(_State, _Trait->Name);
-	lua_rawget(_State, -2);
-
-	TraitLoadGetList("Likes", _Index, _Likes);
-	TraitLoadGetList("Dislikes", _Index, _Dislikes);
-	TraitLoadGetList("Prevents", _Index, _Prevents);
-	_Trait->Likes = _Likes;
-	_Trait->Dislikes = _Dislikes;
-	_Trait->Prevents = _Prevents;
+struct Trait** TraitLoadGetList(lua_State* _State, const char* _Name, struct Trait** _List) {				
+	lua_pushstring(_State, (_Name));						
+	lua_rawget(_State, -2);									
+	if(lua_type(_State, -1) != LUA_TTABLE)					
+		goto error;											
+	if(((_List) = TraitList(_State, -1)) == NULL)			
+		goto error;											
 	lua_pop(_State, 1);
-	Log(ELOG_INFO, "Loaded Trait %s.", _Trait->Name);
-	return;
+	return _List;
 	error:
 	lua_pop(_State, 1);
 	Log(ELOG_WARNING, "Error loading trait: invalid relation.");	
+	return NULL;
+}
+
+void TraitLoadRelations(lua_State* _State, struct Trait* _Trait) {
+	enum {
+		LIKES,
+		DISLIKES,
+		PREVENTS,
+		TRAITLIST_SIZE
+	};
+	struct Trait** _TraitList[TRAITLIST_SIZE];
+	const char* _TraitNames[TRAITLIST_SIZE] = {
+		"Likes",
+		"Dislikes",
+		"Prevents"
+	};
+
+	lua_pushstring(_State, _Trait->Name);
+	lua_rawget(_State, -2);
+	
+	for(int i = 0; i < TRAITLIST_SIZE; ++i) {
+		_TraitList[i] = TraitLoadGetList(_State, _TraitNames[i], _TraitList[i]);
+	}
+	_Trait->Likes = _TraitList[LIKES];
+	_Trait->Dislikes = _TraitList[DISLIKES];
+	_Trait->Prevents = _TraitList[PREVENTS];
+	lua_pop(_State, 1);
+	Log(ELOG_INFO, "Loaded Trait %s.", _Trait->Name);
 }

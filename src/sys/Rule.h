@@ -40,6 +40,7 @@ enum {
 	RULE_EVENT,
 	RULE_BLOCK,
 	RULE_LUAOBJ,
+	RULE_NEGATE,
 	RULE_COND
 };
 
@@ -59,6 +60,12 @@ struct Primitive {
 struct Rule {
 	int Type;
 	void (*Destroy)(struct Rule*);
+};
+
+struct RuleDecorator {
+	int Type;
+	void (*Destroy)(struct Rule*);
+	struct RuleLuaCall* Rule;
 };
 
 struct RuleComparator {
@@ -143,6 +150,9 @@ int RuleCmp(const void* _One, const void* _Two);
 struct RulePrimitive* CreateRulePrimitive(struct Primitive* _Primitive);
 void DestroyRulePrimitive(struct RulePrimitive* _Rule);
 
+struct RuleDecorator* CreateRuleDecorator(int _Type, struct RuleLuaCall* _RuleDec);
+void DestroyRuleDecorator(struct RuleDecorator* _Rule);
+
 struct RuleComparator* CreateRuleComparator(int _Type, struct Rule* _Left, struct Rule* _Right);
 void DestroyRuleComparator(struct RuleComparator* _Rule);
 
@@ -178,6 +188,8 @@ int RuleIfThenElse(const struct RuleIfThenElse* _Rule, lua_State* _State);
 int RuleBoolean(const struct RuleBoolean* _Rule, lua_State* _State);
 int RuleBlock(const struct RuleBlock* _Block, lua_State* _State);
 int RuleLuaObject(const struct RuleLuaObj* _Obj, lua_State* _State);
+int RuleNegate(const struct RuleDecorator* _Rule, lua_State* _State);
+
 int RuleCond(const struct RuleCond* _Obj, lua_State* _State);
 
 int RuleEventCompare(const struct Rule* _One, const struct Rule* _Two);

@@ -575,3 +575,33 @@ int RBToString(struct RBNode* _Node, char* _Buffer, int _Size) {
 	_Size -= RB_CONTR + RB_STRDELM;
 	return RBToString(_Node->Left, _Buffer, _Size) + RBToString(_Node->Right, _Buffer, _Size);
 }
+
+int RBRange(struct RBTree* _Tree, void* _Min, void* _Max, void** _RangeTbl, int _MaxSize) {
+	struct RBNode* _Node = NULL;
+	int _LowCmp = 0;
+	int _HighCmp = 0;
+	struct RBNode* _NodeList[256];
+	int _NodeListSz = 1;
+	int _RangeTblSz = 0;
+
+	_NodeList[0] = _Tree->Table;
+	while(_NodeListSz > 0) {
+		_Node = _NodeList[--_NodeListSz];
+		if((_LowCmp = _Tree->SCallback(_Node->Data, _Min)) >= 0 && (_HighCmp = _Tree->SCallback(_Node->Data, _Max)) <= 0) {
+			if(_RangeTblSz >= _MaxSize)
+				return _RangeTblSz;
+			_RangeTbl[_RangeTblSz++] = _Node->Data;
+			if(_Node->Left != NULL)
+				_NodeList[_NodeListSz++] = _Node->Left;
+			if(_Node->Right !=  NULL)
+				_NodeList[_NodeListSz++] = _Node->Right; 
+		} else if(_LowCmp < 0) {
+			if(_Node->Right != NULL)
+				_NodeList[_NodeListSz++] = _Node->Right;
+		} else if(_HighCmp > 0) {
+			if(_Node->Left != NULL)
+				_NodeList[_NodeListSz++] = _Node->Left;
+		}
+	}
+	return _RangeTblSz;
+}

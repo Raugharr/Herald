@@ -88,5 +88,6 @@ int RBHeight(struct RBNode* _Node);
 int RBColorCheck(struct RBNode* _Node);
 int RBStrlen(struct RBNode* _Node);
 int RBToString(struct RBNode* _Node, char* _Buffer, int _Size);
+int RBRange(struct RBTree* _Tree, void* _Min, void* _Max, void** _RangeTbl, int _MaxSize);
 #endif
 

@@ -14,12 +14,14 @@
 #include "actions/ActionRaid.h"
 #include "actions/ActionDuel.h"
 #include "actions/ActionMurder.h"
+#include "actions/ActionStealCattle.h"
 
 static AgentActions g_GOAPActionList = {
 	ActionImproveRelations,
 	ActionRaid,
 	ActionDuel,
 	ActionMurder,
+	ActionStealCattle,
 	NULL
 };
 

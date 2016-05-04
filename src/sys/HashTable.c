@@ -160,9 +160,7 @@ void HashDeleteItr(struct HashItr* _Itr) {
 }
 
 struct HashItr* HashNext(struct HashTable* _Hash, struct HashItr* _Itr) {
-	int i;
-
-	for(i = _Itr->Index + 1; i < _Hash->TblSize; ++i) {
+	for(int i = _Itr->Index + 1; i < _Hash->TblSize; ++i) {
 		if(_Hash->Table[i] != NULL) {
 			_Itr->Index = i;
 			_Itr->Node = _Hash->Table[i];
@@ -170,6 +168,19 @@ struct HashItr* HashNext(struct HashTable* _Hash, struct HashItr* _Itr) {
 		}
 	}
 	return NULL;
+}
+
+void HashItrRestart(struct HashTable* _Hash, struct HashItr* _Itr) {
+	for(int i = 0; i < _Hash->TblSize; ++i) {
+		if(_Hash->Table[i] != NULL) {
+			_Itr->Index = i;
+			_Itr->Node = _Hash->Table[i];
+			return;
+		}
+	}
+}
+void* HashItrData(const struct HashItr* _Itr) {
+	return _Itr->Node->Pair;
 }
 
 struct HashItrCons* HashCreateItrCons(const struct HashTable* _Hash) {

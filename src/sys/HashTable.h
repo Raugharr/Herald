@@ -51,6 +51,8 @@ void HashDeleteAll(struct HashTable* _Hash, void(*_Callback)(void*));
 struct HashItr* HashCreateItr(struct HashTable* _Hash);
 void HashDeleteItr(struct HashItr* _Itr);
 struct HashItr* HashNext(struct HashTable* _Hash, struct HashItr* _Itr);
+void HashItrRestart(struct HashTable* _Hash, struct HashItr* _Itr);
+void* HashItrData(const struct HashItr* _Itr);
 
 struct HashItrCons* HashCreateItrCons(const struct HashTable* _Hash);
 void HashDeleteItrCons(struct HashItrCons* _Itr);

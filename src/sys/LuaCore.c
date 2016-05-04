@@ -87,6 +87,7 @@ static const luaL_Reg g_LuaFuncsRule[] = {
 		{"EventFired", LuaRuleEventFired},
 		{"Block", LuaRuleBlock},
 		{"Cond", LuaRuleCond},
+		{"Negate", LuaRuleNegate},
 		{NULL, NULL}
 };
 
@@ -94,6 +95,12 @@ static const luaL_Reg g_LuaFuncsIterator[] = {
 		{"Itr", NULL},
 		{"Next", NULL},
 		{"Prev", NULL},
+		{NULL, NULL}
+};
+
+static const luaL_Reg g_LuaFuncsList[] = {
+		{"Itr", NULL},
+		{"Next", NULL},
 		{NULL, NULL}
 };
 
@@ -132,6 +139,7 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Iterator", NULL, g_LuaFuncsIterator},
 		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
 		{"LinkedList", NULL, g_LuaFuncsLinkedList},
+		{"List", NULL, g_LuaFuncsList},
 		{"Rule", NULL, g_LuaFuncsRule},
 		{"Array", NULL, g_LuaFuncsArray},
 		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
@@ -146,9 +154,7 @@ int LuaCallFuncError(lua_State* _State) {
 	lua_getglobal(_State, "debug");
 	lua_getfield(_State, -1, "traceback");
 	lua_call(_State, 0, 1);
-	//lua_insert(_State, 2);
-	//lua_pop(_State, 2);
-	lua_pushvalue(_State, 1);
+	lua_pushvalue(_State, -3);
 	lua_concat(_State, 2);
 	return 1;
 }
@@ -980,6 +986,13 @@ int LuaRuleCond(lua_State* _State) {
 		_Rule->Actions[_Ct] = LuaCheckClass(_State, i + 1, "Rule"); 
 	}
 	LuaCtor(_State, "Rule", _Rule);
+	return 1;
+}
+
+int LuaRuleNegate(lua_State* _State) {
+	struct RuleLuaCall* _Rule = LuaCheckClass(_State, 1, "Rule");
+
+	LuaCtor(_State, "Rule", ((struct Rule*) CreateRuleDecorator(RULE_NEGATE, _Rule))); 
 	return 1;
 }
 

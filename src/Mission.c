@@ -471,7 +471,7 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, struct M
 	RBDepthFirst(_BigGuys->Table, _Stack);
 	for(int i = 0; i < _BigGuys->Size; ++i, _BigGuy->IsDirty = 0) {
 		_BigGuy = ((struct RBNode*) _Stack[i].Node)->Data;
-		MissionSelect(_Engine, _BigGuy, _BigGuy, &_BigGuy->State, &_BigGuy->TriggerMask, MISSIONCAT_BIGGUY, &g_MissionEngine.Missions);
+		//MissionSelect(_Engine, _BigGuy, _BigGuy, &_BigGuy->State, &_BigGuy->TriggerMask, MISSIONCAT_BIGGUY, &g_MissionEngine.Missions);
 	}
 
 	for(int i = 1; i < MISSIONCAT_SIZE; ++i) {
@@ -490,7 +490,6 @@ void GenerateMissions(lua_State* _State, const struct RBTree* _BigGuys, struct M
 void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionData* _Data, int _Option) {
 	int _Top = lua_gettop(_State);
 
-	//CoYield(GAME_CORO);
 	if(_Option < 0 || _Option >= _Mission->OptionCt)
 		return;
 	if(g_MissionData->IsOptSel == 0) {
@@ -1010,8 +1009,8 @@ void MissionLoadTriggerList(lua_State* _State, struct Mission* _Mission) {
 	lua_pop(_State, 1);
 
 	if(strcmp(_Name, "BigGuy") == 0) {
-		_StateStr = g_BGStateStr;
-		_StateSz = BGBYTE_SIZE;
+		//_StateStr = g_BGStateStr;
+		//_StateSz = BGBYTE_SIZE;
 		_Mission->TriggerType = MISSIONCAT_BIGGUY;
 		goto load_triggers;
 	} else if(strcmp(_Name, "Event") == 0) {

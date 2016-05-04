@@ -169,12 +169,10 @@ struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Governm
 	_New->VotesFor = _New->MaxVotes / 2;
 	_New->Popularity = 500;
 	_New->Escalation = 0;
-	BigGuySetState(_Gov->Leader, BGBYTE_PASSREFORM, 1);
 	return _New;
 }
 
 void DestroyReformPassing(struct ReformPassing* _Reform) {
-	BigGuySetState(_Reform->Gov->Leader, BGBYTE_PASSREFORM, 0);
 	_Reform->Gov->Reform = NULL;
 	free(_Reform);
 }
@@ -401,10 +399,7 @@ struct Government* GovernmentTop(struct Government* _Gov) {
 }
 
 void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
-	if(_Gov->Leader != NULL)
-		BigGuySetState(_Gov->Leader, BGBYTE_ISLEADER, 0);
 	_Gov->Leader = _Guy;
-	BigGuySetState(_Guy, BGBYTE_ISLEADER, 1);
 	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
 	EventHook(EVENT_DEATH, (EventCallback) GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
 }

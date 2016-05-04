@@ -70,6 +70,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"OpposedChallange", LuaBGOpposedChallanged},
 	{"GetAgent", LuaBGGetAgent},
 	{"GetRelation", LuaBGGetRelation},
+	{"RelationsItr", LuaBGRelationItr},
 	{"SetOpinion", LuaBGSetOpinion},
 	{"SetAction", LuaBGSetAction},
 	{"ImproveRelationTarget", LuaBGImproveRelationTarget},
@@ -78,11 +79,14 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"GetName", LuaBGGetName},
 	{"Kill", LuaBGKill},
 	{"Popularity", LuaBGPopularity},
+	{"ChangePopularity", LuaBGChangePopularity},
+	{"SuccessMargin", LuaBGSuccessMargin},
 	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsBigGuyRelation[] = {
 	{"GetOpinion", LuaBGRelationGetOpinion},
+	{"BigGuy", LuaBGRelationBigGuy},
 	{NULL, NULL}
 };
 
@@ -277,6 +281,33 @@ int LuaBGGetRelation(lua_State* _State) {
 	return 1;
 }
 
+int LuaBGRelItrNext(lua_State* _State) {
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, lua_upvalueindex(1), "BigGuyRelation");
+
+	if(_Relation->Next == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "BigGuyRelation", _Relation->Next);
+	lua_pushvalue(_State, -1);
+	lua_replace(_State, lua_upvalueindex(1));
+	return 1;
+}
+
+int LuaBGRelationItr(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
+	if(_Guy->Relations == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "BigGuyRelation", _Guy->Relations); 
+	lua_pushcclosure(_State, LuaBGRelItrNext, 1);
+	return 1;
+}
+
 int LuaBGSetOpinion(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
@@ -370,10 +401,46 @@ int LuaBGPopularity(lua_State* _State) {
 	return 1; 
 }
 
+int LuaBGChangePopularity(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	int _Change = luaL_checkinteger(_State, 2);
+
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
+	_Guy->Popularity += _Change;
+	return 0;
+}
+
+int LuaBGSuccessMargin(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	int _Skill = luaL_checkinteger(_State, 2);
+	int _ReqSkill = 0;
+
+	if(lua_gettop(_State) > 2)
+		_ReqSkill = luaL_checkinteger(_State, 3);
+	else
+		_ReqSkill = SKILLCHECK_DEFAULT;
+	if(_Guy == NULL)
+		return LuaClassError(_State, 1, "BigGuy");
+	lua_pushinteger(_State, BigGuySuccessMargin(_Guy, _Skill, _ReqSkill));	
+	return 1;
+}
+
 int LuaBGRelationGetOpinion(lua_State* _State) {
 	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
 
+	if(_Relation == NULL)
+		return LuaClassError(_State, 1, "BigGuyRelation");
 	lua_pushinteger(_State, _Relation->Modifier);
+	return 1;
+}
+
+int LuaBGRelationBigGuy(lua_State* _State) {
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
+
+	if(_Relation == NULL)
+		return LuaClassError(_State, 1, "BigGuyRelation");
+	LuaCtor(_State, "BigGuy", _Relation->Person);
 	return 1;
 }
 
@@ -663,7 +730,6 @@ int LuaBulitinGetName(lua_State* _State) {
 	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
 
 	lua_pushstring(_State, BulitinItemGetName(_Item));
-	//lua_pushstring(_State, _Item->Name);
 	return 1;
 }
 
@@ -673,3 +739,4 @@ int LuaBulitinGetMission(lua_State* _State) {
 	lua_pushinteger(_State, _Item->SuccMission->Id);
 	return 1;
 }
+

@@ -27,19 +27,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-const char* g_BGStateStr[BGBYTE_SIZE] = {
-		"PassReform",
-		"IsLeader",
-		"ImproveRelations",
-		"Authority",
-		"Prestige",
-		"Feud",
-		"FyrdRaised",
-		"SufficientFriends",
-		"SufficientEnemies",
-		"IsMarried"
-};
-
 const char* g_BGMission[BGACT_SIZE] = {
 		"Improve Relations"
 };
@@ -65,14 +52,9 @@ int BigGuyIdCmp(const int* _Two, const struct BigGuy* _BigGuy) {
 	return (*_Two) - _BigGuy->Person->Id;
 }
 
-int BigGuyStateInsert(const struct BigGuy* _One, const struct BigGuy* _Two) {
-	return WorldStateCmp(&_One->State, &_Two->State);
-}
-
 int BigGuyMissionCmp(const struct BigGuy* _BigGuy, const struct Mission* _Mission) {
 	return 0;
 }
-
 
 void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
 	struct BigGuyRelation* _Relation = NULL;
@@ -175,8 +157,6 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
 	_BigGuy->Person = _Person;
-	WorldStateClear(&_BigGuy->State);
-	WorldStateCare(&_BigGuy->State);
 	_BigGuy->Authority = 0;
 	_BigGuy->Prestige = 0;
 	_BigGuy->IsDirty = 1;
@@ -198,8 +178,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	_BigGuy->Feuds.Front = NULL;
 	_BigGuy->Feuds.Back = NULL;
 	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
-	_BigGuy->Traits = calloc(1, sizeof(void*));
-	_BigGuy->Traits[0] = NULL;
+	_BigGuy->Traits = BGRandTraits();
 	return _BigGuy;
 }
 
@@ -235,14 +214,14 @@ void BigGuyThink(struct BigGuy* _Guy) {
 			_Opinion = _Opinion->Next;
 		}
 		BigGuyRelationUpdate(_Relation);
-		if(_Relation->Relation < BGREL_NEUTURAL)
-			BigGuyAddFeud(_Guy, CreateFeud(_Guy, _Relation->Person));
+		//if(_Relation->Relation < BGREL_NEUTURAL)
+		//	BigGuyAddFeud(_Guy, CreateFeud(_Guy, _Relation->Person));
 		_Relation = _Relation->Next;
 	}
 }
 
 void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value) {
-	WorldStateSetAtom(&_Guy->State, _State, _Value);
+	//WorldStateSetAtom(&_Guy->State, _State, _Value);
 	_Guy->IsDirty = 1;
 }
 
@@ -320,6 +299,61 @@ void BGSetPrestige(struct BigGuy* _Guy, float _Prestige) {
 	_Guy->IsDirty = 1;
 }
 
+struct Trait* RandomTrait(struct Trait** _Traits, int _TraitSz, struct HashItr* _Itr) {
+	int _Rand = Random(0, g_Traits.Size - 1);
+	int _Ct = 0;
+	int _FirstPick = _Rand;
+
+	loop_top:
+	//Pick a random trait.
+	while(_Itr != NULL && _Ct < _Rand) {
+		_Itr = HashNext(&g_Traits, _Itr);
+		++_Ct;
+	}
+	//Determine if trait is a valid option.
+	for(int i = 0; i < _TraitSz; ++i) {
+		//Same trait is picked, pick another if there is another valid trait to be picked.
+		if(_Traits[i] == HashItrData(_Itr))
+			goto repick_trait;
+		for(int j = 0; _Traits[i]->Prevents[j] != NULL; ++j) {
+			//One of the already picked traits prevents this trait from being chosen.
+			if(_Traits[i]->Prevents[j] == HashItrData(_Itr))
+				goto repick_trait;
+		}
+	}
+	return (struct Trait*) HashItrData(_Itr);
+	repick_trait:
+	++_Rand;
+	if(_Rand >= g_Traits.Size) {
+		_Rand = 0;	
+		HashItrRestart(&g_Traits, _Itr);
+	}
+	//No more valid traits to be picked from
+	if(_Rand == _FirstPick)
+		return NULL;
+	goto loop_top;
+}
+
+struct Trait** BGRandTraits() {
+	struct HashItr* _Itr = HashCreateItr(&g_Traits);
+	int _TraitCt = Random(1, 3);
+	struct Trait** _Traits = calloc(_TraitCt + 1, sizeof(struct Trait*));
+	struct Trait* _Trait = NULL;
+
+	_Traits[_TraitCt] = NULL;
+	for(int i = 0; i < _TraitCt; ++i) {
+		if((_Trait = RandomTrait(_Traits, i, _Itr)) == NULL) {
+			_Traits[i] = NULL;
+			break;
+		}
+		_Traits[i] = _Trait;
+		HashItrRestart(&g_Traits, _Itr);	
+	}
+
+	HashDeleteItr(_Itr);
+	return _Traits;
+}
+
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data) {
 	struct RBNode* _Node = NULL;
 	struct BigGuyActionHist* _Hist = NULL;
@@ -366,6 +400,12 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	case BGACT_MURDER:
 		MissionAction("MURDR.1", _Target, _Guy);
 		break;
+	case BGACT_DISSENT:
+		MissionAction("DISNT.1", _Target, _Guy);
+		break;
+	case BGACT_CONVINCE:
+		MissionAction("REL.2", _Guy, _Target);
+		break;
 	default:
 		_Guy->ActionFunc = NULL;
 		return;
@@ -403,9 +443,21 @@ int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int
 	return (Random(1, 100) + _One->Stats[_Skill]) - (Random(1, 100) + _Two->Stats[_Skill]) / 10;
 }
 
-int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill) {
+int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq) {
 	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
-	return ((Random(1, 100) + _Guy->Stats[_Skill]) >= 100);
+	return ((Random(1, 100) + _Guy->Stats[_Skill]) >= _PassReq);
+}
+
+int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq) {
+	int _Margin = 0;
+
+	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
+	_Margin = Random(1, 100) + _Guy->Stats[_Skill] - _PassReq;
+	if(_Margin >= 0)
+		_Margin = _Margin / 10 + 1;
+	else 
+		_Margin = _Margin / 10 - 1;
+	return _Margin;
 }
 
 int BigGuyPopularity(const struct BigGuy* _Guy) {

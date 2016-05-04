@@ -31,6 +31,20 @@ void LocationGetPoint(const struct Location* _Location, SDL_Point* _Point) {
 	(*_Point).y = _Location->Pos.y;
 }
 
+void SettlementSetBGOpinions(struct LinkedList* _List) {
+	struct LnkLst_Node* i = NULL;
+	struct LnkLst_Node* j = NULL;
+
+	for(i = _List->Front; i != NULL; i = i->Next) {
+		for(j = _List->Front; j != NULL; j = j->Next) {
+			if(i == j) {
+				continue;
+			}
+			CreateBigGuyRelation(((struct BigGuy*)i->Data), ((struct BigGuy*)j->Data));
+		}
+	}
+}
+
 struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovType) {
 	struct Settlement* _Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
@@ -80,9 +94,6 @@ void DestroySettlement(struct Settlement* _Location) {
 	free(_Location);
 }
 
-//FIXME: These includes are temporary and should be removed.`
-#include "video/GuiLua.h"
-#include "sys/LuaCore.h"
 void SettlementThink(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
 	struct BulitinItem* _Bulitin = _Settlement->Bulitin;
@@ -95,7 +106,7 @@ void SettlementThink(struct Settlement* _Settlement) {
 	GovernmentThink(_Settlement->Government);
 	if(MONTH(g_GameWorld.Date) == 0 && DAY(g_GameWorld.Date) == 0) {
 		if(YEAR(g_GameWorld.Date) - YEAR(_Settlement->LastRaid) >= 1 && DAY(g_GameWorld.Date) == 0) {
-			MessageBox(g_LuaState, "You have not raided recently.");
+			//MessageBox(g_LuaState, "You have not raided recently.");
 			_Itr = _Settlement->BigGuys.Front;
 			while(_Itr != NULL) {
 				if(_Settlement->Government->Leader == ((struct BigGuy*)_Itr->Data)) {
@@ -202,6 +213,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement) {
 		skip_bigguy:
 		_Itr = _Itr->Next;
 	}
+	SettlementSetBGOpinions(&_Settlement->BigGuys);
 	GovernmentSetLeader(_Settlement->Government, (struct BigGuy*) _Settlement->BigGuys.Front->Data);
 	LnkLstClear(&_UniqueFamilies);
 }

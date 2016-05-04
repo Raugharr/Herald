@@ -92,7 +92,7 @@ void SettlementGetCenter(const struct Settlement* _Location, SDL_Point* _Pos);
 void SettlementAddPerson(struct Settlement* _Settlement, struct Person* _Person);
 void SettlementRemovePerson(struct Settlement* _Settlement, struct Person* _Person);
 /**
- * Counts how many adult men who own a weapon and are capable of fighting.
+ * \return The number of adult men who own a weapon and are capable of fighting.
  */
 int SettlementCountWarriors(const struct Settlement* _Settlement);
 void TribalCreateBigGuys(struct Settlement* _Settlement);
@@ -100,9 +100,12 @@ int SettlementBigGuyCt(const struct Settlement* _Settlement);
 int SettlementAdultPop(const struct Settlement* _Settlement);
 
 /**
- * Returns the cumulative nutritional value the people in _Settlement have.
+ * \return The cumulative nutritional value the people in _Settlement have.
  */
 int SettlementGetNutrition(const struct Settlement* _Settlement);
+/**
+ *	\return How much nutritional value is required in a year by _Settlement.
+ */
 int SettlementYearlyNutrition(const struct Settlement* _Settlement);
 int SettlementCountAcres(const struct Settlement* _Settlement);
 int SettlementExpectedYield(const struct Settlement* _Settlement);

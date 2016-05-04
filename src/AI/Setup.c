@@ -9,6 +9,7 @@
 #include "Behaviors.h"
 #include "LuaLib.h"
 #include "goap.h"
+#include "Agent.h"
 
 #include "Action.h"
 

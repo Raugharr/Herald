@@ -19,6 +19,7 @@
 #include "Government.h"
 #include "Profession.h"
 #include "Trait.h"
+#include "Plot.h"
 
 #include "video/GuiLua.h"
 #include "video/Video.h"
@@ -67,6 +68,7 @@ struct GameWorld g_GameWorld = {
 		{NULL, 0, NULL, NULL},
 		NULL,
 		{0, NULL, NULL},
+		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
 		{NULL, 0, NULL, NULL},
@@ -309,6 +311,11 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->ActionHistory.Size = 0;
 	_GameWorld->ActionHistory.ICallback = (RBCallback) BigGuyActionHistIS;
 	_GameWorld->ActionHistory.SCallback = (RBCallback) BigGuyActionHistIS;
+
+	_GameWorld->PlotList.Table = NULL;
+	_GameWorld->PlotList.Size = 0;
+	_GameWorld->PlotList.ICallback = (RBCallback) PlotInsert;
+	_GameWorld->PlotList.SCallback = (RBCallback) PlotSearch;
 
 	_GameWorld->MissionData.Size = 0;
 	_GameWorld->MissionData.Front = NULL;

@@ -38,7 +38,7 @@ static const char* g_LuaMissionEnv[] = {
 };
 
 static const luaL_Reg g_LuaObjectFuncs[] = {
-		{"Equal", LuaObjectIsEqual},
+		{"__eq", LuaObjectIsEqual},
 		{"GetClassName", LuaObjectGetClassName},
 		{NULL, NULL}
 };
@@ -224,6 +224,13 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
 	for(int i = 0; (_Funcs[i].name != NULL && _Funcs[i].func != NULL); ++i)
 		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
+}
+
+void CreateLuaLnkLstItr(lua_State* _State, struct LinkedList* _List, const char* _Class) {
+	LuaCtor(_State, "LinkedList", _List);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, _Class);
+	lua_rawset(_State, -3);
 }
 
 void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {

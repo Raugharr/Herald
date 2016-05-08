@@ -43,6 +43,7 @@ struct GUIMessagePair {
 int LuaCreateLabel(lua_State* _State);
 int LuaCreateButton(lua_State* _State);
 int LuaCreateTable(lua_State* _State);
+int LuaCreateTextBox(lua_State* _State);
 struct Container* LuaContainer(lua_State* _State);
 int LuaHorizontalContainer(lua_State* _State);
 int LuaVerticalContainer(lua_State* _State);

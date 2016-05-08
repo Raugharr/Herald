@@ -103,6 +103,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"Margins", LuaContainerGetMargins},
 		{"CreateLabel", LuaCreateLabel},
 		{"CreateTable", LuaCreateTable},
+		{"CreateTextBox", LuaCreateTextBox},
 		{"CreateButton", LuaCreateButton},
 		{"CreateImage", LuaCreateImage},
 		{"Children", LuaContainerGetChildren},
@@ -248,6 +249,20 @@ int LuaCreateTable(lua_State* _State) {
 		luaL_error(_State, "No default font or font passed as argument.");
 	ConstructTable(_Table, _Parent, &_Rect,_State, 0, &_Margins, _Columns, _Rows, _Font);
 	LuaInitClass(_State, "Table", _Table);
+	return 1;
+}
+
+int LuaCreateTextBox(lua_State* _State) {
+	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
+	struct TextBox* _TextBox = NULL;
+	struct Font* _Font = g_GUIDefs.Font;
+
+	if(_Parent == NULL)
+		LuaClassError(_State, 1, "Container");
+	_TextBox = CreateTextBox();
+	lua_newtable(_State);
+	ConstructTextBox(_TextBox, _Parent, 1, 16, _State, _Font);
+	LuaInitClass(_State, "TextBox", _TextBox);
 	return 1;
 }
 
@@ -1228,9 +1243,9 @@ int LuaContainerParagraph(lua_State* _State) {
 		_WordSz = 0;
 		_WordWidth = 0;
 		if(_Ct > 0) {
-		char _Buffer[_Ct + 1];
+			char _Buffer[_Ct + 1];
 			strncpy(_Buffer, _String, _Ct);
-			_Buffer[_Ct + 1] = '\0';
+			_Buffer[_Ct] = '\0';
 			_Label = CreateLabel();
 			_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GUIDefs.FontUnfocus);
 			_Rect.w = _Surface->w;

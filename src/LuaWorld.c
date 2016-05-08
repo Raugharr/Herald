@@ -29,6 +29,7 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"IsRendering", LuaWorldIsRendering},
 		{"SetOnClick", LuaWorldSetOnClick},
 		{"GetBigGuy", LuaWorldGetBigGuy},
+		{"GetPlot", LuaWorldGetPlot},
 		{NULL, NULL}
 };
 
@@ -98,4 +99,16 @@ int LuaWorldGetBigGuy(lua_State* _State) {
 	}
 	LuaCtor(_State, "BigGuy", _Guy);
 	return 1;
+}
+
+int LuaWorldGetPlot(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct Plot* _Plot = RBSearch(&g_GameWorld.PlotList, _Guy);
+
+	if(_Plot == NULL) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	LuaCtor(_State, "Plot", _Plot);
+	return 1;					
 }

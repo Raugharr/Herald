@@ -72,6 +72,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Class, const char* _BaseCl
  * Registers all Lua functions in _Funcs to the global space of _State.
  */
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
+void CreateLuaLnkLstItr(lua_State* _State, struct LinkedList* _List, const char* _Class);
 
 /**
  * Sets the table at the top of the stack to have _Class as its metatable, and an element __self with _Ptr as its value.

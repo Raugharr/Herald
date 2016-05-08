@@ -14,6 +14,7 @@
 #include "../Family.h"
 #include "../Government.h"
 #include "../Location.h"
+#include "../Plot.h"
 
 double GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _Max) {
 	const struct BigGuy* _Owner = _Agent->Agent;
@@ -32,6 +33,7 @@ double GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _M
 
 void GoalChallangeLeaderSetup(struct Agent* _Agent) {
 	_Agent->Blackboard.Target = FamilyGetSettlement(_Agent->Agent->Person->Family)->Government->Leader;
+	RBInsert(&g_GameWorld.PlotList, CreatePlot(PLOT_OVERTHROW, _Agent->Agent, _Agent->Blackboard.Target));
 }
 
 void GoalChallangeLeader(struct GoapGoal* _Goal) {

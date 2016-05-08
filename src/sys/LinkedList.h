@@ -46,6 +46,7 @@ struct LinkedList {
 
 struct LnkLst_Node* CreateLnkLstNode(void* _Data);
 struct LinkedList* CreateLinkedList();
+void ConstructLinkedList(struct LinkedList* _List);
 void DestroyLinkedList(struct LinkedList* _List);
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*));
 void LnkLstClear(struct LinkedList* _List);

@@ -21,14 +21,19 @@ struct LnkLst_Node* CreateLnkLstNode(void* _Data) {
 struct LinkedList* CreateLinkedList() {
 	struct LinkedList* _List = (struct LinkedList*) malloc(sizeof(struct LinkedList));
 
-	_List->Size = 0;
-	_List->Front = NULL;
-	_List->Back = NULL;
+	ConstructLinkedList(_List);
 	return _List;
 }
+
 void DestroyLinkedList(struct LinkedList* _List) {
 	LnkLstClear(_List);
 	free(_List);
+}
+
+void ConstructLinkedList(struct LinkedList* _List) {
+	_List->Size = 0;
+	_List->Front = NULL;
+	_List->Back = NULL;
 }
 
 void LnkLstInsertPriority(struct LinkedList* _List, void* _Value, int (*_Callback)(const void*, const void*)) {

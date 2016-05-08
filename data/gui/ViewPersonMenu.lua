@@ -1,21 +1,7 @@
 Menu.__savestate = false;
 Menu.moveable = true;
 
-function BGStatsContainer(Guy)
-	local Container = GUI.VerticalContainer(0, 0, 1000, 1000) --FIXME: shouldnt need to use a fixed max width and height.
-
-	Container:CreateLabel("Administration: " .. Guy:GetAdministration());
-	Container:CreateLabel("Intrigue: " .. Guy:GetIntrigue());
-	Container:CreateLabel("Strategy: " .. Guy:GetStrategy());
-	Container:CreateLabel("Warfare: " .. Guy:GetWarfare());
-	Container:CreateLabel("Tactics: " .. Guy:GetTactics());
-	Container:CreateLabel("Charisma: " .. Guy:GetCharisma());
-	Container:CreateLabel("Piety: " .. Guy:GetPiety());
-	Container:CreateLabel("Intellegence: " .. Guy:GetIntellegence());
-
-	Container:Shrink()
-	return Container
-end
+require("BigGuyAux")
 
 function NonPlayerActions(Menu, Left, Right)
 	local Person = Menu.Guy
@@ -39,6 +25,14 @@ function NonPlayerActions(Menu, Left, Right)
 	Right:CreateButton("Murder",
 		function()
 			World.GetPlayer():SetAction(BigGuy.Action.Murder, Person)
+		end)
+	Right:CreateButton("Cause Dissent",
+		function()
+			World.GetPlayer():SetAction(BigGuy.Action.Dissent, Person)
+		end)
+	Right:CreateButton("Convince",
+		function()
+			World.GetPlayer():SetAction(BigGuy.Action.Convince, Person)
 		end)
 	Right:CreateButton("Back",
 		function()
@@ -134,6 +128,48 @@ function DisplayPersonStats(Menu, Left, Right)
 	Right:AddChild(BGStatsContainer(Menu.Guy))
 end
 
+function DisplayFriends(Menu, Left, Right)
+	Right:Clear()
+
+	local Table = CreatePersonTable(Right, 8)
+	local List = { }
+	local Idx = 1
+
+	for Rel in Menu.Guy:RelationsItr() do
+		if(Rel:GetOpinion() > 25) then
+			List[Idx] = Rel:BigGuy():GetPerson()
+			Idx = Idx + 1
+		end
+	end
+	FillPersonTable(Table, List)
+end
+
+function DisplayEnemies(Menu, Left, Right)
+	Right:Clear()
+
+	local Table = CreatePersonTable(Right, 8)
+	local List = { }
+	local Idx = 1
+
+	for Rel in Menu.Guy:RelationsItr() do
+		if(Rel:GetOpinion() < -25) then
+			List[Idx] = Rel:BigGuy():GetPerson()
+			Idx = Idx + 1
+		end
+	end
+	FillPersonTable(Table, List)
+end
+
+function DisplayFamily(Menu, Left, Right)
+	local Table = nil
+	local PersonTable = nil
+	local Guy = Menu.Guy
+
+	Right:Clear()
+	PersonTable = Guy:GetFamily():GetPeople() 
+	FillPersonTable(CreatePersonTable(Right, #PersonTable), PersonTable)
+end
+
 function DisplayViewPerson(Menu, Left, Right)
 	local Guy = Menu.Guy
 
@@ -160,6 +196,26 @@ function DisplayViewPerson(Menu, Left, Right)
 			Right:Clear()
 			DisplayPersonStats(Menu, Left, Right)
 		end)
+	Left:CreateButton("Family",
+		function()
+			DisplayFamily(Menu, Left, Right)
+		end)
+	Left:CreateButton("Friends",
+		function()
+			DisplayFriends(Menu, Left, Right)
+		end)
+	Left:CreateButton("Enemies",
+		function()
+			DisplayEnemies(Menu, Left, Right)
+		end)
+	if World.GetPlot(Guy) ~= nil then
+		Left:CreateButton("Plots", 
+			function()
+				GUI.SetMenu("PlotMenu", {Person = Guy, Plot = World.GetPlot(Guy)}) 
+			end)
+	else
+		Left:CreateLabel("Plots")
+	end 
 	Left:CreateButton("Back",
 		function()
 			GUI.PopMenu()

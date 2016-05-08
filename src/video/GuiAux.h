@@ -7,6 +7,8 @@
 
 #include "Gui.h"
 
+#include "../sys/LinkedList.h"
+
 struct GameWorld;
 
 struct Label {
@@ -20,6 +22,11 @@ struct Table {
 	int Rows;
 	int Columns;
 	struct Area CellMax; /* max area of a cell. */
+};
+
+struct TextBox {
+	DECLARE_WIDGET;
+	struct LinkedList Letters; /* List of letters in the text box. */
 };
 
 struct ContextItem {
@@ -66,6 +73,11 @@ int ContextItemOnDraw(struct ContextItem* _Container);
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);
 int ContextHorzFocChange(const struct Container* _Container);
+
+struct TextBox* CreateTextBox(void);
+void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _Rows, int _Chars, lua_State* _State, struct Font* _Font);
+void TextBoxOnKey(struct TextBox* _TextBox, unsigned int _Key, unsigned int _Mod); 
+int TextBoxOnDraw(struct TextBox* _Widget);
 
 /*struct GameWorldWidget* CreateGWWidget(void);
 struct GameWorldWidget* ConstructGWWidget(struct GameWorldWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct GameWorld* _World);

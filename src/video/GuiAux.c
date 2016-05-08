@@ -137,6 +137,32 @@ int TableHorzFocChange(const struct Container* _Container) {
 	return ((struct Table*)_Container)->Columns;
 }
 
+struct TextBox* CreateTextBox(void) {
+	return (struct TextBox*) malloc(sizeof(struct TextBox));
+}
+
+void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _Rows, int _Chars, lua_State* _State, struct Font* _Font) {
+	SDL_Rect _Rect = {
+		0,
+		0,
+		_Chars * 8,
+		16
+	};
+	ConstructWidget((struct Widget*)_TextBox, _Parent, &_Rect, _State); 
+	_TextBox->OnDraw = (GuiCallWidget) TextBoxOnDraw;
+}
+
+void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod) {
+	if(_Key < SDLK_a && _Key > SDLK_z)
+		return;
+	LnkLstPushBack(&_Widget->Letters,(void*)( _Key - SDLK_a));
+}
+
+int TextBoxOnDraw(struct TextBox* _Widget) {
+	for(int i = 0; i < _Widget->Letters.Size; ++i);
+	return 1;
+}
+
 struct ContextItem* CreateContextItem(void) {
 	return (struct ContextItem*) malloc(sizeof(struct ContextItem));
 }

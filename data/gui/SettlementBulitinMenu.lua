@@ -1,14 +1,9 @@
-Menu.__savestate = false;
-Menu.moveable = true;
-
-
 function Menu.Init(Menu, Data)
 	local Table = Menu:CreateTable(4, 16)
 
 	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name");
-	Table:CreateLabel("Description");
 	Table:CreateLabel("Owner");
 	Table:CreateLabel("Days Left");
 	for Item in Data["Settlement"]:GetBulitins():NextItr() do
@@ -16,15 +11,14 @@ function Menu.Init(Menu, Data)
 			function()
 				CallMissionById(Item:GetMission(), Item:GetOwner(), World.GetPlayer())
 			end)
-		Table:CreateLabel("a")
 		Table:CreateLabel(Item:GetOwner():GetName())
 		Table:CreateLabel(Item:DaysLeft()) 
 	end	
 
 	Menu:CreateButton("Close",
 		function()
-			Menu.Screen:Close()
-		end)
+			Menu:Close()
+		end):Below(Table)
 end
 
 function Menu.Think(Menu)

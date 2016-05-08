@@ -1,6 +1,6 @@
 /*
- * File: BigGuy.c
  * Author: David Brotz
+ * File: BigGuy.c
  */
 
 #include "BigGuy.h"
@@ -14,6 +14,7 @@
 #include "Government.h"
 #include "Trait.h"
 #include "Mission.h"
+#include "Plot.h"
 
 #include "AI/Agent.h"
 
@@ -405,6 +406,9 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		break;
 	case BGACT_CONVINCE:
 		MissionAction("REL.2", _Guy, _Target);
+		break;
+	case BGACT_PLOTOVERTHROW:
+		RBInsert(&g_GameWorld.PlotList, CreatePlot(PLOT_OVERTHROW, _Guy, _Target));
 		break;
 	default:
 		_Guy->ActionFunc = NULL;

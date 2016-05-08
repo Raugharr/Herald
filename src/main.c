@@ -74,19 +74,14 @@ void LuaSettlementObjects(lua_State* _State) {
 	lua_pushstring(_State, "Action");
 	lua_newtable(_State);
 
-	lua_pushstring(_State, "Influence");
-	lua_pushinteger(_State, BGACT_IMRPOVEREL);
-	lua_rawset(_State, -3);
-
+	LuaAddEnumToTable(_State, "Influence", BGACT_IMRPOVEREL);
 	LuaAddEnumToTable(_State, "StealCattle", BGACT_STEALCATTLE);
-
-	lua_pushstring(_State, "Sabotage");
-	lua_pushinteger(_State, BGACT_SABREL);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Duel");
-	lua_pushinteger(_State, BGACT_DUEL);
-	lua_rawset(_State, -3);
+	LuaAddEnumToTable(_State, "Sabotage", BGACT_SABREL);
+	LuaAddEnumToTable(_State, "Duel", BGACT_DUEL);
+	LuaAddEnumToTable(_State, "Murder", BGACT_MURDER);
+	LuaAddEnumToTable(_State, "Dissent", BGACT_DISSENT);
+	LuaAddEnumToTable(_State, "Convince", BGACT_CONVINCE);
+	LuaAddEnumToTable(_State, "PlotOverthrow", BGACT_PLOTOVERTHROW);
 
 	lua_rawset(_State, -3);
 	lua_setglobal(_State, "BigGuy");

@@ -1,6 +1,6 @@
 /*
- * File: BigGuy.h
  * Author: David Brotz
+ * File: BigGuy.h
  */
 #ifndef __BIGGUY_H
 #define __BIGGUY_H
@@ -48,6 +48,7 @@ enum {
 	BGACT_MURDER,
 	BGACT_DISSENT,
 	BGACT_CONVINCE,
+	BGACT_PLOTOVERTHROW,
 	BGACT_SIZE
 };
 

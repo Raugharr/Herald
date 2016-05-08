@@ -74,5 +74,5 @@ const struct GoapAction* GoapPathGetAction(const struct GoapPathNode* _Node);
  * Returns the goal that has the best utility.
  */
 const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _GoalSet, const struct Agent* _Agent, struct WorldState* _BestState);
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State, int* _PathSize, struct GoapPathNode** _Path);
 #endif

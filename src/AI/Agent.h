@@ -50,10 +50,10 @@ struct Agent {
 	int PlanIdx; //The current plan we are impelenting -1 if none.
 	int PlanSz;
 	const struct GoapGoalSet* GoalSet;
+	const struct GoapGoal* CurrGoal;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
 	struct Blackboard Blackboard;
 	struct AgentSensor Sensors[16];
-	struct AgentTarget* Target;
 	struct WorldState State;
 };
 

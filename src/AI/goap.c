@@ -235,13 +235,16 @@ const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _Goal
 		return _GoalSet->Goals[_BestIdx];
 	}
 
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, const struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
 	struct WorldState _EndState;
 	const struct GoapGoal* _Goal = NULL;
 
 	WorldStateClear(&_EndState);
 	if((_Goal = GoapBestGoalUtility(_Agent->GoalSet, _Agent, &_EndState)) == NULL)
 		return;
-	_Goal->Setup(_Agent);
+	if(_Agent->CurrGoal != _Goal) {
+		_Agent->CurrGoal = _Goal;
+		_Goal->Setup(_Agent);
+	}
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
 }

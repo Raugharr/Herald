@@ -40,6 +40,7 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 	_Agent->Agent = _Guy;
 	_Agent->PlanIdx = AGENT_NOPLAN;
 	_Agent->PlanSz = AGENT_PLANSZ;
+	_Agent->CurrGoal = NULL;
 	for(int i = 0; i < AGENT_PLANSZ; ++i)
 		_Agent->Plan[i] = NULL;
 	_Agent->GoalSet = g_Goap.GoalSets[_Guy->Motivation];

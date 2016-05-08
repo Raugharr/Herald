@@ -85,4 +85,11 @@ int LuaBulitinGetDaysRemaining(lua_State* _State);
 int LuaBulitinGetName(lua_State* _State);
 int LuaBulitinGetMission(lua_State* _State);
 
+int LuaPlotJoin(lua_State* _State);
+int LuaPlotInPlot(lua_State* _State);
+int LuaPlotPlotters(lua_State* _State);
+int LuaPlotDefenders(lua_State* _State);
+int LuaPlotLeader(lua_State* _State);
+int LuaPlotTarget(lua_State* _State);
+
 #endif

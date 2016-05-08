@@ -16,6 +16,7 @@
 #include "Person.h"
 #include "Mission.h"
 #include "Bulitin.h"
+#include "Plot.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -121,6 +122,16 @@ static const luaL_Reg g_LuaFuncsBulitin[] = {
 	{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsPlot[] = {
+	{"Join", LuaPlotJoin},
+	{"InPlot", LuaPlotInPlot},
+	{"Plotters", LuaPlotPlotters},
+	{"Defenders", LuaPlotDefenders},
+	{"Leader", LuaPlotLeader},
+	{"Target", LuaPlotTarget},
+	{NULL, NULL}
+};
+
 const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{"Army", NULL, g_LuaFuncsArmy},
 	{"ReformPassing", NULL, g_LuaFuncsReformPassing},
@@ -131,6 +142,7 @@ const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{"Settlement", NULL, g_LuaFuncsSettlement},
 	{"BuildMat", NULL, NULL},
 	{"Bulitin", NULL, g_LuaFuncsBulitin},
+	{"Plot", NULL, g_LuaFuncsPlot},
 	{NULL, NULL, NULL}
 };
 
@@ -447,10 +459,7 @@ int LuaBGRelationBigGuy(lua_State* _State) {
 int LuaGovernmentPossibleReforms(lua_State* _State) {
 	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
 
-	LuaCtor(_State, "LinkedList", &_Government->PossibleReforms);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "Reform");
-	lua_rawset(_State, -3);
+	CreateLuaLnkLstItr(_State, &_Government->PossibleReforms, "Reform");
 	return 1;
 }
 
@@ -740,3 +749,65 @@ int LuaBulitinGetMission(lua_State* _State) {
 	return 1;
 }
 
+int LuaPlotJoin(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
+	int _Side = luaL_checkinteger(_State, 3);
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	if(_Guy == NULL)
+		return LuaClassError(_State, 2, "BigGuy");
+	if(_Side != PLOT_ATTACKERS && _Side != PLOT_DEFENDERS)
+		return luaL_error(_State, "Plot.Join uses an invalid number for Side.");
+	PlotJoin(_Plot, _Side, _Guy);
+	return 0;
+}
+
+int LuaPlotInPlot(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	if(_Guy == NULL)
+		return LuaClassError(_State, 2, "BigGuy");
+	lua_pushboolean(_State, IsInPlot(_Plot, _Guy));
+	return 1;
+}
+
+int LuaPlotPlotters(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_ATTACKERS], "BigGuy");
+	return 1;
+}
+
+int LuaPlotDefenders(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_DEFENDERS], "BigGuy");
+	return 1;
+}
+
+int LuaPlotLeader(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	LuaCtor(_State, _Plot->Side[PLOT_ATTACKERS].Front->Data, "BigGuy");
+	return 1;
+}
+	
+int LuaPlotTarget(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	if(_Plot == NULL)
+		return LuaClassError(_State, 1, "Plot");
+	LuaCtor(_State, _Plot->Side[PLOT_DEFENDERS].Front->Data, "BigGuy");
+	return 1;
+}

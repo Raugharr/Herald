@@ -22,7 +22,7 @@ int LogSetFile(const char* _File) {
 #ifdef _WIN32
 	if((g_Log.File = open(_File, _O_WRONLY, _O_CREAT, _O_TRUNC)) < 0)
 #else
-	if((g_Log.File = open(_File, O_WRONLY, O_CREAT, O_TRUNC)) < 0)
+	if((g_Log.File = open(_File, O_WRONLY | O_CREAT | O_TRUNC)) < 0)
 #endif
 		return 0;
 	return 1;

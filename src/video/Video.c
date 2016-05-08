@@ -190,6 +190,11 @@ int VideoEvents(const struct KeyMouseState* _State) {
 			g_DraggableWidget.Widget = NULL;
 			return 1;
 	}
+	if(_State->KeyboardState == SDL_PRESSED) {
+		if(g_FocusWidget != NULL) {
+			g_FocusWidget->OnKey(g_FocusWidget, _State->KeyboardButton, _State->KeyboardMod);
+		}
+	}
 	return 0;
 }
 

@@ -14,6 +14,8 @@ typedef struct lua_State lua_State;
 typedef int (*GuiCallWidget) (struct Widget*);
 typedef struct Widget* (*GuiCallPoint) (struct Widget*, const SDL_Point*);
 typedef void (*GuiCallDestroy) (struct Widget*, lua_State*);
+typedef void(*GuiParentFunc) (struct Container*, struct Widget*);
+typedef void(*GuiOnKey) (struct Widget*, unsigned int, unsigned int); 
 
 /*
  * TODO: Remove LuaOnClickFunc and and put function into the Lua table and use WEvents to handle click events.
@@ -35,7 +37,8 @@ typedef void (*GuiCallDestroy) (struct Widget*, lua_State*);
 	int (*OnUnfocus)(struct Widget*);										\
 	void (*OnDebug)(const struct Widget*);									\
 	void (*OnDestroy)(struct Widget*, lua_State*);							\
-	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*)
+	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*);		\
+	GuiOnKey OnKey	
 
 #define DECLARE_CONTAINER											\
 	DECLARE_WIDGET;													\
@@ -119,6 +122,7 @@ struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point
 
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child);
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event);
+void WidgetOnKey(struct Widget* _Widget, unsigned int _Key, unsigned int _KeyMod);
 void WidgetSetVisibility(struct Widget* _Widget, int _Visibility);
 struct Widget* WidgetOnDrag(struct Widget* _Widget, const struct SDL_Point* _Pos);
 /**

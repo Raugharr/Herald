@@ -87,6 +87,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->OnFocus = WidgetOnFocus;
 	_Widget->OnUnfocus = WidgetOnUnfocus;
 	_Widget->OnKeyUp = WidgetOnKeyUp;
+	_Widget->OnKey = WidgetOnKey;
 	_Widget->OnDestroy = NULL;
 	_Widget->OnDebug = WidgetOnDebug;
 	_Widget->Rect.x = _Rect->x;
@@ -194,6 +195,10 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 }
 
 void WidgetOnKeyUp(struct Widget* _Widget, SDL_KeyboardEvent* _Event) {
+
+}
+
+void WidgetOnKey(struct Widget* _Widget, unsigned int _Key, unsigned int _KeyMod) {
 
 }
 

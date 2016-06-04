@@ -45,8 +45,8 @@ struct GOAPPlanner {
 struct GoapPathNode {
 	struct WorldState State;
 	const struct GoapAction* Action;
+	void* Data;
 	int ActionCt; //How many times Action is performed.
-	const void* Data;
 	const struct GoapPathNode* Prev;
 	int h;
 	int f;

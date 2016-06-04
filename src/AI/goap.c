@@ -188,7 +188,7 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 
 	if(_Node == 0 || _Node->Action == NULL)
 		return 0;
-	_Cont = _Node->Action->Action(_Agent);
+	_Cont = _Node->Action->Action(_Agent, _Node->Data);
 	if(_Cont != 0)
 		WorldStateAdd(_State, &_Node->State);
 	return _Cont;

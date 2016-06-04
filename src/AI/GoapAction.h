@@ -12,19 +12,24 @@ struct Agent;
 struct GOAPPlanner;
 
 typedef int (*GoapActionCost)(const struct Agent*);
-typedef int (*GoapActionFunc)(struct Agent*);
-typedef int (*GoapActionUtility)(const struct Agent*, int*, int*, struct WorldState*);
-typedef int (*GoapActionComplete)(const struct Agent*);
+typedef int (*GoapActionFunc)(struct Agent*, void*);
+typedef int (*GoapActionUtility)(const struct Agent*, int*, int*, struct WorldState*, void*);
+typedef int (*GoapActionComplete)(const struct Agent*, void*);
+typedef int (*GoapActionCondition)(const struct Agent*);
+typedef void* (*GoapActionCreate)(const struct Agent*);
+typedef void (*GoapActionDestroy)(void*);
 
 struct GoapAction {
 	const char* Name;
 	struct WorldState Postconditions;
 	GoapActionFunc ProPostcondition;	
 	struct WorldState Preconditions;
-	GoapActionComplete ProPrecondition;
+	GoapActionCondition ProPrecondition;
 	GoapActionFunc Action;
 	GoapActionUtility Utility;
 	GoapActionCost Cost;
+	GoapActionCreate Create;
+	GoapActionDestroy Destroy;
 	int UtilityFunction;
 	GoapActionComplete IsComplete;
 };

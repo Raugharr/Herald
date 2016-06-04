@@ -44,4 +44,6 @@ void GoapActionClear(struct GoapAction* _Action) {
 	_Action->Cost = NULL;
 	_Action->UtilityFunction = 0;
 	_Action->IsComplete = NULL;
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }

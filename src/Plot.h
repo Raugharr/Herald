@@ -10,11 +10,14 @@
 #include "sys/LinkedList.h"
 
 #define PLOT_OVERTHROW_MAXSCORE (10)
+#define IsPlotTypeValid(_Type) ((_Type) >= 0 && (_Type) < PLOT_SIZE)
 
 struct BigGuy;
 
 enum {
 	PLOT_OVERTHROW,
+	PLOT_PASSPOLICY,
+	PLOT_REMOVEPOLICY,
 	PLOT_SIZE
 };
 
@@ -22,6 +25,7 @@ enum {
 	PLOTACT_ATTACK,
 	PLOTACT_PREVENT,
 	PLOTACT_DOUBLEDMG,
+	PLOTACT_REDUCETHREAT,
 	PLOTACT_SIZE
 };
 
@@ -81,6 +85,8 @@ struct BigGuy* PlotTarget(const struct Plot* _Plot);
 void PlotAddAction(struct Plot* _Plot, int _Type, struct BigGuy* _Actor, struct BigGuy* _Target);
 int PlotGetThreat(const struct Plot* _Plot);
 int PlotCanUseAction(const struct Plot* _Plot, const struct BigGuy* _Guy);
+const char* PlotTypeStr(const struct Plot* _Plot);
+void PlotSetTarget(struct Plot* _Plot, struct BigGuy* _Target);
 
 void PlotActionEventStr(const struct PlotAction* _Action, char** _Buffer, size_t _Size);
 #endif

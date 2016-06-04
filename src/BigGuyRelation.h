@@ -5,6 +5,15 @@
 
 #ifndef __BIGGUY_RELATION_H
 #define __BIGGUY_RELATION_H
+
+#define BIGGUY_RELMAX (100)
+#define BIGGUY_RELMIN (-100)
+#define BIGGUY_HATEMIN (-76)
+#define BIGGUY_DISLIKEMIN (-26)
+#define BIGGUY_LIKEMIN (25)
+#define BIGGUY_LOVEMIN (75)
+#define BIGGUY_TRAITREL (20)
+
 enum {
 	BGREL_HATE,
 	BGREL_DISLIKE,
@@ -51,9 +60,15 @@ struct BigGuyOpinion* CreateBigGuyOpinion(struct BigGuyRelation* _Relation, int 
 
 void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, int _Action, int _Modifier);
 void BigGuyChangeOpinion(struct BigGuy* _Guy, struct BigGuy* _Target, int _Action, int _Modifier);
-/*
+/**
  * Recalculates the modifier variable of _Relation and then updates Relation if applicable.
  */
 void BigGuyRelationUpdate(struct BigGuyRelation* _Relation);
 struct BigGuyRelation* BigGuyGetRelation(const struct BigGuy* _Guy, const struct BigGuy* _Target);
+int BigGuyRelAtLeast(const struct BigGuyRelation* _Rel, int _RelType);
+/**
+ * \return The value that repesents if the two people represented in the BigGuyRelation
+ * like or hate each other.
+ */
+int BigGuyRelation(const struct BigGuyRelation* _Rel);
 #endif

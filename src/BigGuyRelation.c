@@ -56,7 +56,7 @@ void BigGuyAddRelation(struct BigGuy* _Guy, struct BigGuyRelation* _Relation, in
 	}
 	CreateBigGuyOpinion(_Relation, _Action, _Modifier);
 	add_mods:
-	_Relation->Modifier = _Relation->Modifier + (((float)_Modifier) * BigGuyOpinionMod(_Guy, _Relation->Person));
+	_Relation->Modifier = _Relation->Modifier + _Modifier;// + (((float)_Modifier) * BigGuyOpinionMod(_Guy, _Relation->Person));
 	_Relation->Relation = Fuzify(g_OpinionMods, _Relation->Modifier);
 }
 
@@ -105,3 +105,10 @@ struct BigGuyRelation* BigGuyGetRelation(const struct BigGuy* _Guy, const struct
 	return NULL;
 }
 
+int BigGuyRelAtLeast(const struct BigGuyRelation* _Rel, int _RelType) {
+	return _Rel->Relation >= _RelType;
+}
+
+int BigGuyRelation(const struct BigGuyRelation* _Rel) {
+	return _Rel->Modifier;
+}

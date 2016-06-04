@@ -58,7 +58,6 @@ struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, str
 	SettlementPlaceFamily(_Location, _Family);
 	_Family->HomeLoc = _Location;
 	_Family->Parent = _Parent;
-	//_Family->Caste = CASTE_FARMER;
 	_Family->Owner = NULL;
 	_Family->Profession = NULL;
 	CreateObject((struct Object*)_Family, OBJECT_FAMILY, (ObjectThink) FamilyThink);
@@ -206,9 +205,6 @@ void FamilyCraftGoods(struct Family* _Family) {
 }
 
 int FamilyThink(struct Family* _Family) {
-	//struct LnkLst_Node* _Itr = _Family->Caste.RequiredGoods.Front;
-	//struct CasteGoodReq* _GoodReq = NULL;
-
 	switch(_Family->Caste->Type) {
 		case CASTE_PEASANT:
 		break;
@@ -219,17 +215,6 @@ int FamilyThink(struct Family* _Family) {
 	SDL_assert(_Family->Profession != NULL);
 	BehaviorRun(_Family->Profession->Behavior, _Family);
 	BehaviorRun(_Family->Caste->Behavior, _Family);
-	/*while(_Itr != NULL) {
-		_GoodReq = (struct CasteGoodReq*)_Itr->Data;
-		if(_GoodReq->GoodPtr == NULL) {
-			if(FamilyCanMake(_Family, _GoodReq->Base) == 0) {
-				GoodBuy(_Family, _GoodReq->Base, _GoodReq->MinQuantity);
-			} else {
-			
-			}
-		}
-		_Itr = _Itr->Next;
-	}*/
 	FamilyWorkField(_Family);
 	FamilyMakeFood(_Family);
 	return 1;
@@ -405,9 +390,8 @@ struct Good* FamilyTakeGood(struct Family* _Family, int _Index, int _Quantity) {
 
 int FamilyNutReq(const struct Family* _Family) {
 	int _Nutrition = 0;
-	int i;
 
-	for(i = 0; i < FAMILY_PEOPLESZ; ++i) {
+	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(_Family->People[i] == NULL)
 			continue;
 		if(DateToDays(_Family->People[i]->Age) > ADULT_AGE)

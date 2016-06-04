@@ -1,6 +1,6 @@
 /*
- * File: Goals.c
  * Author: David Brotz
+ * File: Goals.c
  */
 
 #include "Goals.h"
@@ -38,7 +38,8 @@ void GoalChallangeLeaderSetup(struct Agent* _Agent) {
 
 void GoalChallangeLeader(struct GoapGoal* _Goal) {
 	GoapGoalAddAction(_Goal, "Duel");
-	GoapGoalAddAction(_Goal, "Murder");
+	//GoapGoalAddAction(_Goal, "Dissent");
+	//GoapGoalAddAction(_Goal, "Convince");
 	WorldStateAddAtom(&_Goal->GoalState, BGBYTE_ISLEADER, 1);
 	_Goal->Name = "Challange Leader";
 	_Goal->Utility = UTILITY_QUADRATIC;

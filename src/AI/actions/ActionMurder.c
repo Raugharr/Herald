@@ -16,20 +16,20 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 8;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 
 	BigGuySetAction(_Guy, BGACT_MURDER, _Agent->Blackboard.Target, NULL);
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	*_Min = 0;
 	*_Max = 1;
 	return 0;
 }
 
-static int ActionIsComplete(const struct Agent* _Agent) {
+static int ActionIsComplete(const struct Agent* _Agent, void* _Data) {
 	return 1;
 }
 
@@ -47,4 +47,6 @@ void ActionMurder(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_LINEAR;
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }

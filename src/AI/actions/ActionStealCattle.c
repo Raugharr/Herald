@@ -20,14 +20,14 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 4;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 
 	BigGuySetAction(_Guy, BGACT_STEALCATTLE, _Agent->Blackboard.Target, NULL);
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	const struct Family* _GuyFamily = _Guy->Agent->Agent->Person->Family;
 	const struct Family* _TargetFamily = _Agent->Blackboard.Target->Person->Family;
@@ -43,7 +43,7 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	return (_TargetCows >= *_Max) ? (*_Max) : (_TargetCows);
 }
 
-static int ActionIsComplete(const struct Agent* _Agent) {
+static int ActionIsComplete(const struct Agent* _Agent, void* _Data) {
 	return 1;
 }
 
@@ -61,5 +61,7 @@ void ActionStealCattle(struct GOAPPlanner* _Planner, struct GoapAction* _Action)
 	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_QUADRATIC;
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }
 

@@ -20,7 +20,7 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 1;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	struct ArmyGoal _Goal;
@@ -36,7 +36,7 @@ static int ActionFunction(struct Agent* _Agent) {
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 4; //HOw much nutrition we need for 3 months.
@@ -59,4 +59,6 @@ void ActionRaid(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_QUADRATIC);
 	GoapActionSetName(_Action, "Raid");
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }

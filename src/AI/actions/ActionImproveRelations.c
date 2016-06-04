@@ -22,7 +22,7 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 12;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 	struct BulitinItem* _Item = _Guy->Person->Family->HomeLoc->Bulitin;
 
@@ -36,11 +36,11 @@ static int ActionFunction(struct Agent* _Agent) {
 	return 0;
 }
 
-static int IsActionComplete(const struct Agent* _Agent) {
+static int IsActionComplete(const struct Agent* _Agent, void* _Data) {
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	int _Friends = 0;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
@@ -59,7 +59,6 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 		end_loop:
 		_Itr = _Itr->Next;
 	}
-	WorldStateSetAtom(_State, BGBYTE_IMPROVINGRELATION, 1);
 	return *_Max;
 }
 
@@ -70,5 +69,7 @@ void ActionImproveRelations(struct GOAPPlanner* _Planner, struct GoapAction* _Ac
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = (UTILITY_INVERSE | UTILITY_LINEAR);
 	_Action->IsComplete = IsActionComplete;
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 	GoapActionSetName(_Action, "Improve Relations");
 }

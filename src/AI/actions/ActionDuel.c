@@ -19,14 +19,14 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 1;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 
 	BigGuySetAction(_Guy, BGACT_DUEL, _Agent->Blackboard.Target, NULL);
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	struct BigGuy* _Leader =  _Agent->Blackboard.Target;
 	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Leader);
@@ -42,7 +42,7 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	return (_Utility >= 255) ? (255) : (_Utility);
 }
 
-static int ActionIsComplete(const struct Agent* _Agent) {
+static int ActionIsComplete(const struct Agent* _Agent, void* _Data) {
 	return 1;
 }
 
@@ -63,4 +63,6 @@ void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	_Action->IsComplete = ActionIsComplete;
 	_Action->Utility = ActionUtility;
 	_Action->UtilityFunction = UTILITY_LINEAR;
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }

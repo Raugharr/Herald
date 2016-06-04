@@ -9,14 +9,14 @@ static int ActionCost(const struct Agent* _Agent) {
 	return 1;
 }
 
-static int ActionFunction(struct Agent* _Agent) {
+static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 
 	BigGuySetAction(_Guy, BGACT_SABREL, _Agent->Blackboard.Target, NULL);
 	return 1;
 }
 
-static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State) {
+static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	const struct BigGuy* _Target = _Agent->Blackboard->Target;
 	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Target);
@@ -33,4 +33,6 @@ void ActionDuel(struct GOAPPlanner* _GoPlan) {
 	GoapSetActionCost(_GoPlan, "Sabotage Relation", ActionCost);
 	GoapSetAction(_GoPlan, "Sabotage Relation", (AgentActionFunc) ActionFunction);
 	GoapAddUtility(_GoPlan, "Sabotage Relation", (AgentUtilityFunc)ActionUtility, UTILITY_LINEAR);
+	_Action->Create = NULL;
+	_Action->Destroy = NULL;
 }

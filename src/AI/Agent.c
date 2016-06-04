@@ -58,7 +58,7 @@ void AgentThink(struct Agent* _Agent) {
 	}
 	if(_Agent->PlanIdx != -1 && GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->State, _Agent) == 1) {
 		const struct GoapAction* _Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
-		if(_Action != NULL && _Action->IsComplete(_Agent) != 0) {
+		if(_Action != NULL && _Action->IsComplete(_Agent, _Agent->Plan[_Agent->PlanIdx]->Data) != 0) {
 			++_Agent->PlanIdx;
 			if(_Agent->PlanIdx >= _Agent->PlanSz) {
 				_Agent->PlanIdx = AGENT_NOPLAN;

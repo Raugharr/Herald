@@ -168,7 +168,9 @@ void BGOnNewPlot(const struct EventData* _Data, void* _Extra) {
 	if(_Guy == PlotLeader(_Plot) || _Guy == PlotTarget(_Plot))
 		return;
 	_LeaderRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotLeader(_Plot))); 
-	_TargetRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotTarget(_Plot)));
+	if(PlotTarget(_Plot) != NULL) {
+		_TargetRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotTarget(_Plot)));
+	}
 	if(_LeaderRel >= BGREL_LIKE && _TargetRel < BGREL_LIKE) {
 		PlotJoin(_Plot, PLOT_ATTACKERS, _Guy);	
 	} else if(_LeaderRel < BGREL_LIKE && _TargetRel >= BGREL_LIKE) {
@@ -201,6 +203,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	_BigGuy->Feuds.Size = 0;
 	_BigGuy->Feuds.Front = NULL;
 	_BigGuy->Feuds.Back = NULL;
+	ConstructLinkedList(&_BigGuy->PlotsAgainst);
 	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
 	_BigGuy->Traits = BGRandTraits();
 	return _BigGuy;
@@ -434,7 +437,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		MissionAction("REL.2", _Guy, _Target);
 		break;
 	case BGACT_PLOTOVERTHROW:
-		RBInsert(&g_GameWorld.PlotList, CreatePlot(PLOT_OVERTHROW, _Guy, _Target));
+		CreatePlot(PLOT_OVERTHROW, _Guy, _Target);
 		break;
 	default:
 		_Guy->ActionFunc = NULL;
@@ -505,3 +508,8 @@ int BigGuyPopularity(const struct BigGuy* _Guy) {
 	}
 	return _BGPop + _Guy->Popularity;
 }
+
+void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot) {
+	LnkLstPushBack(&_Guy->PlotsAgainst, _Plot);
+}
+

@@ -7,12 +7,14 @@
 
 #include "Herald.h"
 #include "WorldState.h"
+#include "World.h"
 #include "BigGuyRelation.h"
 
 #include "sys/LinkedList.h"
 
 #include <inttypes.h>
 
+struct Plot;
 struct Person;
 struct Mission;
 struct Trait;
@@ -26,6 +28,8 @@ struct Agent;
 #define BG_MINGENSTATS (BGSKILL_SIZE * 60)
 #define BG_MAXGENSTATS (BGSKILL_SIZE * 80)
 #define SKILLCHECK_DEFAULT (100)
+
+#define BigGuyHasPlot(_Guy) (BigGuyGetPlot(_Guy) != NULL)
 
 #define BIGGUY_PERSONALITIES (4)
 
@@ -111,6 +115,7 @@ struct BigGuy {
 	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
 	struct BigGuyAction Action;
 	struct LinkedList Feuds;
+	struct LinkedList PlotsAgainst;
 	int Personality;
 	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	struct Trait** Traits;
@@ -199,4 +204,9 @@ int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq);
  * \return How many people in _Guy's settlement that currently like him.
  */
 int BigGuyPopularity(const struct BigGuy* _Guy);
+void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot);
+
+inline static struct Plot* BigGuyGetPlot(struct BigGuy* _Guy) {
+	return RBSearch(&g_GameWorld.PlotList, _Guy);
+}
 #endif

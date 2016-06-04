@@ -15,6 +15,7 @@
 #include "Trait.h"
 #include "Mission.h"
 #include "Plot.h"
+#include "BigGuyRelation.h"
 
 #include "AI/Agent.h"
 
@@ -137,21 +138,42 @@ int CrisisInsert(const int* _One, const struct Crisis* _Two) {
 	return ((*_One) - _Two->Guy->Id);
 }
 
-void BGOnDeath(int _EventId, struct Person* _Person, struct BigGuy* _Guy, void* _None) {
-	EventHookRemove(_EventId, _Guy, _Person, NULL);
+void BGOnDeath(const struct EventData* _Data, void* _Extra) {
+	struct BigGuy* _Guy = _Data->One;
+	struct Person* _Person = _Data->OwnerObj;
+
+	EventHookRemove(_Data->EventType, _Guy, _Person, NULL);
 	RBDelete(&g_GameWorld.Agents, _Guy);
 	DestroyBigGuy(_Guy);
 	DestroyPerson(_Person);
 	DestroyAgent(_Guy->Agent);
 }
 
-void BGOnTargetDeath(int _EventId, struct Person* _Person, struct BigGuy* _Guy, void* _None) {
-	EventHookRemove(_EventId, _Guy, _Person, NULL);
+void BGOnTargetDeath(const struct EventData* _Data, void* _Extra) {
+	struct BigGuy* _Guy = _Data->One;
+
+	EventHookRemove(_Data->EventType, _Guy, _Data->OwnerObj, NULL);
 	_Guy->Action.Type = BGACT_NONE;
 	_Guy->ActionFunc = NULL;
 	_Guy->Action.Target = NULL;
-	//Have the agent rethink of a plan that doesn't involve _Person.
-	//AgentThink(_Guy->Agent);
+}
+
+void BGOnNewPlot(const struct EventData* _Data, void* _Extra) {
+	struct Settlement* _Location = _Data->OwnerObj;
+	struct BigGuy* _Guy = _Data->One;
+	struct Plot* _Plot = _Extra;
+	int _LeaderRel = 0; 
+	int _TargetRel = 0;
+
+	if(_Guy == PlotLeader(_Plot) || _Guy == PlotTarget(_Plot))
+		return;
+	_LeaderRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotLeader(_Plot))); 
+	_TargetRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotTarget(_Plot)));
+	if(_LeaderRel >= BGREL_LIKE && _TargetRel < BGREL_LIKE) {
+		PlotJoin(_Plot, PLOT_ATTACKERS, _Guy);	
+	} else if(_LeaderRel < BGREL_LIKE && _TargetRel >= BGREL_LIKE) {
+		PlotJoin(_Plot, PLOT_DEFENDERS, _Guy);
+	}
 }
 
 struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation) {
@@ -172,7 +194,8 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	RBInsert(&g_GameWorld.Agents, _BigGuy->Agent);
 	LnkLstPushBack(&FamilyGetSettlement(_Person->Family)->BigGuys, _BigGuy);
-	EventHook(EVENT_DEATH, (EventCallback) BGOnDeath, _Person, _BigGuy, NULL);
+	EventHook(EVENT_DEATH, BGOnDeath, _Person, _BigGuy, NULL);
+	EventHook(EVENT_NEWPLOT, BGOnNewPlot, BigGuyHome(_BigGuy), _BigGuy, NULL);
 	CreateObject((struct Object*)_BigGuy, OBJECT_BIGGUY, (ObjectThink) BigGuyThink);
 
 	_BigGuy->Feuds.Size = 0;
@@ -197,6 +220,7 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 	LnkLstClear(&_BigGuy->Feuds);
 	RBDelete(&g_GameWorld.BigGuys, _BigGuy->Person);
 	RBDelete(&g_GameWorld.BigGuyStates, _BigGuy);
+	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(_BigGuy), _BigGuy, NULL);
 	DestroyObject((struct Object*)_BigGuy);
 	free(_BigGuy->Traits);
 	free(_BigGuy);
@@ -366,9 +390,11 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
 		_Hist = (struct BigGuyActionHist*) _Node->Data;
 		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= g_BGActCooldown[_Hist->ActionType]) {
+			_Hist->DayDone = g_GameWorld.Date;
 			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
-			free(_Hist);
-			EventHookRemove(EventUserOffset() + EVENT_DEATH, _Target->Person, _Guy, NULL);
+			RBInsert(&g_GameWorld.ActionHistory, _Hist);
+			//free(_Hist);
+			//EventHookRemove(EVENT_DEATH, _Target->Person, _Guy, NULL);
 		} else {
 			return;
 		}
@@ -378,7 +404,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		_Hist->ActionType = _Action;
 		_Hist->DayDone = g_GameWorld.Date;
 		RBInsert(&g_GameWorld.ActionHistory, _Hist);
-		EventHook(EVENT_DEATH, (EventCallback) BGOnTargetDeath, _Target->Person, _Guy, NULL);
+		EventHook(EVENT_DEATH, BGOnTargetDeath, _Target->Person, _Guy, NULL);
 	}
 	switch(_Action) {
 	case BGACT_IMRPOVEREL:
@@ -418,6 +444,10 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 
 void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud) {
 	LnkLstPushBack(&_Guy->Feuds, _Feud);
+}
+
+struct Settlement* BigGuyHome(struct BigGuy* _Guy) {
+	return _Guy->Person->Family->HomeLoc;
 }
 
 int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target) {

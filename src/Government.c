@@ -76,10 +76,19 @@ GovernmentSuccession g_GovernmentSuccession[GOVSUCCESSION_SIZE] = {
 		ElectiveMonarchyNewLeader
 };
 
-void GovOnLeaderDeath(int _EventId, struct Person* _Person, struct Government* _Gov, void* _None) {
-	EventHookRemove(_EventId, _Person, _Gov, NULL);
-	PushEvent(EVENT_NEWLEADER, _Gov->Leader, _Gov->NextLeader);
+void GovOnLeaderDeath(const struct EventData* _Data, void* _Extra) {
+	struct Government* _Gov = _Data->One;
+	EventHookRemove(_Data->EventType, _Data->OwnerObj, _Gov, NULL);
 	_Gov->Leader = _Gov->NextLeader;
+	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
+}
+
+void GovOnNewLeader(const struct EventData* _Data, void* _Extra) {
+	struct BigGuy* _NewLeader = _Extra;
+	struct Government* _Gov = _Data->One;
+
+	EventHookRemove(_Data->EventType, _Data->OwnerObj, _Gov, NULL);
+	_Gov->Leader = _NewLeader;
 	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
 }
 
@@ -401,5 +410,5 @@ struct Government* GovernmentTop(struct Government* _Gov) {
 void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
 	_Gov->Leader = _Guy;
 	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
-	EventHook(EVENT_DEATH, (EventCallback) GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
+	EventHook(EVENT_DEATH, GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
 }

@@ -24,10 +24,10 @@ struct LogFile {
 extern struct LogFile g_Log;
 
 enum {
-	ELOG_INFO = 1,
-	ELOG_DEBUG = 2,
-	ELOG_WARNING = 4,
-	ELOG_ERROR = 8,
+	ELOG_INFO = (1 << 0),
+	ELOG_DEBUG = (1 << 1),
+	ELOG_WARNING = (1 << 2),
+	ELOG_ERROR = (1 << 3),
 	ELOG_ALL = 15
 };
 

@@ -9,10 +9,19 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #include <lua/lua.h>
+#include <SDL2/SDL.h>
 #ifndef _WIN32
 	#include <unistd.h>
 #endif
+
+const char* g_LogCatStr[] = {
+	"Info",
+	"Debug",
+	"Warning",
+	"Error"
+};
 
 struct LogFile g_Log = {0, -1, 0, 0};
 
@@ -32,32 +41,41 @@ void LogCloseFile() {
 	close(g_Log.File);
 }
 
+void LogFlush() {
+	write(g_Log.File, g_Log.Buffer, g_Log.Size);
+	g_Log.Size = 0;
+}
+
+void LogAppendStr(const char* _Text, int _Size) {
+	int i = 0;
+
+	while(_Size > 0) {
+		if(g_Log.Size >= LOG_MAXSIZE) {
+			LogFlush();
+		} else
+			g_Log.Buffer[g_Log.Size++] = _Text[i++];
+		--_Size;
+	}
+	LogFlush();
+}
+
 void Log(int _Category, const char* _Text, ...) {
 	va_list _List;
 	char _Buffer[LOG_MAXSIZE + g_Log.Indents];
 	int _Size;
 	int i = 0;
+	int _ExtraSz = 0;
 	
 	if((g_Log.Level & _Category) != _Category)
 		return;
 	for(i = 0; i < g_Log.Indents; ++i)
 		_Buffer[i] = '\t';
-	_Size = i;
-	i = 0;
 	va_start(_List, _Text);
-	_Size += vsnprintf(&_Buffer[g_Log.Indents], LOG_MAXSIZE + g_Log.Indents - 2, _Text, _List) + 1;
+	_ExtraSz = snprintf(&_Buffer[g_Log.Indents], LOG_MAXSIZE - 2, "[%s] %f: ", g_LogCatStr[ffs(_Category) - 1], ((double)SDL_GetTicks()) / 1000);
+	_Size = i;
+	_Size += vsnprintf(&_Buffer[g_Log.Indents + _ExtraSz], LOG_MAXSIZE + g_Log.Indents - 2, _Text, _List) + 1;
 	strcat(_Buffer, "\n");
-	while(_Size > 0) {
-		if(g_Log.Size >= LOG_MAXSIZE) {
-			if(write(g_Log.File, g_Log.Buffer, g_Log.Size) != g_Log.Size)
-				return;
-			g_Log.Size = 0;
-		} else
-			g_Log.Buffer[g_Log.Size++] = _Buffer[i++];
-		--_Size;
-	}
-	if(write(g_Log.File, g_Log.Buffer, g_Log.Size) != g_Log.Size)
-		return;
+	LogAppendStr(_Buffer, _Size + _ExtraSz);
 	g_Log.Size = 0;
 }
 

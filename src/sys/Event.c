@@ -20,6 +20,7 @@
 #include "../BigGuy.h"
 #include "../Battle.h"
 #include "../Mission.h"
+#include "../Plot.h"
 
 #include <lua/lauxlib.h>
 #include <stdlib.h>
@@ -87,7 +88,6 @@ void EventQuit() {
 }
 
 void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2) {
-	struct EventObserver* _Obs = NULL;
 	struct EventObserver* _New = NULL;
 	struct RBNode* _Node = NULL;
 
@@ -95,6 +95,7 @@ void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Dat
 	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
 	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
 		_New->Next = (struct EventObserver*) _Node->Data;
+		_New->Next->Prev = _New;
 		_Node->Data = _New;
 	} else {
 		RBInsert(g_EventHooks[_EventType], _New);
@@ -105,37 +106,33 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 	struct EventObserver* _Obs = NULL;
 	struct RBNode* _Node = NULL;
 
-	SDL_assert(_EventType >= g_EventTypes[0] && _EventType <=  g_EventTypes[EVENT_SIZE - 1]);
-	_EventType = _EventType -  g_EventTypes[0];
+	SDL_assert(_EventType >= 0 && _EventType <=  EVENT_SIZE);
 	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
 		_Obs = _Node->Data;
 		do {
 			//One and Two should be equal by definition of being in the RB node.
 			if(_Obs->One == _Data1 && _Obs->Two == _Data2) {
 				ILL_DESTROY(_Node->Data, _Obs);
-				_Obs = _Node->Data;
-				if(_Obs == NULL) {
+				if(_Node->Data == NULL) {
 					RBDeleteNode(g_EventHooks[_EventType], _Node);
 					DestroyEventObserver(_Obs);
 					return;
 				}
 				DestroyEventObserver(_Obs);
-				continue;
 			}
 			_Obs = _Obs->Next;
 		} while(_Obs != NULL);
 	}
-	assert(0);
+//	assert(0);
 }
 
 void EventHookUpdate(const SDL_Event* _Event) {
 	struct EventObserver* _Obs = NULL;
-	void* _Vars[] = {_Event->user.data1, _Event->user.data2};
 
 	SDL_assert(_Event->type  >= g_EventTypes[0] && _Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
 	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Event->user.data1/*_Vars*/);
 	while(_Obs != NULL) {
-		_Obs->OnEvent(_Event->type, _Obs->OwnerObj, _Obs->One, _Obs->Two);
+		_Obs->OnEvent((struct EventData*)_Obs, _Event->user.data2);
 		_Obs = _Obs->Next;
 	}
 }
@@ -208,6 +205,10 @@ void Events() {
 			if(_Event.user.data1 == g_GameWorld.Player->Person) {
 				MessageBox(g_LuaState, "You have died.");
 			}
+		} else if(_Event.type == g_EventTypes[EVENT_ENDPLOT]) {
+			struct Plot* _Plot = _Event.user.data1;
+
+			MessageBox(g_LuaState, "The plot has ended.");	
 		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
 			struct Battle* _Battle = _Event.user.data1;
 			char _Buffer[256];

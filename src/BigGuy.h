@@ -27,13 +27,6 @@ struct Agent;
 #define BG_MAXGENSTATS (BGSKILL_SIZE * 80)
 #define SKILLCHECK_DEFAULT (100)
 
-#define BIGGUY_RELMAX (100)
-#define BIGGUY_HATEMIN (-76)
-#define BIGGUY_DISLIKEMIN (-26)
-#define BIGGUY_LIKEMIN (25)
-#define BIGGUY_LOVEMIN (75)
-#define BIGGUY_TRAITREL (20)
-
 #define BIGGUY_PERSONALITIES (4)
 
 
@@ -172,6 +165,7 @@ struct Trait** BGRandTraits();
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
 void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
+struct Settlement* BigGuyHome(struct BigGuy* _Guy);
 /**
  * Return 1 if _Target's personality is one that _Guy would prefer to have as an acquaintance.
  * Return 0 if _Target's personality is not compatable.
@@ -193,7 +187,7 @@ double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target)
  */
 int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill); 
 /**
- * \return A positive integer on sucess and a negative number on failure.
+ * \return A positive integer on sucess and zero on failure.
  */
 int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq);
 /**

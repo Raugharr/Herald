@@ -19,14 +19,14 @@ extern struct RBTree g_ActorObservers;
 
 struct Location;
 struct MissionEngine;
+struct EventData;
 
 /**
  * Function prototype for all functions that are used in event callbacks.
- * The first argument is the Id of the event and the second is the "owner" of
- * the callback. The third and fourth arguments are pointers to additional data
- * that is set when the callback is initiated.
- */
-typedef void (*EventCallback)(int, void*, void*, void*); 
+ * The first argument contains the type of event, the owner of the event,
+ * pointers who's value is set when the event was hooked. The second argument
+ * contains a pointer to data pushed in EventPush. */
+typedef void (*EventCallback)(const struct EventData*, void*);
 
 enum {
 	EVENT_CRISIS = 0,
@@ -39,6 +39,8 @@ enum {
 	EVENT_STARVINGFAMILY,
 	EVENT_SABRELATION,
 	EVENT_NEWLEADER,
+	EVENT_NEWPLOT,
+	EVENT_ENDPLOT,
 	EVENT_SIZE
 };
 
@@ -70,12 +72,19 @@ struct WEvent {
 	int RefId;
 };
 
-struct EventObserver {
+struct EventData {
 	int EventType;
-	EventCallback OnEvent; //First const void* is the event, second const void* is the listener.
 	void* OwnerObj;
 	void* One;
 	void* Two;
+};
+
+struct EventObserver {
+	int EventType;
+	void* OwnerObj;
+	void* One;
+	void* Two;
+	EventCallback OnEvent; //First const void* is the event, second const void* is the listener.
 	struct EventObserver* Next;
 	struct EventObserver* Prev;
 };

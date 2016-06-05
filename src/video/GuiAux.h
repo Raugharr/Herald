@@ -26,7 +26,9 @@ struct Table {
 
 struct TextBox {
 	DECLARE_WIDGET;
+	SDL_Texture* TextSurface;
 	struct LinkedList Letters; /* List of letters in the text box. */
+	SDL_Rect TextRect;
 };
 
 struct ContextItem {

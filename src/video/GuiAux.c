@@ -10,7 +10,7 @@
 #include "../World.h"
 
 #include <stdlib.h>
-
+#include <assert.h>
 #include <SDL2/SDL_ttf.h>
 
 struct Label* CreateLabel(void) {
@@ -141,6 +141,11 @@ struct TextBox* CreateTextBox(void) {
 	return (struct TextBox*) malloc(sizeof(struct TextBox));
 }
 
+void DestroyTextBox(struct TextBox* _Widget, lua_State* _State) {
+	SDL_DestroyTexture(_Widget->TextSurface);
+	DestroyWidget((struct Widget*) _Widget, _State);
+}
+
 void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _Rows, int _Chars, lua_State* _State, struct Font* _Font) {
 	SDL_Rect _Rect = {
 		0,
@@ -149,18 +154,47 @@ void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _
 		16
 	};
 	ConstructWidget((struct Widget*)_TextBox, _Parent, &_Rect, _State); 
+	_TextBox->TextSurface = NULL;
+	ConstructLinkedList(&_TextBox->Letters);
 	_TextBox->OnDraw = (GuiCallWidget) TextBoxOnDraw;
+	_TextBox->OnKey = (GuiOnKey) TextBoxOnKey;
+	_TextBox->OnDestroy = (GuiCallDestroy) DestroyTextBox;
 }
 
 void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod) {
-	if(_Key < SDLK_a && _Key > SDLK_z)
-		return;
-	LnkLstPushBack(&_Widget->Letters,(void*)( _Key - SDLK_a));
+	char _Buffer[_Widget->Letters.Size + 1];
+	struct LnkLst_Node* _Itr = NULL;
+	int i = 0;
+
+	if(_Key < SDLK_SPACE || _Key > SDLK_KP_RIGHTBRACE) {
+		if(_Key == SDLK_BACKSPACE) {
+			LnkLstPopBack(&_Widget->Letters);
+		} else {
+			return;
+		}
+	} else {
+		LnkLstPushBack(&_Widget->Letters,(void*)(_Key));
+	}
+	_Itr = _Widget->Letters.Front;
+	SDL_DestroyTexture(_Widget->TextSurface);
+	while(_Itr != NULL) {
+		_Buffer[i++] = (int) _Itr->Data;
+		_Itr = _Itr->Next;
+	}
+	_Buffer[i] = '\0';
+	assert(i == _Widget->Letters.Size);
+	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(g_GUIFonts->Font, _Buffer, g_GUIDefs.FontUnfocus));
+	SDL_QueryTexture(_Widget->TextSurface, NULL, NULL, &_Widget->TextRect.w, &_Widget->TextRect.h);
+	if(_Widget->TextRect.w> _Widget->Rect.w)
+		_Widget->TextRect.w= _Widget->Rect.w;
+	if(_Widget->TextRect.h> _Widget->Rect.h)
+		_Widget->TextRect.h= _Widget->Rect.h;
+	_Widget->TextRect.x = _Widget->Rect.x;
+	_Widget->TextRect.y = _Widget->Rect.y;
 }
 
 int TextBoxOnDraw(struct TextBox* _Widget) {
-	for(int i = 0; i < _Widget->Letters.Size; ++i);
-	return 1;
+	return SDL_RenderCopy(g_Renderer, _Widget->TextSurface, NULL, &_Widget->TextRect);
 }
 
 struct ContextItem* CreateContextItem(void) {

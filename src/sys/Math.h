@@ -23,6 +23,7 @@
 #define IsNeg(_Int) ((_Int) < 0)
 //_Int becomes _Num more integers away from 0.
 #define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BITS - 1))) * (_Num))
+#define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BITS - 1)))
 
 void MathInit();
 
@@ -32,6 +33,7 @@ void Srand(int _Seed);
 
 int min(int _One, int _Two);
 int max(int _One, int _Two);
+int Abs(int _Num);
 
 double Normalize(int _Num, int _Min, int _Max);
 

@@ -76,6 +76,12 @@ int max(int _One, int _Two) {
 	return (_One >= _Two) ? (_One) : (_Two);
 }
 
+int Abs(int _Num) {
+	int _Mask = (_Num >> (sizeof(int) * CHAR_BITS - 1));
+
+	return (_Num ^ _Mask) - _Mask;
+}
+
 double Normalize(int _Num, int _Min, int _Max) {
 	return ((double)_Num) / (_Min + _Max);
 }

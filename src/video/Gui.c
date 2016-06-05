@@ -490,10 +490,11 @@ void GuiZToTop(struct Container* _Container) {
 		if((struct Container*) _Itr->Data == _Container) {
 			LnkLstRemove(&g_GuiZBuff, _Itr);
 			LnkLstPushFront(&g_GuiZBuff, _Itr);
-			break;
+			return;
 		}
 		_Itr = _Itr->Next;
 	}
+	//assert(0);
 }
 
 void GuiDraw(void) {

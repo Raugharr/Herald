@@ -30,6 +30,7 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"SetOnClick", LuaWorldSetOnClick},
 		{"GetBigGuy", LuaWorldGetBigGuy},
 		{"GetPlot", LuaWorldGetPlot},
+		{"Policies", LuaWorldPolicies},
 		{NULL, NULL}
 };
 
@@ -111,4 +112,14 @@ int LuaWorldGetPlot(lua_State* _State) {
 	}
 	LuaCtor(_State, "Plot", _Plot);
 	return 1;					
+}
+
+//FIXME: Should use a static Lua table constructed at program beginning instead.
+int LuaWorldPolicies(lua_State* _State) {
+	lua_createtable(_State, g_GameWorld.PolicySz, 0);
+	for(int i = 0; i < g_GameWorld.PolicySz; ++i) {
+		LuaCtor(_State, "Policy", g_GameWorld.Policies[i]);
+		lua_rawseti(_State, -2, i + 1);
+	}
+	return 1;
 }

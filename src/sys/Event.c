@@ -197,31 +197,55 @@ void Events() {
 		}
 		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
-				MessageBox(g_LuaState, "A crisis has occured.");
+				MessageBox("A crisis has occured.");
 		} else if(_Event.type == g_EventTypes[EVENT_FEUD]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
-				MessageBox(g_LuaState, "A feud has occured.");
+				MessageBox("A feud has occured.");
 		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
 			if(_Event.user.data1 == g_GameWorld.Player->Person) {
-				MessageBox(g_LuaState, "You have died.");
+				MessageBox("You have died.");
 			}
 		} else if(_Event.type == g_EventTypes[EVENT_ENDPLOT]) {
 			struct Plot* _Plot = _Event.user.data1;
+			struct BigGuy* _Loser = _Event.user.data2;
+			struct BigGuy* _Winner = NULL;
+			lua_State* _State = g_LuaState;
 
-			MessageBox(g_LuaState, "The plot has ended.");	
+			if(_Loser == (_Winner = PlotLeader(_Plot)))
+				_Winner = PlotTarget(_Plot);
+			if(_Winner == g_GameWorld.Player) {
+				lua_settop(_State, 0);
+				lua_pushstring(_State, "PlotMessage");
+				lua_createtable(_State, 0, 3);
+				lua_pushstring(_State, "Loser");
+				LuaCtor(_State, "BigGuy", _Loser);
+				lua_rawset(_State, -3);
+				lua_pushstring(_State, "Winner");
+				LuaCtor(_State, "BigGuy", _Winner);
+				lua_rawset(_State, -3);
+				lua_pushinteger(g_LuaState, 400);
+				lua_pushinteger(g_LuaState, 300);
+				LuaCreateWindow(_State);
+			} else if(_Loser == g_GameWorld.Player) {
+				char _Buffer[256];
+
+				printf(_Buffer, "%s has suceeded in their plot against you.", _Winner->Person->Name);
+				MessageBox(_Buffer);	
+			}
+			DestroyPlot(_Plot);
 		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
 			struct Battle* _Battle = _Event.user.data1;
 			char _Buffer[256];
 
 			sprintf(_Buffer, "The attacker has lost %i men out of %i. The defender has lost %i men out of %i.",
 					_Battle->Stats.AttkCas, _Battle->Stats.AttkBegin, _Battle->Stats.DefCas, _Battle->Stats.DefBegin);
-			MessageBox(g_LuaState, _Buffer);
+			MessageBox(_Buffer);
 			DestroyBattle(_Battle);
 		} else if(_Event.type == g_EventTypes[EVENT_NEWLEADER]) {
 			char _Buffer[256];
 
 			sprintf(_Buffer, "%s has died, all hail %s", ((struct BigGuy*)_Event.user.data1)->Person->Name, ((struct BigGuy*)_Event.user.data2)->Person->Name);
-			MessageBox(g_LuaState, _Buffer);
+			MessageBox(_Buffer);
 		}
 	}
 

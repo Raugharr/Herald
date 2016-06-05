@@ -144,6 +144,10 @@ static const luaL_Reg g_LuaFuncsImageWidget[] = {
 		{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsTextBox[] = {
+	{NULL, NULL}
+};
+
 static const struct LuaObjectReg g_GuiLuaObjects[] = {
 		{"Widget", NULL, g_LuaFuncsWidget},
 		{"Container", "Widget", g_LuaFuncsContainer},
@@ -153,6 +157,7 @@ static const struct LuaObjectReg g_GuiLuaObjects[] = {
 		{"Font", NULL, g_LuaFuncsFont},
 		{"Button", "Label", g_LuaFuncsButton},
 		{"ImageWidget", "Widget", g_LuaFuncsImageWidget},
+		{"TextBox", "Widget", g_LuaFuncsTextBox},
 		{NULL, NULL}
 };
 
@@ -196,11 +201,15 @@ int LuaCreateLabel(lua_State* _State) {
 			_Font = _Font->Next;
 		}
 	}
-	_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	if((_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus))) == NULL) {
+		_Rect.w = 32;
+		_Rect.h = 32;
+	} else {
+		_Rect.w = _Surface->w;
+		_Rect.h = _Surface->h;
+	}
 	_Rect.x = _Parent->Rect.x;
 	_Rect.y = _Parent->Rect.y;
-	_Rect.w = _Surface->w;
-	_Rect.h = _Surface->h;
 	lua_newtable(_State);
 	_Label = CreateLabel();
 	ConstructLabel(_Label, _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
@@ -260,9 +269,8 @@ int LuaCreateTextBox(lua_State* _State) {
 	if(_Parent == NULL)
 		LuaClassError(_State, 1, "Container");
 	_TextBox = CreateTextBox();
-	lua_newtable(_State);
 	ConstructTextBox(_TextBox, _Parent, 1, 16, _State, _Font);
-	LuaInitClass(_State, "TextBox", _TextBox);
+	LuaCtor(_State, "TextBox", _TextBox);
 	return 1;
 }
 
@@ -1526,16 +1534,16 @@ void LuaAddMenu(lua_State* _State, const char* _Name) {
 	lua_pop(_State, 1);
 }
 
-void MessageBox(lua_State* _State, const char* _Text) {
-	lua_settop(_State, 0);
-	lua_pushstring(_State, "MessageBox");
-	lua_createtable(_State, 0, 1);
-	lua_pushstring(_State, "Text");
-	lua_pushstring(_State, _Text);
-	lua_rawset(_State, -3);
-	lua_pushinteger(_State, 400);
-	lua_pushinteger(_State, 300);
-	LuaCreateWindow(_State);
+void MessageBox(const char* _Text) {
+	lua_settop(g_LuaState, 0);
+	lua_pushstring(g_LuaState, "MessageBox");
+	lua_createtable(g_LuaState, 0, 1);
+	lua_pushstring(g_LuaState, "Text");
+	lua_pushstring(g_LuaState, _Text);
+	lua_rawset(g_LuaState, -3);
+	lua_pushinteger(g_LuaState, 400);
+	lua_pushinteger(g_LuaState, 300);
+	LuaCreateWindow(g_LuaState);
 }
 
 void GuiSetParentHook(struct Container* _Container) {

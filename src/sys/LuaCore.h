@@ -20,6 +20,11 @@ struct Resource;
 	lua_createtable((_State), 0, 1);			\
 	LuaInitClass((_State), (_Class), (_Ptr))
 
+#define LuaAddEnumToTable(_State, _String, _Int)	\
+	lua_pushstring(_State, _String);				\
+	lua_pushinteger(_State, _Int);					\
+	lua_rawset(_State, -3)
+
 #define LuaConstCtor(_State, _Class, _Ptr)				\
 	lua_createtable((_State), 0, 1);					\
 	LuaInitClass((_State), (_Class), (void*) (_Ptr))	
@@ -53,6 +58,17 @@ struct LuaObjectReg {
 struct LuaModuleReg {
 	const char* Name;
 	const luaL_Reg* Funcs;
+};
+
+struct LuaEnum {
+	const char* Key;
+	int Value;
+};
+
+struct LuaEnumReg {
+	const char* Name;
+	const char* SubTable;
+	const struct LuaEnum* Enum;
 };
 
 void InitLuaCore();
@@ -113,7 +129,18 @@ int LuaConstraintBnds(lua_State* _State);
 void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints);
 
 /**
- * Converts years to days.
+ * Function that adds a variable amount of integers to a Lua table.
+ * \param _State The lua_State to use.
+ * \param _Table the index of the table the variables will be added to.
+ * \param _Enum array of LuaEnum that will use Key as the table Key and
+ * value as the value of the table index. Passing NULL as a value of a
+ * LuaEnum's Key will signal the end of the _Enum array.
+ */
+void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum, const char* _SubTable); 
+void RegisterLuaEnums(lua_State* _State, const struct LuaEnumReg* _Reg);
+
+/**
+ * \brief Converts years to days.
  */
 int LuaYears(lua_State* _State);
 int LuaMonth(lua_State* _State);

@@ -496,6 +496,34 @@ void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints) {
 	}
 }
 
+void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum, const char* _SubTable) {
+	_Table = lua_absindex(_State, _Table);
+	if(_SubTable != NULL) {
+		lua_pushstring(_State, _SubTable);
+		lua_rawget(_State, _Table);
+	}
+	for(int i = 0; _Enum[i].Key != NULL; ++i) {
+		lua_pushstring(_State, _Enum[i].Key);
+		lua_pushinteger(_State, _Enum[i].Value);
+		lua_rawset(_State, _Table);
+	}
+	if(_SubTable != NULL) {
+		lua_pushstring(_State, _SubTable);
+		lua_pushvalue(_State, _Table + 1);
+		lua_rawset(_State, _Table);
+		lua_pop(_State, 1); //pop initial rawget(_SubTable).
+	}
+}
+
+void RegisterLuaEnums(lua_State* _State, const struct LuaEnumReg* _Reg) {
+	for(int i = 0; _Reg[i].Name != NULL; ++i) {
+		lua_newtable(_State);
+		LuaAddEnum(_State, -1, _Reg[i].Enum, _Reg[i].SubTable);
+		lua_setglobal(_State, _Reg[i].Name);
+		lua_pop(_State, 1);
+	}
+}
+
 int LuaYears(lua_State* _State) {
 	lua_pushinteger(_State, luaL_checkinteger(_State, 1) * YEAR_DAYS);
 	return 1;

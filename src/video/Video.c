@@ -21,6 +21,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
+static struct Widget* g_HoverWidget = NULL;
 static struct Widget* g_FocusWidget = NULL;
 static struct {
 	struct Widget* Widget;
@@ -77,66 +78,6 @@ void VideoQuit(void) {
 	QuitGUILua(g_LuaState);
 }
 
-struct GUIFocus* ChangeFocus_Aux(struct GUIFocus* _Focus, int _Change, int _Pos) {
-	const struct Container* _Parent = _Focus->Parent;
-	struct GUIFocus* _Temp = NULL;
-	int _LastIndex = 0;
-	int _Ct = 0;
-
-	change: /* Decrement the index until the index is invalid. */
-	while(_Ct < _Change) {
-		_Focus->Index += _Pos;
-		if((_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz))
-			break;
-		if((_Focus->Index >= 0  && _Focus->Index < _Parent->ChildrenSz) &&
-				_Parent->Children[_Focus->Index] != NULL &&_Parent->Children[_Focus->Index]->CanFocus != 0)
-			++_Ct;
-	}
-	/* If the index is invalid focus the parent's next child
-	 * if it exists else set index to the last widget. */
-	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz) {
-		new_stack:
-		if(_Parent->Parent != NULL) {
-			_Temp = _Focus;
-
-			_Focus = _Focus->Prev;
-			_Parent = _Focus->Parent;
-			goto change;
-		} else {
-			loop_focus:
-			if(_Pos < 0)
-				_Focus->Index = _Parent->ChildrenSz - 1;
-			else
-				_Focus->Index = 0;
-			if(_Parent->Children[_Focus->Index] != NULL && _Parent->Children[_Focus->Index]->CanFocus != 0)
-				++_Ct;
-		}
-	}
-	/* Index is now valid decrement the remaining indexes. */
-	if(_Ct < _Change)
-		goto change;
-	/* Ensure the valid index we have is a valid widget. */
-	_LastIndex = _Focus->Index;
-	while((_Focus->Index >= 0 && _Focus->Index < _Parent->ChildrenSz) && (_Parent->Children[_Focus->Index] == NULL || (_Parent->Children[_Focus->Index]->CanFocus == 0)))
-		_Focus->Index += _Pos;
-	/* Index is invalid go back up and repair index. */
-	if(_Focus->Index < 0 || _Focus->Index >= _Parent->ChildrenSz) {
-		_Focus->Index = _LastIndex;
-		goto new_stack;
-	}
-	_Focus->Id = _Parent->Children[_Focus->Index]->Id;
-	if(_Temp != NULL) {
-		_Temp->Parent->OnUnfocus((struct Widget*)_Temp->Parent);
-		if(_Focus->Parent->Children[0]->Id == _Temp->Parent->Id || ((_Temp->Index > 0 && _Temp->Index < _Temp->Parent->ChildrenSz) && _Temp->Parent->Children[_Temp->Index] != NULL)){
-			_Focus = _Temp;
-			_Parent = _Focus->Parent;
-			_Temp = NULL;
-			goto loop_focus;
-		} else
-			free(_Temp);
-	}
-	return _Focus;
-}
 
 void Draw(void) {
 	if(g_VideoOk == 0)
@@ -160,9 +101,9 @@ int VideoEvents(const struct KeyMouseState* _State) {
 	struct Container* _Container = NULL;
 
 	if(_State->MouseMove != 0) {
-		if(g_FocusWidget != NULL)
-			g_FocusWidget->OnUnfocus(g_FocusWidget);
-		g_FocusWidget = GuiFind(offsetof(struct Widget, OnFocus), &_State->MousePos);	
+		if(g_HoverWidget != NULL)
+			g_HoverWidget->OnUnfocus(g_HoverWidget);
+		g_HoverWidget = GuiFind(offsetof(struct Widget, OnFocus), &_State->MousePos);	
 		if(g_DraggableWidget.Widget != NULL) {
 			SDL_Point _Pos = {_State->MousePos.x - g_DraggableWidget.Offset.x, _State->MousePos.y - g_DraggableWidget.Offset.y};
 			g_DraggableWidget.Widget->SetPosition(g_DraggableWidget.Widget, &_Pos);
@@ -177,22 +118,22 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		g_DraggableWidget.Offset.y = _State->MousePos.y - _Widget->Rect.y;
 		return 1;
 	} else if(_State->MouseState == SDL_RELEASED) {
-		_Widget = GuiFind(offsetof(struct Widget, OnClick), &_State->MousePos);
-		 if(_Widget == NULL) {
+		g_HoverWidget = GuiFind(offsetof(struct Widget, OnClick), &_State->MousePos);
+		 if(g_HoverWidget == NULL) {
 			 return 0;
 		}
 			GuiZToTop(_Container);
-			if(_Widget->LuaOnClickFunc >= 0) {
+			if(g_HoverWidget->LuaOnClickFunc >= 0) {
 				LuaGuiGetRef(g_LuaState);
-				lua_rawgeti(g_LuaState, -1, _Widget->LuaOnClickFunc);
+				lua_rawgeti(g_LuaState, -1, g_HoverWidget->LuaOnClickFunc);
 				LuaCallFunc(g_LuaState, 0, 0, 0);
 			}
 			g_DraggableWidget.Widget = NULL;
 			return 1;
 	}
-	if(_State->KeyboardState == SDL_PRESSED) {
-		if(g_FocusWidget != NULL) {
-			g_FocusWidget->OnKey(g_FocusWidget, _State->KeyboardButton, _State->KeyboardMod);
+	if(_State->KeyboardButton != 0 && _State->KeyboardState == SDL_RELEASED) {
+		if(g_HoverWidget != NULL) {
+			g_HoverWidget->OnKey(g_HoverWidget, _State->KeyboardButton, _State->KeyboardMod);
 		}
 	}
 	return 0;
@@ -293,11 +234,11 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 }
 
 void FocusableWidgetNull(void) {
-	g_FocusWidget = NULL;
+	g_HoverWidget = NULL;
 }
 
 const struct Widget* GetFocusableWidget(void) {
-	return g_FocusWidget;
+	return g_HoverWidget;
 }
 
 void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea) {

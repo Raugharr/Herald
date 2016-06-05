@@ -126,6 +126,11 @@ struct Government {
 	struct LinkedList PossibleReforms;
 	struct LinkedList PassedReforms;
 	struct LinkedList Advisors;
+	struct {
+		struct BigGuy* Judge;
+		struct BigGuy* Marshall;
+		struct BigGuy* Steward;
+	} Appointments;
 	SDL_Color ZoneColor;
 };
 

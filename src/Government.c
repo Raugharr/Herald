@@ -88,8 +88,7 @@ void GovOnNewLeader(const struct EventData* _Data, void* _Extra) {
 	struct Government* _Gov = _Data->One;
 
 	EventHookRemove(_Data->EventType, _Data->OwnerObj, _Gov, NULL);
-	_Gov->Leader = _NewLeader;
-	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
+	GovernmentSetLeader(_Gov, _NewLeader);
 }
 
 int InitReforms(void) {
@@ -410,5 +409,10 @@ struct Government* GovernmentTop(struct Government* _Gov) {
 void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
 	_Gov->Leader = _Guy;
 	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
+	if((_Gov->GovType & GOVSTCT_CHIEFDOM) == GOVSTCT_CHIEFDOM) {
+		_Gov->Appointments.Steward = _Guy;
+		_Gov->Appointments.Judge = _Guy;
+		_Gov->Appointments.Marshall = _Guy;
+	}
 	EventHook(EVENT_DEATH, GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
 }

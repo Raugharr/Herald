@@ -68,6 +68,8 @@ void PregnancyThink(struct Pregnancy* _Pregnancy) {
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Family* _Family) {
 	struct Person* _Person = NULL;
+	if(_Name == NULL || _Age < 0 || (_Gender != EMALE && _Gender != EFEMALE) || _Family == NULL || _X < 0 || _Y < 0)
+		return NULL;
 
 	_Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (ObjectThink) PersonThink, _Gender, _Nutrition, _Age);
@@ -115,34 +117,7 @@ int PersonThink(struct Person* _Person) {
 				&& Random(0, 1499) < 1) {
 			_Person->Pregnancy = CreatePregnancy(_Person);
 		}
-	} else {
-		/*if(YEAR(_Person->Age) > 18 && _Person->Family->People[HUSBAND] != _Person) {
-			struct LnkLst_Node* _Itr = _Family->HomeLoc->Families.Front;
-			struct Family* _BrideFam = NULL;
-
-			while(_Itr != NULL) {
-				_BrideFam = (struct Family*) _Itr->Data;
-				for(int i = 2; i < FAMILY_PEOPLESZ; ++i) {
-					if(_BrideFam->People[i] != NULL && _BrideFam->People[i]->Gender == EFEMALE && YEAR(_BrideFam->People[i]->Age) > 16) {
-						struct Family* _NewFam = CreateFamily(_Family->Name, FamilyGetSettlement(_Family), _Family->FamilyId, _Family);
-
-						_NewFam->People[HUSBAND] = _Person;
-						_NewFam->People[WIFE] = _BrideFam->People[i];
-						_BrideFam->People[i] = NULL;
-						_Person->Family = _NewFam;
-						_NewFam->People[WIFE]->Family = _NewFam;
-						for(int j = 2; j < FAMILY_PEOPLESZ; ++j)
-							if(_Person == _Family->People[i]) {
-								_Family->People[i] = NULL;
-								break;
-							}
-						break;
-					}
-				}
-				_Itr = _Itr->Next;
-			}
-		}*/
-	}
+	} 	
 	ActorThink((struct Actor*) _Person, NULL);
 	for(int i = 0; i < _Family->Goods->Size; ++i) {
 		_Good = (struct Good*) _Family->Goods->Table[i];
@@ -169,8 +144,6 @@ void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* 
 }
 
 double PersonEat(struct Person* _Person, struct Food* _Food) {
-	/*struct Good** _Tbl = (struct Good**)_Person->Family->Goods->Table;
-	int _NutReq = NUTRITION_LOSS;*/
 	struct Food* _FoodPtr = NULL;
 	double _Nut = 0;
 	int _FoodAmt = 0;
@@ -181,6 +154,7 @@ double PersonEat(struct Person* _Person, struct Food* _Food) {
 			if(_Nut >= NUTRITION_DAILY)
 				break;
 			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == GOOD_FOOD) {
+				//FIXME: Each unit of food should be equal to a day's worth of food and thus the below code should be removed.
 				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
 				while(_FoodAmt < _FoodPtr->Quantity && _Nut < NUTRITION_DAILY) {
 					_Nut += _FoodPtr->Base->Nutrition;
@@ -219,10 +193,8 @@ void PersonDeath(struct Person* _Person) {
 			break;
 		}
 	}
-//	RBDelete(&g_GameWorld.BigGuys, _Person);
 	PushEvent(EVENT_DEATH, _Person, NULL);
 	++_Family->HomeLoc->YearDeaths;
-	//DestroyPerson(_Person);
 }
 
 int PersonIsWarrior(const struct Person* _Person) {

@@ -20,6 +20,7 @@
 #include "Profession.h"
 #include "Trait.h"
 #include "Plot.h"
+#include "Policy.h"
 
 #include "video/GuiLua.h"
 #include "video/Video.h"
@@ -76,7 +77,9 @@ struct GameWorld g_GameWorld = {
 		{NULL, 0, NULL, NULL},
 		{0, NULL, NULL},
 		NULL,
-		NULL
+		NULL,
+		NULL,
+		0
 };
 
 static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
@@ -148,7 +151,7 @@ void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType*
 		Log(ELOG_ERROR, "BabyAvg is not defined.");
 		return;
 	}
-	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
+	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
 	while(_Population > 0) {
 		_FamilySize = Random(g_FamilySize[0]->Min, g_FamilySize[FAMILYSIZE - 1]->Max);
 		_Parent = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
@@ -268,6 +271,36 @@ void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point,
 	QTPointInRectangle(&_World->SettlementMap, &_Rect, (void(*)(const void*, SDL_Point*))LocationGetPoint, _List);
 }
 
+void GameworldConstructPolicies(struct GameWorld* _World) {
+	int _PolicyCt = 0;
+	_World->PolicySz = 9;
+	_World->Policies = calloc(_World->PolicySz, sizeof(struct Policy*));
+	_World->Policies[_PolicyCt++] = CreatePolicy("Irregular Infantry", 
+		"How many and how well armed your irregular infantry are.",
+		POLCAT_MILITARY);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Regular Infantry", 
+		"How many and how well armed your regular infantry are.",
+		POLCAT_MILITARY);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Property Tax",
+		"How much each person must pay yearly.",
+		POLCAT_ECONOMY);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Weregeld",
+		"The price of a man.",
+		POLCAT_LAW);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Authority",
+		"How much authority the ruler comands.",
+		POLCAT_LAW);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Crop Tax",
+		"Each farmer must give a percentage of their crops as tax.",
+		POLCAT_ECONOMY);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Work in kind",
+		"Each farmer must work on the fields of the lord for a percentage of each week.",
+		POLCAT_ECONOMY);
+	_World->Policies[_PolicyCt++] = CreatePolicy("Military Authority",
+		"Determines how much control the marshall wields.",
+		POLCAT_MILITARY);
+}
+
 void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
 	SDL_Point _ScreenSize = {ceil(SDL_WIDTH / ((float)TILE_WIDTH)), ceil(SDL_HEIGHT / ((float)TILE_HEIGHT_THIRD))};
@@ -323,6 +356,7 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 
 	_GameWorld->Date = 0;
 	_GameWorld->Tick = 0;
+	GameworldConstructPolicies(_GameWorld);
 }
 
 struct FoodBase** LoadHumanFood(lua_State* _State, struct FoodBase** _FoodArray, const char* _LuaTable) {
@@ -526,6 +560,9 @@ void WorldQuit() {
 	DestroyMemoryPool(g_PersonPool);
 	for(int i = 0; i < GOOD_SIZE; ++i)
 		LnkLstClear(&g_GoodCats[i]);
+	for(int i = 0; i < g_GameWorld.PolicySz; ++i)
+		free(g_GameWorld.Policies[i]);
+	free(g_GameWorld.Policies);
 	HashDeleteAll(&g_Goods, (void(*)(void*)) DestroyGoodBase);
 	HashDeleteAll(&g_Populations, (void(*)(void*)) DestroyPopulation);
 	Family_Quit();

@@ -27,6 +27,7 @@ struct GameWorld;
 struct KeyMouseState;
 struct Path;
 struct Actor;
+struct Policy;
 
 extern struct GameWorld g_GameWorld;
 extern int g_TemperatureList[];
@@ -85,6 +86,8 @@ struct GameWorld {
 	struct LinkedList MissionData;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
+	struct Policy** Policies;
+	int PolicySz;
 };
 
 struct FamilyType {

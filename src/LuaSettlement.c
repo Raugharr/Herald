@@ -17,9 +17,11 @@
 #include "Mission.h"
 #include "Bulitin.h"
 #include "Plot.h"
+#include "Policy.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
+#include "sys/FrameAllocator.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +52,11 @@ static const luaL_Reg g_LuaFuncsGovernment[] = {
 	{"Type", LuaGovernmentType},
 	{"Rule", LuaGovernmentRule},
 	{"PassReform", LuaGovernmentPassReform},
+	{"GetLeader", LuaGovernmentGetLeader},
 	{"GetReform", LuaGovernmentGetReform},
+	{"GetJudge", LuaGovernmentGetJudge},
+	{"GetMarshall", LuaGovernmentGetMarshall},
+	{"GetSteward", LuaGovernmentGetSteward},
 	{NULL, NULL}
 };
 
@@ -82,6 +88,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"Popularity", LuaBGPopularity},
 	{"ChangePopularity", LuaBGChangePopularity},
 	{"SuccessMargin", LuaBGSuccessMargin},
+	{"PlotsAgainst", LuaBGPlotsAgainst},
 	{NULL, NULL}
 };
 
@@ -122,13 +129,32 @@ static const luaL_Reg g_LuaFuncsBulitin[] = {
 	{NULL, NULL}
 };
 
+static const luaL_Reg g_LuaFuncsPlotAction[] = {
+	{"Describe", LuaPlotActionDescribe},
+	{"GetType", LuaPlotActionGetType},
+	{NULL, NULL}
+};
+
 static const luaL_Reg g_LuaFuncsPlot[] = {
+	{"Create", LuaPlotCreate},
 	{"Join", LuaPlotJoin},
 	{"InPlot", LuaPlotInPlot},
 	{"Plotters", LuaPlotPlotters},
 	{"Defenders", LuaPlotDefenders},
+	{"TypeStr", LuaPlotTypeStr},
 	{"Leader", LuaPlotLeader},
 	{"Target", LuaPlotTarget},
+	{"GetScore", LuaPlotGetScore},
+	{"AddAction", LuaPlotAddAction},
+	{"GetThreat", LuaPlotGetThreat},
+	{"PrevMonthActions", LuaPlotPrevMonthActions},
+	{"CurrMonthActions", LuaPlotCurrMonthActions},
+	{NULL, NULL}
+};
+
+static luaL_Reg g_LuaFuncsPolicy[] = {
+	{"Name", LuaPolicyName},
+	{"Category", LuaPolicyCategory},
 	{NULL, NULL}
 };
 
@@ -142,8 +168,57 @@ const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{"Settlement", NULL, g_LuaFuncsSettlement},
 	{"BuildMat", NULL, NULL},
 	{"Bulitin", NULL, g_LuaFuncsBulitin},
+	{"PlotAction", NULL, g_LuaFuncsPlotAction},
 	{"Plot", NULL, g_LuaFuncsPlot},
-	{NULL, NULL, NULL}
+	{"Policy", NULL, g_LuaFuncsPolicy},
+	{NULL, NULL}
+};
+
+const struct LuaEnum g_LuaPlotEnum[] = {
+	{"Attack", PLOTACT_ATTACK},
+	{"Prevent", PLOTACT_PREVENT},
+	{"DoubleDamage", PLOTACT_DOUBLEDMG},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaPlotTypeEnum[] = {
+	{"NewPolicy", PLOT_PASSPOLICY},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaPolicyEnum[] = {
+	{"Economy", POLCAT_ECONOMY},
+	{"Law", POLCAT_LAW},
+	{"Military", POLCAT_MILITARY},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaBigGuyActionEnum[] = {
+	{"Influence", BGACT_IMRPOVEREL},
+	{"StealCattle", BGACT_STEALCATTLE},
+	{"Sabotage", BGACT_SABREL},
+	{"Duel", BGACT_DUEL},
+	{"Murder", BGACT_MURDER},
+	{"Convince", BGACT_CONVINCE},
+	{"PlotOverthrow", BGACT_PLOTOVERTHROW},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaBigGuyRelationEnum[] = {
+	{"Token", OPINION_TOKEN},
+	{"Small", OPINION_SMALL},
+	{"Average", OPINION_AVERAGE},
+	{"Great", OPINION_GREAT},
+	{NULL, 0}
+};
+
+const struct LuaEnumReg g_LuaSettlementEnums[] = {
+	{"Plot", NULL,  g_LuaPlotEnum},
+	{"Plot", "Type", g_LuaPlotTypeEnum},
+	{"BigGuy", "Action", g_LuaBigGuyActionEnum},
+	{"BigGuy", "Relation", g_LuaBigGuyRelationEnum},
+	{"Policy", NULL, g_LuaPolicyEnum},
+	{NULL, NULL}
 };
 
 int LuaArmyGetLeader(lua_State* _State) {
@@ -438,6 +513,13 @@ int LuaBGSuccessMargin(lua_State* _State) {
 	return 1;
 }
 
+int LuaBGPlotsAgainst(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+
+	CreateLuaLnkLstItr(_State, &_Guy->PlotsAgainst, "Plot");
+	return 1;
+}
+
 int LuaBGRelationGetOpinion(lua_State* _State) {
 	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
 
@@ -492,6 +574,13 @@ int LuaGovernmentPassReform(lua_State* _State) {
 	return 0;
 }
 
+int LuaGovernmentGetLeader(lua_State* _State) {
+	struct Government* _Gov = LuaCheckClass(_State, 1, "Government");
+
+	LuaCtor(_State, "BigGuy", _Gov->Leader);
+	return 1;
+}
+
 int LuaGovernmentGetReform(lua_State* _State) {
 	struct Government* _Gov = LuaCheckClass(_State, 1, "Government");
 
@@ -500,6 +589,27 @@ int LuaGovernmentGetReform(lua_State* _State) {
 	} else {
 		lua_pushnil(_State);
 	}
+	return 1;
+}
+
+int LuaGovernmentGetJudge(lua_State* _State) {
+	struct Government* _Government= LuaCheckClass(_State, 1, "Government");
+	
+	LuaCtor(_State, "BigGuy", _Government->Appointments.Judge);
+	return 1;
+}
+
+int LuaGovernmentGetMarshall(lua_State* _State) {
+	struct Government* _Government= LuaCheckClass(_State, 1, "Government");
+	
+	LuaCtor(_State, "BigGuy", _Government->Appointments.Marshall);
+	return 1;
+}
+
+int LuaGovernmentGetSteward(lua_State* _State) {
+	struct Government* _Government= LuaCheckClass(_State, 1, "Government");
+	
+	LuaCtor(_State, "BigGuy", _Government->Appointments.Steward);
 	return 1;
 }
 
@@ -670,6 +780,7 @@ int LuaSettlementCountAdults(lua_State* _State) {
 	return 1;
 }
 
+
 int LuaBulitinNext(lua_State* _State) {
 	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
 
@@ -749,6 +860,22 @@ int LuaBulitinGetMission(lua_State* _State) {
 	return 1;
 }
 
+int LuaPlotActionDescribe(lua_State* _State) {
+	struct PlotAction* _Action = LuaCheckClass(_State, 1, "PlotAction");
+	char* _Buffer = FrameAlloc(1024);
+	
+	PlotActionEventStr(_Action, &_Buffer, 1024);
+	lua_pushstring(_State, _Buffer);
+	return 1;
+}
+
+int LuaPlotActionGetType(lua_State* _State) {
+	struct PlotAction* _Action = LuaCheckClass(_State, 1, "PlotAction");
+
+	lua_pushinteger(_State, _Action->Type);
+	return 1;
+}
+
 int LuaPlotJoin(lua_State* _State) {
 	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
 	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
@@ -794,6 +921,13 @@ int LuaPlotDefenders(lua_State* _State) {
 	return 1;
 }
 
+int LuaPlotTypeStr(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	lua_pushstring(_State, PlotTypeStr(_Plot));
+	return 1;
+}
+
 int LuaPlotLeader(lua_State* _State) {
 	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
 
@@ -809,5 +943,71 @@ int LuaPlotTarget(lua_State* _State) {
 	if(_Plot == NULL)
 		return LuaClassError(_State, 1, "Plot");
 	LuaCtor(_State, _Plot->Side[PLOT_DEFENDERS].Front->Data, "BigGuy");
+	return 1;
+}
+
+int LuaPlotGetScore(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	lua_pushinteger(_State, _Plot->WarScore);
+	return 1;
+}
+
+int LuaPlotCreate(lua_State* _State) {
+	struct Plot* _Plot = NULL;
+	struct BigGuy* _Leader = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
+	int _Type = luaL_checkinteger(_State, 3);
+
+	if(_Leader == NULL || BigGuyHasPlot(_Leader) != 0 || IsPlotTypeValid(_Type) == 0) {
+		lua_pushnil(_State);
+		return 1;
+	}
+	_Plot = CreatePlot(_Type, _Leader, _Target);
+	return 1;
+}
+
+int LuaPlotAddAction(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	int _Type = luaL_checkinteger(_State, 2);
+	struct BigGuy* _Actor = LuaCheckClass(_State, 3, "BigGuy");
+	struct BigGuy* _Target = LuaCheckClass(_State, 4, "BigGuy");
+
+	PlotAddAction(_Plot, _Type, _Actor, _Target);
+	return 0;
+}
+
+int LuaPlotGetThreat(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	lua_pushinteger(_State, PlotGetThreat(_Plot));
+	return 1;
+}
+
+int LuaPlotPrevMonthActions(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	CreateLuaLnkLstItr(_State, PlotPrevActList(_Plot), "PlotAction");
+	return 1;
+}
+
+int LuaPlotCurrMonthActions(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+
+	CreateLuaLnkLstItr(_State, PlotCurrActList(_Plot), "PlotAction");
+	return 1;
+}
+
+int LuaPolicyName(lua_State* _State) {
+	struct Policy* _Policy = LuaCheckClass(_State, 1, "Policy");
+
+	lua_pushstring(_State, _Policy->Name);
+	return 1;
+}
+
+int LuaPolicyCategory(lua_State* _State) {
+	struct Policy* _Policy = LuaCheckClass(_State, 1, "Policy");
+
+	lua_pushinteger(_State, _Policy->Category);
 	return 1;
 }

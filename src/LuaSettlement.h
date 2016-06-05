@@ -13,6 +13,7 @@ typedef struct luaL_Reg luaL_Reg;
 typedef int (*lua_CFunction) (lua_State *L);
 
 extern const struct LuaObjectReg g_LuaSettlementObjects[];
+extern const struct LuaEnumReg g_LuaSettlementEnums[];
 
 int LuaArmyGetLeader(lua_State* _State);
 int LuaArmyGetSize(lua_State* _State);
@@ -44,6 +45,7 @@ int LuaBGKill(lua_State* _State);
 int LuaBGPopularity(lua_State* _State);
 int LuaBGChangePopularity(lua_State* _State);
 int LuaBGSuccessMargin(lua_State* _State);
+int LuaBGPlotsAgainst(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);
 int LuaBGRelationBigGuy(lua_State* _State);
@@ -52,6 +54,7 @@ int LuaGovernmentPossibleReforms(lua_State* _State);
 int LuaGovernmentStructure(lua_State* _State);
 int LuaGovernmentType(lua_State* _State);
 int LuaGovernmentRule(lua_State* _State);
+int LuaGovernmentGetLeader(lua_State* _State);
 int LuaGovernmentPassReform(lua_State* _State);
 int LuaGovernmentGetReform(lua_State* _State);
 
@@ -75,6 +78,10 @@ int LuaSettlementYearlyBirths(lua_State* _State);
 int LuaSettlementBulitinPost(lua_State* _State);
 int LuaSettlementGetBulitins(lua_State* _State);
 int LuaSettlementCountAdults(lua_State* _State);
+int LuaGovernmentGetJudge(lua_State* _State);
+int LuaGovernmentGetMarshall(lua_State* _State);
+int LuaGovernmentGetSteward(lua_State* _State);
+
 
 int LuaBulitinNext(lua_State* _State);
 int LuaBulitinPrev(lua_State* _State);
@@ -85,11 +92,24 @@ int LuaBulitinGetDaysRemaining(lua_State* _State);
 int LuaBulitinGetName(lua_State* _State);
 int LuaBulitinGetMission(lua_State* _State);
 
+int LuaPlotActionDescribe(lua_State* _State);
+int LuaPlotActionGetType(lua_State* _State);
+
+int LuaPlotCreate(lua_State* _State);
 int LuaPlotJoin(lua_State* _State);
 int LuaPlotInPlot(lua_State* _State);
 int LuaPlotPlotters(lua_State* _State);
 int LuaPlotDefenders(lua_State* _State);
+int LuaPlotTypeStr(lua_State* _State);
 int LuaPlotLeader(lua_State* _State);
 int LuaPlotTarget(lua_State* _State);
+int LuaPlotGetScore(lua_State* _State);
+int LuaPlotAddAction(lua_State* _State);
+int LuaPlotGetThreat(lua_State* _State);
+int LuaPlotPrevMonthActions(lua_State* _State);
+int LuaPlotCurrMonthActions(lua_State* _State);
+
+int LuaPolicyName(lua_State* _State);
+int LuaPolicyCategory(lua_State* _State);
 
 #endif

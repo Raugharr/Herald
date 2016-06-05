@@ -23,6 +23,7 @@
 #include "sys/LuaCore.h"
 #include "sys/TaskPool.h"
 #include "sys/ResourceManager.h"
+#include "sys/FrameAllocator.h"
 
 #include "sys/Coroutine.h"
 
@@ -43,54 +44,16 @@
 #endif
 
 #define GAME_TICK (200)
-#define LuaAddEnumToTable(_State, _String, _Int)	\
-	lua_pushstring(_State, _String);				\
-	lua_pushinteger(_State, _Int);					\
-	lua_rawset(_State, -3)
-
-void LuaSettlementObjects(lua_State* _State) {
-	lua_newtable(_State);
-	lua_pushstring(_State, "Relation");
-	lua_newtable(_State);
-
-	lua_pushstring(_State, "Token");
-	lua_pushinteger(_State, OPINION_TOKEN);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Small");
-	lua_pushinteger(_State, OPINION_SMALL);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Average");
-	lua_pushinteger(_State, OPINION_AVERAGE);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Great");
-	lua_pushinteger(_State, OPINION_GREAT);
-	lua_rawset(_State, -3);
-
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Action");
-	lua_newtable(_State);
-
-	LuaAddEnumToTable(_State, "Influence", BGACT_IMRPOVEREL);
-	LuaAddEnumToTable(_State, "StealCattle", BGACT_STEALCATTLE);
-	LuaAddEnumToTable(_State, "Sabotage", BGACT_SABREL);
-	LuaAddEnumToTable(_State, "Duel", BGACT_DUEL);
-	LuaAddEnumToTable(_State, "Murder", BGACT_MURDER);
-	LuaAddEnumToTable(_State, "Dissent", BGACT_DISSENT);
-	LuaAddEnumToTable(_State, "Convince", BGACT_CONVINCE);
-	LuaAddEnumToTable(_State, "PlotOverthrow", BGACT_PLOTOVERTHROW);
-
-	lua_rawset(_State, -3);
-	lua_setglobal(_State, "BigGuy");
-}
 
 int InitLuaSystem() {
 	InitLuaCore();
 	InitLuaFamily();
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
+	RegisterLuaEnums(g_LuaState, g_LuaSettlementEnums);
+	lua_getglobal(g_LuaState, "Plot");
+	luaL_getmetatable(g_LuaState, "Plot");
+	lua_setmetatable(g_LuaState, -2);
+	lua_pop(g_LuaState, 1);
 	LuaSettlementObjects(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
 
@@ -134,6 +97,7 @@ void MainCoro() {
 		if(g_GameWorld.IsPaused == 0 && (_WorldTimer + GAME_TICK) <= _Ticks) {
 			World_Tick();
 			_WorldTimer = _Ticks;
+			FrameFree();
 		}
 		++g_TaskPool->Time;
 	}

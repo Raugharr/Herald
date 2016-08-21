@@ -5,22 +5,27 @@
 #ifndef __WORLDSTATE_H
 #define __WORLDSTATE_H
 
+#include "sys/Math.h"
+
 #include <inttypes.h>
 
 #define WORLDSTATE_ATOMSZ (16)
 #define WORLDSTATESZ (WORLDSTATE_ATOMSZ / sizeof(WorldState_t))
+#define WorldStateBytes (WORLDSTATESZ)
+#define WorldStateAtoms (sizeof(WorldState_t))
 
-#define WSToByte(_State, _Idx, AtomIdx) ((((_State)->State[(_Idx)] & (~(_State)->DontCare[(_Idx)]))) >> ((AtomIdx) * CHAR_BITS) & 0xFF)
+//#define WSToByte(_State, _Idx, AtomIdx) ((((_State)->State[(_Idx)] & (~(_State)->DontCare[(_Idx)]))) >> ((AtomIdx) * CHAR_BITS) & 0xFF)
+#define WSToByte(_State, _Idx, AtomIdx) (((_State)->State[(_Idx)]) >> ((AtomIdx) * CHAR_BITS) & 0xFF)
 #define WSAtomOffset(_Atom) (((_Atom) % sizeof(WorldState_t)) * CHAR_BITS)
 #define WSAtomOpCode(_State, _Idx, _Atom) ((((_State)->OpCode[(_Idx)]) & (STATEOPCODE_MAX << (_Atom * STATEOPCODE_BITS))) >> (_Atom * STATEOPCODE_BITS))
 #define WSGetIndex(_Atom) ((_Atom) / sizeof(WorldState_t))
-#define WSAtomDontCare(_State, _Idx, _Atom) ((0xFF << ((_Atom) * CHAR_BITS)) & ((_State)->DontCare[_Idx]))
+#define WSAtomDontCare(_State, _Idx, _Atom) (((0xFF << ((_Atom) * CHAR_BITS)) & ((_State)->DontCare[_Idx])) != 0)
 #define WSAtomIdxToInt(_Idx, _Atom) ((_Idx * sizeof(WorldState_t)) + _Atom)
 #define STATEOPCODE_BITS (8)
 #define STATEOPCODE_MAX (0xFF)
 
-typedef int /*int64_t*/ WorldState_t;
-typedef int8_t WorldStateAtom_t;
+typedef unsigned int /*int64_t*/ WorldState_t;
+typedef uint8_t WorldStateAtom_t;
 
 enum {
 	WSOP_NOT = 0,
@@ -42,7 +47,22 @@ struct WorldState {
 	WorldState_t DontCare[WORLDSTATESZ];
 };
 
-/*
+static inline int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State, int _Idx, int _Atom) {
+	switch(WSAtomOpCode(_Input, _Idx, _Atom)) {
+		case WSOP_EQUAL:
+			return (WSToByte(_Input, _Idx, _Atom) == WSToByte(_State, _Idx, _Atom));
+		case WSOP_GREATERTHAN:
+			return (WSToByte(_Input, _Idx, _Atom) > WSToByte(_State, _Idx, _Atom));
+		case WSOP_GREATERTHANEQUAL:
+			return (WSToByte(_Input, _Idx, _Atom) >= WSToByte(_State, _Idx, _Atom));
+		case WSOP_LESSTHAN:
+			return (WSToByte(_Input, _Idx, _Atom) < WSToByte(_State, _Idx, _Atom));
+		case WSOP_LESSTHANEQUAL:
+			return (WSToByte(_Input, _Idx, _Atom) <= WSToByte(_State, _Idx, _Atom));
+	}
+}
+
+/**
  * Copies _From to the WorldState _To.
  */
 void WorldStateCopy(struct WorldState* _To, const struct WorldState* _From);
@@ -71,7 +91,7 @@ int WorldStateEmpty(const struct WorldState* _State);
  * Compares _One and _Two. Returns -1 if _One is less than _Two, 1 if _Two is less than _One, and 0 if they are equal.
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two);
-int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State);
+//int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State);
 int WorldStateOpCmp(const struct WorldState* _One, const struct WorldState* _Two);
 /*
  * Returns the index of the first atom that is not masked by _State's DontCare variable.
@@ -87,5 +107,4 @@ int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState
 
 int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two);
 int WSDntCrComp(const struct WorldState* _State);
-
 #endif

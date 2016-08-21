@@ -34,9 +34,9 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 
 	*_Min = 0;
 	*_Max = 255;
-	if(_Guy->Stats[BGSKILL_WARFARE] < _Leader->Stats[BGSKILL_WARFARE] || (_Relation != NULL && _Relation->Relation == BGREL_LOVE))
+	if(_Guy->Stats[BGSKILL_COMBAT] < _Leader->Stats[BGSKILL_COMBAT] || (_Relation != NULL && _Relation->Relation == BGREL_LOVE))
 		return 0;
-	_Utility = _Utility + ((_Guy->Stats[BGSKILL_WARFARE] - _Leader->Stats[BGSKILL_WARFARE]) * 5);
+	_Utility = _Utility + ((_Guy->Stats[BGSKILL_COMBAT] - _Leader->Stats[BGSKILL_COMBAT]) * 5);
 	if(_Relation != NULL)
 		_Utility = _Utility + ((-_Relation->Modifier) * 2);
 	return (_Utility >= 255) ? (255) : (_Utility);
@@ -54,7 +54,8 @@ static int ActionPrecondition(const struct Agent* _Agent) {
 
 void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {
 	//Both of these should use the ImproveRelations action as a precond.
-	GoapActionAddPrecond(_Action, _Planner, "SufficientEnemies", 1, WSOP_EQUAL);
+//	GoapActionAddPrecond(_Action, _Planner, "SufficientEnemies", 1, WSOP_EQUAL);
+	GoapActionAddPrecond(_Action, _Planner, "Influence", 1, WSOP_GREATERTHANEQUAL);
 	GoapActionAddPostcond(_Action, _Planner, "IsLeader", 1, WSOP_SET);
 	_Action->Name = "Duel";
 	_Action->Cost = ActionCost;

@@ -8,19 +8,31 @@ Traits = {
 	{
 		Name = "Coward",
 		Dislikes = {"Brave", "Loyal"},
-		Likes = {},
+		Likes = {"Coward"},
 		Prevents = {"Brave"}
 	},
 	{
 		Name = "Greedy",
 		Dislikes = {"Greedy"},
-		Likes = {},
+		Likes = {"Ambitious"},
 		Prevents = {}
 	},
 	{
 		Name = "Loyal",
-		Likes = {"Brave"},
+		Likes = {"Loyal", "Brave"},
 		Dislikes = {"Coward"},
+		Prevents = {}
+	},
+	{
+		Name = "Ambitious",
+		Dislikes = {"Coward"},
+		Likes = {"Greedy"},
+		Prevents = {}
+	},
+	{
+		Name = "Glutton",
+		Likes = {"Glutton"},
+		Dislikes = {},
 		Prevents = {}
 	}
 }

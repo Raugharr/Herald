@@ -41,7 +41,6 @@ int TaskPoolThread(struct TaskPool* _TaskPool) {
 
 struct TaskPool* CreateTaskPool() {
 	struct TaskPool* _TaskPool = (struct TaskPool*) malloc(sizeof(struct TaskPool));
-	int i = 0;
 
 	_TaskPool->ThreadCt = 2;
 	_TaskPool->Schedule.Table = calloc(1024, sizeof(struct Task));
@@ -53,19 +52,17 @@ struct TaskPool* CreateTaskPool() {
 	_TaskPool->IsAlive = 1;
 	_TaskPool->Time = 0;
 	_TaskPool->PoolMutex = SDL_CreateMutex();
-	for(i = 0; i < _TaskPool->ThreadCt; ++i)
+	for(int i = 0; i < _TaskPool->ThreadCt; ++i)
 		_TaskPool->Threads[i] = SDL_CreateThread(((int(*)(void*))&TaskPoolThread), "TaskPoolThread", _TaskPool);
 	return _TaskPool;
 }
 
 void DestroyTaskPool(struct TaskPool* _TaskPool) {
-	int i = 0;
-
 	_TaskPool->IsAlive = 0;
-	for(i = 0; i < _TaskPool->ThreadCt; ++i)
+	for(int i = 0; i < _TaskPool->ThreadCt; ++i)
 		SDL_WaitThread(_TaskPool->Threads[i], NULL);
 	free(_TaskPool->Threads);
-	for(i = 0; i < _TaskPool->Schedule.Size; ++i)
+	for(int i = 0; i < _TaskPool->Schedule.Size; ++i)
 		MemPoolFree(_TaskPool->TaskMemPool, _TaskPool->Schedule.Table[i]);
 	free(_TaskPool->Schedule.Table);
 	DestroyMemoryPool(_TaskPool->TaskMemPool);

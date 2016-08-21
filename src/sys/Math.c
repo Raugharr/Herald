@@ -59,11 +59,11 @@ void RandGenNumbers() {
 #endif
  }
 
- unsigned int Random(unsigned int _Min, unsigned int _Max) {
+unsigned int Random(unsigned int _Min, unsigned int _Max) {
 	return Rand() % (_Max - _Min + 1) + _Min;
 }
 
- void Srand(int _Seed) {
+void Srand(int _Seed) {
 	//g_SeedX = _Seed << 16;
 	//g_SeedY = _Seed >> 16;
 }
@@ -82,6 +82,57 @@ int Abs(int _Num) {
 	return (_Num ^ _Mask) - _Mask;
 }
 
+void RandTable(double* _Table, int** _IntTable, int _TableSz, int _Amount) {
+	double _IdxAmt = 0.0;
+	double _Percent = 0.0;
+	int _PercentInt = 0;
+	int _Temp = (int) _IdxAmt;
+	int _CurrAmount = _Amount;
+
+	for(int i = 0; i < _TableSz; ++i) {
+		_IdxAmt = _CurrAmount * _Table[i];
+		_Temp = (int) _IdxAmt;
+		if(NumberIsInt(_IdxAmt) != 0) {
+			_CurrAmount -= _Temp;
+			(*_IntTable)[i] = _Temp;
+			continue;
+		}
+		_Percent = _IdxAmt - _Temp;
+		_PercentInt = _Percent * 100;
+		(*_IntTable)[i] = _Temp;
+		_CurrAmount -= _Temp;
+		if(_CurrAmount > 0 && Random(0, 100) <= _PercentInt) {
+			++((*_IntTable)[i]);
+			--_CurrAmount;
+		}
+	}
+	while(_CurrAmount > 0) {
+		for(int i = 0; i < _TableSz; ++i) {
+			_IdxAmt = _CurrAmount * _Table[i];
+			_Temp = (int) _IdxAmt;
+			if(NumberIsInt(_IdxAmt) != 0) {
+				continue;
+			}
+			_Percent = _IdxAmt - _Temp;
+			_PercentInt = _Percent * 100;
+			if(Random(0, 100) <= _PercentInt) {
+				++((*_IntTable)[i]);
+				--_CurrAmount;
+				if(_CurrAmount <= 0)
+					return;
+			}
+		}
+	}
+}
+
 double Normalize(int _Num, int _Min, int _Max) {
 	return ((double)_Num) / (_Min + _Max);
+}
+
+int NextPowTwo(int _Num) {
+	return (1 << ((sizeof(int) * CHAR_BITS) - clz(_Num)));
+}
+
+int PrevPowTwo(int _Num) {
+	return (1 << ((sizeof(int) * CHAR_BITS) - clz(_Num) - 1));
 }

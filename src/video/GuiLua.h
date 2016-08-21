@@ -141,6 +141,9 @@ int LuaContainerAddChild(lua_State* _State);
 
 int LuaLabelSetText(lua_State* _State);
 
+int LuaButtonClickable(lua_State* _State);
+int LuaButtonUnclickable(lua_State* _State);
+
 /**
  * Table functions
  */
@@ -174,7 +177,7 @@ void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget);
  */
 void LuaAddMenu(lua_State* _State, const char* _Name);
 
-void MessageBox(lua_State* _State, const char* _Text);
+void MessageBox(const char* _Text);
 void GuiSetParentHook(struct Container* _Container);
 struct Container* GuiGetParentHook(void);
 int LuaGuiClose(lua_State* _State);

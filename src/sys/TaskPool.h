@@ -7,6 +7,8 @@
 
 #include "BinaryHeap.h"
 
+#include <SDL2/SDL.h>
+
 typedef struct SDL_Thread SDL_Thread;
 typedef struct SDL_con SDL_con;
 typedef struct SDL_mutex SDL_mutex;
@@ -16,7 +18,8 @@ struct Task {
 	void* DataOne;
 	void* DataTwo;
 	int StartTime;
-	int IsFrameBased;
+	const struct Task* Parent;
+	SDL_atomic_t UnfinishedJobs;
 };
 
 struct TaskPool {

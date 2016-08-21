@@ -7,6 +7,8 @@
 
 #include "Video.h"
 
+//#define GUITHEME_NAMESZ (64)
+
 typedef struct SDL_Color SDL_Color;
 typedef struct SDL_Surface SDL_Surface;
 typedef struct SDL_Rect SDL_Rect;
@@ -30,6 +32,7 @@ typedef void(*GuiOnKey) (struct Widget*, unsigned int, unsigned int);
 	int IsVisible;															\
 	int LuaOnClickFunc;														\
 	int (*OnDraw)(struct Widget*);											\
+	int Clickable;															\
 	struct Widget* (*OnClick)(struct Widget*, const SDL_Point*);			\
 	struct Widget* (*OnFocus)(struct Widget*, const SDL_Point*);			\
 	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);					\
@@ -73,6 +76,14 @@ struct GUIDef {
 	SDL_Color FontUnfocus;
 	SDL_Color Background;
 };
+
+/*struct GuiTheme {
+	char Name[GUITHEME_NAMESZ];
+	SDL_Color FocusColor;
+	SDL_Color UnfocusColor;
+	SDL_Color FocusBack;
+	SDL_Color UnfocusBack;
+};*/
 
 extern int g_GUIId;
 extern int g_GUIMenuChange;
@@ -194,4 +205,8 @@ void GuiDrawDebug(void);
 struct Widget* GuiFind(int _FuncOffset, const SDL_Point* _MousePos);
 void GuiZBuffAdd(struct Container* _Container);
 void GuiZBuffRem(struct Container* _Container);
+/**
+ * \brief Fills _Out with the values that must be passed to blend _Src into _Dest.
+ */
+void GetBlendValue(const SDL_Color* _Src, const SDL_Color* _Dest, SDL_Color* _Out);
 #endif

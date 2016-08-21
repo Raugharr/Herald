@@ -122,6 +122,8 @@ static const luaL_Reg g_LuaFuncsLabel[] = {
 };
 
 static const luaL_Reg g_LuaFuncsButton[] = {
+		{"Clickable", LuaButtonClickable},
+		{"Unclickable", LuaButtonUnclickable},
 		{NULL, NULL}
 };
 
@@ -220,11 +222,13 @@ int LuaCreateLabel(lua_State* _State) {
 int LuaCreateButton(lua_State* _State) {
 	struct Container* _Parent = LuaCheckClass(_State, 1, "Container");
 	const char* _Text = luaL_checkstring(_State, 2);
+	SDL_Color _Color = {255, 255, 255, 255};
 	luaL_argcheck(_State, 3, lua_isfunction(_State, 3), "Third argument for CreateButton is not a functon");
 
 	struct Font* _Font = g_GUIDefs.Font;
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
-	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, _Surface->w, _Surface->h};
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color/*g_GUIDefs.FontUnfocus*/));
+	//SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
 	struct Button* _Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
 
 	LuaGuiGetRef(_State);
@@ -1275,19 +1279,24 @@ int LuaContainerParagraph(lua_State* _State) {
 int LuaLabelSetText(lua_State* _State) {
 	struct Label* _Label = LuaCheckClass(_State, 1, "Label");
 	const char* _Text = luaL_checkstring(_State, 2);
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus));
-	//int _NewWidth = 0;
-	//int _NewHeight = 0;
 
-	//_NewWidth = _Surface->w - _Label->Rect.w;
-	//_NewHeight = _Surface->h - _Label->Rect.h;
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus));
 	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(_Surface));
-	/*if(_NewWidth < 0)
-		_NewWidth = 0;
-	if(_NewHeight < 0)
-		_NewHeight = 0;
-	WidgetGrow((struct Widget*)_Label, _NewWidth, _NewHeight);*/
 	SDL_SetTextureBlendMode(_Label->Text, SDL_BLENDMODE_ADD);
+	return 0;
+}
+
+int LuaButtonClickable(lua_State* _State) {
+	struct Button* _Button = LuaCheckClass(_State, 1, "Button");
+
+	ButtonSetClickable(_Button, 1);
+	return 0;
+}
+
+int LuaButtonUnclickable(lua_State* _State) {
+	struct Button* _Button = LuaCheckClass(_State, 1, "Button");
+
+	ButtonSetClickable(_Button, 0);
 	return 0;
 }
 

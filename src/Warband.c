@@ -121,8 +121,8 @@ void CreateWarband(struct Settlement* _Settlement, struct Army* _Army) {
 		if(PersonIsWarrior(_Person) == 0)
 			goto loop_end;
 		_Family = _Person->Family;
-		for(int i = 0; i < _Family->Goods->Size; ++i) {
-			_Good = (struct Good*) _Family->Goods->Table[i];
+		for(int i = 0; i < _Family->Goods.Size; ++i) {
+			_Good = (struct Good*) _Family->Goods.Table[i];
 			if(_Good->Base->Category == GOOD_WEAPON) {
 				if(((struct WeaponBase*)_Good->Base)->Range == MELEE_RANGE)
 					_MeleeWeapon = FamilyTakeGood(_Family, i, 1);
@@ -378,7 +378,7 @@ void ArmyRaidSettlement(struct Army* _Army, struct Settlement* _Settlement) {
 
 	while(_AnimalsTaken > 0) {
 		_Family = (struct Family*) LnkLstRandom(&_Settlement->Families);
-		LnkLstPushBack(&_Army->LootedAnimals, FamilyTakeAnimal(_Family, Random(0, _Family->Animals->Size - 1)));
+		LnkLstPushBack(&_Army->LootedAnimals, FamilyTakeAnimal(_Family, Random(0, _Family->Animals.Size - 1)));
 		--_AnimalsTaken;
 	}
 }

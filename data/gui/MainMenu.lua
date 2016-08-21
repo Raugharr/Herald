@@ -21,6 +21,7 @@ function Menu.Init(Menu, Data)
 		end)	
 	Menu.ButList:CreateImage(Video.CreateSprite("grass.png"))
 	Menu.ButList:CreateImage(Video.CreateSprite("Grass2.png"))
+	Menu.ButList:CreateTextBox();
 end
 
 function Menu.Think(Menu)

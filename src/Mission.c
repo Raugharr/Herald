@@ -1179,7 +1179,7 @@ int LuaMissionLoad(lua_State* _State) {
 	lua_pop(_State, 1);
 
 	MissionInsert(&g_MissionEngine, _Mission);
-	Log(ELOG_INFO, "Loaded mission %s", _Mission->Name);
+	Log(ELOG_DEBUG, "Loaded mission %s", _Mission->Name);
 	return 0;
 }
 

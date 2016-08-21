@@ -17,8 +17,9 @@ struct Agent;
 struct GOAPPlanner;
 struct GoapPathNode;
 
-typedef double (*GoapGoalUtility)(const struct Agent*, int*, int*);
+typedef int (*GoapGoalUtility)(const struct Agent*, int*, int*);
 typedef void (*GoapGoalSetup)(struct Agent*);
+typedef void (*GoapGoalUpdate)(struct Agent*, int, void*);
 
 struct GoapGoal {
 	const char* Name;
@@ -28,6 +29,7 @@ struct GoapGoal {
 	struct WorldState GoalState;
 	GoapGoalUtility UtilityFunc;
 	GoapGoalSetup Setup;
+	GoapGoalUpdate Update;
 	int Utility;
 	struct GOAPPlanner* Planner;
 };

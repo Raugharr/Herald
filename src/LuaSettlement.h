@@ -23,13 +23,13 @@ int LuaBGGetAuthority(lua_State* _State);
 int LuaBGSetAuthority(lua_State* _State);
 int LuaBGGetPrestige(lua_State* _State);
 int LuaBGSetPrestige(lua_State* _State);
-int LuaBGGetAdministration(lua_State* _State);
-int LuaBGGetIntrigue(lua_State* _State);
-int LuaBGGetStrategy(lua_State* _State);
-int LuaBGGetWarfare(lua_State* _State);
-int LuaBGGetTactics(lua_State* _State);
+int LuaBGGetCombat(lua_State* _State);
+int LuaBGGetStrength(lua_State* _State);
+int LuaBGGetToughness(lua_State* _State);
+int LuaBGGetAgility(lua_State* _State);
+int LuaBGGetWit(lua_State* _State);
 int LuaBGGetCharisma(lua_State* _State);
-int LuaBGGetPiety(lua_State* _State);
+int LuaBGGetIntrigue(lua_State* _State);
 int LuaBGGetIntellegence(lua_State* _State);
 int LuaBGOpposedChallanged(lua_State* _State);
 int LuaBGGetAgent(lua_State* _State);
@@ -46,22 +46,27 @@ int LuaBGPopularity(lua_State* _State);
 int LuaBGChangePopularity(lua_State* _State);
 int LuaBGSuccessMargin(lua_State* _State);
 int LuaBGPlotsAgainst(lua_State* _State);
+int LuaBGRecruit(lua_State* _State);
+int LuaBGIsRecruiting(lua_State* _State);
+int LuaBGRetinueSize(lua_State* _State);
+int LuaBGRetinueTable(lua_State* _State);
+
+int LuaBGOpinionAction(lua_State* _State);
+int LuaBGOpinionRelation(lua_State* _State);
 
 int LuaBGRelationGetOpinion(lua_State* _State);
+int LuaBGRelationGetRelationList(lua_State* _State);
 int LuaBGRelationBigGuy(lua_State* _State);
 
-int LuaGovernmentPossibleReforms(lua_State* _State);
 int LuaGovernmentStructure(lua_State* _State);
 int LuaGovernmentType(lua_State* _State);
 int LuaGovernmentRule(lua_State* _State);
 int LuaGovernmentGetLeader(lua_State* _State);
-int LuaGovernmentPassReform(lua_State* _State);
-int LuaGovernmentGetReform(lua_State* _State);
-
-int LuaReformPassingGetVotes(lua_State* _State);
-int LuaReformPassingGetMaxVotes(lua_State* _State);
-
-int LuaReformGetName(lua_State* _State);
+int LuaGovernmentGetJudge(lua_State* _State);
+int LuaGovernmentGetMarshall(lua_State* _State);
+int LuaGovernmentGetSteward(lua_State* _State);
+int LuaGovernmentHasPolicy(lua_State* _State);
+int LuaGovernmentGetPolicyCategory(lua_State* _State);
 
 int LuaSettlementGetLeader(lua_State* _State);
 int LuaSettlementGetGovernment(lua_State* _State);
@@ -78,9 +83,8 @@ int LuaSettlementYearlyBirths(lua_State* _State);
 int LuaSettlementBulitinPost(lua_State* _State);
 int LuaSettlementGetBulitins(lua_State* _State);
 int LuaSettlementCountAdults(lua_State* _State);
-int LuaGovernmentGetJudge(lua_State* _State);
-int LuaGovernmentGetMarshall(lua_State* _State);
-int LuaGovernmentGetSteward(lua_State* _State);
+int LuaSettlementGetFreeWarriors(lua_State* _State);
+int LuaSettlementGetMaxWarriors(lua_State* _State);
 
 
 int LuaBulitinNext(lua_State* _State);
@@ -109,7 +113,12 @@ int LuaPlotGetThreat(lua_State* _State);
 int LuaPlotPrevMonthActions(lua_State* _State);
 int LuaPlotCurrMonthActions(lua_State* _State);
 
+int LuaPolicyOptionName(lua_State* _State);
+
 int LuaPolicyName(lua_State* _State);
 int LuaPolicyCategory(lua_State* _State);
+int LuaPolicyOptions(lua_State* _State);
+
+int LuaPolicyOptionName(lua_State* _State);
 
 #endif

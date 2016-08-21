@@ -42,6 +42,6 @@ int ActorSCallback(const void* _One, const void* _Two);
 void ActorDeath(struct Actor* _Actor);
 void ActorThink(struct Actor* _Actor, const struct Population* _PopType);
 void ActorFeed(struct Actor* _Actor, int _Amount);
-int ActorWorkMult(struct Actor* _Actor, int _MatureAge, int _AdultNut);
+int ActorWorkMult(struct Actor* _Actor, int _MatureAge, int _MaxNut);
 
 #endif

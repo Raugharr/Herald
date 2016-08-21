@@ -11,6 +11,15 @@
 #define LOG_MAXSIZE (512)
 #define LOG_LUAMSG "Function %s contains error (%s) on line %i"
 
+#ifdef DEBUG
+	#define Assert(_Bool)	\
+		if((_Bool) == 0) {	\
+			Log(ELOG_DEBUG, (#_Bool));	\
+		}
+#else
+#define Assert(_Bool)
+#endif
+
 typedef struct lua_State lua_State;
 
 struct LogFile {
@@ -28,7 +37,7 @@ enum {
 	ELOG_DEBUG = (1 << 1),
 	ELOG_WARNING = (1 << 2),
 	ELOG_ERROR = (1 << 3),
-	ELOG_ALL = 15
+	ELOG_ALL = (1 << 4) - 1
 };
 
 int LogSetFile(const char* _File);

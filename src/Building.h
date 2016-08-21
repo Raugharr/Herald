@@ -6,7 +6,10 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
+#include <inttypes.h>
+
 #include <SDL2/SDL.h>
+
 typedef struct lua_State lua_State;
 struct GoodBase;
 struct HashTable;
@@ -38,12 +41,13 @@ struct Building {
 	int LastThink; //In game ticks.
 	struct LnkLst_Node* ThinkObj;
 	SDL_Point Pos;
-	int ResidentType;
 	const struct BuildMat* Walls;
 	const struct BuildMat* Floor;
 	const struct BuildMat* Roof;
 	struct InputReq** OutputGoods;
 	struct InputReq** BuildMats;
+	uint32_t SquareFeet;
+	uint8_t ResidentType;
 };
 
 struct Construction {
@@ -71,7 +75,7 @@ void DestroyConstruct(struct Construction* _Construct);
 void ConstructThink(struct Construction* _Construct);
 int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _Area);
 
-struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof);
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _SquareFeet);
 void DestroyBuilding(struct Building* _Building);
 
 int BuildingArea(const struct Building* _Building);
@@ -80,7 +84,6 @@ int BuildingArea(const struct Building* _Building);
  * Returns a BuildMat of type _MatType that exists in _Goods that is the most plentiful.
  */
 struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType);
-struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt);
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index);
 struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat);
 

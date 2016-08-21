@@ -7,21 +7,20 @@
 #define __ACTION_H
 
 #include "goap.h"
-#include "Goals.h"
 #include "GoapGoal.h"
 
-#include "actions/ActionImproveRelations.h"
 #include "actions/ActionRaid.h"
 #include "actions/ActionDuel.h"
-#include "actions/ActionMurder.h"
-#include "actions/ActionStealCattle.h"
+#include "actions/ActionRemovePolicy.h"
+#include "actions/ActionGrowInfluence.h"
+
+#include "goals/GoalUsurpRuler.h"
 
 static AgentActions g_GOAPActionList = {
-	ActionImproveRelations,
 	ActionRaid,
 	ActionDuel,
-	ActionMurder,
-	ActionStealCattle,
+	ActionRemovePolicy,
+	ActionGrowInfluence,
 	NULL
 };
 

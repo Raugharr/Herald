@@ -26,7 +26,7 @@ struct EventData;
  * The first argument contains the type of event, the owner of the event,
  * pointers who's value is set when the event was hooked. The second argument
  * contains a pointer to data pushed in EventPush. */
-typedef void (*EventCallback)(const struct EventData*, void*);
+typedef void (*EventCallback)(const struct EventData*, void*, void*);
 
 enum {
 	EVENT_CRISIS = 0,
@@ -37,10 +37,13 @@ enum {
 	EVENT_AGE,
 	EVENT_FARMING,
 	EVENT_STARVINGFAMILY,
-	EVENT_SABRELATION,
+	EVENT_SLANDER,
 	EVENT_NEWLEADER,
 	EVENT_NEWPLOT,
 	EVENT_ENDPLOT,
+	EVENT_NEWPOLICY,
+	EVENT_CHANGEPOLICY,
+	EVENT_NEWRECRUIT,
 	EVENT_SIZE
 };
 
@@ -84,7 +87,7 @@ struct EventObserver {
 	void* OwnerObj;
 	void* One;
 	void* Two;
-	EventCallback OnEvent; //First const void* is the event, second const void* is the listener.
+	EventCallback OnEvent; 
 	struct EventObserver* Next;
 	struct EventObserver* Prev;
 };

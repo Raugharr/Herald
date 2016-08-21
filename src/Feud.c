@@ -93,12 +93,12 @@ void FeudThink(struct Feud* _Feud) {
 	_AnimalsTaken = _Feud->Level / 3;
 	_PeopleKilled = _Feud->Level / 5;
 
-	if(_AnimalsTaken > _Family->Animals->Size)
-		_AnimalsTaken = _Family->Animals->Size;
-	if(_GoodsTaken > _Family->Goods->Size)
-		_GoodsTaken = _Family->Goods->Size;
+	if(_AnimalsTaken > _Family->Animals.Size)
+		_AnimalsTaken = _Family->Animals.Size;
+	if(_GoodsTaken > _Family->Goods.Size)
+		_GoodsTaken = _Family->Goods.Size;
 	while(_GoodsTaken > 0) {
-		_Index = Random(0, _Family->Goods->Size - 1);
+		_Index = Random(0, _Family->Goods.Size - 1);
 		//_Quantity = Random(1, ((struct Good*)_Family->Goods->Table[_Index])->Quantity);
 		_TakenGood = FamilyTakeGood(_Family, _Index, _Quantity);
 		FamilyGetGood(_Taker, _TakenGood, _TakenGood->Quantity);
@@ -107,7 +107,7 @@ void FeudThink(struct Feud* _Feud) {
 	}
 
 	while(_AnimalsTaken > 0) {
-		FamilyTakeAnimal(_Family, Random(0, _Family->Animals->Size - 1));
+		//FamilyTakeAnimal(_Family, Random(0, _Family->Animals.Size - 1));
 		--_AnimalsTaken;
 	}
 

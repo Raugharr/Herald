@@ -151,52 +151,13 @@ int WorldStateEmpty(const struct WorldState* _State) {
  * if _One's state is 0 and its ~DontCare is 1 while _Two's State is 0 and its ~DontCare is 0 they will be considered equal.
  */
 int WorldStateCmp(const struct WorldState* _One, const struct WorldState* _Two) {
-	int _State = 0;
-
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
-		_State = (_One->State[i] & (~_One->DontCare[i])) - (_Two->State[i] & (~_Two->DontCare[i]));
+		int _State = (_One->State[i] & (~_One->DontCare[i])) - (_Two->State[i] & (~_Two->DontCare[i]));
+
 		if(_State < 0)
 			return -1;
 		else if(_State > 0)
 			return 1;
-	}
-	return 0;
-}
-
-int WorldStateAtomCmp(const struct WorldState* _Input, const struct WorldState* _State) {
-	int _Check = 0;
-
-	for(int i = 0; i < WORLDSTATESZ; ++i) {
-		for(int j = 0; j < sizeof(WorldState_t); ++j) {
-			if(WSAtomDontCare(_State, i, j) != 0)
-				continue;
-			/*
-			 * NOTE: Will fail because the other opcodes have not been masked out.
-			 */
-			switch(WSAtomOpCode(_State, i, j)) {
-			case WSOP_EQUAL:
-				_Check = WSToByte(_Input, i, j) - WSToByte(_State, i, j);
-				break;
-			case WSOP_GREATERTHAN:
-				_Check = WSToByte(_Input, i, j) > WSToByte(_State, i, j);
-				_Check = (_Check == 0);
-				break;
-			case WSOP_GREATERTHANEQUAL:
-				_Check = WSToByte(_Input, i, j) >= WSToByte(_State, i, j);
-				_Check = (_Check == 0);
-				break;
-			case WSOP_LESSTHAN:
-				_Check = WSToByte(_Input, i, j) < WSToByte(_State, i, j);
-				_Check = (_Check == 0);
-				break;
-			case WSOP_LESSTHANEQUAL:
-				_Check = WSToByte(_Input, i, j) <= WSToByte(_State, i, j);
-				_Check = (_Check == 0);
-				break;
-			}
-			if(_Check != 0)
-				return _Check;
-		}
 	}
 	return 0;
 }
@@ -253,7 +214,7 @@ int WorldStateDist(const struct WorldState* _One, const struct WorldState* _Two)
 }
 
 int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _State) {
-	int _Check = 0;
+	int _Check = -1;
 
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
@@ -262,7 +223,7 @@ int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _S
 			/*
 			 * NOTE: Will fail because the other opcodes have not been masked out.
 			 */
-			switch(WSAtomOpCode(_State, i, j)) {
+			switch(WSAtomOpCode(_Input, i, j)) {
 			case WSOP_EQUAL:
 				_Check = WSToByte(_Input, i, j) == WSToByte(_State, i, j);
 				break;
@@ -283,7 +244,7 @@ int WorldStateTruth(const struct WorldState* _Input, const struct WorldState* _S
 				return 0;
 		}
 	}
-	return 1;
+	return _Check;
 }
 
 int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState* _State, int _Atom) {

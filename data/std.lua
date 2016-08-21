@@ -14,7 +14,7 @@ end
 local function Peasant(Person)
 	if(Person:GetAge() < ToMonth("Years", 13)) then
 		return "Child"
-	else if(Person:GetGender() == 1) then
+	else if(Person:GetGender() == Person.Male) then
 		return "Peasant"
 	end
 	end
@@ -29,16 +29,16 @@ function Farmer(Size, Location)
 	local Oats = Crop("Oats")
 	
 	Table.Goods = {
-		CreateGood("Wheat", (8 / Wheat.NutVal) * 365 * 16 * Size * (Wheat.YieldMult - 1) + (Wheat.PerAcre * 15)),
-		CreateGood("Rye", Rye.PerAcre * 5),
-		CreateGood("Barley", Barley.PerAcre * 5),
-		CreateGood("Oats", Oats.PerAcre * 5),
+		--CreateGood("Wheat", (Person.DailyNut / Wheat.NutVal) * 365 * Size * (Wheat.YieldMult - 1) + (Wheat.PerAcre * 15)),
+		CreateGood("Rye", Rye.PerAcre * 16),
+		--CreateGood("Barley", Barley.PerAcre * 5),
+		--CreateGood("Oats", Oats.PerAcre * 5),
 		CreateGood("Scratch Plow", 1),
 		CreateGood("Sickle", 1),
 		CreateGood("Spear", 3)
 	}
 	Table.Field = {16, 16}
-	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "Human")}
+	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, 100, "Human")}
 	Table.Animals = {{"Chicken", Size * 2}}
 	Table.AI = Peasant
 	Table.Caste = "Peasant"
@@ -63,7 +63,7 @@ function Herder(Size, Location)
 	Table.Goods = {CreateGood("Wheat", (8 / Wheat.NutVal) * 365 * 16 * Size), 
 		CreateGood("Barley", (Pig.Nutrition * 356 * GoatCt) + (Goat.Nutrition * 365 * GoatCt)), CreateGood("Spear", 3)}
 	Table.Field = {20}
-	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, "All")}
+	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, 100, "All")}
 	Table.Animals = {{"Goat", GoatCt}, {"Pig", GoatCt}}
 	Table.AI = Peasant		
 	Table.Caste = "Peasant"
@@ -72,7 +72,9 @@ end
 
 function Hunter(Size, Location)
 	local Table = Farmer(Size, Location)
-	
+
+	Table.Animals ={{"Ox", Random(10, 20)}}
+	Table.Buildings = {CreateBuilding(GetBuildMat("Dirt"), GetBuildMat("Board"), GetBuildMat("Hay"), Location, 100, "All")}
 	Table.Caste = "Warrior"
 	return Table
 end

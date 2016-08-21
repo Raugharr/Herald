@@ -1,4 +1,4 @@
-/*
+/**
  * Author: David Brotz
  * File: Person.h
  */
@@ -8,21 +8,25 @@
 
 #include "Herald.h"
 
+#include "Family.h"
+#include "Location.h"
 #include "World.h"
 #include "Actor.h"
 
 #define EMALE (1)
 #define EFEMALE (2)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
-#define PersonMature(_Person) (YEAR(_Person->Age) > 13)
+#define PersonMature(_Person) (YEAR((_Person)->Age) > 15)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
-#define MAX_NUTRITION (5000)
-#define NUTRITION_REQ (3000)
-#define NUTRITON_CHLDREQ (NUTRITION_REQ / 2)
-#define NUTRITION_DAILY (3000 / YEAR_DAYS)
-#define NUTRITION_CHILDDAILY (NUTRITION_DAILY / 2);
-#define ADULT_AGE (15 << YEAR_BITSHIFT)
+#define MAX_NUTRITION (250)
+#define NUTRITION_REQ (2920)
+#define DAYSWORK (100)
+#define ADULT_AGE (13)
+#define NUTRITION_CHILDREQ (NUTRITION_REQ / 2)
+#define NUTRITION_DAILY (NUTRITION_REQ / YEAR_DAYS)
+#define NUTRITION_CHILDDAILY (NUTRITION_DAILY / 2)
 #define PERSON_CASTE(_Person) ((_Person)->Family->Caste->Type)
+#define PersonGetGovernment(_Person) ((_Person)->Family->HomeLoc->Government)
 
 struct HashTable;
 struct Object;
@@ -40,7 +44,6 @@ struct Person {
 	SDL_Point Pos;
 	int Gender;
 	int Nutrition;
-//	int Caste;
 	DATE Age;
 	struct ActorJob* Action;
 	const char* Name;
@@ -74,6 +77,9 @@ int PersonThink(struct Person* _Person);
 void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* _Family);
 double PersonEat(struct Person* _Person, struct Food* _Food);
 void PersonDeath(struct Person* _Person);
+static inline struct Settlement* PersonHome(const struct Person* _Person) {
+	return _Person->Family->HomeLoc;
+}
 
 /**
  * Returns 1 if _Person is a grown male who's family owns a weapon.
@@ -81,5 +87,8 @@ void PersonDeath(struct Person* _Person);
  */
 int PersonIsWarrior(const struct Person* _Person);
 struct Person* GetFather(struct Person* _Person);
+static inline int IsChild(const struct Person* _Person) {
+	return (YEAR(_Person->Age) < ADULT_AGE);
+}
 #endif
 

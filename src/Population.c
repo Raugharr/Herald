@@ -49,11 +49,10 @@ int AnDepArrayArrayCmp(const void* _One, const void* _Two) {
 	int _LenOne = ArrayLen(((const struct AnimalDep*)_One)->Tbl);
 	int _LenTwo = ArrayLen(((const struct AnimalDep*)_Two)->Tbl);
 	int _Result = 0;
-	int i;
 
 	if(_LenOne != _LenTwo)
 		return _LenOne - _LenTwo;
-	for(i = 0; i < _LenOne; ++i) {
+	for(int i = 0; i < _LenOne; ++i) {
 		if((_Result = GoodBaseCmp(((const struct AnimalDep*)_One)->Tbl[i], ((const struct AnimalDep*)_Two)->Tbl[i])) != 0)
 			return _Result;
 	}
@@ -70,7 +69,8 @@ int AnDepArrayCmp(const void* _One, const void* _Two) {
 	return _Result;
 }
 
-struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio) {
+struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio, int _FMRatio,
+	double _ReproduceMin, double _ReproduceMax, int _SpaceReq) {
 	struct Population* _Population = (struct Population*) malloc(sizeof(struct Population));
 
 	_Population->Id = NextId();
@@ -82,18 +82,23 @@ struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat
 	_Population->Ages = _Ages;
 	_Population->Outputs = NULL;
 	_Population->MaleRatio = _MaleRatio;
+	_Population->FMRatio = _FMRatio;
+	_Population->SpaceReq = _SpaceReq;
+	_Population->MaxNutrition = _Nutrition * 31;
 
 	_Population->Skin.Skin = NULL;
 	_Population->Skin.Pounds = 0.0;
 	_Population->Hair.Hair = NULL;
 	_Population->Hair.Pounds = 0.0;
 	_Population->Hair.Shearable = 0;
+	_Population->ReproduceRate.Min = _ReproduceMin * 100;
+	_Population->ReproduceRate.Max = _ReproduceMax * 100;
 	return _Population;
 }
 
 struct Population* CopyPopulation(const struct Population* _Population) {
 	struct Population* _New = (struct Population*) malloc(sizeof(struct Population));
-	int i;
+	int i = 0;
 
 	_New->Id = NextId();
 	_New->Name = (char*) calloc(strlen(_Population->Name) + 1, sizeof(char));
@@ -156,11 +161,15 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	int _Meat = 0;
 	int _Milk = 0;
 	int _IsShearable = 0;
+	int _FMRatio = 0;
+	int _SpaceReq = 0;
 	const struct GoodBase* _SkinGood = NULL;
 	const struct GoodBase* _HairGood = NULL;
 	double _SkinPounds = 0.0;
 	double _HairPounds = 0.0;
 	double _MaleRatio = 0;
+	double _ReproduceMin = 0.0f;
+	double _ReproduceMax = 0.0f;
 	int _Return = -2;
 	int _Top = lua_gettop(_State);
 
@@ -181,15 +190,34 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 			_Return = LuaGetInteger(_State, -1, &_Meat);
 		else if(!strcmp("Milk", _Key))
 			_Return = LuaGetInteger(_State, -1, &_Milk);
-		else if(!strcmp("MatureAge", _Key))
+		else if(!strcmp("MatureAge", _Key)) {
 			_Return = LuaIntPair(_State, -1, &_Young, &_Old);
-		else if(!strcmp("DeathAge", _Key)) {
+			_Young = YearToDays(_Young);
+			_Old = YearToDays(_Old);
+		} else if(!strcmp("DeathAge", _Key)) {
 			_Return = LuaGetInteger(_State, -1, &_Death);
+			_Death = YearToDays(_Death);
+		} else if (!strcmp("SpaceReq", _Key)) { 
+			_Return = LuaGetInteger(_State, -1, &_SpaceReq);
+		} else if(!strcmp("FMRatio", _Key)) {
+			_Return = LuaGetInteger(_State, -1, &_FMRatio);
+		} else if(!strcmp("Reproduce", _Key)) {
+			if(lua_type(_State, -1) != LUA_TTABLE)
+				_Return = 0;
+			lua_rawgeti(_State, -1, 1);
+			if((_Return = LuaGetNumber(_State, -1, &_ReproduceMin)) <= 0)
+				goto loop_end;
+			lua_rawgeti(_State, -2, 2);
+			if((_Return = LuaGetNumber(_State, -1, &_ReproduceMax)) <= 0)
+				goto loop_end;
+			lua_pop(_State, 2);
+				
 		} else if(!strcmp("Eats", _Key)) {
 			_Return = 1;
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
 				void* _Data = NULL;
+
 				if(lua_isstring(_State, -1) == 0)
 					goto EatsEnd;
 				if((_Data = HashSearch(&g_Goods, lua_tostring(_State, -1))) == NULL) {
@@ -278,7 +306,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		goto fail;
 	}
 	_Ages = CreateConstrntBnds(4, 0, _Young, _Old, _Death);
-	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio);
+	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio, _FMRatio, _ReproduceMin, _ReproduceMax, _SpaceReq);
 	_Eats = calloc(_List.Size, sizeof(struct FoodBase*));
 	_Itr = _List.Front;
 	i = 0;
@@ -314,7 +342,7 @@ struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _Nutrit
 	} else
 		_Gender = EFEMALE;
 	CtorActor(((struct Actor*)_Animal), OBJECT_ANIMAL,  _X, _Y, (ObjectThink) AnimalThink, _Gender, _Nutrition, _Age);
-	_Animal->PopType = _Pop;
+	*(const struct Population**)&_Animal->PopType = _Pop;
 	return _Animal;
 }
 
@@ -422,6 +450,8 @@ struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size) {
 	struct Animal* _Animal = NULL;
 
 	*_Size = 0;
+	if(_Animals->Size == 0)
+		return NULL;
 	memset(_AnimalTypes, 0, sizeof(struct InputReq*));
 	for(int i = 0; i < _Animals->Size; ++i) {
 		_Animal = _Animals->Table[i];
@@ -446,15 +476,27 @@ void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal) {
 	struct Animal* _TempAn = NULL;
 	int _FoundType = 0;
 
+	if(_Array->Size >= _Array->TblSize)
+		ArrayResize(_Array);
+	if(_Array->Size == 0) {
+		_Array->Table[0] = _Animal;
+		++_Array->Size;
+		return;
+	}
 	for(int i = 0; i < _Array->Size; ++i) {
 		_TempAn = (struct Animal*) _Array->Table[i];
 		if(_TempAn->PopType == _PopType) {
 			_FoundType = 1;
-		} else if(_FoundType != 0) {
+		} else if(_FoundType == 1) {
 			_Array->Table[i] = _Animal;
 			_Animal = _TempAn;
-			_FoundType = 0;
+			_FoundType = 2;
 		}
+	}
+	if(_FoundType == 1) {
+		_Array->Table[_Array->Size++] = _Animal;
+	} else if(_FoundType == 2) {
+		++_Array->Size;
 	}
 }
 
@@ -470,15 +512,16 @@ struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index) {
 		--_Array->Size;
 		return _Animal;
 	}
-	_PopType = ((struct Animal*)_Array->Table[_Index + 1])->PopType;
-	for(int i = _Index + 2; i < _Array->Size; ++i) {
+	_PopType = _Animal->PopType;
+	for(int i = _Index + 1; i < _Array->Size; ++i) {
 		if(_PopType != ((struct Animal*)_Array->Table[i])->PopType) {
 			_Array->Table[_Index] = _Array->Table[i - 1];
-			_Index = i;
+			_Index = i - 1;
 			_PopType = ((struct Animal*)_Array->Table[i])->PopType;
 		}
 	}
 	--_Array->Size;
+	_Array->Table[_Index] = _Array->Table[_Array->Size];
 	return _Animal;
 }
 
@@ -490,4 +533,22 @@ int CountAnimal(const struct Population* _PopType, const struct Animal** _List, 
 			++_AnCt;
 	}
 	return _AnCt;
+}
+
+int AnimalsReproduce(const struct Population* _Population, int _MaleCt, int _FemaleCt) {
+	int _NewAnimals = 0;
+
+	if(_MaleCt * _Population->FMRatio < _FemaleCt) {
+		_FemaleCt = _MaleCt * _Population->FMRatio;
+	}
+	for(int i = 0; i < _FemaleCt; ++i) {
+		int _Temp = Random(_Population->ReproduceRate.Min, _Population->ReproduceRate.Max);
+		int _Remain = 0;
+
+		_NewAnimals = _Temp / 100;
+		if((_Remain = (_Temp % 100)) != 0 && Random(1, 100) >= _Remain) {
+			++_NewAnimals;
+		}
+	}
+	return _NewAnimals;
 }

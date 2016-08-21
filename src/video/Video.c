@@ -119,8 +119,8 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		return 1;
 	} else if(_State->MouseState == SDL_RELEASED) {
 		g_HoverWidget = GuiFind(offsetof(struct Widget, OnClick), &_State->MousePos);
-		 if(g_HoverWidget == NULL) {
-			 return 0;
+		if(g_HoverWidget == NULL || g_HoverWidget->Clickable == 0) {
+			return 0;
 		}
 			GuiZToTop(_Container);
 			if(g_HoverWidget->LuaOnClickFunc >= 0) {

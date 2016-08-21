@@ -18,14 +18,18 @@ struct Label* CreateLabel(void) {
 }
 
 void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
+	SDL_Color _Out;
+	SDL_Color _Src = {255, 255, 255, 255};
+
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->OnDraw = LabelOnDraw;
 	_Widget->OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyLabel;
-	_Widget->OnDraw = LabelOnDraw;
 	_Widget->SetText = LabelSetText;
 	_Widget->Text = _Text;
 	SDL_SetTextureBlendMode(_Text, SDL_BLENDMODE_ADD);
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
+	GetBlendValue(&_Src, &g_GUIDefs.FontUnfocus, &_Out);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.b, _Out.g);
+	//SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
 }
 
 void DestroyLabel(struct Label* _Text, lua_State* _State) {
@@ -34,9 +38,15 @@ void DestroyLabel(struct Label* _Text, lua_State* _State) {
 }
 
 int LabelOnDraw(struct Widget* _Widget) {
+	SDL_Rect _Rect = {0};
+
 	if(_Widget->IsVisible == 0)
 		return 1;
-	if(SDL_RenderCopy(g_Renderer, ((struct Label*)_Widget)->Text, NULL, &_Widget->Rect) != 0)
+	//SDL_SetRenderDrawColor(g_Renderer, g_GUIDefs.FontFocus.r, g_GUIDefs.FontFocus.g, g_GUIDefs.FontFocus.b,  g_GUIDefs.FontFocus.a);
+	SDL_QueryTexture(((struct Label*)_Widget)->Text, NULL, NULL, &_Rect.w, &_Rect.h);
+	_Rect.x = _Widget->Rect.x + ((_Widget->Rect.w - _Rect.w) / 2);
+	_Rect.y = _Widget->Rect.y + ((_Widget->Rect.h - _Rect.h) / 2);
+	if(SDL_RenderCopy(g_Renderer, ((struct Label*)_Widget)->Text, NULL, &_Rect) != 0)
 		return 0;
 	return 1;
 }
@@ -55,9 +65,9 @@ struct Button* CreateButton(void) {
 struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
 	ConstructLabel((struct Label*)_Widget, _Parent, _Rect, _State, _Text, _Font); //Only Temporary
 	_Widget->OnDraw = ButtonOnDraw;
-	_Widget->Background.r = 65;
-	_Widget->Background.g = 48;
-	_Widget->Background.b = 19;
+	_Widget->Background.r = 0x80;
+	_Widget->Background.g = 0x80;
+	_Widget->Background.b = 0x80;
 	_Widget->Background.a = 0xFF;
 	_Widget->OnFocus = ButtonOnFocus;
 	_Widget->OnUnfocus = ButtonOnUnFocus;
@@ -65,10 +75,13 @@ struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent
 }
 
 struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
+	SDL_Color _Out;
+
 	if(PointInAABB(_Point, &_Widget->Rect) == SDL_FALSE || _Widget->CanFocus == 0) {
 		return NULL;
 	}
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontFocus.r, g_GUIDefs.FontFocus.b, g_GUIDefs.FontFocus.g);
+	GetBlendValue(&g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus, &_Out);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.b, _Out.g);
 	return _Widget;
 }
 
@@ -80,9 +93,19 @@ int ButtonOnUnFocus(struct Widget* _Widget) {
 int ButtonOnDraw(struct Widget* _Widget) {
 	struct Button* _Button = (struct Button*) _Widget;
 
-	SDL_SetRenderDrawColor(g_Renderer, _Button->Background.r, _Button->Background.g, _Button->Background.b, _Button->Background.a);
+	SDL_SetRenderDrawColor(g_Renderer, _Button->Background.r, _Button->Background.b, _Button->Background.g, _Button->Background.a);
 	SDL_RenderFillRect(g_Renderer, &_Widget->Rect);
 	return LabelOnDraw(_Widget);
+}
+
+void ButtonSetClickable(struct Button* _Button, int _Clickable) {
+	if(_Clickable == 1) {
+		_Button->OnDraw = ButtonOnDraw;
+		_Button->Clickable  = 1;
+	} else {
+		_Button->OnDraw = LabelOnDraw;
+		_Button->Clickable  = 0;
+	}
 }
 
 struct Table* CreateTable(void) {

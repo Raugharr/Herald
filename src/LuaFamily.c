@@ -58,62 +58,87 @@ static const luaL_Reg g_LuaFuncsGood[] = {
 };
 
 static const luaL_Reg g_LuaFuncsFamily[] = {
-		{"GetId", LuaFamilyGetId},
-		{"ChildrenCt", LuaFamilyChildrenCt},
-		{"GetName", LuaFamilyGetName},
-		{"GetPeople", LuaFamilyGetPeople},
-		{"GetFields", LuaFamilyGetFields},
-		{"GetBuildings", LuaFamilyGetBuildings},
-		{"GetBuildingCt", LuaFamilyGetBulidingCt},
-		{"GetGoods", LuaFamilyGetGoods},
-		{"GetGoodCt", LuaFamilyGetGoodCt},
-		{"GetAnimals", LuaFamilyGetAnimals},
-		{"GetAnimalCt", LuaFamilyGetAnimalCt},
-		{"CountAnimal", LuaFamilyCountAnimal},
-		{"TakeAnimal", LuaFamilyTakeAnimal},
-		{NULL, NULL}
+	{"GetId", LuaFamilyGetId},
+	{"ChildrenCt", LuaFamilyChildrenCt},
+	{"GetName", LuaFamilyGetName},
+	{"GetPeople", LuaFamilyGetPeople},
+	{"GetFields", LuaFamilyGetFields},
+	{"GetBuildings", LuaFamilyGetBuildings},
+	{"GetBuildingCt", LuaFamilyGetBulidingCt},
+	{"GetGoods", LuaFamilyGetGoods},
+	{"GetGoodCt", LuaFamilyGetGoodCt},
+	{"GetAnimals", LuaFamilyGetAnimals},
+	{"GetAnimalCt", LuaFamilyGetAnimalCt},
+	{"CountAnimal", LuaFamilyCountAnimal},
+	{"TakeAnimal", LuaFamilyTakeAnimal},
+	{"GetSize", LuaFamilyGetSize},
+	{"GetNutrition", LuaFamilyGetNutrition},
+	{"GetNutritionReq", LuaFamilyGetNutritionReq},
+	{NULL, NULL}
+};
+
+static const struct LuaEnum g_LuaPersonEnum[] = {
+	{"DailyNut", NUTRITION_DAILY},
+	{"Male", EMALE},
+	{"Female", EFEMALE},
+	{NULL, 0}
 };
 
 static const luaL_Reg g_LuaFuncsField[] = {
-		{"GetId", LuaFieldGetId},
-		{"GetCrop", LuaFieldGetCrop},
-		{"GetYield", LuaFieldGetYield},
-		{"GetAcres", LuaFieldGetAcres},
-		{"GetStatus", LuaFieldGetStatus},
-		{"GetStatusTime", LuaFieldGetStatusTime},
-		{NULL, NULL}
+	{"GetId", LuaFieldGetId},
+	{"GetCrop", LuaFieldGetCrop},
+	{"GetYield", LuaFieldGetYield},
+	{"GetAcres", LuaFieldGetAcres},
+	{"GetStatus", LuaFieldGetStatus},
+	{"GetStatusTime", LuaFieldGetStatusTime},
+	{"StatusCompletion", LuaFieldStatusCompletion},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsAnimal[] = {
-		{"GetId", LuaAnimalGetId},
-		{"IsMale", LuaAnimalIsMale},
-		{"GetNutrition", LuaAnimalGetNutrition},
-		{"GetAge", LuaAnimalGetAge},
-		{"GetBase", LuaAnimalGetBase},
-		{NULL, NULL}
+	{"GetId", LuaAnimalGetId},
+	{"IsMale", LuaAnimalIsMale},
+	{"GetGender", LuaAnimalGetGender},
+	{"GetNutrition", LuaAnimalGetNutrition},
+	{"GetAge", LuaAnimalGetAge},
+	{"GetBase", LuaAnimalGetBase},
+	{NULL, NULL}
+};
+
+static const struct LuaEnum g_LuaAnimalEnum[] = {
+	{"Male", EMALE},
+	{"Female", EFEMALE},
+	{NULL, 0}
 };
 
 static const luaL_Reg g_LuaFuncsBuilding[] = {
-		{"GetId", LuaBuildingGetId},
-		{"GetWidth", LuaBuildingGetWidth},
-		{"GetLength", LuaBuildingGetLength},
-		{"ConstructionTime", LuaBuildingConstructionTime},
-		{NULL, NULL}
+	{"GetId", LuaBuildingGetId},
+	{"GetWidth", LuaBuildingGetWidth},
+	{"GetLength", LuaBuildingGetLength},
+	{"ConstructionTime", LuaBuildingConstructionTime},
+	{NULL, NULL}
 };
 
 static const struct LuaObjectReg g_LuaFamilyObjects[] = {
-		{"Person", NULL, g_LuaFuncsPerson},
-		{"Good", NULL, g_LuaFuncsGood},
-		{"Family", NULL, g_LuaFuncsFamily},
-		{"Field", NULL, g_LuaFuncsField},
-		{"Animal", NULL, g_LuaFuncsAnimal},
-		{"Building", NULL, g_LuaFuncsBuilding},
-		{NULL, NULL, NULL}
+	{"Person", NULL, g_LuaFuncsPerson},
+	{"Good", NULL, g_LuaFuncsGood},
+	{"Family", NULL, g_LuaFuncsFamily},
+	{"Field", NULL, g_LuaFuncsField},
+	{"Animal", NULL, g_LuaFuncsAnimal},
+	{"Building", NULL, g_LuaFuncsBuilding},
+	{NULL, NULL, NULL}
 };
 
-void InitLuaFamily() {
-	RegisterLuaObjects(g_LuaState, g_LuaFamilyObjects);
-	LuaRegisterFunctions(g_LuaState, g_LuaFamilyFuncs);
+const struct LuaEnumReg g_LuaFamilyEnums[] = {
+	{"Person", NULL,  g_LuaPersonEnum},
+	{"Animal", NULL, g_LuaAnimalEnum},
+	{NULL, NULL}
+};
+
+void InitLuaFamily(lua_State* _State) {
+	RegisterLuaObjects(_State, g_LuaFamilyObjects);
+	LuaRegisterFunctions(_State, g_LuaFamilyFuncs);
+	RegisterLuaEnums(_State, g_LuaFamilyEnums);
 }
 
 int LuaPersonGetId(lua_State* _State) {
@@ -238,61 +263,57 @@ int LuaFamilyGetPeople(lua_State* _State) {
 int LuaFamilyGetFields(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	LuaCtor(_State, "ArrayIterator", _Family->Fields);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "Field");
-	lua_rawset(_State, -3);
+	lua_createtable(_State, _Family->FieldCt, 0);
+	for(int i = 0; i < _Family->FieldCt; ++i) {
+		LuaCtor(_State, "Field", _Family->Fields[i]);
+		lua_rawseti(_State, -2, i + 1);
+	}
 	return 1;
 }
 
 int LuaFamilyGetBuildings(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	LuaCtor(_State, "ArrayIterator", _Family->Buildings);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "Building");
-	lua_rawset(_State, -3);
+	lua_createtable(_State, _Family->BuildingCt, 0);
+	for(int i = 0; i < _Family->BuildingCt; ++i) {
+		LuaCtor(_State, "Buildings", _Family->Buildings[i]);
+		lua_rawseti(_State, -2, i + 1);
+	}
 	return 1;
 }
 
 int LuaFamilyGetBulidingCt(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_pushinteger(_State, _Family->Buildings->Size);
+	lua_pushinteger(_State, _Family->BuildingCt);
 	return 1;
 }
 
 int LuaFamilyGetGoods(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	LuaCtor(_State, "ArrayIterator", _Family->Goods);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "Good");
-	lua_rawset(_State, -3);
+	CreateLuaArrayItr(_State, &_Family->Goods, "Good");
 	return 1;
 }
 
 int LuaFamilyGetGoodCt(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_pushinteger(_State, _Family->Goods->Size);
+	lua_pushinteger(_State, _Family->Goods.Size);
 	return 1;
 }
 
 int LuaFamilyGetAnimals(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	LuaCtor(_State, "ArrayIterator", _Family->Animals);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "Animal");
-	lua_rawset(_State, -3);
+	CreateLuaArrayItr(_State, &_Family->Animals, "Animal");
 	return 1;
 }
 
 int LuaFamilyGetAnimalCt(lua_State* _State) {
 	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
 
-	lua_pushinteger(_State, _Family->Animals->Size);
+	lua_pushinteger(_State, _Family->Animals.Size);
 	return 1;
 }
 
@@ -332,8 +353,8 @@ int LuaFieldGetAcres(lua_State* _State) {
 
 int LuaFieldGetStatus(lua_State* _State) {
 	struct Field* _Field = (struct Field*) LuaToObject(_State, 1, "Field");
-
-	lua_pushinteger(_State, _Field->Status);
+	
+	lua_pushstring(_State, FieldStatusName(_Field));
 	return 1;
 }
 
@@ -343,6 +364,14 @@ int LuaFieldGetStatusTime(lua_State* _State) {
 	lua_pushinteger(_State, _Field->StatusTime);
 	return 1;
 }
+
+int LuaFieldStatusCompletion(lua_State* _State) {
+	struct Field* _Field = (struct Field*) LuaToObject(_State, 1, "Field");
+
+	lua_pushinteger(_State, FieldStatusDays(_Field));
+	return 1;
+}
+
 
 int LuaAnimalGetId(lua_State* _State) {
 	struct Animal* _Animal = (struct Animal*) LuaToObject(_State, 1, "Animal");
@@ -355,6 +384,13 @@ int LuaAnimalIsMale(lua_State* _State) {
 	struct Animal* _Animal = (struct Animal*) LuaToObject(_State, 1, "Animal");
 
 	lua_pushboolean(_State, (_Animal->Gender == EMALE));
+	return 1;
+}
+
+int LuaAnimalGetGender(lua_State* _State) {
+	struct Animal* _Animal = (struct Animal*) LuaToObject(_State, 1, "Animal");
+
+	lua_pushinteger(_State, _Animal->Gender);
 	return 1;
 }
 
@@ -582,8 +618,8 @@ int LuaFamilyCountAnimal(lua_State* _State) {
 
 	if((_AnimalType = HashSearch(&g_Populations, _Animal)) == NULL)
 		return luaL_error(_State, "CountAnimal: %s is not an animal type.", _Animal);
-	for(int i = 0; i < _Family->Animals->Size; ++i) {
-		if(_AnimalType->Id == ((struct Animal*)_Family->Animals->Table[i])->PopType->Id)
+	for(int i = 0; i < _Family->Animals.Size; ++i) {
+		if(_AnimalType->Id == ((struct Animal*)_Family->Animals.Table[i])->PopType->Id)
 			++_AnimalCt;
 	}
 	lua_pushinteger(_State, _AnimalCt);
@@ -599,10 +635,10 @@ int LuaFamillyKillAnimal(lua_State* _State) {
 
 	if((_AnimalType = HashSearch(&g_Populations, _Animal)) == NULL)
 		return 0;
-	for(int i = 0; i < _Family->Animals->Size && _KillCt < _KillAmount; ++i) {
-		if(_AnimalType->Id == ((struct Animal*)_Family->Animals->Table[i])->PopType->Id) {
-			DestroyAnimal(_Family->Animals->Table[i]);
-			ArrayRemove(_Family->Animals, i);
+	for(int i = 0; i < _Family->Animals.Size && _KillCt < _KillAmount; ++i) {
+		if(_AnimalType->Id == ((struct Animal*)_Family->Animals.Table[i])->PopType->Id) {
+			DestroyAnimal(_Family->Animals.Table[i]);
+			ArrayRemove(&_Family->Animals, i);
 			--i;
 			++_KillCt;
 		}
@@ -653,13 +689,14 @@ int LuaCreateBuilding(lua_State* _State) {
 	struct BuildMat* _FloorMat = NULL;
 	struct BuildMat* _WallMat = NULL;
 	struct BuildMat* _RoofMat = NULL;
-	struct Settlement* _Location = NULL;
+	int _SquareFeet = luaL_checkinteger(_State, 5);
+	//struct Settlement* _Location = NULL;
 
 	_FloorMat = (struct BuildMat*) LuaToObject(_State, 1, "BuildMat");
 	_WallMat = (struct BuildMat*) LuaToObject(_State, 2, "BuildMat");
 	_RoofMat = (struct BuildMat*) LuaToObject(_State, 3, "BuildMat");
-	_Location = (struct Settlement*) LuaToObject(_State, 4, "Settlement");
-	_Type = luaL_optstring(_State, 5, "Human");
+	//_Location = (struct Settlement*) LuaToObject(_State, 4, "Settlement");
+	_Type = luaL_optstring(_State, 6, "Human");
 	if(strcmp(_Type, "Human") == 0)
 		_ResType = ERES_HUMAN;
 	else if(strcmp(_Type, "Animal") == 0)
@@ -668,7 +705,7 @@ int LuaCreateBuilding(lua_State* _State) {
 		_ResType = ERES_HUMAN | ERES_ANIMAL;
 	else
 		return luaL_error(_State, "%s is not a valid house type.", _Type);
-	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat));
+	LuaCtor(_State, "Building", CreateBuilding(_ResType, _WallMat, _FloorMat, _RoofMat, _SquareFeet));
 	return 1;
 }
 
@@ -690,18 +727,36 @@ int LuaFamilyTakeAnimal(lua_State* _State) {
 	struct Animal* _Temp = NULL;
 	int _AnCount = luaL_checkinteger(_State, 4);
 
-	for(int i = 0; i < _From->Animals->Size; ++i) {
-		if(strcmp(((struct Animal*)_From->Animals->Table[i])->PopType->Name, _Animal) == 0) {
+	for(int i = 0; i < _From->Animals.Size; ++i) {
+		if(strcmp(((struct Animal*)_From->Animals.Table[i])->PopType->Name, _Animal) == 0) {
 			if(_AnCount <= 0)
 				return 0;
 			--_AnCount;
 			_Temp = FamilyTakeAnimal(_From, i);
-			ArrayInsert_S(_To->Animals, _Temp);
+			ArrayInsert_S(&_To->Animals, _Temp);
 			goto found_animal;
 		}
 	}
-	return 0;
 	found_animal:
 	return 0;
 }
+int LuaFamilyGetSize(lua_State* _State) {
+	struct Family* _Family = LuaCheckClass(_State, 1, "Family");
 
+	lua_pushinteger(_State, FamilySize(_Family));
+	return 1;
+}
+
+int LuaFamilyGetNutrition(lua_State* _State) {
+	struct Family* _Family = LuaCheckClass(_State, 1, "Family");
+
+	lua_pushinteger(_State, FamilyGetNutrition(_Family));
+	return 1;
+}
+
+int LuaFamilyGetNutritionReq(lua_State* _State) {
+	struct Family* _Family = LuaCheckClass(_State, 1, "Family");
+
+	lua_pushinteger(_State, FamilyNutReq(_Family));
+	return 1;
+}

@@ -39,7 +39,6 @@ void ActorThink(struct Actor* _Actor, const struct Population* _PopType) {
 	int _Nutrition = NUTRITION_DAILY;
 
 	if(_PopType != NULL) {
-		//if(_PopType->Ages[0])
 		_Nutrition = _PopType->Nutrition;
 	} else if(PersonMature(_Actor))
 		_Nutrition = NUTRITION_CHILDDAILY;
@@ -53,13 +52,12 @@ void ActorFeed(struct Actor* _Actor, int _Amount) {
 	_Actor->Nutrition += _Amount;
 }
 
-int ActorWorkMult(struct Actor* _Actor, int _MatureAge, int _AdultNut) {
-	int _Modifier = _Actor->Nutrition / _AdultNut;
+int ActorWorkMult(struct Actor* _Actor, int _MatureAge, int _MaxNut) {
+	double _Modifier = _Actor->Nutrition / ((double) _MaxNut);
 	int _WorkRate = MAX_WORKRATE;
 
-	if(_Actor->Age < ADULT_AGE) {
-		_Modifier = _Modifier / 2;
+	if(YEAR(_Actor->Age) < ADULT_AGE) {
 		_WorkRate = MAX_WORKRATE / 2;
 	}
-	return (_Modifier > _WorkRate) ? (_WorkRate) : (_Modifier);
+	return (_Modifier >= 1.0f) ? (_WorkRate) : (_WorkRate * _Modifier);
 }

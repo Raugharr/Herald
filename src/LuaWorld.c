@@ -12,6 +12,7 @@
 #include "Government.h"
 #include "BigGuy.h"
 #include "Herald.h"
+#include "Policy.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -118,7 +119,7 @@ int LuaWorldGetPlot(lua_State* _State) {
 int LuaWorldPolicies(lua_State* _State) {
 	lua_createtable(_State, g_GameWorld.PolicySz, 0);
 	for(int i = 0; i < g_GameWorld.PolicySz; ++i) {
-		LuaCtor(_State, "Policy", g_GameWorld.Policies[i]);
+		LuaCtor(_State, "Policy", &g_GameWorld.Policies[i]);
 		lua_rawseti(_State, -2, i + 1);
 	}
 	return 1;

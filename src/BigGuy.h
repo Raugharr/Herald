@@ -9,6 +9,7 @@
 #include "WorldState.h"
 #include "World.h"
 #include "BigGuyRelation.h"
+#include "Retinue.h"
 
 #include "sys/LinkedList.h"
 
@@ -61,13 +62,13 @@ enum {
 };
 
 enum {
-	BGSKILL_ADMINISTRATION,
+	BGSKILL_COMBAT,
+	BGSKILL_STRENGTH,
+	BGSKILL_TOUGHNESS,
+	BGSKILL_AGILITY,
+	BGSKILL_WIT,
 	BGSKILL_INTRIGUE,
-	BGSKILL_STRATEGY,
-	BGSKILL_WARFARE,
-	BGSKILL_TACTICS,
 	BGSKILL_CHARISMA,
-	BGSKILL_PIETY,
 	BGSKILL_INTELLEGENCE,
 	BGSKILL_SIZE
 };
@@ -79,7 +80,6 @@ extern int g_BGActCooldown[BGACT_SIZE];
 struct BigGuyMission {
 	int Type;
 };
-
 
 struct BigGuyAction {
 	int Type;
@@ -106,20 +106,21 @@ struct BigGuy {
 	struct LnkLst_Node* ThinkObj;
 	struct Person* Person;
 	struct Agent* Agent;
-	int IsDirty;
-	int Popularity; //number of non-big guys adults who like this person. To calculate how popular this person is to everyone call BigGuyPopularity.
+	struct BigGuyRelation* Relations;
+	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
+	int Personality;
+	int Motivation;
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Authority;
 	float Prestige;
-	struct BigGuyRelation* Relations;
-	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
 	struct BigGuyAction Action;
 	struct LinkedList Feuds;
 	struct LinkedList PlotsAgainst;
-	int Personality;
-	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	struct Trait** Traits;
-	int Motivation;
+	uint16_t Popularity; 
+	int16_t PopularityDelta;
+	uint8_t IsDirty;
+	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
 };
 
 struct Crisis {
@@ -138,7 +139,7 @@ void DestroyCrisis(struct Crisis* _Crisis);
 int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
 int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation);
+struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
 
 void BigGuyThink(struct BigGuy* _Guy);
@@ -162,7 +163,7 @@ int BGRandPopularity(const struct BigGuy* _Guy);
 /*
  * Creates a big guy with a stat emphasis on warfare.
  */
-void BGStatsWarlord(uint8_t _Stats[BGSKILL_SIZE], int _Points);
+void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points);
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
 void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
@@ -205,6 +206,9 @@ int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq);
  */
 int BigGuyPopularity(const struct BigGuy* _Guy);
 void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot);
+int BigGuyPlotPower(const struct BigGuy* _Guy);
+
+struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader, struct Settlement* _Settlement);
 
 inline static struct Plot* BigGuyGetPlot(struct BigGuy* _Guy) {
 	return RBSearch(&g_GameWorld.PlotList, _Guy);

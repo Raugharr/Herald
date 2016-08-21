@@ -10,6 +10,7 @@
 #include "Queue.h"
 #include "RBTree.h"
 #include "LuaCore.h"
+#include "Log.h"
 
 #include "../video/Video.h"
 #include "../video/GuiLua.h"
@@ -24,7 +25,6 @@
 
 #include <lua/lauxlib.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
 #define EVENTPOOL (1024)
@@ -123,16 +123,15 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 			_Obs = _Obs->Next;
 		} while(_Obs != NULL);
 	}
-//	assert(0);
 }
 
 void EventHookUpdate(const SDL_Event* _Event) {
 	struct EventObserver* _Obs = NULL;
 
 	SDL_assert(_Event->type  >= g_EventTypes[0] && _Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
-	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Event->user.data1/*_Vars*/);
+	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Event->user.data1);
 	while(_Obs != NULL) {
-		_Obs->OnEvent((struct EventData*)_Obs, _Event->user.data2);
+		_Obs->OnEvent((struct EventData*)_Obs, _Event->user.data1, _Event->user.data2);
 		_Obs = _Obs->Next;
 	}
 }
@@ -140,7 +139,8 @@ void EventHookUpdate(const SDL_Event* _Event) {
 void PushEvent(int _Type, void* _Data1, void* _Data2) {
 	SDL_Event _Event;
 
-	assert(_Type < EVENT_SIZE);
+	Assert(_Type < EVENT_SIZE);
+	Assert(_Type >= 0);
 	_Event.type = g_EventTypes[_Type];
 	_Event.user.data1 = _Data1;
 	_Event.user.data2 = _Data2;
@@ -246,6 +246,13 @@ void Events() {
 
 			sprintf(_Buffer, "%s has died, all hail %s", ((struct BigGuy*)_Event.user.data1)->Person->Name, ((struct BigGuy*)_Event.user.data2)->Person->Name);
 			MessageBox(_Buffer);
+		} else if(_Event.type == g_EventTypes[EVENT_NEWRECRUIT]) {
+			char _Buffer[256];
+
+			if(_Event.user.data1 == g_GameWorld.Player) {
+				sprintf(_Buffer, "You have recruited %s.", ((struct Person*)_Event.user.data2)->Name);
+				MessageBox(_Buffer);
+			}
 		}
 	}
 

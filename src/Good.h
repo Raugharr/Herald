@@ -7,22 +7,24 @@
 #define __GOOD_H
 
 #include "sys/LinkedList.h"
+#include "sys/HashTable.h"
+#include "sys/Array.h"
+
 #include "Date.h"
 
 #include <SDL2/SDL.h>
 
 #define MELEE_RANGE (0)
 #define OUNCE (16)
-#define TO_POUND(_Quantity) (_Quantity * OUNCE);
+#define BUSHEL (60)
+#define GALLON (128)
+#define GoodType(_Good) (ffs((_Good)->Category) - 1)
+#define ToPound(_Quantity) ((_Quantity) / OUNCE)
+#define ToOunce(_Quantity) ((_Quantity) * OUNCE)
+#define ToBushel(_Quantity) ((_Quantity) / BUSHEL)
+#define ToGallon(_Quantity) ((_Quantity) / GALLON)
 #define FOOD_MAXPARTS (10)
-#define CheckGoodTbl(_GoodTbl, _GoodName, _Good, _X, _Y)																						\
-{																																				\
-	struct GoodBase* _GoodBase = HashSearch(&g_Goods, (_GoodName));																				\
-	if(((_Good) = LinearSearch(_GoodBase, (_GoodTbl)->Table, (_GoodTbl)->Size, (CompCallback) GoodBaseGoodCmp)) == NULL) {						\
-		(_Good) = CreateGood(_GoodBase, (_X), (_Y));																							\
-		ArrayInsertSort((_GoodTbl), _Good, GoodCmp);																				\
-	}																																			\
-}
+#define GoodNutrition(_Good) (ToPound((_Good)->Quantity) * ((struct FoodBase*)(_Good)->Base)->Nutrition)
 
 typedef struct lua_State lua_State;
 struct HashTable;
@@ -31,21 +33,21 @@ struct Good;
 struct GoodOutput;
 struct Settlement;
 
-extern char* g_PersonBodyStr[];
 extern struct Good*(*g_GoodCopy[])(const struct Good*);
 
 enum {
-	GOOD_FOOD,
-	GOOD_INGREDIENT,
-	GOOD_ANIMAL,
-	GOOD_SEED,
-	GOOD_TOOL,
-	GOOD_MATERIAL,
-	GOOD_CLOTHING,
-	GOOD_WEAPON,
-	GOOD_ARMOR,
-	GOOD_OTHER,
-	GOOD_SIZE
+	GOOD_FOOD = (1 << 0),
+	GOOD_INGREDIENT = (1 << 1),
+	GOOD_ANIMAL = (1 << 2),
+	GOOD_SEED = (1 << 3),
+	GOOD_TOOL = (1 << 4),
+	GOOD_MATERIAL = (1 << 5),
+	GOOD_CLOTHING = (1 << 6),
+	GOOD_WEAPON = (1 << 7),
+	GOOD_ARMOR = (1 << 8),
+	GOOD_OTHER = (1 << 9),
+	GOOD_FLOUR = (1 << 10),
+	GOOD_SIZE = 11
 };
 
 enum {
@@ -65,6 +67,19 @@ enum {
 enum {
 	EARMOR_BODY,
 	EARMOR_SHIELD
+};
+
+enum EQuantity {
+	QUANTITY_OUNCE,
+	QUANTITY_POUND,
+	OUANTITY_FOUNCE,
+	OUANTITY_GALLON,
+	QUANTITY_BUSHEL
+};
+
+struct GoodQuantity {
+	uint16_t Quantity;
+	uint8_t Type;	
 };
 
 struct BuyRequest {
@@ -97,7 +112,7 @@ struct Good {
 	int Id;
 	SDL_Point Pos;
 	const struct GoodBase* Base;
-	int Quantity; //!Described either as fluid ounces, ounces, or per item.
+	int32_t Quantity; //!Described either as fluid ounces, ounces, or per item.
 };
 
 struct WeaponBase {
@@ -274,4 +289,15 @@ void SellItem(struct Family* _Buyer, const struct SellRequest* _SellReq);
 int GoodGetValue(const struct GoodBase* _Base);
 struct Good* GoodMake(const struct GoodBase* _Base, int _Quantity, struct Array* _Inputs, int _X, int _Y);
 const struct LinkedList* GoodGetCategory(const char* _Category);
+
+static inline struct Good* CheckGoodTbl(struct Array* _Array, const char* _GoodName, const struct HashTable* _Search, int _X, int _Y) {
+	const struct GoodBase* _GoodBase = HashSearch(_Search, _GoodName);
+	struct Good* _Good = NULL;
+
+	if((_Good = LinearSearch(_GoodBase, _Array->Table, _Array->Size, (CompCallback) GoodBaseGoodCmp)) == NULL) {
+		_Good = CreateGood(_GoodBase, _X, _Y);
+		ArrayInsertSort(_Array, _Good, GoodCmp);
+	}
+	return _Good;
+}
 #endif

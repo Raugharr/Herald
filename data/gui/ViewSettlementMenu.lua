@@ -17,23 +17,24 @@ function DisplaySettlement(Menu, Left, Right)
 end
 
 function DisplayBigGuys(Menu, Left, Right)
-	local Table = Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
+	local Table = nil 
 	local Agent = nil
 	local Player = World.GetPlayer()
 	local Relation = nil
 	
 	Right:Clear()
+	Table = Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
 	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
 	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name")
 	Table:CreateLabel("Action");
 	Table:CreateLabel("Our Opinion");
 	Table:CreateLabel("Their Opinion");
-	for Guy in Data["Settlement"]:GetBigGuys():Front() do
-		if Guy:Equal(World:GetPlayer()) == false then
+	for Guy in Menu.Settlement:GetBigGuys():Front() do
+		if Guy ~= World:GetPlayer() then
 			Table:CreateButton(Guy:GetPerson():GetName(),
 				function()
-					GUI.SetMenu("ViewPersonMenu", Guy:GetPerson())
+					GUI.SetMenu("ViewPersonMenu", {Person = Guy:GetPerson()})
 				end)
 			Agent = Guy:GetAgent()
 			if Agent ~= nil then
@@ -53,27 +54,24 @@ function Menu.Init(Menu, Data)
 	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
 	Menu.Settlement = Data["Settlement"]
-	local SettlementMenu = nil
 	
 	Menu.TitleCon:SetFocus(false)
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	
 	Menu.Left:CreateLabel(tostring(Data["Settlement"]:CountAcres()) .. " Acres")
-	Menu.Left:Paragraph("The settlement can currently can feed " .. tostring(math.floor(Data["Settlement"]:GetNutrition() / 365 / 8)) .. " people a year." 
-		.. " we expect to be able to feed " .. tostring(math.floor(Data["Settlement"]:ExpectedYield() / 365 / 8)) .. " people from our harvest this year." )
+	Menu.Left:Paragraph("There are " .. Menu.Settlement:GetFreeWarriors() .. " warriors to recruit out of " .. Menu.Settlement:GetMaxWarriors())
+	Menu.Left:Paragraph("The settlement can currently can feed " .. tostring(math.floor(Data["Settlement"]:GetNutrition() / 365 / Person.DailyNut)) .. " people a year." 
+		.. " we expect to be able to feed " .. tostring(math.floor(Data["Settlement"]:ExpectedYield() / 365 / Person.DailyNut)) .. " people from our harvest this year." )
 	Menu.Left:Paragraph(tostring(Data["Settlement"]:YearlyDeaths()) .. " people have died and " .. tostring(Data["Settlement"]:YearlyBirths()) .. " children have been born this year.")
 	
 	Menu.Left:CreateButton("Raise Fyrd",
 		function()
-			World.SetOnClick(1, Data["Settlement"].__self)
-			Gui.MenuPop()
+			World.SetOnClick(1, Menu.Settlement.__self)
+			Menu:Close()
 		end)
 	Menu.Left:CreateButton("View Settlement",
 		function()
-			if SettlementMenu ~= nil then
-				return
-			end
 			DisplaySettlement(Menu, Menu.Left, Menu.Right)
 		end)
 	Menu.Left:CreateButton("View big guys",

@@ -5,7 +5,7 @@ TEST=test/
 
 DEBUG ?=1
 ifeq ($(DEBUG), 1)
-	export CFLAGS := -Wall -std=c99 -DDEBUG -ggdb -pg
+	export CFLAGS := -Wall -std=c99 -DDEBUG -ggdb3 -pg
 else
 	export CFLAGS := -Wall -std=c99 -DNDEBUG -O3
 endif

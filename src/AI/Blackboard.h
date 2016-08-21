@@ -10,6 +10,8 @@ struct Good;
 struct Animal;
 struct Building;
 struct Location;
+struct Policy;
+struct Plot;
 
 struct Blackboard {
 	struct BigGuy* Target;	
@@ -17,6 +19,8 @@ struct Blackboard {
 	struct Animal* Animal;
 	struct Building* Building;
 	struct Location* Location;
+	struct Policy* Policy;
+	struct Plot* Plot;
 	int ShouldReplan;
 };
 

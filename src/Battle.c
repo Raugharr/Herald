@@ -50,7 +50,6 @@ struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
 	struct Battle* _Battle = NULL;
 	struct Battle** _List = (struct Battle**) SubTimeGetList(SUBTIME_BATTLE);
 	struct Front* _Front = NULL;
-	int i = 0;
 
 	if(_Attacker->WarbandCt <= 0 || _Attacker->InBattle != 0) {
 		return NULL;
@@ -63,7 +62,7 @@ struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender) {
 	_Battle = (struct Battle*) malloc(sizeof(struct Battle));
 	_Attacker->InBattle = 1;
 	_Defender->InBattle = 1;
-	for(i = 0; i < BATTLE_MAXFRONTS; ++i)
+	for(int i = 0; i < BATTLE_MAXFRONTS; ++i)
 		_Battle->Fronts[i].IsAlive = 0;
 	_Front = &_Battle->Fronts[BATTLE_FIRSTFRONT];
 	_Front->IsAlive = 1;
@@ -105,7 +104,7 @@ void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
 	struct Warband* _Warband = _Army->Warbands;
 	struct Warrior* _Warrior = NULL;
 	struct LnkLst_Node* _Itr = NULL;
-	struct LinkedList _List = LINKEDLIST();
+	struct LinkedList _List = LinkedList(); 
 	struct Warrior* _Ptr = NULL;
 	struct BigGuy* _Guy = NULL;
 	int _CasteWarriorCt = 0;
@@ -134,7 +133,6 @@ void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
 			if(_Guy->Motivation == BGMOT_RULE)
 				_Guy->Prestige += max(1, _Score / 10);
 		} else 
-			_Army->Government->Location->Glory += _AvgScore;
 		_Itr = _Itr->Next;
 	}
 	LnkLstClear(&_List);
@@ -235,9 +233,9 @@ void BattleThink(struct Battle* _Battle) {
 void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 	struct Warrior* _Warrior = NULL;
 	struct Warband* _Warband = NULL;
-	struct Person* _Father = NULL;
-	struct BigGuy* _BGFather = NULL;
-	struct BigGuyRelation* _Relation = NULL;
+	//struct Person* _Father = NULL;
+	//struct BigGuy* _BGFather = NULL;
+	//struct BigGuyRelation* _Relation = NULL;
 
 	while(_Amount > 0) {
 		_Warband = (struct Warband*)_Warbands->Front->Data;
@@ -245,7 +243,8 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 		if(_Warband->Warriors == NULL)
 			return;
 		//FIXME: Somehow every father is a ruler even if more people die than the ruler has children.
-		if((_Father = GetFather(_Warrior->Person)) != NULL
+		//NOTE: Removed as it is unsure if Crisis will continue to exist as a feature.
+		/*if((_Father = GetFather(_Warrior->Person)) != NULL
 				&& ((_BGFather = RBSearch(&g_GameWorld.BigGuys, _Father)) != 0)) {
 			if((_Relation = BigGuyGetRelation(_BGFather, FamilyGetSettlement(_Father->Family)->Government->Leader)) == NULL) {
 				if(CreateCrisis(CRISIS_WARDEATH, _BGFather) == NULL)
@@ -254,7 +253,7 @@ void RemoveCasualties(struct LinkedList* _Warbands, float _Amount) {
 				CreateBigGuyOpinion(_Relation, OPINION_NONE, -20);
 			} else
 				BigGuyAddRelation(_BGFather, _Relation, OPINION_NONE, -20);
-		}
+		}*/
 		PersonDeath(_Warrior->Person);
 		DestroyWarrior(_Warrior, _Warband);
 		--_Amount;

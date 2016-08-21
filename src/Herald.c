@@ -35,10 +35,11 @@
 
 #include "video/Animation.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <execinfo.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
@@ -54,7 +55,6 @@ struct HashTable g_Animations;
 struct HashTable g_Traits;
 struct HashTable g_Professions;
 struct HashTable g_BhvVars;
-int g_ObjPosBal = 2;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
 struct LifoAllocator g_StackAllocator;
@@ -91,11 +91,26 @@ struct WorldState* CrisisGetState(struct Crisis* _Crisis) {
 	return &_Crisis->State;
 }
 
+void SigSev(int _Sig) {
+	void* _Array[16];
+	size_t _Size = 0;
+	char** _Symbols = NULL;
+
+	_Size = backtrace(_Array, 16);
+	_Symbols = backtrace_symbols(_Array, _Size);
+	for(int i = 0; i < _Size; ++i) {
+		Log(ELOG_ERROR, _Symbols[i]);
+		free(_Symbols[i]);
+	}
+	free(_Symbols);
+}
+
 int MissionCatRBIsEmpty(struct RBTree* _Tree) {
 	return (_Tree->Size == 0);
 }
 
 int HeraldInit() {
+	signal(SIGSEGV, SigSev);
 	/*FIXME: Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
 	 */
 	g_Crops.TblSize = 0;

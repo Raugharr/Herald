@@ -20,7 +20,7 @@ function Menu.Init(Menu, Data)
 	Menu.DateCont:Shrink()
 	Menu.MenuBar:CreateButton("View Self",
 		function()
-			GUI.SetMenu("ViewPersonMenu", World.GetPlayer():GetPerson())
+			GUI.SetMenu("ViewPersonMenu", {Person = World.GetPlayer():GetPerson()})
 		end)
 	Menu.MenuBar:CreateButton("Main Menu",
 		function() 

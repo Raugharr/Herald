@@ -7,21 +7,18 @@
 
 #include "sys/LinkedList.h"
 
+#include "Family.h"
+
 #include <SDL2/SDL.h>
 
 struct BigGuy;
 struct Settlement;
-struct Reform;
-
-extern struct Reform** g_Reforms;
+struct ActivePolicy;
+struct Policy;
 
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
-
-#define REFORM_MAXCHOICE (6)
-#define REFORM_POPULARITYMAX (1000)
-#define REFORM_PASSVOTE (0.7f)
 
 struct Government;
 
@@ -75,35 +72,6 @@ enum {
 	GOVSTAT_SIZE
 };
 
-#define GOVSTAT_MAX (6)
-
-struct ReformOp {
-	unsigned char OpCode;
-	unsigned char Value;
-};
-
-struct Reform {
-	char* Name;
-	int AllowedGovs;
-	int AllowedGovRanks;
-	int Category;
-	int AuthLvlReq;
-	int GovType;
-	int LeaderReqs[GOVSTAT_SIZE];
-	int LeaderCosts[GOVSTAT_SIZE];
-	struct ReformOp OpCode;
-	struct Reform* Next[REFORM_MAXCHOICE];
-	struct Reform* Prev;
-};
-
-struct ReformPassing {
-	struct Reform* Reform;
-	struct Government* Gov;
-	int MaxVotes;
-	int VotesFor;
-	int Popularity;
-	int Escalation;
-};
 
 struct GovRelation {
 	struct Government* Government;
@@ -121,16 +89,15 @@ struct Government {
 	struct BigGuy* Leader;
 	struct BigGuy* NextLeader;
 	struct GovRelation Owner;
-	struct ReformPassing* Reform;
 	struct LinkedList SubGovernments;
-	struct LinkedList PossibleReforms;
-	struct LinkedList PassedReforms;
 	struct LinkedList Advisors;
+	struct LinkedList PolicyList;
 	struct {
 		struct BigGuy* Judge;
 		struct BigGuy* Marshall;
 		struct BigGuy* Steward;
 	} Appointments;
+	int CastePreference[CASTE_SIZE];
 	SDL_Color ZoneColor;
 };
 
@@ -139,29 +106,12 @@ struct RepublicGovernment {
 	int GovRank;
 	struct BigGuy* Leader;
 	struct LinkedList SubGovernments;
-	struct Reform* LeaderDeath;
-	struct Reform* LesserGovLeave;
-	struct Reform* LesserGovJoin;
 	int NextElection;
 };
 
-//TODO: Move InitReforms and QuitReforms to InitHerald or somewhere else more appropriate.
-int InitReforms(void);
-void QuitReforms(void);
 
 struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement);
 void DestroyGovernment(struct Government* _Gov);
-
-struct ReformPassing* CreateReformPassing(struct Reform* _Reform, struct Government* _Gov);
-void DestroyReformPassing(struct ReformPassing* _Reform);
-void ReformEscalate(struct ReformPassing* _Reform, const struct BigGuy* _Guy);
-void ReformImprovePopularity(struct ReformPassing* _Reform, const struct BigGuy* _Guy);
-
-struct Reform* CreateReform(const char* _Name, int _AllowedGovs, int _AllowedGovRanks, int _Category, struct ReformOp* _OpCode);
-void DestroyReform(struct Reform* _Reform);
-
-void ReformOnPass(struct Government* _Gov, const struct Reform* _Reform);
-int CanPassReform(const struct Government* _Gov, const struct Reform* _Reform);
 
 void GovernmentThink(struct Government* _Gov);
 const char* GovernmentTypeToStr(int _GovType, int _Mask);
@@ -177,8 +127,6 @@ void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedLis
  * and the released subjects added to _Parent's subjects.
  */
 void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject, int _Relation);
-void GovernmentLoadReforms(struct Government* _Gov, struct Reform** _Reforms);
-void GovernmentPassReform(struct Government* _Gov, struct Reform* _Reform);
 
 struct BigGuy* MonarchyNewLeader(const struct Government* _Gov);
 struct BigGuy* ElectiveNewLeader(const struct Government* _Gov);
@@ -188,5 +136,10 @@ struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov);
  */
 struct Government* GovernmentTop(struct Government* _Gov);
 void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy);
+
+void GovernmentAddPolicy(struct Government* _Gov, const struct Policy* _Policy);
+void GovernmentRemovePolicy(struct Government* _Gov, const struct Policy* _Policy);
+void GovernmentUpdatePolicy(struct Government* _Gov, struct ActivePolicy* _OldPolicy, const struct ActivePolicy* _Policy);
+int GovernmentHasPolicy(const struct Government* _Gov, const struct Policy* _Policy);
 
 #endif

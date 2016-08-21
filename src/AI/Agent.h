@@ -22,7 +22,13 @@ enum {
 	BGBYTE_FEUDCOUNT,
 	BGBYTE_FYRDRAISED,
 	BGBYTE_TARGETSTRONG,
+	BGBYTE_INFLUENCE,
 	BGBYTE_SIZE
+};
+
+enum {
+	AGENT_SACTION,
+	AGENT_SIDLE
 };
 
 extern const char* g_BGStateStr[BGBYTE_SIZE];
@@ -33,6 +39,7 @@ struct Agent;
 struct AgentSensor;
 
 typedef void (*AgentSensorCall)(struct AgentSensor*, struct Agent*);
+typedef void (*AgentStateUpdate)(struct Agent*, int, void*);
 
 struct AgentSensor {
 	AgentSensorCall Update;
@@ -47,13 +54,16 @@ struct AgentInfo {
 
 struct Agent {
 	struct BigGuy* Agent;
+	void* PlanData;
 	int PlanIdx; //The current plan we are impelenting -1 if none.
 	int PlanSz;
+	int GoalState;
+	AgentStateUpdate Update;
 	const struct GoapGoalSet* GoalSet;
 	const struct GoapGoal* CurrGoal;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
 	struct Blackboard Blackboard;
-	struct AgentSensor Sensors[16];
+	struct AgentSensor Sensors[WorldStateBytes];
 	struct WorldState State;
 };
 

@@ -16,6 +16,7 @@
 #include "Mission.h"
 #include "Plot.h"
 #include "BigGuyRelation.h"
+#include "Retinue.h"
 
 #include "AI/Agent.h"
 
@@ -65,11 +66,11 @@ void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Act
 	if(_Mod > 0 && Random(BIGGUYSTAT_MIN, BIGGUYSTAT_MAX) > _Guy->Stats[BGSKILL_CHARISMA])
 		--_Mod;
 	if((_Relation = BigGuyGetRelation(_Action->Target, _Guy)) == NULL) {
-		_Relation = CreateBigGuyRelation(_Action->Target, _Guy);
-		CreateBigGuyOpinion(_Relation, OPINION_SMALL, _Mod);
-		BigGuyRelationUpdate(_Relation);
+		//_Relation = CreateBigGuyRelation(_Action->Target, _Guy);
+		//CreateBigGuyOpinion(_Relation, OPINION_SMALL, _Mod);
+		//BigGuyRelationUpdate(_Relation);
 	} else if(_Relation->Relation < BGREL_LIKE) {
-		BigGuyAddRelation(_Action->Target, _Relation, OPINION_SMALL, _Mod);
+		//BigGuyAddRelation(_Relation, OPINION_SMALL, _Mod, );
 	}
 }
 
@@ -77,8 +78,8 @@ void BigGuyActionGift(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
 	struct Family* _Family = _Action->Target->Person->Family;
 	struct GoodBase* _Base = (struct GoodBase*) _Action->Data;
 
-	for(int i = 0; i < _Family->Goods->Size; ++i)
-		if(_Base == ((struct Good*)_Family->Goods->Table[i])->Base) {
+	for(int i = 0; i < _Family->Goods.Size; ++i)
+		if(_Base == ((struct Good*)_Family->Goods.Table[i])->Base) {
 			struct Good* _Taken = FamilyTakeGood(_Family, i, _Action->Modifier);
 
 			FamilyGetGood(_Guy->Person->Family, _Taken, _Taken->Quantity);
@@ -138,7 +139,7 @@ int CrisisInsert(const int* _One, const struct Crisis* _Two) {
 	return ((*_One) - _Two->Guy->Id);
 }
 
-void BGOnDeath(const struct EventData* _Data, void* _Extra) {
+void BGOnDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
 	struct BigGuy* _Guy = _Data->One;
 	struct Person* _Person = _Data->OwnerObj;
 
@@ -149,7 +150,7 @@ void BGOnDeath(const struct EventData* _Data, void* _Extra) {
 	DestroyAgent(_Guy->Agent);
 }
 
-void BGOnTargetDeath(const struct EventData* _Data, void* _Extra) {
+void BGOnTargetDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
 	struct BigGuy* _Guy = _Data->One;
 
 	EventHookRemove(_Data->EventType, _Guy, _Data->OwnerObj, NULL);
@@ -158,10 +159,10 @@ void BGOnTargetDeath(const struct EventData* _Data, void* _Extra) {
 	_Guy->Action.Target = NULL;
 }
 
-void BGOnNewPlot(const struct EventData* _Data, void* _Extra) {
-	struct Settlement* _Location = _Data->OwnerObj;
+/*
+void BGOnNewPlot(const struct EventData* _Data, void* _Extra1) {
 	struct BigGuy* _Guy = _Data->One;
-	struct Plot* _Plot = _Extra;
+	struct Plot* _Plot = _Extra1;
 	int _LeaderRel = 0; 
 	int _TargetRel = 0;
 
@@ -176,9 +177,9 @@ void BGOnNewPlot(const struct EventData* _Data, void* _Extra) {
 	} else if(_LeaderRel < BGREL_LIKE && _TargetRel >= BGREL_LIKE) {
 		PlotJoin(_Plot, PLOT_DEFENDERS, _Guy);
 	}
-}
+}*/
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE], int _Motivation) {
+struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation) {
 	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
 	_BigGuy->Person = _Person;
@@ -192,12 +193,13 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t _Stats[BGSKILL_SIZE]
 	_BigGuy->Motivation = _Motivation;
 	_BigGuy->Agent = CreateAgent(_BigGuy);
 	_BigGuy->Popularity = BGRandPopularity(_BigGuy);
+	_BigGuy->PopularityDelta = 0;
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	RBInsert(&g_GameWorld.Agents, _BigGuy->Agent);
 	LnkLstPushBack(&FamilyGetSettlement(_Person->Family)->BigGuys, _BigGuy);
 	EventHook(EVENT_DEATH, BGOnDeath, _Person, _BigGuy, NULL);
-	EventHook(EVENT_NEWPLOT, BGOnNewPlot, BigGuyHome(_BigGuy), _BigGuy, NULL);
+	//EventHook(EVENT_NEWPLOT, BGOnNewPlot, BigGuyHome(_BigGuy), _BigGuy, NULL);
 	CreateObject((struct Object*)_BigGuy, OBJECT_BIGGUY, (ObjectThink) BigGuyThink);
 
 	_BigGuy->Feuds.Size = 0;
@@ -230,21 +232,11 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 }
 
 void BigGuyThink(struct BigGuy* _Guy) {
-	struct BigGuyRelation* _Relation = _Guy->Relations;
-	struct BigGuyOpinion* _Opinion = NULL;
-
 	if(_Guy->ActionFunc != NULL)
 		_Guy->ActionFunc(_Guy, &_Guy->Action);
-	while(_Relation != NULL) {
-		_Opinion = _Relation->Opinions;
-		while(_Opinion != NULL) {
-			_Opinion->RelMod = _Opinion->RelMod - AbsAdd(_Opinion->RelMod, 1);
-			_Opinion = _Opinion->Next;
-		}
+
+	for(struct BigGuyRelation* _Relation = _Guy->Relations; _Relation != NULL; _Relation = _Relation->Next) {
 		BigGuyRelationUpdate(_Relation);
-		//if(_Relation->Relation < BGREL_NEUTURAL)
-		//	BigGuyAddFeud(_Guy, CreateFeud(_Guy, _Relation->Person));
-		_Relation = _Relation->Next;
 	}
 }
 
@@ -258,7 +250,7 @@ struct BigGuy* BigGuyLeaderType(struct Person* _Person) {
 		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
 			uint8_t _Stats[BGSKILL_SIZE];
 
-			BGStatsWarlord(_Stats, 50);
+			BGStatsWarlord(&_Stats, 50);
 			return CreateBigGuy(_Person, &_Stats, BGMOT_RULE); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
 		}
 		_Person = _Person->Next;
@@ -299,22 +291,23 @@ void BGStatsRandom(int _Points, int _StatCt, ...) {
 }
 
 int BGRandPopularity(const struct BigGuy* _Guy) {
-	int _PopPer = (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
+	return (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
+/*	int _PopPer = (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
 	int _AdultPop = SettlementAdultPop(_Guy->Person->Family->HomeLoc) - SettlementBigGuyCt(_Guy->Person->Family->HomeLoc);
 
-	return (_AdultPop * _PopPer) / 100; //Divide like this to prevent using floting point numbers.
+	return (_AdultPop * _PopPer) / 100; //Divide like this to prevent using floting point numbers.*/
 }
 
-void BGStatsWarlord(uint8_t _Stats[BGSKILL_SIZE], int _Points) {
+void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points) {
 	int _WarPoints = (_Points <= 400) ? (_Points / 2) : (240);
 	int _RemainPoints = _Points - _WarPoints;
 
 	/*
 	 * TODO: The percentages given to each stat should be randomized slightly.
 	 */
-	BGStatsRandom(_WarPoints, 3, &_Stats[BGSKILL_STRATEGY], &_Stats[BGSKILL_TACTICS], &_Stats[BGSKILL_WARFARE], 0.36, 0.32, 0.32);
-	BGStatsRandom(_RemainPoints, 5, &_Stats[BGSKILL_ADMINISTRATION], &_Stats[BGSKILL_CHARISMA], &_Stats[BGSKILL_INTELLEGENCE]
-		, &_Stats[BGSKILL_INTRIGUE], &_Stats[BGSKILL_PIETY], 0.22, 0.2, 0.2, 0.2, 0.18);
+	BGStatsRandom(_WarPoints, 3, &(*_Stats)[BGSKILL_COMBAT], &(*_Stats)[BGSKILL_STRENGTH], &(*_Stats)[BGSKILL_TOUGHNESS], 0.36, 0.32, 0.32);
+	BGStatsRandom(_RemainPoints, 5, &(*_Stats)[BGSKILL_AGILITY], &(*_Stats)[BGSKILL_WIT], &(*_Stats)[BGSKILL_INTRIGUE],
+		&(*_Stats)[BGSKILL_CHARISMA], &(*_Stats)[BGSKILL_INTELLEGENCE], 0.22, 0.2, 0.2, 0.2, 0.18);
 }
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority) {
@@ -437,7 +430,7 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 		MissionAction("REL.2", _Guy, _Target);
 		break;
 	case BGACT_PLOTOVERTHROW:
-		CreatePlot(PLOT_OVERTHROW, _Guy, _Target);
+		CreatePlot(PLOT_OVERTHROW, NULL, _Guy, _Target);
 		break;
 	default:
 		_Guy->ActionFunc = NULL;
@@ -509,7 +502,42 @@ int BigGuyPopularity(const struct BigGuy* _Guy) {
 	return _BGPop + _Guy->Popularity;
 }
 
+int BigGuyPlotPower(const struct BigGuy* _Guy) {
+	return _Guy->Stats[BGSKILL_INTRIGUE];
+}
+
+/*void BigGuyRecruit(struct BigGuy* _Leader, struct Person* _Warrior) {
+	if(PERSON_CASTE(_Warrior) != CASTE_WARRIOR)
+		return;
+	for(struct LnkLst_Node* _Itr = PersonHome(_Leader->Person); _Itr != NULL; _Itr = _Itr->Next) {
+		struct Retinue* _Retinue = _Itr->Data;
+
+		if(_Retinue->Leader != _Leader)
+			continue;
+		RetinueAddWarrior(_Retinue, _Warrior);
+		return;
+	}
+	BigGuyAddRetinue(_Leader, _Warrior);
+}*/
+
 void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot) {
 	LnkLstPushBack(&_Guy->PlotsAgainst, _Plot);
 }
 
+struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader, struct Settlement* _Settlement) {
+	for(struct LnkLst_Node* _Itr = _Settlement->Retinues.Front; _Itr != NULL; _Itr = _Itr->Next) {
+		struct Retinue* _Retinue = _Itr->Data;
+
+		if(_Retinue->Leader == _Leader)
+			return _Retinue;
+	}
+	return NULL;
+}
+
+/*void BigGuyAddRetinue(struct BigGuy* _Leader, struct Person* _Person) {
+	struct Settlement* _Home = PersonHome(_Leader->Person);
+	struct Retinue* _Retinue = CreateRetinue(_Leader);
+
+	RetinueAddWarrior(_Retinue, _Person);
+	LnkLstPushBack(&_Home->Retinues, _Retinue);
+}*/

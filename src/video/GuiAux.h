@@ -61,6 +61,7 @@ struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent
 struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
 int ButtonOnUnFocus(struct Widget* _Widget);
 int ButtonOnDraw(struct Widget* _Widget);
+void ButtonSetClickable(struct Button* _Button, int _Clickable);
 
 struct Table* CreateTable(void);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,

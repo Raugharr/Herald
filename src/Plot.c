@@ -8,6 +8,9 @@
 #include "Date.h"
 #include "World.h"
 #include "Person.h"
+#include "Family.h"
+#include "Location.h"
+#include "Policy.h"
 
 #include "sys/Math.h"
 #include "sys/Event.h"
@@ -18,6 +21,9 @@
 #define PLOT_CURRACTLIST(_Plot) ((_Plot)->ActionList[(_Plot)->CurrActList])
 #define PLOT_PREVACTLIST(_Plot) ((_Plot)->ActionList[(_Plot)->CurrActList == 0])
 #define PLOT_SWAPACTLIST(_Plot) ((_Plot)->CurrActList = (_Plot)->CurrActList == 0)
+#define PlotDefenderWon(_Plot) ((_Plot)->WarScore <= -(_Plot)->MaxScore)
+#define PlotAttackerWon(_Plot) ((_Plot)->WarScore >= (_Plot)->MaxScore)
+#define PLOTACT_STATMOD (10)
 
 static const char* g_PlotTypeStr[] = {
 	"Overthrow",
@@ -29,7 +35,44 @@ const char* PlotTypeStr(const struct Plot* _Plot) {
 	return g_PlotTypeStr[_Plot->PlotType];
 }
 
-struct Plot* CreatePlot(int _Type, struct BigGuy* _Owner, struct BigGuy* _Target) {
+static struct {
+	int SkillUsed;
+	int Damage; 	
+	const char* Name;
+} g_PlotActionTypes[PLOTACT_SIZE] = {
+	{BGSKILL_SIZE, 0, "None"},
+	{BGSKILL_INTRIGUE, 1, "Attack"},
+	{BGSKILL_INTRIGUE, 0, "Lower Stat"},
+	{BGSKILL_COMBAT, 2, "Double Damage"},
+	{BGSKILL_COMBAT, 1, "Double Attack"},
+	{BGSKILL_INTRIGUE, 0, "Stop Attack"},
+};
+
+static inline int ActionDamage(const struct PlotAction* _Action) {
+	return g_PlotActionTypes[_Action->Type].Damage;
+	//return ((_Action->Flags & PLOTFLAG_HIT) == PLOTFLAG_HIT) ? (g_PlotActionTypes[_Action->Type].Damage) : (0);
+}
+
+struct PlotAction* CreatePlotAction(int _Type, const struct BigGuy* _Actor, int _ActorSide, struct PlotAction* _Next) {
+	struct PlotAction* _Action = NULL;
+
+	if(_Type < 0 || _Type >= PLOTACT_SIZE)
+		return NULL;
+	_Action = malloc(sizeof(struct PlotAction));
+	*(int*)&_Action->Type = _Type;
+	*(struct BigGuy**)&_Action->Actor = (struct BigGuy*)_Actor;
+	*(int8_t*)&_Action->ActorSide = _ActorSide;
+	*(const struct BigGuy**)&_Action->Target = NULL;
+	*(struct PlotAction**)&_Action->Next = _Next;
+	_Action->ActionStopped = NULL;
+	return _Action;
+}	
+
+void DestroyPlotAction(struct PlotAction* _Action) {
+	free(_Action);
+}
+
+struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct BigGuy* _Target) {
 	struct Plot* _Plot = (struct Plot*) malloc(sizeof(struct Plot));
 
 	assert(_Type >=0 && _Type < PLOT_SIZE);
@@ -39,25 +82,34 @@ struct Plot* CreatePlot(int _Type, struct BigGuy* _Owner, struct BigGuy* _Target
 	ConstructLinkedList(&_Plot->SideAsk[0]);
 	ConstructLinkedList(&_Plot->Side[1]);
 	ConstructLinkedList(&_Plot->SideAsk[1]);
-	ConstructLinkedList(&_Plot->ActionList[0]);
-	ConstructLinkedList(&_Plot->ActionList[1]);
-	LnkLstPushBack(&_Plot->Side[PLOT_ATTACKERS], _Owner);
-	LnkLstPushBack(&_Plot->Side[PLOT_DEFENDERS], _Target);
+	PlotJoin(_Plot, PLOT_ATTACKERS, _Owner);
+	PlotJoin(_Plot, PLOT_DEFENDERS, _Target);
+	_Plot->SidePower[PLOT_ATTACKERS] = 0;
+	_Plot->SidePower[PLOT_DEFENDERS] = 0;
 	_Plot->Threat[PLOT_ATTACKERS] = 0;
 	_Plot->Threat[PLOT_DEFENDERS] = 0;
 	_Plot->WarScore = 0;
 	_Plot->MaxScore = PLOT_OVERTHROW_MAXSCORE;
 	_Plot->CurrActList = 0;
+	_Plot->PlotData = _Data;
+	for(int i = 0; i < PLOT_SIDES; ++i) {
+		for(int j = 0; j < BGSKILL_SIZE; ++j) {
+			_Plot->StatMods[i][j] = 0;
+		}
+	}
 	CreateObject((struct Object*) _Plot, OBJECT_PLOT, (ObjectThink) PlotThink);
 	PushEvent(EVENT_NEWPLOT, BigGuyHome(_Owner), _Plot);
 	if(_Target != NULL)
 		BigGuyPlotTarget(_Target, _Plot);
 	RBInsert(&g_GameWorld.PlotList, _Plot);
+	PLOT_CURRACTLIST(_Plot) = NULL;
+	PLOT_PREVACTLIST(_Plot) = NULL;
 	return _Plot;
 }
 
 void DestroyPlot(struct Plot* _Plot) {
 	DestroyObject((struct Object*)_Plot);
+	RBDelete(&g_GameWorld.PlotList, PlotLeader(_Plot));
 	free(_Plot);
 }
 
@@ -74,9 +126,12 @@ int PlotCanAsk(const struct Plot* _Plot, int _Side, struct BigGuy* _Guy) {
 }
 
 void PlotJoin(struct Plot* _Plot, int _Side, struct BigGuy* _Guy) {
+	if(_Guy == NULL)
+		return;
 	assert(PlotCanAsk(_Plot, _Side, _Guy) == 1);
 	assert(_Side == PLOT_ATTACKERS || _Side == PLOT_DEFENDERS);
 	LnkLstPushBack(&_Plot->Side[_Side], _Guy);
+	_Plot->SidePower[_Side] += BigGuyPlotPower(_Guy);
 }
 
 int PlotInsert(const struct Plot* _One, const struct Plot* _Two) {
@@ -87,86 +142,75 @@ int PlotSearch(const struct BigGuy* _One, const struct Plot* _Two) {
 	return _One->Id - PlotLeader(_Two)->Id;
 }
 
-int IsInPlot(const struct Plot* _Plot, struct BigGuy* _Guy) {
+int IsInPlot(const struct Plot* _Plot, const struct BigGuy* _Guy) {
 	struct LnkLst_Node* _Itr = NULL;
 
-	_Itr = _Plot->Side[0].Front;
-	while(_Itr != NULL) {
-		if(_Itr->Data == _Guy)
-			return 1;
-		_Itr = _Itr->Next;	
-	}
-	_Itr = _Plot->Side[1].Front;
-	while(_Itr != NULL) {
-		if(_Itr->Data == _Guy)
-			return 2;
-		_Itr = _Itr->Next;	
+	for(int i = 0; i < 2; ++i) {
+		_Itr = _Plot->Side[i].Front;
+		while(_Itr != NULL) {
+			if(_Itr->Data == _Guy)
+				return i + 1;
+			_Itr = _Itr->Next;	
+		}
 	}
 	return 0;
 }
 
-int PlotWarScoreMods(struct Plot* _Plot, struct BigGuy* _Guy, struct LinkedList* _Actions) {
-	struct LnkLst_Node* _Itr = _Actions->Front;
-	struct PlotAction* _Action = NULL;
-	int _ActCt = 0;
-	int _ActDone = 0;
-
-	while(_Itr != NULL) {
-		_Action = (struct PlotAction*) _Itr->Data;
-		if(_Action->Actor != _Guy)
-			goto loop_end;
-		++_ActCt;
-		++_ActDone;
-		switch( _Action->Type) {
-			case PLOTACT_PREVENT:
-				_Action->DmgDelt = 1;
-			break;
-			case PLOTACT_DOUBLEDMG:
-				if(BigGuySkillCheck(_Guy, BGSKILL_WARFARE, SKILLCHECK_DEFAULT) == 0)
-					break;	
-				_Action->DmgDelt = 2;
-			break;
-			case PLOTACT_REDUCETHREAT:
-				if(BigGuySkillCheck(_Guy, BGSKILL_CHARISMA, SKILLCHECK_DEFAULT) == 0)
-					break;
-				_ActCt -= 2;
-				--_ActDone;
-			break;
+int HasPlotAction(const struct Plot* _Plot, const struct BigGuy* _Guy) {
+	for(const struct PlotAction* _Action = PLOT_CURRACTLIST(_Plot); _Action != NULL; _Action = _Action->Next) {
+		if(_Action->Actor == _Guy) {
+			return 1;
 		}
-		loop_end:
-		_Itr = _Itr->Next;
-	};
-	if(_ActDone == 0) {
-		PlotAddAction(_Plot, PLOTACT_ATTACK, _Guy, NULL);
-		((struct PlotAction*)PlotCurrActList(_Plot)->Back->Data)->DmgDelt = BigGuySkillCheck(_Guy, BGSKILL_INTRIGUE, SKILLCHECK_DEFAULT);
 	}
-	if(_ActCt < 0)
-		_ActCt = 0;
-	return _ActCt;
+	return 0;
 }
 
-int PlotWarScore(struct Plot* _Plot, struct LinkedList* _List, struct LinkedList* _Actions, int* _Threat) {
-	struct LnkLst_Node* _Itr = _List->Front; 
-	struct BigGuy* _Guy = NULL;
+/**
+ * \brief Iterates through all PlotActions linked in _Actions looking for any ActionList
+ * that has been performed by _Guy. All BigGuy's are allowed to perform one action per PlotWarScoreMods
+ * tick thus once we find the action we can assume that no more actions will be found unless the action IsInPlot
+ * special such as PLOTACT_DOUBLEATTK that adds a second action to simulate a second attack.
+ * \return The enumeration that represents the PlotAction. 
+ */
+
+static inline void PlotPerformAction(struct PlotAction* _Action, struct Plot* _Plot) {
+	switch( _Action->Type) {
+		case PLOTACT_LOWERSTAT:
+			for(int i = 0, _OSide = ((_Action->ActorSide == PLOT_ATTACKERS) ? (PLOT_DEFENDERS) : (PLOT_ATTACKERS)); i < BGSKILL_SIZE; ++i) {
+				_Plot->StatMods[_OSide][i] += -PLOTACT_STATMOD;
+			}
+			return;	
+		case PLOTACT_STOPATTK:
+			for(struct PlotAction* i = PLOT_CURRACTLIST(_Plot); i != NULL; i = i->Next) {
+				if(i->ActorSide != _Action->ActorSide) {
+					i->Flags &= ~PLOTFLAG_HIT;
+					return;	
+				}
+			}
+			return;
+	}
+}
+
+int PlotWarScore(struct Plot* _Plot, const struct LinkedList* _GuyList, struct PlotAction** _Actions, int* _Threat) {
 	int _Score = 0;
 
-	while(_Itr != NULL) {
-		_Guy = _Itr->Data;
-		*_Threat += PlotWarScoreMods(_Plot, _Guy, _Actions);
-		_Itr = _Itr->Next;
-	}
-
-	_Itr = _List->Front; 
-	while(_Itr != NULL) {
+	for(const struct LnkLst_Node* _Itr = _GuyList->Front; _Itr != NULL; _Itr = _Itr->Next) {
+		const struct BigGuy* _Guy = _Itr->Data;
 		struct PlotAction* _Action = NULL;
 
-		for(struct LnkLst_Node* j = _Actions->Front; j != NULL; j = j->Next) {
-			_Action = (struct PlotAction*) j->Data;
+		for(_Action = *_Actions; _Action != NULL; _Action = _Action->Next) {
 			if(_Action->Actor != _Guy)
 				continue;
-			_Score += _Action->DmgDelt;
+			++(*_Threat);
+			goto found_action;
 		}
-		_Itr = _Itr->Next;
+		PlotAddAction(_Plot, PLOTACT_ATTACK, _Guy, NULL);
+		PLOT_CURRACTLIST(_Plot)->Flags |= BigGuySkillCheck(_Guy, BGSKILL_INTRIGUE, SKILLCHECK_DEFAULT);
+		_Action = PLOT_CURRACTLIST(_Plot);
+		found_action:
+		PlotPerformAction(_Action, _Plot);
+		_Score += ActionDamage(_Action);
+		continue;
 	}
 	return _Score;
 }
@@ -184,45 +228,51 @@ void PlotThink(struct Plot* _Plot) {
 	_ScoreAttacker = PlotWarScore(_Plot, &_Plot->Side[PLOT_ATTACKERS], &PLOT_CURRACTLIST(_Plot), &_Plot->Threat[PLOT_ATTACKERS]);
 	_Diff = _ScoreAttacker - _ScoreDefender; 
 	_Plot->WarScore += _Diff;
-	if(_Plot->WarScore <= -_Plot->MaxScore) {
-		switch(_Plot->PlotType) {
-			case PLOT_OVERTHROW:
-				//PersonDeath(PlotLeader(_Plot)->Person);
-			break;
-		}
+	if(PlotDefenderWon(_Plot)) {
 		_Looser = PlotLeader(_Plot);
 		goto warscore_end;
 	}
-	if(_Plot->WarScore >= _Plot->MaxScore) {
+	if(PlotAttackerWon(_Plot) != 0) {
 		switch(_Plot->PlotType) {
 			case PLOT_OVERTHROW:
 				PushEvent(EVENT_NEWLEADER, PlotTarget(_Plot), PlotLeader(_Plot));
-			break;
+				break;
+			case PLOT_PASSPOLICY:
+				PushEvent(EVENT_NEWPOLICY, PlotLeader(_Plot)->Person->Family->HomeLoc->Government, _Plot->PlotData);
+				break;
+			case PLOT_CHANGEPOLICY:
+				PushEvent(EVENT_CHANGEPOLICY, PlotLeader(_Plot)->Person->Family->HomeLoc->Government, _Plot->PlotData);
+				break;
+			case PLOT_SLANDER:
+				PushEvent(EVENT_SLANDER, NULL, NULL);
+				break;
 		}
 		_Looser = PlotTarget(_Plot);
 		goto warscore_end;
 	}
 	PLOT_SWAPACTLIST(_Plot);
-	LnkLstClear(&PLOT_CURRACTLIST(_Plot));
+	for(struct PlotAction* _Action = PLOT_CURRACTLIST(_Plot); _Action != NULL; _Action = _Action->Next)
+		DestroyPlotAction(_Action);
+	PLOT_CURRACTLIST(_Plot) = NULL;
 	return;
 	warscore_end:
 	PushEvent(EVENT_ENDPLOT, _Plot, _Looser);
 }
 
-const struct LinkedList* PlotPrevActList(const struct Plot* _Plot) {
-	return &PLOT_PREVACTLIST(_Plot);
+const struct PlotAction* const  PlotPrevActList(const struct Plot* _Plot) {
+	return PLOT_PREVACTLIST(_Plot);
 }
 
-const struct LinkedList* PlotCurrActList(const struct Plot* _Plot) {
-	return &PLOT_CURRACTLIST(_Plot);	
+const struct PlotAction* const  PlotCurrActList(const struct Plot* _Plot) {
+	return PLOT_CURRACTLIST(_Plot);	
 }
 
 struct BigGuy* PlotLeader(const struct Plot* _Plot) {
-	return _Plot->Side[PLOT_ATTACKERS].Front->Data;
+	return (_Plot->Side[PLOT_ATTACKERS].Size > 0) ? (_Plot->Side[PLOT_ATTACKERS].Front->Data) : (NULL);
 }
 
 struct BigGuy* PlotTarget(const struct Plot* _Plot) {
-	return _Plot->Side[PLOT_DEFENDERS].Front->Data;
+	return (_Plot->Side[PLOT_DEFENDERS].Size > 0) ? (_Plot->Side[PLOT_DEFENDERS].Front->Data) : (NULL);
 }
 
 int PlotOnSide(const struct Plot* _Plot, int _Side, const struct BigGuy* _Guy) {
@@ -237,25 +287,25 @@ int PlotOnSide(const struct Plot* _Plot, int _Side, const struct BigGuy* _Guy) {
 	return 0;
 }
 
-void PlotAddAction(struct Plot* _Plot, int _Type, struct BigGuy* _Actor, struct BigGuy* _Target) {
+int PlotAddAction(struct Plot* _Plot, int _Type, const struct BigGuy* _Actor, const struct BigGuy* _Target) {
 	int _ActorSide = 0;
 	struct PlotAction* _Action = NULL;
 
-	if(_Type < 0 || _Type >= PLOTACT_SIZE || _Actor == NULL || (_Actor == _Target))
-		return;
+	if(_Actor == NULL || (_Actor == _Target))
+		return 0;
 	if(_Target != NULL) {
 		if((_ActorSide = PlotOnSide(_Plot, PLOT_ATTACKERS, _Actor)) == PlotOnSide(_Plot, PLOT_ATTACKERS, _Target))
-			return;
+			return 0;
 	}
-	_Action = malloc(sizeof(struct PlotAction));
-	_Action->Type = _Type;
-	_Action->Actor = _Actor;
-	_Action->ActorSide = _ActorSide;
-	_Action->Target = _Target;
-	_Action->DmgDelt = 0;
-	(_ActorSide == PLOT_ATTACKERS)	
-		? (LnkLstPushFront(&PLOT_CURRACTLIST(_Plot), _Action))
-		: (LnkLstPushBack(&PLOT_CURRACTLIST(_Plot), _Action));
+	if(HasPlotAction(_Plot, _Actor) == 1)
+		return 0;
+	_Action = CreatePlotAction(_Type, _Actor, _ActorSide, PLOT_CURRACTLIST(_Plot));
+	PLOT_CURRACTLIST(_Plot) = _Action;
+	switch(_Type) {
+		case PLOTACT_DOUBLEATTK:
+			PLOT_CURRACTLIST(_Plot) = CreatePlotAction(PLOTACT_DOUBLEATTK, _Actor, _ActorSide, PLOT_CURRACTLIST(_Plot));
+	}
+	return 1;
 }	
 
 int PlotGetThreat(const struct Plot* _Plot) {
@@ -263,14 +313,12 @@ int PlotGetThreat(const struct Plot* _Plot) {
 }
 
 int PlotCanUseAction(const struct Plot* _Plot, const struct BigGuy* _Guy) {
-	const struct LnkLst_Node* _Itr = PlotCurrActList(_Plot)->Front;
-	struct PlotAction* _Action = NULL;
+	const struct PlotAction* _Action = PlotCurrActList(_Plot);
 
-	while(_Itr != NULL) {
-		_Action = (struct PlotAction*)_Itr->Data;
+	while(_Action!= NULL) {
 		if(_Action->Actor == _Guy)
 			return 0;
-		_Itr = _Itr->Next;
+		_Action= _Action->Next;
 	}
 	return 1;
 }
@@ -284,24 +332,56 @@ void PlotActionEventStr(const struct PlotAction* _Action, char** _Buffer, size_t
 	#define __FUNC_EXTRASZ (128)
 
 	char _Extra[__FUNC_EXTRASZ];
+	const struct BigGuy* _Actor = _Action->Actor;
 
 	switch(_Action->Type) {
 		case PLOTACT_ATTACK:
-			snprintf(*_Buffer, _Size, "%s(%i%%) did %i damage.", _Action->Actor->Person->Name, _Action->Actor->Stats[BGSKILL_INTRIGUE], _Action->DmgDelt);
-		break;
+			snprintf(*_Buffer, _Size, "%s(%i%%) did %i damage.",
+				 _Action->Actor->Person->Name,
+				 _Actor->Stats[g_PlotActionTypes[_Action->Type].SkillUsed],
+				 ActionDamage(_Action));
+			break;
+		case PLOTACT_LOWERSTAT:
+			snprintf(*_Buffer, _Size, "%s(%i%%) lowered all the oponents stats by %i",
+				_Action->Actor->Person->Name,
+				_Actor->Stats[g_PlotActionTypes[_Action->Type].SkillUsed],
+				((_Action->Flags & PLOTFLAG_HIT) == PLOTFLAG_HIT) ? (PLOTACT_LOWERSTAT) : (0));
+			break;
+		case PLOTACT_STOPATTK:
+			snprintf(*_Buffer, _Size, "%s(%i%%) prevented %s from performing the action: %s from taking place.",
+				_Action->Actor->Person->Name,
+				_Actor->Stats[g_PlotActionTypes[_Action->Type].SkillUsed],
+				_Action->ActionStopped->Actor->Person->Name,
+				g_PlotActionTypes[_Action->Type].Name);
+
+			break;
 		case PLOTACT_DOUBLEDMG:
-			snprintf(_Extra, __FUNC_EXTRASZ, "delt double damage totaling %i", _Action->DmgDelt);
-			snprintf(*_Buffer, _Size, "%s %s.", _Action->Actor->Person->Name, _Extra);
-		break;
-		case PLOTACT_PREVENT:
-			snprintf(_Extra, __FUNC_EXTRASZ, "prevented %i damage done to ", _Action->DmgDelt);
-			snprintf(*_Buffer, _Size, "%s %s %s.", _Action->Actor->Person->Name, _Extra, _Action->Target->Person->Name);
-		break;
-		case PLOTACT_REDUCETHREAT:
-			snprintf(*_Buffer, _Size, "%s reduced threat.", _Action->Actor->Person->Name);
-		break;
+			snprintf(_Extra, __FUNC_EXTRASZ, "dealt double damage totaling %i", ActionDamage(_Action));
+			snprintf(*_Buffer, _Size, "%s(%i%%) %s.",
+				 _Action->Actor->Person->Name,
+				 _Actor->Stats[g_PlotActionTypes[_Action->Type].SkillUsed],
+				 _Extra);
+			break;
 		default:
-		break;
+			break;
 	}
 #undef __FUNC_EXTRASZ
+}
+
+void PlotDescription(const struct Plot* _Plot, char** _Buffer, size_t _Size) {
+	const struct PolicyOption* _PolOpt = NULL;
+
+	switch(_Plot->Type) {
+		case PLOT_PASSPOLICY:
+			snprintf(*_Buffer, _Size, "%s is attempting to pass the policy %s.",
+				 PlotLeader(_Plot)->Person->Name,
+				 ((struct Policy*)_Plot->PlotData)->Name); 
+			break;
+		case PLOT_CHANGEPOLICY:
+			_PolOpt = PolicyChange(_Plot->PlotData);
+			snprintf(*_Buffer, _Size, "%s is conspiring to change the policy %s to include %s.",
+				PlotLeader(_Plot)->Person->Name,
+				 ((struct ActivePolicy*)_Plot->PlotData)->Policy->Name,
+				 _PolOpt->Name);
+	}
 }

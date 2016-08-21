@@ -24,7 +24,6 @@
 		HashInsert((_Hash), (_Key), (_Itr)->Data);			\
 		(_Itr) = (_Itr)->Next;								\
 	}
-#define WORKMULT (1000)
 #define PowerSet(_Array, _Count) PowerSet_Aux(_Array, _Count, 0, NULL)
 #define DATAFLD "data/"
 #define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))

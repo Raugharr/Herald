@@ -10,6 +10,8 @@
 
 #include "../WorldState.h"
 
+#include "../sys/Log.h"
+
 #include <stdlib.h>
 
 void InitGoapGoal(struct GoapGoal* _Goal) {
@@ -34,6 +36,8 @@ int GoapGoalAddAction(struct GoapGoal* _Goal, const char* _Action) {
 	struct WorldState _TempState;
 	int _AtomIdx = 0;
 
+	if(_GoapAction == NULL)
+		return 0;
 	_Goal->Actions[_Goal->ActionCt] = _GoapAction;
 	++_Goal->ActionCt;
 	WorldStateCopy(&_TempState, &_GoapAction->Postconditions);

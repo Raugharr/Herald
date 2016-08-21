@@ -226,11 +226,27 @@ void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
 		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
 }
 
-void CreateLuaLnkLstItr(lua_State* _State, struct LinkedList* _List, const char* _Class) {
-	LuaCtor(_State, "LinkedList", _List);
+void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, const char* _Class) {
+	LuaCtor(_State, "LinkedList", (void*)_List);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, _Class);
 	lua_rawset(_State, -3);
+}
+
+//QUESTION: Should this be inlined or made a macro.
+void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, const char* _Class) {
+	LuaCtor(_State, "ArrayIterator", (void*)_Array);
+	lua_pushstring(_State, "__classtype");
+	lua_pushstring(_State, _Class);
+	lua_rawset(_State, -3);
+}
+
+void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, const char* _Class) {
+	lua_createtable(_State, _TableSz, 0);
+	for(int i = 0; i < _TableSz; ++i) {
+		LuaCtor(_State, _Class,(void*)_Table[i]);
+		lua_rawseti(_State, -2, i + 1);
+	}
 }
 
 void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
@@ -349,14 +365,18 @@ int LuaLnkLstNodeIterate(lua_State* _State) {
 	return 1;
 }
 
-int LuaLnkLstFront(lua_State* _State) {
-	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
-
-	LuaCtor(_State, "LinkedListNode", _List->Front);
+static inline void LuaCreateLnkLstNode(lua_State* _State, struct LnkLst_Node* _Node) {
+	LuaCtor(_State, "LinkedListNode", _Node);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, 1);
 	lua_rawset(_State, -3);
+}
+
+int LuaLnkLstFront(lua_State* _State) {
+	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+
+	LuaCreateLnkLstNode(_State, _List->Front);
 	lua_pushinteger(_State, 1);
 	lua_pushcclosure(_State, LuaLnkLstNodeIterate, 2);
 	return 1;
@@ -365,11 +385,7 @@ int LuaLnkLstFront(lua_State* _State) {
 int LuaLnkLstBack(lua_State* _State) {
 	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
 
-	LuaCtor(_State, "LinkedListNode", _List->Back);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "__classtype");
-	lua_rawget(_State, 1);
-	lua_rawset(_State, -3);
+	LuaCreateLnkLstNode(_State, _List->Back);
 	return 1;
 }
 
@@ -383,22 +399,14 @@ int LuaLnkLstSize(lua_State* _State) {
 int LuaLnkLstNodeNext(lua_State* _State) {
 	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
 
-	LuaCtor(_State, "LinkedListNode", _Node->Next);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "__classtype");
-	lua_rawget(_State, 1);
-	lua_rawset(_State, -3);
+	LuaCreateLnkLstNode(_State, _Node->Next);
 	return 1;
 }
 
 int LuaLnkLstNodePrev(lua_State* _State) {
 	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
 
-	LuaCtor(_State, "LinkedListNode", _Node->Prev);
-	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, "__classtype");
-	lua_rawget(_State, 1);
-	lua_rawset(_State, -3);
+	LuaCreateLnkLstNode(_State, _Node->Prev);
 	return 1;
 }
 
@@ -496,31 +504,34 @@ void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints) {
 	}
 }
 
-void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum, const char* _SubTable) {
+void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum) {
 	_Table = lua_absindex(_State, _Table);
-	if(_SubTable != NULL) {
-		lua_pushstring(_State, _SubTable);
-		lua_rawget(_State, _Table);
-	}
 	for(int i = 0; _Enum[i].Key != NULL; ++i) {
 		lua_pushstring(_State, _Enum[i].Key);
 		lua_pushinteger(_State, _Enum[i].Value);
 		lua_rawset(_State, _Table);
 	}
-	if(_SubTable != NULL) {
-		lua_pushstring(_State, _SubTable);
-		lua_pushvalue(_State, _Table + 1);
-		lua_rawset(_State, _Table);
-		lua_pop(_State, 1); //pop initial rawget(_SubTable).
-	}
 }
 
 void RegisterLuaEnums(lua_State* _State, const struct LuaEnumReg* _Reg) {
 	for(int i = 0; _Reg[i].Name != NULL; ++i) {
-		lua_newtable(_State);
-		LuaAddEnum(_State, -1, _Reg[i].Enum, _Reg[i].SubTable);
-		lua_setglobal(_State, _Reg[i].Name);
-		lua_pop(_State, 1);
+		if(_Reg[i].SubTable == NULL) {
+			lua_newtable(_State);
+			LuaAddEnum(_State, -1, _Reg[i].Enum);
+			lua_setglobal(_State, _Reg[i].Name);
+			lua_pop(_State, 1);
+		} else {
+			lua_getglobal(_State, _Reg[i].Name);
+			if(lua_type(_State, -1) != LUA_TTABLE) {
+				lua_pop(_State, 1);
+				continue;
+			}
+			lua_createtable(_State, 3, 0);
+			LuaAddEnum(_State, -1, _Reg[i].Enum);
+			lua_pushstring(_State, _Reg[i].SubTable);
+			lua_insert(_State, -2);
+			lua_rawset(_State, -3);
+		}
 	}
 }
 

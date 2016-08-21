@@ -9,6 +9,7 @@
 typedef struct lua_State lua_State;
 
 struct Trait {
+	int Id;
 	const char* Name;
 	struct Trait** Likes;
 	struct Trait** Dislikes;

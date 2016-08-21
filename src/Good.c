@@ -653,24 +653,22 @@ struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _G
 double GoodNutVal(struct GoodBase* _Base) {
 	struct Crop* _Crop = NULL;
 	double _Nut = 0;
-	int i;
 
-	for(i = 0; i < _Base->IGSize; ++i) {
+	for(int i = 0; i < _Base->IGSize; ++i) {
 		if(((struct GoodBase*)_Base->InputGoods[i]->Req)->Category == GOOD_SEED) {
 			if((_Crop = HashSearch(&g_Crops, ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name)) == NULL) {
 				Log(ELOG_WARNING, "Crop %s not found.", ((struct GoodBase*)_Base->InputGoods[i]->Req)->Name);
 				continue;
 			}
-			_Nut += _Crop->NutVal / OUNCE * _Base->InputGoods[i]->Quantity;
+			_Nut += _Crop->NutVal * ToPound(_Base->InputGoods[i]->Quantity);
 		} else
 			_Nut += ((struct FoodBase*)_Base->InputGoods[i]->Req)->Nutrition * _Base->InputGoods[i]->Quantity;
 	}
 	return _Nut;
 }
 
+//FIXME: This shouldn't allocate memory but instead be given an array that can be filled with the list the function builds.
 struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Categories) {
-	int i;
-	int j;
 	int _TblSize = _Goods->Size;
 	int _Amount = 0;
 	void** _Tbl = _Goods->Table;
@@ -681,12 +679,12 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
 	struct Good* _Good = NULL;
 
 	memset(_Outputs, 0, sizeof(struct InputReq*) * _TblSize);
-	for(i = 0; i < _TblSize; ++i) {
+	for(int i = 0; i < _TblSize; ++i) {
 		_Good = (struct Good*)_Tbl[i];
 		if((_Categories &_Good->Base->Category) != _Good->Base->Category && _Good->Quantity > 0)
 			continue;
 		_Dep = RBSearch(g_GameWorld.GoodDeps, _Good->Base);
-		for(j = 0; j < _Dep->DepTbl->Size; ++j) {
+		for(int j = 0; j < _Dep->DepTbl->Size; ++j) {
 			_Output = ((struct GoodDep*)_Dep->DepTbl->Table[j])->Good;
 			if((_Amount = GoodCanMake(_Output, _Goods)) != 0) {
 				struct InputReq* _Temp = CreateInputReq();
@@ -705,13 +703,12 @@ struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Cat
 }
 
 int GoodCanMake(const struct GoodBase* _Good, const struct Array* _Goods) {
-	int i;
 	int _Max = INT_MAX;
 	int _Quantity = 0;
 	struct Good** _Tbl = (struct Good**) _Goods->Table;
 	struct Good* _Temp = NULL;
 	
-	for(i = 0; i < _Good->IGSize; ++i) {
+	for(int i = 0; i < _Good->IGSize; ++i) {
 		if((_Temp = LinearSearch(_Good->InputGoods[i], _Tbl, _Goods->Size, (int(*)(const void*, const void*))InputReqGoodCmp)) == NULL
 				|| (_Temp->Quantity < _Good->InputGoods[i]->Quantity))
 			return 0;
@@ -800,8 +797,8 @@ const struct GoodBase* GoodPayInKind(const struct Family* _Buyer, int _Cost, con
 
 	switch(_Buyer->Caste->Type) {
 		case CASTE_PEASANT:
-			for(int i = 0; i < _Buyer->Goods->Size; ++i) {
-				_Good = _Buyer->Goods->Table[i];
+			for(int i = 0; i < _Buyer->Goods.Size; ++i) {
+				_Good = _Buyer->Goods.Table[i];
 				if(strcmp(_Good->Base->Name, "Flour") == 0) {
 					_Value = GoodGetValue(_Good->Base);
 					goto func_end;
@@ -818,7 +815,7 @@ const struct GoodBase* GoodPayInKind(const struct Family* _Buyer, int _Cost, con
 }
 
 void SellItem(struct Family* _Buyer, const struct SellRequest* _SellReq) {
-	struct Array* _Goods = _Buyer->Goods;
+	struct Array* _Goods = &_Buyer->Goods;
 	struct Good* _Good = NULL;
 
 	//Search for the boughten good in the _Buyers good array.
@@ -832,7 +829,7 @@ void SellItem(struct Family* _Buyer, const struct SellRequest* _SellReq) {
 	//Good is not found create a good then add it to the good array.
 	_Good = CreateGood(_SellReq->Base, _Buyer->HomeLoc->Pos.x, _Buyer->HomeLoc->Pos.y);
 	_Good->Quantity = _SellReq->Quantity;
-	ArrayInsert_S(_Buyer->Goods, _Good);
+	ArrayInsert_S(&_Buyer->Goods, _Good);
 }
 
 int GoodGetValue(const struct GoodBase* _Base) {

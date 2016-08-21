@@ -145,10 +145,10 @@ const struct GoodBase** LoadInKind(lua_State* _State, int _Index) {
 		}
 		_Key = lua_tostring(_State, -1);
 		if((_Good = HashSearch(&g_Goods, _Key)) == NULL) {
-			const struct LinkedList* _CatList = NULL;
+			//const struct LinkedList* _CatList = NULL;
 
-			if((_CatList = GoodGetCategory(_Key)) != NULL)
-				LnkLstMerge(&_List, _CatList);
+			//if((_CatList = GoodGetCategory(_Key)) != NULL)
+			//	LnkLstMerge(&_List, _CatList);
 			goto loop_end;
 		} else {
 			LnkLstPushBack(&_List, (struct GoodBase*) _Good);

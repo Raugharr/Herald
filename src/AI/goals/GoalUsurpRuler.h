@@ -1,12 +1,13 @@
 /*
- * File: Goals.h
+ * File: GoapUsurpRuler.h
  * Author: David Brotz
  */
 
-#ifndef __GOALS_H
-#define __GOALS_H
+#ifndef __GOALUSURPRULER_H
+#define __GOALUSURPRULER_H
+
 struct GoapGoal;
 
 void GoalChallangeLeader(struct GoapGoal* _Goal);
-void GoalImproveRelations(struct GoapGoal* _Goal);
+
 #endif

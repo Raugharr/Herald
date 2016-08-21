@@ -42,9 +42,11 @@ int LuaFieldGetYield(lua_State* _State);
 int LuaFieldGetAcres(lua_State* _State);
 int LuaFieldGetStatus(lua_State* _State);
 int LuaFieldGetStatusTime(lua_State* _State);
+int LuaFieldStatusCompletion(lua_State* _State);
 
 int LuaAnimalGetId(lua_State* _State);
 int LuaAnimalIsMale(lua_State* _State);
+int LuaAnimalGetGender(lua_State* _State);
 int LuaAnimalGetNutrition(lua_State* _State);
 int LuaAnimalGetAge(lua_State* _State);
 int LuaAnimalGetBase(lua_State* _State);
@@ -92,5 +94,8 @@ int LuaCreateGood(lua_State* _State);
 int LuaCreateBuilding(lua_State* _State);
 int LuaCreateAnimal(lua_State* _State);
 int LuaFamilyTakeAnimal(lua_State* _State);
+int LuaFamilyGetSize(lua_State* _State);
+int LuaFamilyGetNutrition(lua_State* _State);
+int LuaFamilyGetNutritionReq(lua_State* _State);
 
 #endif

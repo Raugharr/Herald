@@ -1,6 +1,6 @@
 /*
- * File: World.c
  * Author: David Brotz
+ * File: World.c
  */
 
 #include "World.h"
@@ -79,6 +79,8 @@ struct GameWorld g_GameWorld = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
+		NULL,
 		0
 };
 
@@ -104,7 +106,7 @@ static struct GameOnClick g_GameOnClick = {
 	NULL
 };
 
-struct Caste* g_Castes = NULL;
+struct Caste g_Castes[CASTE_SIZE];
 
 struct TaskPool* g_TaskPool = NULL;
 struct HashTable* g_AIHash = NULL;
@@ -129,47 +131,60 @@ int FamilyTypeCmp(const void* _One, const void* _Two) {
 	return (((struct FamilyType*)_One)->Percent * 1000) - (((struct FamilyType*)_Two)->Percent * 1000);
 }
 
-void PopulateManor(struct GameWorld* _World, int _Population, struct FamilyType** _FamilyTypes, int _X, int _Y) {
-	int _FamilySize = -1;
-	struct Family* _Family = NULL;
-	struct Family* _Parent = NULL;
-	struct Constraint** _AgeGroups = NULL;
-	struct Constraint** _BabyAvg = NULL;
-	struct Settlement* _Settlement = NULL;
+void PlayerOnHarvest(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
+	//struct Person* Owner = _Extra1;
+	const struct Field* _Field = _Extra2;
 	
-	//TODO: AgeGroups and BabyAvg should not be here but instead in a global or as an argument.
-	lua_getglobal(g_LuaState, "AgeGroups");
-	LuaConstraintBnds(g_LuaState);
-	if((_AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
-		Log(ELOG_ERROR, "AgeGroups is not defined.");
-	}
-
-	lua_getglobal(g_LuaState, "BabyAvg");
-	LuaConstraintBnds(g_LuaState);
-	if((_BabyAvg = lua_touserdata(g_LuaState, -1)) == NULL) {
-		DestroyConstrntBnds(_AgeGroups);
-		Log(ELOG_ERROR, "BabyAvg is not defined.");
+	if(_Field->Status != EFALLOW)
 		return;
-	}
+	MessageBox("Harvest complete.");
+}
+
+void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
+	int _X, int _Y, struct Constraint * const *  const _AgeGroups, struct Constraint const  * const * const _BabyAvg) {
+	int _AcresPerFarmer = 10;
+	int _CropTypes = 1 ;
+	const struct Crop* _Crops[_CropTypes];
+	int _AnimalTypes = 2;
+	const struct Population* _Animals[_AnimalTypes];
+	int _AnimalTypeCt[_AnimalTypes];
+	int _MaxChildren = 3;
+	int _MaxFamilies = 0;
+	int _MaxFarmers = 0;
+	struct Family* _Parent = NULL;
+	struct Settlement* _Settlement = NULL;
+	double _CastePercent[CASTE_SIZE] = {0, 1.00, 0.00, 0.00};
+
+	_Crops[0] = HashSearch(&g_Crops, "Rye");
+	_Animals[0] = HashSearch(&g_Populations, "Ox");
+	_AnimalTypeCt[0] = 4;
+	_Animals[1] = HashSearch(&g_Populations, "Sheep");
+	_AnimalTypeCt[0] = 14;
+	//TODO: AgeGroups and BabyAvg should not be here but instead in an argument.
 	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
-	while(_Population > 0) {
-		_FamilySize = Random(g_FamilySize[0]->Min, g_FamilySize[FAMILYSIZE - 1]->Max);
-		_Parent = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
-		FamilyAddGoods(_Parent, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
-		RBInsert(&_World->Families, _Parent);
-		while(_FamilySize > 0) {
-			_Family = CreateRandFamily("Bar", Random(0, CHILDREN_SIZE) + 2, _Parent, _AgeGroups, _BabyAvg, _X, _Y, _Settlement);
-			FamilyAddGoods(_Family, g_LuaState, _FamilyTypes, _X, _Y, _Settlement);
-			RBInsert(&_World->Families, _Family);
-			_FamilySize -= FamilySize(_Family);
-			_Population -= FamilySize(_Family);
+	_MaxFarmers = _Settlement->FreeAcres / _AcresPerFarmer;
+	_MaxFamilies += (_MaxFarmers / 10) + ((_MaxFarmers % 10) != 0); 
+	for(;_MaxFarmers> 0; --_MaxFarmers) {
+		_Parent = CreateRandFamily("Bar", Random(0, _MaxChildren) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement, _FamilyTypes, &g_Castes[CASTE_PEASANT]);
+		_Parent->Food.SlowSpoiled = ((NUTRITION_REQ * 2) + (NUTRITION_CHILDREQ * _Parent->NumChildren)) * 2;
+		//Add animals
+		for(int i = 0; i < _AnimalTypeCt[0]; ++i)
+			FamilyAddAnimal(_Parent, CreateAnimal(_Animals[0], Random(0, _Animals[0]->Ages[AGE_DEATH]->Max), _Animals[0]->MaxNutrition, _X, _Y));	
+		//Add fields.
+		for(int i = 0; i < _CropTypes; ++i) {
+			if(SettlementAllocAcres(_Settlement, _AcresPerFarmer) != 0) {
+				struct Good* _Good = NULL;
+
+				_Parent->Fields[_Parent->FieldCt++] = CreateField(_X, _Y, NULL, _AcresPerFarmer, _Parent);
+				_Good = CheckGoodTbl(&_Parent->Goods, _Crops[0]->Name, &g_Goods, _X, _Y); 
+				_Good->Quantity = ToOunce(_Crops[0]->SeedsPerAcre) * _AcresPerFarmer;
+			}
 		}
-		_Population -= FamilySize(_Parent);
+		_Parent->Buildings[_Parent->BuildingCt] = CreateBuilding(ERES_HUMAN | ERES_ANIMAL, 
+			HashSearch(&g_BuildMats, "Dirt"), HashSearch(&g_BuildMats, "Board"), HashSearch(&g_BuildMats, "Hay"), 500);
+		RBInsert(&_World->Families, _Parent);
 	}
-	TribalCreateBigGuys(_Settlement);
-	DestroyConstrntBnds(_AgeGroups);
-	DestroyConstrntBnds(_BabyAvg);
-	lua_pop(g_LuaState, 4);
+	TribalCreateBigGuys(_Settlement, _CastePercent);
 }
 /*
  * TODO: This function is currently useless as instead of calling RandomsizeManorPop,
@@ -231,8 +246,24 @@ int PopulateWorld(struct GameWorld* _World) {
 	}
 	lua_pop(g_LuaState, 1);
 	InsertionSort(_FamilyTypes, i, FamilyTypeCmp, sizeof(*_FamilyTypes));
+	lua_getglobal(g_LuaState, "AgeGroups");
+	LuaConstraintBnds(g_LuaState);
+	if((g_GameWorld.AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
+		DestroyConstrntBnds(g_GameWorld.AgeGroups);
+		Log(ELOG_ERROR, "AgeGroups is not defined.");
+		return 0;
+	}
+
+	lua_getglobal(g_LuaState, "BabyAvg");
+	LuaConstraintBnds(g_LuaState);
+	if((g_GameWorld.BabyAvg = lua_touserdata(g_LuaState, -1)) == NULL) {
+		DestroyConstrntBnds(g_GameWorld.BabyAvg);
+		Log(ELOG_ERROR, "BabyAvg is not defined.");
+		return 0;
+	}
+	lua_pop(g_LuaState, 4);
 	_FamilyTypes[i] = NULL;
-	PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 2,  4);
+	PopulateManor(_World, _FamilyTypes, 2,  4, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
 	g_GameWorld.Player = PickPlayer();
 	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 4,  8);
 	//g_GameWorld.Player = PickPlayer(); //Remove when the Settlement placement function is completed for settlements on the edge of the map.
@@ -245,8 +276,13 @@ int PopulateWorld(struct GameWorld* _World) {
 }
 
 struct BigGuy* PickPlayer() {
-	RBDelete(&g_GameWorld.Agents, ((struct Settlement*)g_GameWorld.Settlements.Front->Data)->Government->Leader);
-	return ((struct Settlement*)g_GameWorld.Settlements.Front->Data)->Government->Leader;
+	struct Settlement* _Settlement = g_GameWorld.Settlements.Front->Data;
+	struct BigGuy* _Player = NULL;
+
+	RBDelete(&g_GameWorld.Agents, _Settlement->Government->Leader);
+	_Player = _Settlement->Government->Leader;
+	EventHook(EVENT_FARMING, PlayerOnHarvest, _Player->Person->Family, NULL, NULL);
+	return _Player;
 }
 
 int IsPlayerGovernment(const struct GameWorld* _World, const struct Settlement* _Settlement) {
@@ -273,32 +309,84 @@ void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point,
 
 void GameworldConstructPolicies(struct GameWorld* _World) {
 	int _PolicyCt = 0;
-	_World->PolicySz = 9;
-	_World->Policies = calloc(_World->PolicySz, sizeof(struct Policy*));
-	_World->Policies[_PolicyCt++] = CreatePolicy("Irregular Infantry", 
+	_World->PolicySz = 10;
+	_World->Policies = calloc(_World->PolicySz, sizeof(struct Policy));
+	ConstructPolicy(&_World->Policies[_PolicyCt],
+		"Irregular Infantry", 
 		"How many and how well armed your irregular infantry are.",
 		POLCAT_MILITARY);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Regular Infantry", 
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Arms");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Spear", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Seax", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Seax and javalin", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Spear and javalin", NULL, NULL);
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Armor");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "None", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Gambeson", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Partial leather armor", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Full leather armor", NULL, NULL);
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Shield");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "None", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "Buckler", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "Round shield", NULL, NULL);
+	++_PolicyCt;
+	ConstructPolicy(&_World->Policies[_PolicyCt],
+		"Regular Infantry", 
 		"How many and how well armed your regular infantry are.",
 		POLCAT_MILITARY);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Property Tax",
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Arms");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Spear", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Sword", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Axe", NULL, NULL);
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Armor");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "None", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Gambeson", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Full leather armor", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 1, "Mail", NULL, NULL);
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Shield");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "None", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "Buckler", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 2, "Round shield", NULL, NULL);
+	++_PolicyCt;
+	ConstructPolicy(&_World->Policies[_PolicyCt++],
+		"Property Tax",
 		"How much each person must pay yearly.",
 		POLCAT_ECONOMY);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Weregeld",
+	ConstructPolicy(&_World->Policies[_PolicyCt++],
+		"Weregeld",
 		"The price of a man.",
 		POLCAT_LAW);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Authority",
+	ConstructPolicy(&_World->Policies[_PolicyCt++],
+		"Authority",
 		"How much authority the ruler comands.",
 		POLCAT_LAW);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Crop Tax",
+	ConstructPolicy(&_World->Policies[_PolicyCt++],
+		"Crop Tax",
 		"Each farmer must give a percentage of their crops as tax.",
 		POLCAT_ECONOMY);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Work in kind",
+	ConstructPolicy(&_World->Policies[_PolicyCt++],	
+		"Work in kind",
 		"Each farmer must work on the fields of the lord for a percentage of each week.",
 		POLCAT_ECONOMY);
-	_World->Policies[_PolicyCt++] = CreatePolicy("Military Authority",
+	ConstructPolicy(&_World->Policies[_PolicyCt],
+		"Military Authority",
 		"Determines how much control the marshall wields.",
 		POLCAT_MILITARY);
+	PolicyAddCategory(&_World->Policies[_PolicyCt], "Foobar");
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "None", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Some", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Full", NULL, NULL);
+	_World->Policies[_PolicyCt].Options.Options[1].CastePreference[CASTE_WARRIOR] = -(POLICYMOD_NORMAL);
+	_World->Policies[_PolicyCt].Options.Options[2].CastePreference[CASTE_WARRIOR] = -(POLICYMOD_NORMAL);
+	++_PolicyCt;
+	ConstructPolicy(&_World->Policies[_PolicyCt],
+		"Judge Authority",
+		"How much authoirty a judge can wield.",
+		POLCAT_LAW);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Advice Only", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Double Vote", NULL, NULL);
+	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Makes Decision", NULL, NULL);
+	++_PolicyCt;
 }
 
 void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
@@ -310,10 +398,7 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->SettlementMap.BoundingBox.w = _Area * _Area;
 	_GameWorld->SettlementMap.BoundingBox.h = _Area * _Area;
 
-	_GameWorld->Settlements.Size = 0;
-	_GameWorld->Settlements.Front = NULL;
-	_GameWorld->Settlements.Back = NULL;
-
+	ConstructLinkedList(&_GameWorld->Settlements);
 	_GameWorld->BigGuys.Table = NULL;
 	_GameWorld->BigGuys.Size = 0;
 	_GameWorld->BigGuys.ICallback = (int(*)(const void*, const void*)) BigGuyIdInsert;
@@ -350,10 +435,7 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->PlotList.ICallback = (RBCallback) PlotInsert;
 	_GameWorld->PlotList.SCallback = (RBCallback) PlotSearch;
 
-	_GameWorld->MissionData.Size = 0;
-	_GameWorld->MissionData.Front = NULL;
-	_GameWorld->MissionData.Back = NULL;
-
+	ConstructLinkedList(&_GameWorld->MissionData);
 	_GameWorld->Date = 0;
 	_GameWorld->Tick = 0;
 	GameworldConstructPolicies(_GameWorld);
@@ -431,11 +513,11 @@ void GoodTableLoadInputs(lua_State* _State, struct GoodBase* _Base) {
 	GoodLoadOutput(_State, _Base);
 	Log(ELOG_INFO, "Good loaded %s.", _Base->Name);
 	//Set good categories.
-	LnkLstPushBack(&g_GoodCats[_Base->Category], _Base);
+	LnkLstPushBack(&g_GoodCats[GoodType(_Base)], _Base);
 }
 
 void LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _HashTable, void*(*_LoadFunc)(lua_State*, int), void(*_ListInsert)(struct LinkedList*, void*), size_t _NameOffset) {
-	struct LinkedList _List = LINKEDLIST();
+	struct LinkedList _List = LinkedList(); 
 	struct LnkLst_Node* _Itr = NULL;
 
 	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0)
@@ -517,7 +599,6 @@ void WorldInit(int _Area) {
 	LuaTableToHash("buildings.lua", "BuildMats", &g_BuildMats, (void*(*)(lua_State*, int))&BuildingLoad, (void (*)(struct LinkedList *, void *))LnkLstCatNode, offsetof(struct BuildMat, Name));
 	LuaTableToHash("professions.lua", "Professions", &g_Professions, (void*(*)(lua_State*, int))&LoadProfession, LnkLstPushBack, offsetof(struct Profession, Name));
 
-	g_Castes = calloc(CASTE_SIZE, sizeof(struct Caste));
 	if(LuaLoadFile(g_LuaState, "castes.lua", NULL) != LUA_OK) {
 		exit(1);
 	}
@@ -551,7 +632,6 @@ void WorldInit(int _Area) {
 }
 
 void WorldQuit() {
-	free(g_Castes);
 	AIQuit();
 	RBRemoveAll(&g_GameWorld.Families, (void(*)(void*))DestroyFamily);
 	LnkLstClear(&g_GameWorld.Settlements);
@@ -560,13 +640,13 @@ void WorldQuit() {
 	DestroyMemoryPool(g_PersonPool);
 	for(int i = 0; i < GOOD_SIZE; ++i)
 		LnkLstClear(&g_GoodCats[i]);
-	for(int i = 0; i < g_GameWorld.PolicySz; ++i)
-		free(g_GameWorld.Policies[i]);
 	free(g_GameWorld.Policies);
 	HashDeleteAll(&g_Goods, (void(*)(void*)) DestroyGoodBase);
 	HashDeleteAll(&g_Populations, (void(*)(void*)) DestroyPopulation);
 	Family_Quit();
 	DestroyHash(g_AIHash);
+	DestroyConstrntBnds(g_GameWorld.AgeGroups);
+	DestroyConstrntBnds(g_GameWorld.BabyAvg);
 }
 
 int GameDefaultClick(const struct Object* _One, const struct Object* _Two) {
@@ -611,7 +691,7 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 			g_GameWorld.MapRenderer->Screen.y += 1;
 	}
 	if(_State->MouseButton == SDL_BUTTON_LEFT && _State->MouseState == SDL_RELEASED) {
-		struct LinkedList _List = LINKEDLIST();
+		struct LinkedList _List = LinkedList();
 		struct Tile* _Tile = ScreenToTile(_World->MapRenderer, &_State->MousePos);
 
 		if(_Tile == NULL)
@@ -647,7 +727,7 @@ void GameWorldDraw(const struct GameWorld* _World) {
 int World_Tick() {
 	void* _SubObj = NULL;
 	void* _NextSubObj = NULL;
-	struct LinkedList _QueuedPeople = LINKEDLIST();
+	struct LinkedList _QueuedPeople = LinkedList();
 	int _Ticks = 1;
 	int _OldMonth = MONTH(g_GameWorld.Date);
 	struct RBItrStack _Stack[g_GameWorld.Agents.Size];

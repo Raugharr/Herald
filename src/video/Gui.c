@@ -11,6 +11,7 @@
 
 #include "../sys/Stack.h"
 #include "../sys/Event.h"
+#include "../sys/Memory.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -95,6 +96,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->Rect.w = _Rect->w;
 	_Widget->Rect.h = _Rect->h;
 	_Widget->OnDrag = WidgetOnDrag;
+	_Widget->Clickable = 1;
 	if(_Parent != NULL) {
 		WidgetSetParent(_Parent, _Widget);
 		if(WidgetCheckVisibility(_Widget) == 0) {
@@ -174,7 +176,7 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 		memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
 		_Parent->ChildrenSz = 2;
 	} else if(_Parent->ChildCt == _Parent->ChildrenSz) {
-		_Parent->Children = realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
+		_Parent->Children = Realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
 		for(i = _Parent->ChildrenSz; i < _Parent->ChildrenSz * 2; ++i)
 			_Parent->Children[i] = NULL;
 		_Parent->ChildrenSz *= 2;
@@ -301,7 +303,7 @@ int ContainerHorzFocChange(const struct Container* _Container) {
 struct Widget* ContainerOnClick(struct Container* _Container, const SDL_Point* _Point) {
 	struct Widget* _Widget = NULL;
 
-	if(PointInAABB(_Point, &_Container->Rect) == 0)
+	if(PointInAABB(_Point, &_Container->Rect) == 0 || _Container->Clickable == 0)
 		return 0;
 	for(int i = 0; i < _Container->ChildCt; ++i)
 		if((_Widget = _Container->Children[i]->OnClick(_Container->Children[i], _Point)) != NULL)
@@ -552,4 +554,11 @@ void GuiZBuffRem(struct Container* _Container) {
 		}
 		_Itr = _Itr->Next;	
 	}
+}
+
+void GetBlendValue(const SDL_Color* _Src, const SDL_Color* _Dest, SDL_Color* _Out) {
+	(*_Out).r = (((double)_Dest->r) / ((double)_Src->r)) * 255;
+	(*_Out).g = (((double)_Dest->g) / ((double)_Src->g)) * 255;
+	(*_Out).b = (((double)_Dest->b) / ((double)_Src->b)) * 255;
+	(*_Out).a = (((double)_Dest->a) / ((double)_Src->a)) * 255;
 }

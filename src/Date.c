@@ -173,7 +173,7 @@ int IsNewMonth(int _Date) {
 	return (DAY(_Date) == 0);
 }
 
-void NextDay(int* _Date) {
+void NextDay(DATE* _Date) {
 	int _Day = DAY(*_Date);
 	int _Month = MONTH(*_Date);
 	int _Year = YEAR(*_Date);

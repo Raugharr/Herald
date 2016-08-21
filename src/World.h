@@ -1,6 +1,6 @@
 /*
- * File: World.h
  * Author: David Brotz
+ * File: World.h
  */
 
 #ifndef __WORLD_H
@@ -8,6 +8,7 @@
 
 #include "Herald.h"
 #include "Date.h"
+#include "Family.h"
 
 #include "sys/LinkedList.h"
 #include "sys/RBTree.h"
@@ -32,7 +33,7 @@ struct Policy;
 extern struct GameWorld g_GameWorld;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
-extern struct Caste* g_Castes;
+extern struct Caste g_Castes[CASTE_SIZE];
 
 #define GameWorldInsertSettlement(_GameWorld, _Settlement) 																				\
 {																																		\
@@ -86,7 +87,9 @@ struct GameWorld {
 	struct LinkedList MissionData;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
-	struct Policy** Policies;
+	struct Policy* Policies;
+	struct Constraint** BabyAvg;
+	struct Constraint** AgeGroups;
 	int PolicySz;
 };
 

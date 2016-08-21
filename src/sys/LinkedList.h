@@ -6,7 +6,7 @@
 #ifndef __LINKEDLIST_H
 #define __LINKEDLIST_H
 
-#define LINKEDLIST() {0}
+#define LinkedList() {0, NULL, NULL}
 
 #define IMPLICIT_LINKEDLIST(_Type)			\
 	_Type* Next;							\

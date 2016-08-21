@@ -103,8 +103,7 @@ struct Constraint** CreateConstrntVaBnds(int _Size, va_list _List) {
 }
 
 int Fuzify(struct Constraint* const * _List, int _Value) {
-	int i;
-	for(i = 0; *_List != NULL; ++i, ++_List)
+	for(int i = 0; *_List != NULL; ++i, ++_List)
 		if((*_List)->Min <= _Value && (*_List)->Max >= _Value)
 			return i;
 	return -1;

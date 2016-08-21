@@ -7,10 +7,14 @@
 #define __POPULATION_H
 
 #include "World.h"
+#include "Family.h"
+
+#include "sys/Constraint.h"
 #include "sys/LinkedList.h"
 
 #define AGE_MATURE (0)
 #define AGE_DEATH (1)
+#define MILK_NUT (3)
 
 typedef struct lua_State lua_State;
 struct HashTable;
@@ -18,24 +22,32 @@ struct HashTable;
 struct Population {
 	int Id;
 	char* Name;
-	int Nutrition; //How much is eaten per day.
-	int Meat; //In pounds.
-	int Milk; //Fluid ounces.
-	double MaleRatio;
+	uint8_t Nutrition; //How much is eaten per day.
+	uint32_t Meat; //How much meat  is generated in pounds when the animal is slaughtered.
+	uint32_t Milk; //Fluid ounces per day.
+	uint32_t FMRatio; //How many females a male can reproduce with per season.
+	double MaleRatio; //Precentage of children that will be male.
+	uint16_t GestationTime; //How many days it takes to birth a child.
+	uint16_t MaxNutrition;
 	struct Constraint** Ages;
+	struct {
+		uint16_t Min;
+		uint16_t  Max;	
+	} ReproduceRate; 
 	struct Good** Outputs; //Contains struct Good*.
 	struct FoodBase** Eats;
-	int EatsSize;
 	struct {
 		const struct GoodBase* Skin;
 		double Pounds;
 	} Skin;
 
 	struct {
-		int Shearable;
 		const struct GoodBase* Hair;
 		double Pounds;
+		uint8_t Shearable;
 	} Hair;
+	uint8_t EatsSize;
+	uint8_t SpaceReq;
 };
 
 struct Animal {
@@ -49,7 +61,7 @@ struct Animal {
 	int Nutrition;
 	DATE Age;
 	struct ActorJob* Action;
-	const struct Population* PopType;
+	const struct Population* const PopType;
 };
 
 struct AnimalDep {
@@ -58,7 +70,8 @@ struct AnimalDep {
 	int Nutrition;
 };
 
-struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio);
+struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages,
+	 double _MaleRatio, int _FMRatio, double _ReproduceMin, double _ReproduceMax, int _SpaceReq);
 struct Population* CopyPopulation(const struct Population* _Population);
 int PopulationCmp(const void* _One, const void* _Two);
 int PopulationFoodCmp(const void* _One, const void* _Two);
@@ -79,5 +92,6 @@ void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal);
 struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index);
 
 int CountAnimal(const struct Population* _PopType, const struct Animal** _List, size_t _ListSz);
+int AnimalsReproduce(const struct Population* _Population, int _MaleCt, int _FemaleCt);
 
 #endif

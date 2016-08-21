@@ -79,15 +79,12 @@ int PopulationInputReqCmp(const void* _One, const void* _Two) {
 }
 
 int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	return _Family->Fields->Table != NULL;
+	return (_Family->FieldCt > 0);
 }
 
 int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Array = _Family->Buildings;
-	void** _PerTbl = _Array->Table;
-
-	for(int i = 0; i < _Array->Size; ++i)
-		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_HUMAN) == ERES_HUMAN)
+	for(int i = 0; i < _Family->BuildingCt; ++i)
+		if((_Family->Buildings[i]->ResidentType & ERES_HUMAN) == ERES_HUMAN)
 			return 1;
 	return 0;
 }
@@ -97,7 +94,7 @@ int PAIBuildHouse(struct Family* _Family, struct HashTable* _Vars, const struct 
 }
 
 int PAICanFarm(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Array = _Family->Goods;
+	struct Array* _Array = &_Family->Goods;
 	struct GoodBase* _Good = NULL;
 	int _Tools = 0;
 
@@ -112,7 +109,7 @@ int PAICanFarm(struct Family* _Family, struct HashTable* _Vars, const struct Pri
 }
 
 int PAIHasPlow(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Goods = _Family->Goods;
+	struct Array* _Goods = &_Family->Goods;
 	const struct GoodBase* _Good = NULL;
 
 	for(int i = 0; i < _Goods->Size; ++i) {
@@ -130,12 +127,12 @@ int PAIMakeGood(struct Family* _Family, struct HashTable* _Vars, const struct Pr
 	if(_Args[0].Type != PRIM_STRING && _Args[1]. Type != PRIM_INTEGER)
 		return 0;
 	_Good = HashSearch(&g_Goods, _Args[0].Value.String);
-	GoodMake(_Good, _Args[1].Value.Int, _Family->Goods, _Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y);
+	GoodMake(_Good, _Args[1].Value.Int, &_Family->Goods, _Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y);
 	return 1;
 }
 
 int PAIHasReap(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Goods = _Family->Goods;
+	struct Array* _Goods = &_Family->Goods;
 	struct GoodBase* _Good = NULL;
 
 	for(int i = 0; i < _Goods->Size; ++i) {
@@ -148,7 +145,7 @@ int PAIHasReap(struct Family* _Family, struct HashTable* _Vars, const struct Pri
 }
 
 int PAIHasAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	if(_Family->Animals->Size > 0)
+	if(_Family->Animals.Size > 0)
 		return 1;
 	return 0;
 }
@@ -159,7 +156,7 @@ int PAIConstructBuild(struct Family* _Family, struct HashTable* _Vars, const str
 
 int PAIHasShelter(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
 	int i;
-	struct Array* _Array = _Family->Buildings;
+	struct Array* _Array = &_Family->Buildings;
 	void** _PerTbl = _Array->Table;
 
 	for(i = 0; i < _Array->Size; ++i)
@@ -175,7 +172,7 @@ int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct
 	int _AnSize = 0;
 	int _TotalNut = 0;
 	struct StackNode _Stack;
-	struct InputReq** _AnimalCt = AnimalTypeCount(_Family->Animals, &_AnSize);
+	struct InputReq** _AnimalCt = AnimalTypeCount(&_Family->Animals, &_AnSize);
 	struct InputReq* _Req = NULL;
 	struct Food* _Food = NULL;
 	struct AnimalDep* _Dep = NULL;
@@ -193,9 +190,9 @@ int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct
 			_TotalNut += _Req->Quantity * ((struct Population*)_Req->Req)->Nutrition;
 			if(_Food->Quantity >= _TotalNut) {
 				//TODO: We can do better than this.
-				for(k = 0; k < _Family->Animals->Size; ++k) {
-					if(PopulationCmp(_Family->Animals->Table[k], _Req->Req) == 0)
-						ActorFeed(_Family->Animals->Table[k], ((struct Animal*)_Family->Animals->Table[k])->PopType->Nutrition);
+				for(k = 0; k < _Family->Animals.Size; ++k) {
+					if(PopulationCmp(_Family->Animals.Table[k], _Req->Req) == 0)
+						ActorFeed(_Family->Animals.Table[k], ((struct Animal*)_Family->Animals.Table[k])->PopType->Nutrition);
 				}
 				_Food->Quantity -= _TotalNut;
 			} else {
@@ -229,8 +226,8 @@ int PAIHasAnimal(struct Family* _Family, struct HashTable* _Vars, const struct P
 	if(_Args[0].Type != PRIM_STRING)
 		return 0;
 	_Pop = HashSearch(&g_Populations, _Args[0].Value.String);
-	for(int i = 0; i < _Family->Animals->Size; ++i) {
-		if(((struct Animal*)_Family->Animals->Table[i])->PopType == _Pop)
+	for(int i = 0; i < _Family->Animals.Size; ++i) {
+		if(((struct Animal*)_Family->Animals.Table[i])->PopType == _Pop)
 			return 1;
 	}
 	return 0;
@@ -246,8 +243,8 @@ int PAIHasGood(struct Family* _Family, struct HashTable* _Vars, const struct Pri
 	if(_Args[0].Type != PRIM_STRING)
 		return 0;
 	_Base = HashSearch(&g_Goods, _Args[0].Value.String);
-	for(int i = 0; i < _Family->Goods->Size; ++i) {
-		if(((struct Good*)_Family->Goods->Table[i])->Base == _Base)
+	for(int i = 0; i < _Family->Goods.Size; ++i) {
+		if(((struct Good*)_Family->Goods.Table[i])->Base == _Base)
 			return 1;
 	}
 	return 0;

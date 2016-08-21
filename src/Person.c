@@ -68,8 +68,10 @@ void PregnancyThink(struct Pregnancy* _Pregnancy) {
 
 struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutrition, int _X, int _Y, struct Family* _Family) {
 	struct Person* _Person = NULL;
-	if(_Name == NULL || _Age < 0 || (_Gender != EMALE && _Gender != EFEMALE) || _Family == NULL || _X < 0 || _Y < 0)
+	if(_Name == NULL || _Age < 0 || (_Gender != EMALE && _Gender != EFEMALE) || _Family == NULL || _X < 0 || _Y < 0) {
+		Log(ELOG_WARNING, "Cannot create person, invalid attributes.");
 		return NULL;
+	}
 
 	_Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (ObjectThink) PersonThink, _Gender, _Nutrition, _Age);
@@ -105,10 +107,6 @@ struct Person* CreateChild(struct Family* _Family) {
 }
 
 int PersonThink(struct Person* _Person) {
-	struct Family* _Family = _Person->Family;
-	struct Good* _Good = NULL;
-	double _Nutrition = 0;
-
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& _Person->Pregnancy == NULL
@@ -119,17 +117,8 @@ int PersonThink(struct Person* _Person) {
 		}
 	} 	
 	ActorThink((struct Actor*) _Person, NULL);
-	for(int i = 0; i < _Family->Goods->Size; ++i) {
-		_Good = (struct Good*) _Family->Goods->Table[i];
-		if(_Good->Base->Category == GOOD_FOOD) {
-			_Nutrition += PersonEat(_Person, (struct Food*) _Good);
-			if(_Nutrition >= NUTRITION_DAILY)
-				goto sufficient_food;
-		}
-	}
-	sufficient_food:
-	if(_Person->Nutrition <= 0)
-		PersonDeath(_Person);
+	if(_Person->Nutrition > MAX_NUTRITION)
+		_Person->Nutrition = MAX_NUTRITION;
 	return 1;
 }
 
@@ -140,29 +129,29 @@ void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* 
 	_NewFam->People[WIFE] = _Mother;
 	_Father->Family = _NewFam;
 	_Mother->Family = _NewFam;
-	ArrayInsert_S(_NewFam->Fields, CreateField(_NewFam->HomeLoc->Pos.x, _NewFam->HomeLoc->Pos.y, NULL, 30, _Family));
+	_NewFam->Fields[_NewFam->FieldCt++] = CreateField(_NewFam->HomeLoc->Pos.x, _NewFam->HomeLoc->Pos.y, NULL, 30, _Family);
 }
 
-double PersonEat(struct Person* _Person, struct Food* _Food) {
+/*double PersonEat(struct Person* _Person, struct Food* _Food) {
 	struct Food* _FoodPtr = NULL;
 	double _Nut = 0;
 	int _FoodAmt = 0;
 	struct Family* _Family = _Person->Family;
-	int _GoodSz = _Family->Goods->Size;
+	int _GoodSz = _Family->Goods.Size;
 
 		for(int i = 0; i < _GoodSz; ++i) {
 			if(_Nut >= NUTRITION_DAILY)
 				break;
-			if(((struct Good*)_Family->Goods->Table[i])->Base->Category == GOOD_FOOD) {
+			if(((struct Good*)_Family->Goods.Table[i])->Base->Category == GOOD_FOOD) {
 				//FIXME: Each unit of food should be equal to a day's worth of food and thus the below code should be removed.
-				_FoodPtr = (struct Food*)_Family->Goods->Table[i];
+				_FoodPtr = (struct Food*)_Family->Goods.Table[i];
 				while(_FoodAmt < _FoodPtr->Quantity && _Nut < NUTRITION_DAILY) {
 					_Nut += _FoodPtr->Base->Nutrition;
 					++_FoodAmt;
 				}
 				if(_FoodPtr->Quantity - _FoodAmt <= 0) {
 					free(_FoodPtr);
-					ArrayRemove(_Family->Goods, i);
+					ArrayRemove(&_Family->Goods, i);
 					--_GoodSz;
 					i = i - 1;
 				} else {
@@ -175,7 +164,7 @@ double PersonEat(struct Person* _Person, struct Food* _Food) {
 		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_GameWorld.Date), _Person->Id);
 	ActorFeed((struct Actor*)_Person, _Nut);
 	return _Nut;
-}
+}*/
 
 void PersonDeath(struct Person* _Person) {
 	struct Family* _Family = _Person->Family;

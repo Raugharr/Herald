@@ -47,14 +47,14 @@
 
 int InitLuaSystem() {
 	InitLuaCore();
-	InitLuaFamily();
+	InitLuaFamily(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	RegisterLuaEnums(g_LuaState, g_LuaSettlementEnums);
 	lua_getglobal(g_LuaState, "Plot");
 	luaL_getmetatable(g_LuaState, "Plot");
 	lua_setmetatable(g_LuaState, -2);
 	lua_pop(g_LuaState, 1);
-	LuaSettlementObjects(g_LuaState);
+	//LuaSettlementObjects(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
 
 	InitMissionLua(g_LuaState);
@@ -110,7 +110,6 @@ int main(int argc, char* args[]) {
 			{"Main", HeraldInit, HeraldDestroy},
 			{"Lua", InitLuaSystem, QuitLuaCore},
 			{"Video", VideoInit, VideoQuit},
-			{"Reform", InitReforms, QuitReforms},
 			{NULL, NULL, NULL}
 	};
 	g_Log.Level = ELOG_ALL;

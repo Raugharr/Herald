@@ -13,9 +13,19 @@ struct LinkedList;
 struct Rule;
 struct Primitive;
 struct Resource;
+struct Array;
+
+/**
+ * TODO: Complete const functionality for classes, by creating a table for each metatable that
+ * contains a list of all functions that can only be used if the object is constant and then change its
+ * __index to look at that table.
+ * TODO: Instead of using strings for object types instead use integers.
+ */
 
 #define LUA_BASECLASS "Object"
+#define LuaStackAssert(_State, _Code) (int __LuaStack = lua_gettop(_State); (_Code) Assert(lua_gettop(_State) != __LuaStack))
 
+//FIXME: The arguments of LuaCtor should match LuaCheckClass and thus be changed to _State, _Ptr, _Class
 #define LuaCtor(_State, _Class, _Ptr)			\
 	lua_createtable((_State), 0, 1);			\
 	LuaInitClass((_State), (_Class), (_Ptr))
@@ -88,7 +98,9 @@ int LuaRegisterObject(lua_State* _State, const char* _Class, const char* _BaseCl
  * Registers all Lua functions in _Funcs to the global space of _State.
  */
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
-void CreateLuaLnkLstItr(lua_State* _State, struct LinkedList* _List, const char* _Class);
+void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, const char* _Class);
+void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, const char* _Class);
+void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, const char* _Class);
 
 /**
  * Sets the table at the top of the stack to have _Class as its metatable, and an element __self with _Ptr as its value.
@@ -136,7 +148,7 @@ void ConstraintBndToLua(lua_State* _State, struct Constraint** _Constraints);
  * value as the value of the table index. Passing NULL as a value of a
  * LuaEnum's Key will signal the end of the _Enum array.
  */
-void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum, const char* _SubTable); 
+void LuaAddEnum(lua_State* _State, int _Table, const struct LuaEnum* _Enum); 
 void RegisterLuaEnums(lua_State* _State, const struct LuaEnumReg* _Reg);
 
 /**

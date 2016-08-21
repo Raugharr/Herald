@@ -11,10 +11,14 @@
 struct Array* CreateArray(int _Size) {
 	struct Array* _Array = (struct Array*) malloc(sizeof(struct Array));
 
+	ConstructArray(_Array, _Size);
+	return _Array;
+}
+
+void ConstructArray(struct Array* _Array, int _Size) {
 	_Array->Table = (_Size == 0) ? (NULL) : (calloc(_Size, sizeof(void*)));
 	_Array->TblSize = _Size;
 	_Array->Size = 0;
-	return _Array;
 }
 
 struct Array* CopyArray(const struct Array* _Array) {
@@ -29,13 +33,6 @@ struct Array* CopyArray(const struct Array* _Array) {
 
 void DestroyArray(struct Array* _Array) {
 	free(_Array);
-}
-
-int ArrayInsert(struct Array* _Array, void* _Data) {
-	if(_Array->Size >= _Array->TblSize)
-		return 0;
-	_Array->Table[_Array->Size++] = _Data;
-	return 1;
 }
 
 void ArrayInsert_S(struct Array* _Array, void* _Data) {
@@ -61,7 +58,7 @@ void ArrayResize(struct Array* _Array) {
 	void* _Temp = NULL;
 	
 	if(_Array->Table == NULL) {
-		_Size = 8;	
+		_Size = 4;	
 		_Temp = calloc(_Size, sizeof(void*));
 	} else {
 		_Size = _Array->TblSize * 2;
@@ -83,21 +80,20 @@ void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf
 	if(_Count <= 1)
 		return;
 	for(int _Base = 1; _Base < _Count; ++_Base) {
-		memmove(_Node, (int**)(_Table + _SizeOf * _Base), _SizeOf);
+		memcpy(_Node, (int**)(_Table + _SizeOf * _Base), _SizeOf);
 		j = _Base - 1;
 		while(j > 0 && _Callback(_Node, (void**)(_Table + _SizeOf * j)) < 0) {
 			_Off = _Table + _SizeOf * (j + 1);
-			memmove(_Off,  (int**)(_Table + _SizeOf * j), _SizeOf);
-			//*_Off = *(int**)(_Table + _SizeOf * (j - 1));
+			memcpy(_Off,  (int**)(_Table + _SizeOf * j), _SizeOf);
 			--j;
 		}
 		_Off = _Table + _SizeOf * (j + 1);
-		memmove(_Off,  _Node, _SizeOf);
-		//*_Off = _Node;
+		memcpy(_Off,  _Node, _SizeOf);
 	}
 }
 
-void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Left, int _Right) {
+void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Size) {
+	/*
 	int i = _Left;
 	int j = _Right;
 	const void* _Node = NULL;
@@ -126,6 +122,7 @@ void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Left, int _Right) 
 	*_Swap = _Node;
  	QuickSort_Aux(_Table, _Callback, _Left, i - 1);
 	QuickSort_Aux(_Table, _Callback, i + 1, _Right);
+	*/
 }
 
 int ArrayLen(const void* _Table) {

@@ -12,6 +12,8 @@ static inline void BlackboardWipe(struct Blackboard* _Blackboard) {
 	_Blackboard->Item = NULL;
 	_Blackboard->Animal = NULL;
 	_Blackboard->Building = NULL;
+	_Blackboard->Policy = NULL;
+	_Blackboard->Plot = NULL;
 }
 
 void InitBlackboard(struct Blackboard* _Blackboard) {

@@ -46,12 +46,13 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 	return (_Walls->BuildCost * _Area) + (_Floor->BuildCost * _Area) + (_Roof->BuildCost * _Area);
 }
 
-struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof) {
+struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _SquareFeet) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
 	CreateObject((struct Object*)_Building, OBJECT_BUILDING, NULL);
 	_Building->Pos.x = 0;
 	_Building->Pos.y = 0;
+	_Building->SquareFeet = _SquareFeet;
 	_Building->ResidentType = _ResType;
 	_Building->Walls = _Walls;
 	_Building->Floor = _Floor;
@@ -60,14 +61,10 @@ struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, con
 }
 
 void DestroyBuilding(struct Building* _Building) {
-	int i;
-
-	for(i = 0; _Building->OutputGoods[i] != NULL; ++i)
+	for(int i = 0; _Building->OutputGoods[i] != NULL; ++i)
 		free(_Building->OutputGoods[i]);
-	free(_Building->OutputGoods[i]);
-	for(i = 0; _Building->BuildMats[i] != NULL; ++i)
+	for(int i = 0; _Building->BuildMats[i] != NULL; ++i)
 		free(_Building->BuildMats[i]);
-	free(_Building->BuildMats[i]);
 	free(_Building);
 }
 
@@ -142,17 +139,6 @@ struct BuildMat* SelectBuildMat(const struct Array* _Goods, int _MatType) {
 	}
 	HashDeleteItrCons(_Itr);
 	return _HighMat;
-}
-
-struct Building* BuildingPlan(const struct Person* _Person, int _Type, int _RoomCt) {
-	struct Array* _Goods = _Person->Family->Goods;
-	struct Building* _Building = NULL;
-	int _ResType = 0;
-
-	if(_Type == EBT_HOME && _RoomCt == 1)
-		_ResType = (ERES_HUMAN | ERES_ANIMAL);
-	_Building = CreateBuilding(_ResType, SelectBuildMat(_Goods, BMAT_WALL), SelectBuildMat(_Goods, BMAT_FLOOR), SelectBuildMat(_Goods, BMAT_ROOF));
-	return _Building;
 }
 
 struct LnkLst_Node* BuildingLoad(lua_State* _State, int _Index) {

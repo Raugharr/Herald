@@ -61,6 +61,7 @@ struct Settlement {
 	struct Government* Government;
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
+	struct BulitinItem* Bulitin;
 	int NumPeople;
 	int YearDeaths; //Record of deaths in this settlement this year.
 	int YearBirths;
@@ -68,7 +69,7 @@ struct Settlement {
 	uint16_t MaxWarriors;
 	uint16_t FreeAcres;
 	uint16_t UsedAcres;
-	struct BulitinItem* Bulitin;
+	uint16_t StarvingFamilies;
 	/**
 	 * Modifier to how many pounds are harvested from each field in this
 	 * settlement. Changes every year and is dependant on the previous year.

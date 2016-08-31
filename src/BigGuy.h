@@ -113,12 +113,13 @@ struct BigGuy {
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Authority;
 	float Prestige;
+	float Popularity; 
 	struct BigGuyAction Action;
 	struct LinkedList Feuds;
 	struct LinkedList PlotsAgainst;
 	struct Trait** Traits;
-	uint16_t Popularity; 
 	int16_t PopularityDelta;
+	uint8_t TraitCt; 
 	uint8_t IsDirty;
 	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
 };
@@ -168,6 +169,7 @@ void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points);
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
 void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
 struct Trait** BGRandTraits();
+int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait);
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
 void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);

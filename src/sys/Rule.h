@@ -18,15 +18,17 @@ typedef void(*RuleDestroy)(struct Rule*);
  * TODO: There are several rule types that are very common such as RuleBoolean(0) and RuleBoolean(1)
  * used to represent true and false respectivly. It should be looked into to determine if caching common
  * rules would be able to save a significant amount of memory.
+ * Simple rules like greaterthan, lessthan, and ifthenelse should be all put into one function that chooses
+ * the correct rule through a switch to remove function overhead.
  */
 
 enum {
 	PRIM_FLOAT,
 	PRIM_INTEGER,
 	PRIM_BOOLEAN,
-	PRIM_PTR,
 	PRIM_BYTE,
-	PRIM_STRING
+	PRIM_STRING,
+	PRIM_PTR
 };
 
 enum {

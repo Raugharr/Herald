@@ -81,6 +81,7 @@ struct GameWorld g_GameWorld = {
 		NULL,
 		NULL,
 		NULL,
+		{0},
 		0
 };
 
@@ -141,7 +142,7 @@ void PlayerOnHarvest(const struct EventData* _Data, void* _Extra1, void* _Extra2
 }
 
 void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
-	int _X, int _Y, struct Constraint * const *  const _AgeGroups, struct Constraint const  * const * const _BabyAvg) {
+	int _X, int _Y, struct Constraint * const *  const _AgeGroups, struct Constraint * const * const _BabyAvg) {
 	int _AcresPerFarmer = 10;
 	int _CropTypes = 1 ;
 	const struct Crop* _Crops[_CropTypes];
@@ -438,6 +439,8 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	ConstructLinkedList(&_GameWorld->MissionData);
 	_GameWorld->Date = 0;
 	_GameWorld->Tick = 0;
+	for(int i = 0; i < WORLD_DECAY; ++i)
+		_GameWorld->DecayRate[i] = i * i / ((float)2000);
 	GameworldConstructPolicies(_GameWorld);
 }
 

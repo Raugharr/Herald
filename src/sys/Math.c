@@ -8,8 +8,8 @@
 #include <stdlib.h>
 
 #ifndef RND_TWIST
- static unsigned int g_SeedX = 521288629;
- static unsigned int g_SeedY = 362436069;
+ static uint64_t g_SeedX = 521288629;
+ static uint64_t g_SeedY = 362436069;
 #else
 #define RAND_ARRAYSZ (624)
 
@@ -40,7 +40,7 @@ void RandGenNumbers() {
 }
 #endif
 
- int Rand() {
+uint64_t Rand() {
 #ifdef RND_TWIST
 	 int y = g_RandArray[g_RandIndex];
 
@@ -53,13 +53,13 @@ void RandGenNumbers() {
 	 g_RandIndex = (g_RandIndex + 1) & RAND_ARRAYSZ;
 	 return y;
 #else
-	 g_SeedX = 1800 * (g_SeedX & 0xFFFF) + (g_SeedX >> 16);
-	 g_SeedY = 30903 * (g_SeedY & 0xFFFF) + (g_SeedY >> 16);
-	 return (g_SeedX << 16) + (g_SeedY & 0xFFFF);
+	 g_SeedX = 1800 * (g_SeedX & 0xFFFFFFFF) + (g_SeedX >> 32);
+	 g_SeedY = 30903 * (g_SeedY & 0xFFFFFFFF) + (g_SeedY >> 32);
+	 return (g_SeedX << 32) + (g_SeedY & 0xFFFFFFFF);
 #endif
  }
 
-unsigned int Random(unsigned int _Min, unsigned int _Max) {
+uint64_t Random(uint64_t _Min, uint64_t _Max) {
 	return Rand() % (_Max - _Min + 1) + _Min;
 }
 
@@ -77,7 +77,7 @@ int max(int _One, int _Two) {
 }
 
 int Abs(int _Num) {
-	int _Mask = (_Num >> (sizeof(int) * CHAR_BITS - 1));
+	int _Mask = (_Num >> (sizeof(int) * CHAR_BIT - 1));
 
 	return (_Num ^ _Mask) - _Mask;
 }
@@ -130,9 +130,88 @@ double Normalize(int _Num, int _Min, int _Max) {
 }
 
 int NextPowTwo(int _Num) {
-	return (1 << ((sizeof(int) * CHAR_BITS) - clz(_Num)));
+	return (1 << ((sizeof(int) * CHAR_BIT) - clz(_Num)));
 }
 
 int PrevPowTwo(int _Num) {
-	return (1 << ((sizeof(int) * CHAR_BITS) - clz(_Num) - 1));
+	return (1 << ((sizeof(int) * CHAR_BIT) - clz(_Num) - 1));
+}
+
+/**
+ * Credit: https://gist.github.com/orlp/3551590
+ */
+int64_t Ipow(int64_t base, uint8_t exp) {
+    static const uint8_t highest_bit_set[] = {
+        0, 1, 2, 2, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 255, // anything past 63 is a guaranteed overflow with base > 1
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255,
+    };
+
+    uint64_t result = 1;
+
+    switch (highest_bit_set[exp]) {
+    case 255: // we use 255 as an overflow marker and return 0 on overflow/underflow
+        if (base == 1) {
+            return 1;
+        }
+        
+        if (base == -1) {
+            return 1 - 2 * (exp & 1);
+        }
+        
+        return 0;
+    case 6:
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        base *= base;
+    case 5:
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        base *= base;
+    case 4:
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        base *= base;
+    case 3:
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        base *= base;
+    case 2:
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        base *= base;
+    case 1:
+        if (exp & 1) result *= base;
+    default:
+        return result;
+    }
 }

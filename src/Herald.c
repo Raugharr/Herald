@@ -79,18 +79,6 @@ int IdISCallback(const int* _One, const int* _Two) {
 	return *(_One) - *(_Two);
 }
 
-struct BigGuy* CrisisGetOwner(struct Crisis* _Crisis) {
-	return _Crisis->Guy;
-}
-
-int* CrisisGetTriggerMask(struct Crisis* _Crisis) {
-	return &_Crisis->TriggerMask;
-}
-
-struct WorldState* CrisisGetState(struct Crisis* _Crisis) {
-	return &_Crisis->State;
-}
-
 void SigSev(int _Sig) {
 	void* _Array[16];
 	size_t _Size = 0;
@@ -103,10 +91,6 @@ void SigSev(int _Sig) {
 		free(_Symbols[i]);
 	}
 	free(_Symbols);
-}
-
-int MissionCatRBIsEmpty(struct RBTree* _Tree) {
-	return (_Tree->Size == 0);
 }
 
 int HeraldInit() {
@@ -145,51 +129,12 @@ int HeraldInit() {
 	EventInit();
 	PathfindInit();
 	MathInit();
-	g_MissionEngine.MissionQueue.Size = 0;
-	g_MissionEngine.MissionQueue.Compare = (int(*)(const void*, const void*))MissionHeapInsert;
-	g_MissionEngine.MissionQueue.Table = calloc(1024, sizeof(void*));
-	g_MissionEngine.MissionQueue.TblSz = 1024;
-	g_MissionEngine.UsedMissionQueue.Size = 0;
-	g_MissionEngine.UsedMissionQueue.Compare = (int(*)(const void*, const void*))UsedMissionHeapInsert;
-	g_MissionEngine.UsedMissionQueue.Table = calloc(1024, sizeof(void*));
-	g_MissionEngine.UsedMissionQueue.TblSz = 1024;
 
-	g_MissionEngine.Missions.Table = NULL;
-	g_MissionEngine.Missions.Size = 0;
-	g_MissionEngine.Missions.ICallback = (int(*)(const void*, const void*))MissionTreeIS;
-	g_MissionEngine.Missions.SCallback = (RBCallback)MissionTreeIS;
-
-	g_MissionEngine.UsedMissionTree.Table = NULL;
-	g_MissionEngine.UsedMissionTree.Size = 0;
-	g_MissionEngine.UsedMissionTree.ICallback = (RBCallback) UsedMissionInsert;
-	g_MissionEngine.UsedMissionTree.SCallback = (RBCallback) UsedMissionSearch;
-
-	g_MissionEngine.MissionId.Table = NULL;
-	g_MissionEngine.MissionId.Size = 0;
-	g_MissionEngine.MissionId.ICallback = (RBCallback) MissionIdSearch;
-	g_MissionEngine.MissionId.SCallback = (RBCallback) MissionIdInsert;
-
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].CreateItr = CrisisCreateItr;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].DestroyItr = DestroyRBItr;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].StateStr = g_CrisisStateStr;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetState = NULL;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetState = (struct WorldState*(*)(void*))CrisisGetState;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetTriggerMask = (int*(*)(void*))CrisisGetTriggerMask;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].GetOwner = (struct BigGuy*(*)(void*))CrisisGetOwner;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].List = &g_GameWorld.Crisis;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].Name = "Crisis";
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].StateSz = CRISIS_SIZE;
-	g_MissionEngine.Categories[MISSIONCAT_CRISIS].ListIsEmpty = (int(*)(void*))MissionCatRBIsEmpty;
-
-	g_MissionEngine.EventMissions.Table = NULL;
-	g_MissionEngine.EventMissions.Size = 0;
-	g_MissionEngine.EventMissions.ICallback = (RBCallback) MissionEngineEvent;
-	g_MissionEngine.EventMissions.SCallback = (RBCallback) MissionEngineEvent; 
+	ConstructMissionEngine(&g_MissionEngine);
 
 	g_StackAllocator.ArenaSize = STACKALLOC_SZ;
 	g_StackAllocator.ArenaBot = malloc(g_StackAllocator.ArenaSize);
 	g_StackAllocator.ArenaTop = g_StackAllocator.ArenaBot;
-	InitMissions();
 	return 1;
 }
 
@@ -209,7 +154,6 @@ void HeraldDestroy() {
 	EventQuit();
 	PathfindQuit();
 	DestroyMissionEngine(&g_MissionEngine);
-	QuitMissions();
 	free(g_StackAllocator.ArenaBot);
 }
 

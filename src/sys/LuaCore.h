@@ -246,7 +246,6 @@ void LuaGetEnv(lua_State* _State, const char* _Env);
 //Index function for Lua classes.
 int LuaClassIndex(lua_State* _State);
 
-void InitMissionLua(lua_State* _State);
 int LuaClassError(lua_State* _State, int _Arg, const char* _Class);
 
 #endif

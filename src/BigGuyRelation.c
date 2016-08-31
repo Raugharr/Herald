@@ -41,8 +41,8 @@ struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* 
 	_Relation->Opinions = NULL;
 	_Relation->Person = _Actor;
 
-	for(int i = 0; _Guy->Traits[i] != NULL; ++i) {
-		for(int j = 0; _Actor->Traits[j] != NULL; ++j) {
+	for(uint8_t i = 0; i < _Guy->TraitCt; ++i) {
+		for(uint8_t j = 0; j < _Actor->TraitCt; ++j) {
 			if(TraitDislikes(_Guy->Traits[i], _Actor->Traits[j]) != 0) {
 				BigGuyChangeRelation(_Relation, ACTTYPE_TRAIT, -(BIGGUY_TRAITREL), OPNLEN_FOREVER, OPINION_STATIC);
 			} else if(TraitLikes(_Guy->Traits[i], _Actor->Traits[j])) {

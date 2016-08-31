@@ -30,13 +30,6 @@ const char* g_LuaGlobals[] = {
 		NULL
 };
 
-static const char* g_LuaMissionEnv[] = {
-		"Settlement",
-		"BigGuy",
-		"Family",
-		NULL
-};
-
 static const luaL_Reg g_LuaObjectFuncs[] = {
 		{"__eq", LuaObjectIsEqual},
 		{"GetClassName", LuaObjectGetClassName},
@@ -123,18 +116,6 @@ static const luaL_Reg g_LuaFuncsMissionOption[] = {
 		{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaMissionRuleFuncs[] = {
-		{"Owner", LuaMissionGetOwner},
-		{"Sender", LuaMissionGetSender},
-		{"GetRandomPerson", LuaMissionGetRandomPerson},
-		{"CallById", LuaMissionCallById},
-		{"Load", LuaMissionLoad},
-		{"Normalize", LuaMissionNormalize},
-		{"Var", LuaMissionGetVar},
-		{"SetVar", LuaMissionSetVar},
-		{NULL, NULL},
-};
-
 static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Iterator", NULL, g_LuaFuncsIterator},
 		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
@@ -218,6 +199,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseCla
 		luaL_setfuncs(_State, _Funcs, 0);
 	}
 	luaL_setmetatable(_State, _Name);
+	lua_pop(_State, 1);
 	return 1;
 }
 
@@ -519,7 +501,6 @@ void RegisterLuaEnums(lua_State* _State, const struct LuaEnumReg* _Reg) {
 			lua_newtable(_State);
 			LuaAddEnum(_State, -1, _Reg[i].Enum);
 			lua_setglobal(_State, _Reg[i].Name);
-			lua_pop(_State, 1);
 		} else {
 			lua_getglobal(_State, _Reg[i].Name);
 			if(lua_type(_State, -1) != LUA_TTABLE) {
@@ -814,6 +795,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 
 void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	int _Pop = 4;
+
 	luaL_getmetatable(_State, _Class);
 	if(lua_getmetatable(_State, _Index) == 0) {
 		lua_pop(_State, 1);
@@ -1200,65 +1182,6 @@ int LuaClassIndex(lua_State* _State) {
 		lua_replace(_State, 3);
 	}
 	return 1;
-}
-
-void InitMissionLua(lua_State* _State) {
-	const char* _Temp = NULL;
-
-	lua_settop(_State, 0);
-	lua_newtable(_State);
-	lua_pushstring(_State, "Mission");
-	luaL_newlib(_State, g_LuaMissionRuleFuncs);
-
-	lua_pushstring(_State, "LessThan");
-	lua_pushinteger(_State, WSOP_LESSTHAN);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "GreaterThan");
-	lua_pushinteger(_State, WSOP_GREATERTHAN);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Equal");
-	lua_pushinteger(_State, WSOP_EQUAL);
-	lua_rawset(_State, -3);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Rule");
-	luaL_getmetatable(_State, "Rule");
-	lua_rawset(_State, 1);
-	for(int i = 0; g_LuaMissionEnv[i] != NULL; ++i) {
-		luaL_getmetatable(_State, g_LuaMissionEnv[i]);
-		if(lua_type(_State, -1) != LUA_TTABLE) {
-			Log(ELOG_WARNING, "%s is not a valid table to include the Mission env table.", g_LuaMissionEnv[i]);
-			lua_pop(_State, 2);
-			continue;
-		}
-		lua_pushstring(_State, g_LuaMissionEnv[i]);
-		lua_newtable(_State);
-		lua_pushnil(_State);
-		while(lua_next(_State, -4) != 0) {
-			if(lua_iscfunction(_State, -1) == 0) {
-				_Temp = lua_tostring(_State, -2);
-				if(_Temp[0] == '_') {
-					lua_pop(_State, 1);
-					continue;
-				}
-			}
-			SDL_assert(lua_type(_State, -1) == LUA_TFUNCTION);
-			lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
-			lua_pushvalue(_State, -2);
-			lua_pushvalue(_State, -2);
-			lua_remove(_State, -3);
-			lua_rawset(_State, -4);
-		}
-		lua_rawset(_State, 1);
-		lua_pop(_State, 1);
-	}
-	lua_pushstring(_State, "Random");
-	lua_pushcfunction(_State, LuaRandom);
-	lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
-	lua_rawset(_State, -3);
-	LuaSetEnv(_State, "Mission");
 }
 
 int LuaClassError(lua_State* _State, int _Arg, const char* _Class) {

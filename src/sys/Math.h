@@ -6,16 +6,15 @@
 #ifndef __MATH_H
 #define __MATH_H
 
+#include <limits.h>
+#include <stdint.h>
+
 #ifndef ffs
 #define ffs(_Int) __builtin_ffs(_Int)
 #endif
 
 #ifndef bsc //bit set count
 #define bsc(_Int) __builtin_popcount(_Int)
-#endif
-
-#ifndef CHAR_BITS
-#define CHAR_BITS (8)
 #endif
 
 #ifndef clz
@@ -26,13 +25,13 @@
 
 #define IsNeg(_Int) ((_Int) < 0)
 //_Int becomes _Num more integers away from 0.
-#define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BITS - 1))) * (_Num))
-#define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BITS - 1)))
+#define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BIT - 1))) * (_Num))
+#define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BIT - 1)))
 
 void MathInit();
 
-unsigned int Random(unsigned int _Min, unsigned int _Max);
-int Rand();
+uint64_t Random(uint64_t _Min, uint64_t _Max);
+uint64_t Rand();
 void Srand(int _Seed);
 
 int min(int _One, int _Two);
@@ -57,5 +56,6 @@ void RandTable(double* _Table, int** _IntTable, int _TableSz, int _Amount);
 double Normalize(int _Num, int _Min, int _Max);
 int NextPowTwo(int _Num);
 int PrevPowTwo(int _Num);
+int64_t Ipow(int64_t base, uint8_t exp);
 
 #endif

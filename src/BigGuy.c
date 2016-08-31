@@ -207,7 +207,7 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SI
 	_BigGuy->Feuds.Back = NULL;
 	ConstructLinkedList(&_BigGuy->PlotsAgainst);
 	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
-	_BigGuy->Traits = BGRandTraits();
+	_BigGuy->Traits = BGRandTraits(&_BigGuy->TraitCt);
 	return _BigGuy;
 }
 
@@ -232,6 +232,7 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 }
 
 void BigGuyThink(struct BigGuy* _Guy) {
+	_Guy->Popularity -= g_GameWorld.DecayRate[(int)_Guy->Popularity] / YEAR_DAYS;
 	if(_Guy->ActionFunc != NULL)
 		_Guy->ActionFunc(_Guy, &_Guy->Action);
 
@@ -320,7 +321,7 @@ void BGSetPrestige(struct BigGuy* _Guy, float _Prestige) {
 	_Guy->IsDirty = 1;
 }
 
-struct Trait* RandomTrait(struct Trait** _Traits, int _TraitSz, struct HashItr* _Itr) {
+struct Trait* RandomTrait(struct Trait** _Traits, uint8_t _TraitCt, struct HashItr* _Itr) {
 	int _Rand = Random(0, g_Traits.Size - 1);
 	int _Ct = 0;
 	int _FirstPick = _Rand;
@@ -332,7 +333,7 @@ struct Trait* RandomTrait(struct Trait** _Traits, int _TraitSz, struct HashItr* 
 		++_Ct;
 	}
 	//Determine if trait is a valid option.
-	for(int i = 0; i < _TraitSz; ++i) {
+	for(int i = 0; i < _TraitCt; ++i) {
 		//Same trait is picked, pick another if there is another valid trait to be picked.
 		if(_Traits[i] == HashItrData(_Itr))
 			goto repick_trait;
@@ -355,14 +356,13 @@ struct Trait* RandomTrait(struct Trait** _Traits, int _TraitSz, struct HashItr* 
 	goto loop_top;
 }
 
-struct Trait** BGRandTraits() {
+struct Trait** BGRandTraits(uint8_t* _TraitCt) {
 	struct HashItr* _Itr = HashCreateItr(&g_Traits);
-	int _TraitCt = Random(1, 3);
-	struct Trait** _Traits = calloc(_TraitCt + 1, sizeof(struct Trait*));
+	struct Trait** _Traits = calloc(*_TraitCt, sizeof(struct Trait*));
 	struct Trait* _Trait = NULL;
 
-	_Traits[_TraitCt] = NULL;
-	for(int i = 0; i < _TraitCt; ++i) {
+	*_TraitCt = Random(1, 3);
+	for(uint8_t i = 0; i < *_TraitCt; ++i) {
 		if((_Trait = RandomTrait(_Traits, i, _Itr)) == NULL) {
 			_Traits[i] = NULL;
 			break;
@@ -370,9 +370,16 @@ struct Trait** BGRandTraits() {
 		_Traits[i] = _Trait;
 		HashItrRestart(&g_Traits, _Itr);	
 	}
-
 	HashDeleteItr(_Itr);
 	return _Traits;
+}
+
+int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait) {
+	for(int i = 0; i < _BigGuy->TraitCt; ++i) {
+		if(_BigGuy->Traits[i] == _Trait)
+			return 1;
+	}
+	return 0;
 }
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data) {

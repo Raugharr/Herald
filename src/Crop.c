@@ -437,7 +437,8 @@ void FieldChangeStatus(struct Field* _Field) {
 	if(_Field->Status == EHARVESTING) {	
 		_Field->Status = EFALLOW;
 	} else {
-		PushEvent(EVENT_FARMING, _Field->Owner, _Field);
+		if(_Field->Owner != NULL)
+			PushEvent(EVENT_FARMING, _Field->Owner, _Field);
 		++_Field->Status;
 		switch(_Field->Status) {
 			case EPLANTING:

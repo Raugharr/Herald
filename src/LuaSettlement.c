@@ -81,6 +81,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"IsRecruiting", LuaBGIsRecruiting},
 	{"RetinueSize", LuaBGRetinueSize},
 	{"GetRetinueTable", LuaBGRetinueTable},
+	{"HasTrait", LuaBGHasTrait},
 	{NULL, NULL}
 };
 
@@ -223,12 +224,25 @@ const struct LuaEnum g_LuaBigGuyRelationEnum[] = {
 	{NULL, 0}
 };
 
+const struct LuaEnum g_LuaStatsEnum[] = {
+	{"Combat", BGSKILL_COMBAT},
+	{"Strength", BGSKILL_STRENGTH},
+	{"Toughness", BGSKILL_TOUGHNESS},
+	{"Agility", BGSKILL_AGILITY},
+	{"Wit", BGSKILL_WIT},
+	{"Intrigue", BGSKILL_INTRIGUE},
+	{"Charisma", BGSKILL_CHARISMA},
+	{"Intellegence", BGSKILL_INTELLEGENCE},
+	{NULL, 0}
+};
+
 const struct LuaEnumReg g_LuaSettlementEnums[] = {
 	{"Plot", NULL,  g_LuaPlotEnum},
 	{"Plot", "Type", g_LuaPlotTypeEnum},
 	{"BigGuy", "Action", g_LuaBigGuyActionEnum},
 	{"BigGuy", "Relation", g_LuaBigGuyRelationEnum},
 	{"Policy", NULL, g_LuaPolicyEnum},
+	{"Stat", NULL, g_LuaStatsEnum},
 	{NULL, NULL}
 };
 
@@ -595,6 +609,30 @@ int LuaBGRetinueTable(lua_State* _State) {
 		LuaCtor(_State, "Person", _Retinue->Warriors.Table[i]);
 		lua_rawseti(_State, -2, i + 1);
 	}
+	return 1;
+}
+
+int LuaBGHasTrait(lua_State* _State) {
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	const char* _TraitName = NULL;
+	const struct Trait* _Trait = NULL;
+	
+	switch(lua_type(_State, 2)) {
+		case LUA_TSTRING:
+			_TraitName = luaL_checkstring(_State, 2);
+			_Trait = HashSearch(&g_Traits, _TraitName);
+			if(_Trait == NULL)
+				goto error;
+			lua_pushboolean(_State, HasTrait(_Guy, _Trait));
+			break;
+		case LUA_TTABLE:
+			lua_pushboolean(_State, HasTrait(_Guy, LuaCheckClass(_State, 2, "Trait")));
+			break;
+		default:
+			error:
+			return luaL_error(_State, "Arg #2 is neither a trait or a trait name.");
+	}
+
 	return 1;
 }
 

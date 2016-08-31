@@ -58,7 +58,7 @@ void WorldStateAdd(struct WorldState* _To, const struct WorldState* _From) {
 
 	for(int i = 0; i < WORLDSTATESZ; ++i) {
 		for(int j = 0; j < sizeof(WorldState_t); ++j) {
-			if(((_From->DontCare[i] >> (j * CHAR_BITS)) & 0xFF) == 0) {
+			if(((_From->DontCare[i] >> (j * CHAR_BIT)) & 0xFF) == 0) {
 				_FromAtom = WSToByte(_From, i, j);
 				_ToAtom = WSToByte(_To, i, j);
 				switch(((_To->OpCode[i] >> STATEOPCODE_BITS) & STATEOPCODE_MAX)) {
@@ -75,7 +75,7 @@ void WorldStateAdd(struct WorldState* _To, const struct WorldState* _From) {
 					_ToAtom = _ToAtom / _FromAtom;
 					break;
 				}
-				_To->State[i] = _To->State[i] | (((_To->State[i] & (~_To->DontCare[i])) & (~(0xFF << (j * CHAR_BITS)))) | (_ToAtom << (j * CHAR_BITS)));
+				_To->State[i] = _To->State[i] | (((_To->State[i] & (~_To->DontCare[i])) & (~(0xFF << (j * CHAR_BIT)))) | (_ToAtom << (j * CHAR_BIT)));
 			}
 		}
 	}
@@ -183,7 +183,7 @@ int WorldStateFirstAtom(const struct WorldState* _State) {
 		if(_ffs == 0)
 			_Ct += sizeof(WorldState_t);
 		else {
-			return (_Ct + ((_ffs + CHAR_BITS) / CHAR_BITS));
+			return (_Ct + ((_ffs + CHAR_BIT) / CHAR_BIT));
 		}
 	}
 	return 0;
@@ -296,7 +296,7 @@ int WSDntCrComp(const struct WorldState* _State) {
 
 	for(int i = 0; i < sizeof(WorldState_t); ++i) {
 		for(int j = 0; j < WORLDSTATESZ; ++j) {
-			_NewState = _NewState | ((((0xFF << (i * CHAR_BITS)) & _State->DontCare[j]) == 0) << (i + (sizeof(WorldState_t) * j)));
+			_NewState = _NewState | ((((0xFF << (i * CHAR_BIT)) & _State->DontCare[j]) == 0) << (i + (sizeof(WorldState_t) * j)));
 		}
 	}
 	return _NewState;

@@ -40,6 +40,7 @@ extern struct Caste g_Castes[CASTE_SIZE];
 	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
 	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &(_Settlement)->Pos);													\
 }
+#define WORLD_DECAY (101)
 
 enum {
 	SUBTIME_ARMY,
@@ -90,6 +91,7 @@ struct GameWorld {
 	struct Policy* Policies;
 	struct Constraint** BabyAvg;
 	struct Constraint** AgeGroups;
+	float DecayRate[WORLD_DECAY];
 	int PolicySz;
 };
 

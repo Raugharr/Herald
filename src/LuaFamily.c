@@ -51,10 +51,10 @@ static const luaL_Reg g_LuaFuncsPerson[] = {
 };
 
 static const luaL_Reg g_LuaFuncsGood[] = {
-		{"GetId", LuaGoodGetId},
-		{"GetQuantity", LuaGoodGetQuantity},
-		{"GetBase", LuaGoodGetBase},
-		{NULL, NULL}
+	{"GetId", LuaGoodGetId},
+	{"GetQuantity", LuaGoodGetQuantity},
+	{"GetBase", LuaGoodGetBase},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsFamily[] = {

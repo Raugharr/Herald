@@ -21,6 +21,7 @@
 #include "sys/BinaryHeap.h"
 #include "sys/LinkedList.h"
 #include "sys/RBTree.h"
+#include "sys/Event.h"
 
 #include <SDL2/SDL.h>
 
@@ -55,11 +56,11 @@ struct MissionData;
 struct LnkLst_Node;
 struct MissionData;
 
-/*
- * Each mission has a variable named Trigger that represents the state the world must be in for the Mission to be fired.
- * In order to achieve this in an efficient manner every BigGuy has a dirty variable where only BigGuys that are considered
- * dirty will have their state compared to a mission.
- */
+enum MissionEventEnum {
+	MEVENT_SPRING = EVENT_SIZE,
+	MEVENT_FALL,
+	MEVENT_SIZE
+};
 
 /*
  * TODO: Trigger should be replaced with a new struct that can contain multiple WorlState's. This new struct should also be able to handle the
@@ -72,73 +73,63 @@ struct MissionData;
  * By doing this complex triggers of checking if a BigGuy's Authority is between 0 and 100 becomes possible.
  */
 
+struct MissionUtility {
+	struct Rule* Utility;
+	uint16_t True; //Amount of utility to add if false.
+	uint16_t False; //Amount of utility to add if true.
+};
+
 struct MissionOption {
 	char* Name;
 	struct Rule* Condition;
 	struct Rule* Action;
-	struct Rule* Utility;//Used by AI to determine which is the best option.
+	//struct Rule* Utility;//Used by AI to determine which is the best option.
+	struct MissionUtility* Utility; //Pointer to array.
+	uint8_t UtilitySz;
+};
+
+struct MissionTextFormat {
+	uint8_t Object;
+	uint8_t Param;
 };
 
 struct Mission {
-	int Id;
-	int TriggerType;
-	int Flags;
+	uint32_t Id;
 	char* Name;
 	char* Description;
-	struct Rule* PostTrigger; //Must be true for the mission to be run. Is checked after Trigger is true.
-	struct WorldState Trigger;
-	struct MissionOption Options[MISSION_MAXOPTIONS];
+	double MeanPercent;
+	struct Rule* Trigger; //Must be true for the mission to be run. Is checked after Trigger is true.
 	struct Rule* OnTrigger;
-	int OptionCt;
-	struct Rule* MeanTime;
-	struct Rule** TextFormat;
-};
-
-struct MissionCat {
-	struct GenIterator* (*CreateItr)(void*);
-	void (*DestroyItr)(struct GenIterator*);
-	struct WorldState* (*GetState)(void*);
-	int* (*GetTriggerMask)(void*);
-	struct BigGuy* (*GetOwner)(void*);
-	int (*ListIsEmpty)(void*);
-	void* List;
-	const char** StateStr;
-	int StateSz;
-	const char* Name;
-};
-
-struct MissionCatList {
-	int Category;
-	int State;
-	struct LinkedList List;
+	struct Rule** MeanModTrig; //Array of Rule* which size is MeanModsSz.
+	struct MissionOption Options[MISSION_MAXOPTIONS];
+	uint32_t TriggerEvent; //List of events that will trigger this mission.
+	float* MeanMods;
+	uint16_t  MeanTime;
+	struct MissionTextFormat* TextFormat;
+	uint8_t TextFormatSz;
+	uint8_t OptionCt;
+	uint8_t TriggerType;
+	uint8_t Flags;
+	uint8_t MeanModsSz;
 };
 
 struct MissionEngine {
-	struct BinaryHeap MissionQueue; //Queue of when missions should fire.
-	struct BinaryHeap UsedMissionQueue; //Queue for when mission types go off cooldown.
-	struct RBTree Missions; //Tree of linked lists comprised of missions that have the same trigger.
-	struct RBTree UsedMissionTree; //Tree for missions that have been used for lookup.
 	struct RBTree MissionId; //Tree sorted by Mission id.
-	struct MissionCat Categories[MISSIONCAT_SIZE];
-	struct RBTree EventMissions;
+	struct LinkedList MissionsTrigger; //List of all missions that can trigger.
+	struct LinkedList EventMissions[MEVENT_SIZE];
 };
 
-void InitMissions(void);
-void QuitMissions(void);
+void ConstructMissionEngine(struct MissionEngine* _Engine);
 
-int UsedMissionInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
-int UsedMissionSearch(const struct UsedMissionSearch* _One, const struct QueuedMission* _Two);
-
-int MissionTreeIS(const struct MissionCatList* _TriggerType, const struct MissionCatList* _List);
 int MissionEngineEvent(const int* _One, const struct LnkLst_Node* _Two);
 void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine);
 void DestroyMission(struct Mission* _Mission);
 void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionData* _Data, int _Option);
-void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _Sender, struct BigGuy* _Target);
-void MissionAction(const char* _Name, struct BigGuy* _Sender, struct BigGuy* _Target);
+void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _From, struct BigGuy* _Target);
+void MissionAction(const char* _Name, struct BigGuy* _From, struct BigGuy* _Target);
 
 void DestroyMissionEngine(struct MissionEngine* _Engine);
-void MissionOnEvent(struct MissionEngine* _Engine, int _EventType, struct BigGuy* _Guy);
+void MissionOnEvent(struct MissionEngine* _Engine, uint32_t _EventType, struct BigGuy* _Guy);
 void MissionEngineThink(struct MissionEngine* _Engine, lua_State* _State, const struct RBTree* _BigGuys);
 
 int MissionIdInsert(const int* _One, const struct Mission* _Two);
@@ -150,7 +141,7 @@ struct Mission* StrToMission(const char* _Str);
 
 //FIXME: These should be seperated into a header for Lua functions.
 int LuaMissionGetOwner(lua_State* _State);
-int LuaMissionGetSender(lua_State* _State);
+int LuaMissionGetFrom(lua_State* _State);
 int LuaMissionGetRandomPerson(lua_State* _State);
 int LuaMissionCallById_Aux(lua_State* _State);
 int LuaMissionCallById(lua_State* _State);
@@ -167,4 +158,6 @@ struct MissionData* MissionDataTop();
 struct BigGuy* MissionDataOwner(struct MissionData* _Data);
 int LuaMissionSetVar(lua_State* _State);
 int LuaMissionGetVar(lua_State* _State);
+const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId);
+void InitMissionLua(lua_State* _State);
 #endif

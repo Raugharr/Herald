@@ -104,6 +104,7 @@ struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovT
 	_Loc->MaxWarriors = 0;
 	_Loc->FreeAcres = SETTLEMENT_SPACE;
 	_Loc->UsedAcres = 0;
+	_Loc->StarvingFamilies = 0;
 	for(int i = 0; i < BGSKILL_SIZE; ++i) {
 		_Loc->Stats[i] = SETTLEMENT_AVGSTAT;
 	}
@@ -161,6 +162,8 @@ void SettlementThink(struct Settlement* _Settlement) {
 		_Settlement->YearDeaths = 0;
 	}
 	if(DAY(g_GameWorld.Date) == 0) {
+
+		_Settlement->StarvingFamilies = 0;
 		for(struct LnkLst_Node* _Itr = _Settlement->Retinues.Front; _Itr != NULL; _Itr = _Itr->Next) {
 			RetinueThink(_Itr->Data);
 		}

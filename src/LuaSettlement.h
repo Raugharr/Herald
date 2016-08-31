@@ -50,6 +50,7 @@ int LuaBGRecruit(lua_State* _State);
 int LuaBGIsRecruiting(lua_State* _State);
 int LuaBGRetinueSize(lua_State* _State);
 int LuaBGRetinueTable(lua_State* _State);
+int LuaBGHasTrait(lua_State* _State);
 
 int LuaBGOpinionAction(lua_State* _State);
 int LuaBGOpinionRelation(lua_State* _State);

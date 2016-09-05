@@ -6,9 +6,8 @@ function BGStatsContainer(Guy)
 	Container:CreateLabel("Toughness: " .. Guy:GetToughness());
 	Container:CreateLabel("Agility: " .. Guy:GetAgility());
 	Container:CreateLabel("Wit: " .. Guy:GetWit());
-	Container:CreateLabel("Intrigue: " .. Guy:GetIntrigue());
 	Container:CreateLabel("Charisma: " .. Guy:GetCharisma());
-	Container:CreateLabel("Intellegence: " .. Guy:GetIntellegence());
+	Container:CreateLabel("Intelligence: " .. Guy:GetIntelligence());
 
 	Container:Shrink()
 	return Container

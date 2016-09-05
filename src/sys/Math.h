@@ -7,6 +7,7 @@
 #define __MATH_H
 
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 
 #ifndef ffs
@@ -20,9 +21,10 @@
 #ifndef clz
 #define clz(_Int) __builtin_clz(_Int)
 #endif
-
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #define IsPowTwo(_Pow) (_Pow) > 0 && !((_Pow) & ((_Pow) - 1))
-
 #define IsNeg(_Int) ((_Int) < 0)
 //_Int becomes _Num more integers away from 0.
 #define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BIT - 1))) * (_Num))
@@ -57,5 +59,7 @@ double Normalize(int _Num, int _Min, int _Max);
 int NextPowTwo(int _Num);
 int PrevPowTwo(int _Num);
 int64_t Ipow(int64_t base, uint8_t exp);
-
+static inline double NormalDistribution(double _Var, uint32_t _Variance, uint32_t _Mean) {
+	return pow(((double)1) / (sqrt(2 * _Variance * M_PI)), (-pow(_Var - _Mean, 2)) / (2 * _Variance));
+}
 #endif

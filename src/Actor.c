@@ -40,7 +40,7 @@ void ActorThink(struct Actor* _Actor, const struct Population* _PopType) {
 
 	if(_PopType != NULL) {
 		_Nutrition = _PopType->Nutrition;
-	} else if(PersonMature(_Actor))
+	} else if(PersonMature((struct Person*)_Actor))
 		_Nutrition = NUTRITION_CHILDDAILY;
 	_Actor->Nutrition -= _Nutrition;
 	if(_Actor->Nutrition < 0)

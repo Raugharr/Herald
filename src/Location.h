@@ -62,10 +62,12 @@ struct Settlement {
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
 	struct BulitinItem* Bulitin;
-	int NumPeople;
-	int YearDeaths; //Record of deaths in this settlement this year.
-	int YearBirths;
 	DATE LastRaid;
+	uint16_t NumPeople;
+	uint16_t YearDeaths; //Record of deaths in this settlement this year.
+	uint16_t YearBirths;
+	uint16_t AdultMen;
+	uint16_t AdultWomen;
 	uint16_t MaxWarriors;
 	uint16_t FreeAcres;
 	uint16_t UsedAcres;
@@ -81,7 +83,6 @@ struct Settlement {
 	struct Field Meadow; //Common area that anyone can use to feed their animals.
 	uint8_t Stats[BGSKILL_SIZE];
 	uint8_t HarvestMod[HARVEST_YEARS];
-	uint8_t CurrHarvestYear;
 };
 
 void LocationGetPoint(const struct Location* _Location, SDL_Point* _Point);
@@ -126,7 +127,7 @@ int SettlementGetNutrition(const struct Settlement* _Settlement);
 int SettlementYearlyNutrition(const struct Settlement* _Settlement);
 int SettlementCountAcres(const struct Settlement* _Settlement);
 int SettlementExpectedYield(const struct Settlement* _Settlement);
-float HarvestModifier(const uint8_t (* const _HarvestYears)[HARVEST_YEARS]);
+float HarvestModifier(uint8_t (* const _HarvestYears)[HARVEST_YEARS]);
 static inline const struct LnkLst_Node* SettlementPlots(const struct Settlement* _Settlement) {
 	return NULL;
 }

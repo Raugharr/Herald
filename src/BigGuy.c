@@ -307,8 +307,8 @@ void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points) {
 	 * TODO: The percentages given to each stat should be randomized slightly.
 	 */
 	BGStatsRandom(_WarPoints, 3, &(*_Stats)[BGSKILL_COMBAT], &(*_Stats)[BGSKILL_STRENGTH], &(*_Stats)[BGSKILL_TOUGHNESS], 0.36, 0.32, 0.32);
-	BGStatsRandom(_RemainPoints, 5, &(*_Stats)[BGSKILL_AGILITY], &(*_Stats)[BGSKILL_WIT], &(*_Stats)[BGSKILL_INTRIGUE],
-		&(*_Stats)[BGSKILL_CHARISMA], &(*_Stats)[BGSKILL_INTELLEGENCE], 0.22, 0.2, 0.2, 0.2, 0.18);
+	BGStatsRandom(_RemainPoints, 4, &(*_Stats)[BGSKILL_AGILITY], &(*_Stats)[BGSKILL_WIT],
+		&(*_Stats)[BGSKILL_CHARISMA], &(*_Stats)[BGSKILL_INTELLIGENCE], 0.25, 0.25, 0.25, 0.25);
 }
 
 void BGSetAuthority(struct BigGuy* _Guy, float _Authority) {
@@ -477,7 +477,7 @@ double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target)
 
 int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill) {
 	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
-	return (Random(1, 100) + _One->Stats[_Skill]) - (Random(1, 100) + _Two->Stats[_Skill]) / 10;
+	return ((Random(1, 100) + _One->Stats[_Skill]) - (Random(1, 100) + _Two->Stats[_Skill])) / 10;
 }
 
 int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq) {
@@ -510,7 +510,7 @@ int BigGuyPopularity(const struct BigGuy* _Guy) {
 }
 
 int BigGuyPlotPower(const struct BigGuy* _Guy) {
-	return _Guy->Stats[BGSKILL_INTRIGUE];
+	return _Guy->Stats[BGSKILL_WIT];
 }
 
 /*void BigGuyRecruit(struct BigGuy* _Leader, struct Person* _Warrior) {

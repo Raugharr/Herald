@@ -35,6 +35,7 @@ int LuaFamilyGetGoods(lua_State* _State);
 int LuaFamilyGetGoodCt(lua_State* _State);
 int LuaFamilyGetAnimals(lua_State* _State);
 int LuaFamilyGetAnimalCt(lua_State* _State);
+int LuaFamilyChangeNutrition(lua_State* _State);
 
 int LuaFieldGetId(lua_State* _State);
 int LuaFieldGetCrop(lua_State* _State);

@@ -69,6 +69,7 @@ static const luaL_Reg g_LuaFuncsFamily[] = {
 	{"GetGoodCt", LuaFamilyGetGoodCt},
 	{"GetAnimals", LuaFamilyGetAnimals},
 	{"GetAnimalCt", LuaFamilyGetAnimalCt},
+	{"ChangeNutrition", LuaFamilyChangeNutrition},
 	{"CountAnimal", LuaFamilyCountAnimal},
 	{"TakeAnimal", LuaFamilyTakeAnimal},
 	{"GetSize", LuaFamilyGetSize},
@@ -315,6 +316,17 @@ int LuaFamilyGetAnimalCt(lua_State* _State) {
 
 	lua_pushinteger(_State, _Family->Animals.Size);
 	return 1;
+}
+
+int LuaFamilyChangeNutrition(lua_State* _State) {
+	struct Family* _Family = (struct Family*) LuaToObject(_State, 1, "Family");
+	int _Change = luaL_checkinteger(_State, 2);
+
+	if(_Family->Food.SlowSpoiled - _Change < 0)
+		_Family->Food.SlowSpoiled = 0;
+	else
+		_Family->Food.SlowSpoiled -= _Change;
+	return 0;
 }
 
 int LuaFieldGetId(lua_State* _State) {

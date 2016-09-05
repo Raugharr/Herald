@@ -22,6 +22,7 @@
 #include "sys/LinkedList.h"
 #include "sys/RBTree.h"
 #include "sys/Event.h"
+#include "sys/FrameAllocator.h"
 
 #include <SDL2/SDL.h>
 
@@ -43,7 +44,6 @@ enum EMissionFlags {
 };
 
 typedef struct lua_State lua_State;
-struct Rule;
 struct RBTree;
 struct Event;
 struct BinaryHeap;
@@ -52,9 +52,11 @@ struct LinkedList;
 struct BigGuy;
 struct QueuedMission;
 struct UsedMissionSearch;
-struct MissionData;
+struct MissionFrame;
 struct LnkLst_Node;
-struct MissionData;
+struct MissionFrame;
+
+typedef uint16_t MLRef;
 
 enum MissionEventEnum {
 	MEVENT_SPRING = EVENT_SIZE,
@@ -73,19 +75,15 @@ enum MissionEventEnum {
  * By doing this complex triggers of checking if a BigGuy's Authority is between 0 and 100 becomes possible.
  */
 
-struct MissionUtility {
-	struct Rule* Utility;
-	uint16_t True; //Amount of utility to add if false.
-	uint16_t False; //Amount of utility to add if true.
-};
-
 struct MissionOption {
 	char* Name;
-	struct Rule* Condition;
-	struct Rule* Action;
+	struct MissionTextFormat* TextFormat;
+	MLRef Condition;
+	MLRef Action;
 	//struct Rule* Utility;//Used by AI to determine which is the best option.
-	struct MissionUtility* Utility; //Pointer to array.
+	MLRef Utility; //Pointer to array.
 	uint8_t UtilitySz;
+	uint8_t TextFormatSz;
 };
 
 struct MissionTextFormat {
@@ -98,13 +96,13 @@ struct Mission {
 	char* Name;
 	char* Description;
 	double MeanPercent;
-	struct Rule* Trigger; //Must be true for the mission to be run. Is checked after Trigger is true.
-	struct Rule* OnTrigger;
-	struct Rule** MeanModTrig; //Array of Rule* which size is MeanModsSz.
+	MLRef Trigger; //Must be true for the mission to be run. Is checked after Trigger is true. //FIXME: Rename to TrigCond. 
+	MLRef OnTrigger;
+	MLRef* MeanModTrig; //Array of Rule* which size is MeanModsSz.
 	struct MissionOption Options[MISSION_MAXOPTIONS];
 	uint32_t TriggerEvent; //List of events that will trigger this mission.
 	float* MeanMods;
-	uint16_t  MeanTime;
+	uint16_t MeanTime;
 	struct MissionTextFormat* TextFormat;
 	uint8_t TextFormatSz;
 	uint8_t OptionCt;
@@ -124,7 +122,7 @@ void ConstructMissionEngine(struct MissionEngine* _Engine);
 int MissionEngineEvent(const int* _One, const struct LnkLst_Node* _Two);
 void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine);
 void DestroyMission(struct Mission* _Mission);
-void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionData* _Data, int _Option);
+void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionFrame* _Data, int _Option);
 void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _From, struct BigGuy* _Target);
 void MissionAction(const char* _Name, struct BigGuy* _From, struct BigGuy* _Target);
 
@@ -136,7 +134,13 @@ int MissionIdInsert(const int* _One, const struct Mission* _Two);
 int MissionIdSearch(const int* _Id, const struct Mission* _Mission);
 int MissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
 int UsedMissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
-int MissionFormatText(lua_State* _State, const struct Mission* _Mission, const char** restrict _Strings);
+/**
+ * \brief Searces a string and puts the value of any found format in _FormatOut.
+ * \format used is [Object.Param].
+ * \note _FormatOut should be a pointer to a pointer that is an array with a length of _FormatOpsSz.
+ */
+const char* MissionFormatText(const char* restrict _FormatIn, const struct MissionTextFormat* _FormatOps, int _FormatOpsSz,
+	const struct MissionFrame* _Frame);
 struct Mission* StrToMission(const char* _Str);
 
 //FIXME: These should be seperated into a header for Lua functions.
@@ -146,7 +150,7 @@ int LuaMissionGetRandomPerson(lua_State* _State);
 int LuaMissionCallById_Aux(lua_State* _State);
 int LuaMissionCallById(lua_State* _State);
 int LuaMissionNormalize(lua_State* _State);
-int LuaMissionData(lua_State* _State);
+int LuaMissionFrame(lua_State* _State);
 int LuaMissionAddData(lua_State* _State);
 
 int LuaMissionLoad(lua_State* _State);
@@ -154,8 +158,8 @@ int LuaMissionFuncWrapper(lua_State* _State);
 
 struct GenIterator* CrisisCreateItr(void* _Tree);
 
-struct MissionData* MissionDataTop();
-struct BigGuy* MissionDataOwner(struct MissionData* _Data);
+struct MissionFrame* MissionFrameTop();
+struct BigGuy* MissionFrameOwner(struct MissionFrame* _Data);
 int LuaMissionSetVar(lua_State* _State);
 int LuaMissionGetVar(lua_State* _State);
 const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId);

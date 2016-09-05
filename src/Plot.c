@@ -41,11 +41,11 @@ static struct {
 	const char* Name;
 } g_PlotActionTypes[PLOTACT_SIZE] = {
 	{BGSKILL_SIZE, 0, "None"},
-	{BGSKILL_INTRIGUE, 1, "Attack"},
-	{BGSKILL_INTRIGUE, 0, "Lower Stat"},
+	{BGSKILL_WIT, 1, "Attack"},
+	{BGSKILL_WIT, 0, "Lower Stat"},
 	{BGSKILL_COMBAT, 2, "Double Damage"},
 	{BGSKILL_COMBAT, 1, "Double Attack"},
-	{BGSKILL_INTRIGUE, 0, "Stop Attack"},
+	{BGSKILL_WIT, 0, "Stop Attack"},
 };
 
 static inline int ActionDamage(const struct PlotAction* _Action) {
@@ -205,7 +205,7 @@ int PlotWarScore(struct Plot* _Plot, const struct LinkedList* _GuyList, struct P
 			goto found_action;
 		}
 		PlotAddAction(_Plot, PLOTACT_ATTACK, _Guy, NULL);
-		PLOT_CURRACTLIST(_Plot)->Flags |= BigGuySkillCheck(_Guy, BGSKILL_INTRIGUE, SKILLCHECK_DEFAULT);
+		PLOT_CURRACTLIST(_Plot)->Flags |= BigGuySkillCheck(_Guy, BGSKILL_WIT, SKILLCHECK_DEFAULT);
 		_Action = PLOT_CURRACTLIST(_Plot);
 		found_action:
 		PlotPerformAction(_Action, _Plot);

@@ -113,7 +113,7 @@ void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
 	while(_Warband != NULL) { 
 		_Warrior = _Warband->Warriors;
 		while(_Warrior != NULL) {
-			if(PERSON_CASTE(_Warrior->Person) != CASTE_WARRIOR) {
+			if(PERSON_CASTE(_Warrior->Person) != CASTE_NOBLE) {
 				_Warrior = _Warrior->Next;
 				continue;
 			}

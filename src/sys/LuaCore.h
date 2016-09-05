@@ -27,13 +27,13 @@ struct Array;
 
 //FIXME: The arguments of LuaCtor should match LuaCheckClass and thus be changed to _State, _Ptr, _Class
 #define LuaCtor(_State, _Class, _Ptr)			\
-	lua_createtable((_State), 0, 1);			\
-	LuaInitClass((_State), (_Class), (_Ptr))
+	(lua_createtable((_State), 0, 1),			\
+	LuaInitClass((_State), (_Class), (_Ptr)))
 
 #define LuaAddEnumToTable(_State, _String, _Int)	\
-	lua_pushstring(_State, _String);				\
-	lua_pushinteger(_State, _Int);					\
-	lua_rawset(_State, -3)
+	(lua_pushstring(_State, _String),				\
+	lua_pushinteger(_State, _Int),					\
+	lua_rawset(_State, -3))
 
 #define LuaConstCtor(_State, _Class, _Ptr)				\
 	lua_createtable((_State), 0, 1);					\
@@ -247,5 +247,6 @@ void LuaGetEnv(lua_State* _State, const char* _Env);
 int LuaClassIndex(lua_State* _State);
 
 int LuaClassError(lua_State* _State, int _Arg, const char* _Class);
-
+int LuaMathRandomVar(lua_State* _State);
+int LuaMathProbability(lua_State* _State);
 #endif

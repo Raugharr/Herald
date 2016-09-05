@@ -15,8 +15,8 @@ function Menu.Init(Menu, Data)
 	Menu.ButtonCont = GUI.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
 	Menu.ButtonCont:Below(Menu.Description)
 	for k, v in ipairs(Menu.Mission:GetOptions()) do
-		if v:ConditionSatisfied() == true then
-			Menu.ButtonCont:CreateButton(v:GetName(),
+		if v:ConditionSatisfied(Menu.Data) == true then
+			Menu.ButtonCont:CreateButton(v:GetName(Menu.Data),
 			function()
 				Menu.Mission:ChooseOption(Menu.Data, k - 1)
 				Menu:Close()

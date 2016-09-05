@@ -29,9 +29,8 @@ int LuaBGGetToughness(lua_State* _State);
 int LuaBGGetAgility(lua_State* _State);
 int LuaBGGetWit(lua_State* _State);
 int LuaBGGetCharisma(lua_State* _State);
-int LuaBGGetIntrigue(lua_State* _State);
-int LuaBGGetIntellegence(lua_State* _State);
-int LuaBGOpposedChallanged(lua_State* _State);
+int LuaBGGetIntelligence(lua_State* _State);
+int LuaBGOpposedChallange(lua_State* _State);
 int LuaBGGetAgent(lua_State* _State);
 int LuaBGGetRelation(lua_State* _State);
 int LuaBGRelationItr(lua_State* _State);
@@ -86,6 +85,8 @@ int LuaSettlementGetBulitins(lua_State* _State);
 int LuaSettlementCountAdults(lua_State* _State);
 int LuaSettlementGetFreeWarriors(lua_State* _State);
 int LuaSettlementGetMaxWarriors(lua_State* _State);
+int LuaSettlementMaleAdults(lua_State* _State);
+int LuaSettlementFemaleAdults(lua_State* _State);
 
 
 int LuaBulitinNext(lua_State* _State);

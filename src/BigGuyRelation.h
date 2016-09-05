@@ -47,7 +47,7 @@ enum {
 
 enum {
 	ACTTYPE_THEFT,
-	ACTTYPE_RUMOR,
+//	ACTTYPE_RUMOR,
 	ACTTYPE_TRAIT,
 	ACTTYPE_RAISEFYRD,
 	ACTTYPE_ATTACK,
@@ -60,13 +60,13 @@ enum {
 extern const char* g_BigGuyOpinionActions[ACTTYPE_SIZE];
 
 struct BigGuyOpinion {
+	struct BigGuyOpinion* Next;
 	int8_t Action;
 	int8_t ActionExtra; //Extra byte to declare a specific action such as a type of trait.
 	int8_t RelMod;
 	int8_t RelLength; //Filled with a value from the enum OPNLEN_* that determines how quickly this relation decays.
 	int8_t RelStrength; //Filled with a value from the enum OPINION_* that determines how much opinion is required to change this opinion.
 	int8_t MonthTick; //How many months have occured since the last RelMod change.
-	struct BigGuyOpinion* Next;
 };
 
 struct BigGuyRelation {

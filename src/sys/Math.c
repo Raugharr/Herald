@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 
+#define MATH_RAND_MAX (0xFFFFFFFFFFFFFFFF)
 #ifndef RND_TWIST
  static uint64_t g_SeedX = 521288629;
  static uint64_t g_SeedY = 362436069;
@@ -60,7 +61,11 @@ uint64_t Rand() {
  }
 
 uint64_t Random(uint64_t _Min, uint64_t _Max) {
-	return Rand() % (_Max - _Min + 1) + _Min;
+	uint64_t _Rand = 0;
+
+	while((_Rand = Rand()) > (MATH_RAND_MAX - ((MATH_RAND_MAX % _Max) + 1))) {}
+	//_Rand = Rand();
+	return _Rand % (_Max - _Min + 1) + _Min;
 }
 
 void Srand(int _Seed) {

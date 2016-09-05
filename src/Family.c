@@ -215,13 +215,6 @@ int FamilyThink(struct Family* _Family) {
 	int _FallowFood = 0; //Food generated from fallow fields.
 	double _Milk = 0;
 
-	switch(_Family->Caste->Type) {
-		case CASTE_PEASANT:
-		break;
-		case CASTE_CRAFTSMAN:
-			FamilyCraftGoods(_Family);
-		break;
-	}
 	if(DAY(g_GameWorld.Date) == 0) {
 		if(FamilyGetNutrition(_Family) / FamilyNutReq(_Family) <= 31)
 			PushEvent(EVENT_STARVINGFAMILY, _Family, NULL);
@@ -389,13 +382,13 @@ void Marry(struct Person* _Male, struct Person* _Female) {
 
 void FamilySetCaste(struct Family* _Family, const char* _Caste) {
 	if(strcmp(_Caste, "Serf") == 0) {
-		_Family->Caste = &g_Castes[CASTE_SERF];
+		_Family->Caste = &g_Castes[CASTE_THRALL];
 	} else if(strcmp(_Caste, "Peasant") == 0) {
-		_Family->Caste = &g_Castes[CASTE_PEASANT];
+		_Family->Caste = &g_Castes[CASTE_LOWCLASS];
 	} else if(strcmp(_Caste, "Craftsman") == 0) {
-		_Family->Caste = &g_Castes[CASTE_CRAFTSMAN];
+		_Family->Caste = &g_Castes[CASTE_HIGHCLASS];
 	} else if(strcmp(_Caste, "Warrior") == 0) {
-		_Family->Caste = &g_Castes[CASTE_WARRIOR];
+		_Family->Caste = &g_Castes[CASTE_NOBLE];
 	}
 }
 

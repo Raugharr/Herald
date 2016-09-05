@@ -34,5 +34,35 @@ Traits = {
 		Likes = {"Glutton"},
 		Dislikes = {},
 		Prevents = {}
+	},
+	{
+		Name = "Honest",
+		Likes = {},
+		Dislikes = {},
+		Prevents = {}
+	},
+	{
+		Name = "Lazy",
+		Likes = {},
+		Dislikes = {},
+		Prevents = {}
+	},
+	{
+		Name = "Kind",
+		Likes = {},
+		Dislikes = {},
+		Prevents = {}
+	},
+	{
+		Name = "Narcissist",
+		Likes = {},
+		Dislikes = {},
+		Prevents = {}
+	},
+	{
+		Name = "Alcholic",
+		Likes = {"Alcholic"},
+		Dislikes = {},
+		Prevents = {}
 	}
 }

@@ -132,40 +132,6 @@ void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* 
 	_NewFam->Fields[_NewFam->FieldCt++] = CreateField(_NewFam->HomeLoc->Pos.x, _NewFam->HomeLoc->Pos.y, NULL, 30, _Family);
 }
 
-/*double PersonEat(struct Person* _Person, struct Food* _Food) {
-	struct Food* _FoodPtr = NULL;
-	double _Nut = 0;
-	int _FoodAmt = 0;
-	struct Family* _Family = _Person->Family;
-	int _GoodSz = _Family->Goods.Size;
-
-		for(int i = 0; i < _GoodSz; ++i) {
-			if(_Nut >= NUTRITION_DAILY)
-				break;
-			if(((struct Good*)_Family->Goods.Table[i])->Base->Category == GOOD_FOOD) {
-				//FIXME: Each unit of food should be equal to a day's worth of food and thus the below code should be removed.
-				_FoodPtr = (struct Food*)_Family->Goods.Table[i];
-				while(_FoodAmt < _FoodPtr->Quantity && _Nut < NUTRITION_DAILY) {
-					_Nut += _FoodPtr->Base->Nutrition;
-					++_FoodAmt;
-				}
-				if(_FoodPtr->Quantity - _FoodAmt <= 0) {
-					free(_FoodPtr);
-					ArrayRemove(&_Family->Goods, i);
-					--_GoodSz;
-					i = i - 1;
-				} else {
-					_FoodPtr->Quantity = _FoodPtr->Quantity - _FoodAmt;
-				}
-				_FoodAmt = 0;
-			}
-		}
-	if(_Nut == 0)
-		Log(ELOG_WARNING, "Day %i: %i has no food to eat.", DateToDays(g_GameWorld.Date), _Person->Id);
-	ActorFeed((struct Actor*)_Person, _Nut);
-	return _Nut;
-}*/
-
 void PersonDeath(struct Person* _Person) {
 	struct Family* _Family = _Person->Family;
 
@@ -184,6 +150,12 @@ void PersonDeath(struct Person* _Person) {
 	}
 	PushEvent(EVENT_DEATH, _Person, NULL);
 	++_Family->HomeLoc->YearDeaths;
+	if(PersonMature(_Person) == 1) {
+		if(_Person->Gender == EMALE)
+			--_Family->HomeLoc->AdultMen;
+		else
+			--_Family->HomeLoc->AdultWomen;
+	}
 }
 
 int PersonIsWarrior(const struct Person* _Person) {

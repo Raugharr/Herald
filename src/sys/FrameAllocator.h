@@ -7,6 +7,7 @@
 #define __FRAMEALLOCATOR_H
 
 #include <stddef.h>
+#include <inttypes.h>
 
 #define FrameAlloc(_Block) FrameAllocGuard(_Block, 0)
 
@@ -19,4 +20,5 @@ void* FrameAllocGuard(size_t _Block, size_t _MemGuard);
  * Frees all memory that is allocated on the FrameAllocator.
  */
 void FrameFree();
+void FrameReduce(uint32_t _Size);
 #endif

@@ -37,3 +37,12 @@ void* FrameAllocGuard(size_t _Block, size_t _MemGuard) {
 void FrameFree() {
 	g_FrameAlloc.ArenaTop = g_FrameAlloc.Arena;
 }
+
+void FrameReduce(uint32_t _Size) {
+	if(_Size >= g_FrameAlloc.Size) {
+		FrameFree();
+		return;
+	}
+	g_FrameAlloc.ArenaTop -= _Size;
+	g_FrameAlloc.Size -= _Size;
+}

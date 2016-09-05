@@ -166,7 +166,7 @@ void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 	_MaxFarmers = _Settlement->FreeAcres / _AcresPerFarmer;
 	_MaxFamilies += (_MaxFarmers / 10) + ((_MaxFarmers % 10) != 0); 
 	for(;_MaxFarmers> 0; --_MaxFarmers) {
-		_Parent = CreateRandFamily("Bar", Random(0, _MaxChildren) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement, _FamilyTypes, &g_Castes[CASTE_PEASANT]);
+		_Parent = CreateRandFamily("Bar", Random(0, _MaxChildren) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement, _FamilyTypes, &g_Castes[CASTE_LOWCLASS]);
 		_Parent->Food.SlowSpoiled = ((NUTRITION_REQ * 2) + (NUTRITION_CHILDREQ * _Parent->NumChildren)) * 2;
 		//Add animals
 		for(int i = 0; i < _AnimalTypeCt[0]; ++i)
@@ -377,8 +377,8 @@ void GameworldConstructPolicies(struct GameWorld* _World) {
 	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "None", NULL, NULL);
 	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Some", NULL, NULL);
 	PolicyAddOption(&_World->Policies[_PolicyCt], 0, "Full", NULL, NULL);
-	_World->Policies[_PolicyCt].Options.Options[1].CastePreference[CASTE_WARRIOR] = -(POLICYMOD_NORMAL);
-	_World->Policies[_PolicyCt].Options.Options[2].CastePreference[CASTE_WARRIOR] = -(POLICYMOD_NORMAL);
+	_World->Policies[_PolicyCt].Options.Options[1].CastePreference[CASTE_NOBLE] = -(POLICYMOD_NORMAL);
+	_World->Policies[_PolicyCt].Options.Options[2].CastePreference[CASTE_NOBLE] = -(POLICYMOD_NORMAL);
 	++_PolicyCt;
 	ConstructPolicy(&_World->Policies[_PolicyCt],
 		"Judge Authority",
@@ -436,7 +436,7 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->PlotList.ICallback = (RBCallback) PlotInsert;
 	_GameWorld->PlotList.SCallback = (RBCallback) PlotSearch;
 
-	ConstructLinkedList(&_GameWorld->MissionData);
+	ConstructLinkedList(&_GameWorld->MissionFrame);
 	_GameWorld->Date = 0;
 	_GameWorld->Tick = 0;
 	for(int i = 0; i < WORLD_DECAY; ++i)
@@ -525,7 +525,10 @@ void LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _Ha
 
 	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0)
 		return;
-	_HashTable->TblSize = (_List.Size * 5) / 4;
+	if(_List.Size < 20)
+		_HashTable->TblSize = 20;
+	else
+		_HashTable->TblSize = (_List.Size * 5) / 4;
 	_HashTable->Table = (struct HashNode**) calloc(_HashTable->TblSize, sizeof(struct HashNode*));
 	memset(_HashTable->Table, 0, _HashTable->TblSize * sizeof(struct HashNode*));
 	_Itr = _List.Front;
@@ -606,16 +609,16 @@ void WorldInit(int _Area) {
 		exit(1);
 	}
 	lua_getglobal(g_LuaState, "Castes");
-	LoadCaste(g_LuaState, "Serf", &g_Castes[CASTE_SERF]);
-	LoadCaste(g_LuaState, "Peasant", &g_Castes[CASTE_PEASANT]);
-	LoadCaste(g_LuaState, "Craftsman", &g_Castes[CASTE_CRAFTSMAN]);
-	LoadCaste(g_LuaState, "Warrior", &g_Castes[CASTE_WARRIOR]);
+	LoadCaste(g_LuaState, "Serf", &g_Castes[CASTE_THRALL]);
+	LoadCaste(g_LuaState, "Peasant", &g_Castes[CASTE_LOWCLASS]);
+	LoadCaste(g_LuaState, "Craftsman", &g_Castes[CASTE_HIGHCLASS]);
+	LoadCaste(g_LuaState, "Warrior", &g_Castes[CASTE_NOBLE]);
 	lua_pop(g_LuaState, 1);
 
-	g_Castes[CASTE_SERF].Type = CASTE_SERF;
-	g_Castes[CASTE_PEASANT].Type = CASTE_PEASANT;
-	g_Castes[CASTE_CRAFTSMAN].Type = CASTE_CRAFTSMAN;
-	g_Castes[CASTE_WARRIOR].Type = CASTE_WARRIOR;
+	g_Castes[CASTE_THRALL].Type = CASTE_THRALL;
+	g_Castes[CASTE_LOWCLASS].Type = CASTE_LOWCLASS;
+	g_Castes[CASTE_HIGHCLASS].Type = CASTE_HIGHCLASS;
+	g_Castes[CASTE_NOBLE].Type = CASTE_NOBLE;
 	lua_getglobal(g_LuaState, "Human");
 	if(lua_isnil(g_LuaState, -1) != 0) {
 		Log(ELOG_WARNING, "Human table does not exist");

@@ -45,7 +45,6 @@ static const luaL_Reg g_LuaCoreFuncs[] = {
 		{"Hook", LuaHook},
 		{"Random", LuaRandom},
 		{"Null", LuaNull},
-		{"CallMissionById", LuaMissionCallById_Aux},
 		{NULL, NULL}
 };
 
@@ -92,28 +91,28 @@ static const luaL_Reg g_LuaFuncsIterator[] = {
 };
 
 static const luaL_Reg g_LuaFuncsList[] = {
-		{"Itr", NULL},
-		{"Next", NULL},
-		{NULL, NULL}
+	{"Itr", NULL},
+	{"Next", NULL},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsArray[] = {
-		{"Create", LuaArrayCreate},
-		{NULL, NULL}
+	{"Create", LuaArrayCreate},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsMission[] = {
-		{"GetName", LuaMissionGetName},
-		{"GetDescription", LuaMissionGetDesc},
-		{"GetOptions", LuaMissionGetOptions},
-		{"ChooseOption", LuaMissionChooseOption},
-		{NULL, NULL}
+	{"GetName", LuaMissionGetName},
+	{"GetDescription", LuaMissionGetDesc},
+	{"GetOptions", LuaMissionGetOptions},
+	{"ChooseOption", LuaMissionChooseOption},
+	{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaFuncsMissionOption[] = {
-		{"GetName", LuaMissionOptionGetName},
-		{"ConditionSatisfied", LuaMissionOptionConditionSatisfied},
-		{NULL, NULL}
+static const luaL_Reg g_LuaFuncsMath[] = {
+	{"RandomVar", LuaMathRandomVar},
+	{"Probability", LuaMathProbability},
+	{NULL, NULL}
 };
 
 static const struct LuaObjectReg g_LuaCoreObjects[] = {
@@ -125,7 +124,6 @@ static const struct LuaObjectReg g_LuaCoreObjects[] = {
 		{"Array", NULL, g_LuaFuncsArray},
 		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
 		{"Mission", NULL, g_LuaFuncsMission},
-		{"MissionOption", NULL, g_LuaFuncsMissionOption},
 		{NULL, NULL, NULL}
 };
 
@@ -173,8 +171,10 @@ void RegisterLuaObjects(lua_State* _State, const struct LuaObjectReg* _Objects) 
 }
 
 int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs) {
-	if(luaL_newmetatable(_State, _Name) == 0)
+	if(luaL_newmetatable(_State, _Name) == 0) {
+		lua_pop(_State, 1);
 		return 0;
+	}
 	lua_pushliteral(_State, "__index");
 	lua_pushcfunction(_State, LuaClassIndex);
 	lua_rawset(_State, -3);
@@ -658,8 +658,11 @@ int LuaLoadList(lua_State* _State, const char* _File, const char* _Global, void*
 			lua_pop(_State, 1);
 			continue;
 		}
-		if((_CallRet = _Callback(_State, -1)) != NULL)
+		if((_CallRet = _Callback(_State, -1)) != NULL) {
 			_Insert(_Return, _CallRet);
+		} else {
+			Log(ELOG_WARNING, "Failed to load data from file %s", _File);
+		}
 		lua_pop(_State, 1);
 	}
 	lua_pop(_State, 1);
@@ -1051,30 +1054,13 @@ int LuaMissionGetOptions(lua_State* _State) {
 
 int LuaMissionChooseOption(lua_State* _State) {
 	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
-	struct MissionData* _Data = NULL;
+	struct MissionFrame* _Data = NULL;
 	int _Option = luaL_checkinteger(_State, 3);
 
 	luaL_checktype(_State, 2, LUA_TLIGHTUSERDATA);
 	_Data = lua_touserdata(_State, 2);
 	MissionCheckOption(_State, _Mission, _Data, _Option);
 	return 0;
-}
-
-int LuaMissionOptionGetName(lua_State* _State) {
-	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
-
-	lua_pushstring(_State, _Option->Name);
-	return 1;
-}
-
-int LuaMissionOptionConditionSatisfied(lua_State* _State) {
-	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
-
-	if(RuleEval(_Option->Condition) != 0)
-		lua_pushboolean(_State, 1);
-	else
-		lua_pushboolean(_State, 0);
-	return 1;
 }
 
 struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
@@ -1198,4 +1184,19 @@ int LuaClassError(lua_State* _State, int _Arg, const char* _Class) {
 			return luaL_error(_State, "Error argument #%d is of type \"%s\" but is NULL.", _Arg, _Class);
 	}
 	return luaL_error(_State, "Error argument #%d is of type \"%s\" but expected \"%s\".", _Arg, _ArgType, _Class); 
+}
+
+int LuaMathRandomVar(lua_State* _State) {
+	double _Var = luaL_checknumber(_State, 1);
+
+	lua_pushnumber(_State, _Var * NormalDistribution(_Var, .5, 0) + _Var);
+	return 1;
+}
+
+int LuaMathProbability(lua_State* _State) {
+	double _Prob = luaL_checknumber(_State, 1);
+	int _Max = luaL_checkinteger(_State, 2);
+
+	lua_pushnumber(_State, _Prob * _Max);
+	return 1;
 }

@@ -13,7 +13,7 @@ function Menu.Init(Menu, Data)
 			GUI.SetMenu("GovernmentMenu", {Settlement = World.GetSettlement()})
 		end)
 	Menu.Date = Menu.DateCont:CreateLabel(PrintDate(World.GetDate()))
-	Menu.Authority = Menu.DateCont:CreateLabel(World.GetPlayer():GetAuthority())
+	--Menu.Authority = Menu.DateCont:CreateLabel(World.GetPlayer():GetAuthority())
 	Menu.Popularity = Menu.DateCont:CreateLabel(math.floor((World.GetPlayer():Popularity() / World.GetPlayer():GetSettlement():CountAdults()) * 100) .. "%")
 	Menu.Date:SetFocus(false)
 	Menu.DateCont:SetX(Menu:GetHorizontalCenter(Menu.DateCont))
@@ -31,7 +31,8 @@ end
 
 function Menu.Think(Menu)
 	Menu.Date:SetText(PrintDate(World.GetDate()))
-	Menu.Authority:SetText(World.GetPlayer():GetAuthority())
+	--Menu.Authority:SetText(World.GetPlayer():GetAuthority())
+	Menu.Popularity:SetText(World.GetPlayer():Popularity() .. "%")
 end
 
 function Menu.Quit(Menu)

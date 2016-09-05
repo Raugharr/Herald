@@ -16,7 +16,6 @@
 #define EMALE (1)
 #define EFEMALE (2)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
-#define PersonMature(_Person) (YEAR((_Person)->Age) > 15)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 #define MAX_NUTRITION (250)
 #define NUTRITION_REQ (2920)
@@ -89,6 +88,10 @@ int PersonIsWarrior(const struct Person* _Person);
 struct Person* GetFather(struct Person* _Person);
 static inline int IsChild(const struct Person* _Person) {
 	return (YEAR(_Person->Age) < ADULT_AGE);
+}
+
+static inline int PersonMature(const struct Person* _Person) {
+	return YEAR(_Person->Age) >= 15;
 }
 #endif
 

@@ -1,70 +1,48 @@
 Mission.Load {
 	Name = "Duel 1",
-	Description = "You have lost the duel and have been kiled by %s.",
-	TextFormat = {BigGuy.GetName(Mission.Sender())},
-	Options = {
-		{
-			Text = "Ok", 
-			Trigger = Rule.True(),
-			Utility = Mission.Normalize(1, 1)
-		}
-	},
-	Id = "DUEL.1",
-	OnTrigger = BigGuy.Kill(Mission.Owner()),
-	OnlyTriggered = false,
-	MeanTime = 20
+	Description = "You have lost the duel and have been kiled by [From.FirstName].",
+	Id = "Duel.1",
+	OnTrigger = function(Frame)
+		Mission.Owner:Kill()
+	end,
+	OnlyTriggered = false
 }
 
 Mission.Load {
 	Name = "Duel 2",
 	Description = "You are challanged to a duel by %s.",
-	TextFormat = {BigGuy.GetName(Mission.Sender())},
 	Options = {
 		{
 			Text = "Accept the duel",
-			Condition = Rule.True(),
-			Trigger = Rule.IfThenElse(
-			Rule.GreaterThan(
-				BigGuy.GetWarfare(Mission.Sender()), 
-				BigGuy.GetWarfare(Mission.Owner())
-				),
-			Rule.Block(
-				Mission.CallById("DUEL.3", Mission.Sender(), Mission.Owner()),
-				Mission.CallById("DUEL.1", Mission.Owner(), Mission.Sender())
-				),
-			Rule.Block(
-				Mission.CallById("DUEL.3", Mission.Owner(), Mission.Sender()),
-				Mission.CallById("DUEL.1", Mission.Sender(), Mission.Owner())
-				)
-			),
-			Utility = Mission.Normalize(1, 1)
+			Trigger = function(Frame)
+				if Frame.From:OpposedChallange(Frame.Owner, Stat.Combat) >= 0 then
+					Mission.FireEvent("Duel.3", Mission.From, Mission.Owner)
+					Mission.FireEvent("Duel.1", Mission.Owner, Mission.Sender)
+				else
+					Mission.FireEvent("Duel.3", Mission.Owner, Mission.Sender)
+					Mission.FireEvent("Duel.1", Mission.From, Mission.Owner)
+				end
+			end,
+			AIUtility = function(Frame) end 
 		},
 		{
 			Text = "Look for a champion.",
-			Condition = Rule.True(),
-			Trigger = Rule.Block(Mission.CallById("DUEL.6", Mission.Sender(), Mission.Owner()), Settlement.BulitinPost("DUEL.4", "DUEL.5", 30, 2)),
-			Utility = Mission.Normalize(1, 1)
+			Trigger = function(Frame)
+				Mission.FireEvent("Duel.6", Mission.From, Mission.Owner)
+				Settlement.BulitinPost("Duel.4", "DUEL.5", 30, 2)
+			end,
+			AIUtility = function(Frame) end
 		}
 	},
-	Id = "DUEL.2",
-	Trigger = {Name = "Crisis", Triggers = {{Type = "WarDeath", OpCode = Mission.Equal, Value = 1}}}, 
-	MeanTime = 20
+	Id = "Duel.2",
+	OnlyTriggered = false
 }
 
 Mission.Load {
 	Name = "Duel 3",
-	Description = "You have won the duel and have slain %s.",
-	TextFormat = {BigGuy.GetName(Mission.Sender())},
-	Options = {
-		{
-			Text = "Ok", 
-			Trigger = Rule.True(),
-			Utility = Mission.Normalize(1, 1)
-		}
-		},
-	Id = "DUEL.3",
-	OnlyTriggered = false,
-	MeanTime = 20
+	Description = "You have won the duel and have slain [From.FirstName].",
+	Id = "Duel.3",
+	OnlyTriggered = false
 }
 
 Mission.Load {
@@ -73,13 +51,14 @@ Mission.Load {
 	Options = {
 		{
 			Text = "Be foo's champing.",
-			Trigger = Mission.CallById("DUEL.2", Mission.Owner(), Mission.Sender()),
-			Utility = Mission.Normalize(1, 1)
+			Trigger = function(Frame)
+				Mission.FireEvent("Duel.2", Mission.Owner, Mission.Sender)
+			end,
+			AIUtility = function(Frame) end
 		}
 	},
-	Id = "DUEL.4",
-	OnlyTriggered = false,
-	MeanTime = 2
+	Id = "Duel.4",
+	OnlyTriggered = false
 }
 
 Mission.Load {
@@ -88,24 +67,24 @@ Mission.Load {
 	Options = {
 		{
 			Text = "Duel bar.",
-			Trigger = Mission.CallById("DUEL.2", Mission.Owner(), Mission.Sender()),
-			Utility = Mission.Normalize(1, 1)
+			Trigger = function(Frame)
+				Mission.FireEvent("Duel.2", Mission.Owner, Mission.Sender)
+			end,
+			AIUtility = function(Frame) end
+		},
+		{
+			Text = "Run away.",
+			AIUtility = function(Frame) end
 		}
 	},
-	Id = "DUEL.5",
+	Id = "Duel.5",
 	OnlyTriggered = false
 }
 
 Mission.Load {
 	Name = "Oponent looks for champion",
-	Description = "%s has decided to look for a champion to fight for them in the duel.",
-	Options = {
-		{
-			Text = "Ok",
-			Trigger = Rule.True(),
-			Utility = Mission.Normalize(1, 1)
-		}
-	},
-	Id = "DUEL.6",
+	Description = "[From.FirstName] has decided to look for a champion to fight for them in the duel.",
+	Id = "Duel.6",
 	OnlyTriggered = false
 }
+

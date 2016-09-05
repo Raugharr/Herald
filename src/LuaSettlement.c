@@ -60,9 +60,8 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"GetAgility", LuaBGGetAgility},
 	{"GetWit", LuaBGGetWit},
 	{"GetCharisma", LuaBGGetCharisma},
-	{"GetIntrigue", LuaBGGetIntrigue},
-	{"GetIntellegence", LuaBGGetIntellegence},
-	{"OpposedChallange", LuaBGOpposedChallanged},
+	{"GetIntelligence", LuaBGGetIntelligence},
+	{"OpposedChallange", LuaBGOpposedChallange},
 	{"GetAgent", LuaBGGetAgent},
 	{"GetRelation", LuaBGGetRelation},
 	{"RelationsItr", LuaBGRelationItr},
@@ -116,6 +115,8 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{"CountAdults", LuaSettlementCountAdults},
 	{"GetFreeWarriors", LuaSettlementGetFreeWarriors},
 	{"GetMaxWarriors", LuaSettlementGetMaxWarriors},
+	{"MaleAdults", LuaSettlementMaleAdults},
+	{"FemaleAdults", LuaSettlementFemaleAdults},
 	{NULL, NULL}
 };
 
@@ -216,11 +217,24 @@ const struct LuaEnum g_LuaBigGuyActionEnum[] = {
 	{NULL, 0}
 };
 
-const struct LuaEnum g_LuaBigGuyRelationEnum[] = {
+const struct LuaEnum g_LuaRelOpnEnum[] = {
 	{"Token", OPINION_TOKEN},
 	{"Small", OPINION_SMALL},
 	{"Average", OPINION_AVERAGE},
 	{"Great", OPINION_GREAT},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaRelLengthEnum[] = {
+	{"Small", OPNLEN_SMALL},
+	{"Medium", OPNLEN_MEDIUM},
+	{"Large", OPNLEN_LARGE},
+	{"Forever", OPNLEN_FOREVER},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaRelActionEnum[] = {
+	{"Theft", ACTTYPE_THEFT},
 	{NULL, 0}
 };
 
@@ -230,9 +244,8 @@ const struct LuaEnum g_LuaStatsEnum[] = {
 	{"Toughness", BGSKILL_TOUGHNESS},
 	{"Agility", BGSKILL_AGILITY},
 	{"Wit", BGSKILL_WIT},
-	{"Intrigue", BGSKILL_INTRIGUE},
 	{"Charisma", BGSKILL_CHARISMA},
-	{"Intellegence", BGSKILL_INTELLEGENCE},
+	{"Intelligence", BGSKILL_INTELLIGENCE},
 	{NULL, 0}
 };
 
@@ -240,7 +253,9 @@ const struct LuaEnumReg g_LuaSettlementEnums[] = {
 	{"Plot", NULL,  g_LuaPlotEnum},
 	{"Plot", "Type", g_LuaPlotTypeEnum},
 	{"BigGuy", "Action", g_LuaBigGuyActionEnum},
-	{"BigGuy", "Relation", g_LuaBigGuyRelationEnum},
+	{"Relation", "Opinion", g_LuaRelOpnEnum},
+	{"Relation", "Length", g_LuaRelLengthEnum},
+	{"Relation", "Action", g_LuaRelActionEnum},
 	{"Policy", NULL, g_LuaPolicyEnum},
 	{"Stat", NULL, g_LuaStatsEnum},
 	{NULL, NULL}
@@ -332,13 +347,6 @@ int LuaBGGetWit(lua_State* _State) {
 	return 1;
 }
 
-int LuaBGGetIntrigue(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
-
-	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTRIGUE]);
-	return 1;
-}
-
 int LuaBGGetCharisma(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
@@ -346,14 +354,14 @@ int LuaBGGetCharisma(lua_State* _State) {
 	return 1;
 }
 
-int LuaBGGetIntellegence(lua_State* _State) {
+int LuaBGGetIntelligence(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
 
-	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTELLEGENCE]);
+	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTELLIGENCE]);
 	return 1;
 }
 
-int LuaBGOpposedChallanged(lua_State* _State) {
+int LuaBGOpposedChallange(lua_State* _State) {
 	struct BigGuy* _One = LuaCheckClass(_State, 1, "BigGuy");
 	struct BigGuy* _Two = LuaCheckClass(_State, 2, "BigGuy");
 
@@ -866,10 +874,11 @@ int LuaSettlementBulitinPost(lua_State* _State) {
 	struct BulitinItem* _Item = NULL;
 	struct Mission* _Mission = NULL;
 	struct Mission* _MissionFail = NULL;
-	const char* _MissionStr = luaL_checkstring(_State, 1);
-	const char* _MissionFailStr = luaL_checkstring(_State, 2);
-	int _DaysLeft = luaL_checkint(_State, 3);
-	int _Priority = luaL_checkint(_State, 4);
+	struct BigGuy* _Poster = LuaCheckClass(_State, 1, "BigGuy");
+	const char* _MissionStr = luaL_checkstring(_State, 2);
+	const char* _MissionFailStr = luaL_checkstring(_State, 3);
+	int _DaysLeft = luaL_checkint(_State, 4);
+	int _Priority = luaL_checkint(_State, 5);
 	
 	if((_Mission = StrToMission(_MissionStr)) == NULL) {
 		luaL_error(_State, "%s is not a mission name.", _MissionStr);
@@ -877,8 +886,8 @@ int LuaSettlementBulitinPost(lua_State* _State) {
 	if((_MissionFail = StrToMission(_MissionFailStr)) == NULL) {
 		luaL_error(_State, "%s is not a mission name.", _MissionFailStr);
 	}
-	_Item = CreateBulitinItem(_Mission, NULL, MissionDataOwner(MissionDataTop()), _DaysLeft, _Priority);		 
-	ILL_CREATE(MissionDataOwner(MissionDataTop())->Person->Family->HomeLoc->Bulitin, _Item);
+	_Item = CreateBulitinItem(_Mission, NULL, _Poster, _DaysLeft, _Priority);		 
+	ILL_CREATE(_Poster->Person->Family->HomeLoc->Bulitin, _Item);
 	return 0;
 }
 
@@ -912,6 +921,20 @@ int LuaSettlementGetMaxWarriors(lua_State* _State) {
 
 	lua_pushinteger(_State, _Settlement->MaxWarriors);
 	return 1;
+}
+
+int LuaSettlementMaleAdults(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	
+	lua_pushinteger(_State, _Settlement->AdultMen);
+	return 1;	
+}
+
+int LuaSettlementFemaleAdults(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	
+	lua_pushinteger(_State, _Settlement->AdultWomen);
+	return 1;	
 }
 
 int LuaBulitinNext(lua_State* _State) {

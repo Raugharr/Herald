@@ -164,4 +164,5 @@ int LuaMissionSetVar(lua_State* _State);
 int LuaMissionGetVar(lua_State* _State);
 const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId);
 void InitMissionLua(lua_State* _State);
+int LuaMissionStatUtility(lua_State* _State);
 #endif

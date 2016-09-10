@@ -43,8 +43,7 @@
 #define USEDMISSION_ARRAYSZ (10)
 #define MISSION_LUASTR ("InitMission")
 #define MISSION_QELEMENTS (2048)
-#define USEDMISSION_SIZE (10000)
-#define MISSION_DEFMEANTIME (0)
+#define MISSION_UTMAX ((1 << 16) - 1) //Utility max value._
 
 struct MissionFrame;
 
@@ -63,12 +62,19 @@ static const luaL_Reg g_LuaMissionRuleFuncs[] = {
 	{"Load", LuaMissionLoad},
 	{"Var", LuaMissionGetVar},
 	{"SetVar", LuaMissionSetVar},
-	{NULL, NULL},
+	{"StatUtility", LuaMissionStatUtility},
+	{NULL, NULL}
 };
 
 static const luaL_Reg g_LuaFuncsMissionFrame[] =  {
 	{"RandomPerson", LuaMissionGetRandomPerson},
 	{NULL, NULL}
+};
+
+const struct LuaEnum g_LuaMissionEventEnum[] = {
+	{"OnSpring", MEVENT_SPRING},
+	{"OnEvent", MEVENT_FALL},
+	{NULL, 0}
 };
 
 static const luaL_Reg g_LuaFuncsMissionOption[] = {
@@ -90,6 +96,10 @@ enum MissionParamEnum {
 	MOPCODE_SIZE
 };
 
+/*
+ * Used in a MissionFrame's primitive value parameter to tell what
+ * type of object is in the primitive.
+ */
 enum MissionFrameEnum {
 	MADATA_BIGGUY = PRIM_PTR + 1,
 };
@@ -118,7 +128,7 @@ struct MissionFrame* CreateMissionFrame(struct BigGuy* _From, struct BigGuy* _Ta
 	struct MissionFrame* _MissionFrame = (struct MissionFrame*) malloc(sizeof(struct MissionFrame));
 
 	_MissionFrame->From = _From;
-	_MissionFrame->Owner= _Target;
+	_MissionFrame->Owner = _Target;
 	LnkLstPushBack(&g_GameWorld.MissionFrame, _MissionFrame);
 	_MissionFrame->StackSz = 0;
 	_MissionFrame->Mission = _Mission;
@@ -204,10 +214,11 @@ void MissionFrameClear(struct MissionFrame* _Data) {
 	while(_Itr != NULL) {
 		if(_Itr->Data == _Data) {
 			LnkLstRemove(&g_GameWorld.MissionFrame, _Itr);
-			break;
+			return;
 		}
 		_Itr = _Itr->Next;
 	}
+	Assert(0);
 }
 
 struct Mission* CreateMission() {
@@ -372,12 +383,14 @@ void DestroyMissionEngine(struct MissionEngine* _Engine) {
 
 void MissionOnEvent(struct MissionEngine* _Engine, uint32_t _EventType, struct BigGuy* _Guy) {
 	Assert(_EventType < EventUserOffset());
-	_EventType = _EventType - EventUserOffset(); 
 	for(struct LnkLst_Node* _Itr = _Engine->EventMissions[_EventType].Front; _Itr != NULL; _Itr = _Itr->Next) {
 		struct Mission* _Mission = _Itr->Data;
-		struct MissionFrame* _Frame = CreateMissionFrame(NULL, _Guy, _Mission);
+		struct MissionFrame _Frame = {0};
 
-		if(CallMissionCond(g_LuaState, _Mission->Trigger, _Frame) != 0)
+		_Frame.Owner = _Guy;
+		_Frame.Mission = _Mission;
+
+		if(CallMissionCond(g_LuaState, _Mission->Trigger, &_Frame) != 0)
 			MissionCall(g_LuaState, _Mission, NULL, _Guy);
 	}
 }
@@ -720,37 +733,6 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 #undef FUNC_FORMATSZ
 }
 
-void MissionLoadEventTrigger(lua_State* _State, struct Mission* _Mission) {
-	const char* _Trigger = NULL;
-	int _EventId = 0;
-
-	if(lua_type(_State, -1) == LUA_TTABLE) {
-		lua_pushnil(_State);
-		while(lua_next(_State, -2) != 0) {
-			if(LuaGetString(_State, -1, &_Trigger) == 0) {
-				Log(ELOG_WARNING, "Mission's trigger table contains a non-string.");
-				goto loop_end;
-			}
-			if((_EventId = StringToEvent(_Trigger)) == -1) {
-				Log(ELOG_WARNING, "Mission's trigger table contains a non-event %s.", _Trigger);
-				goto loop_end;
-			}
-			loop_end:
-			lua_pop(_State, 1);
-		}
-	} else {
-		if(LuaGetString(_State, -1, &_Trigger) == 0) {
-			Log(ELOG_WARNING, "Mission's trigger table contains a non-string.");
-			return;
-		}
-		if((_EventId = StringToEvent(_Trigger)) == -1) {
-			Log(ELOG_WARNING, "Mission's trigger table contains a non-event %s.", _Trigger);
-			return;
-		}
-	}
-	_Mission->Flags = _Mission->Flags | MISSION_FEVENT;
-}
-
 void MissionLoadTriggerList(lua_State* _State, struct Mission* _Mission) {
 	struct Rule* _Trigger = NULL;
 	const char* _Name = NULL;
@@ -818,9 +800,9 @@ int LuaMissionLoad(lua_State* _State) {
 	if(lua_type(_State, -1) != LUA_TSTRING)
 		luaL_error(_State, "Mission's Id is not a string.");
 	if((_Id = MissionStrToId((_TempStr = lua_tostring(_State, -1)))) == -1)
-		return 0;
+		return luaL_error(_State, "Mission Id %s is not a valid Id.", _TempStr);
 	if(RBSearch(&g_MissionEngine.MissionId, &_Id) != NULL) {
-		return luaL_error(_State, "Cannot load mission with id %d. Id is already in use.", _Id);
+		return luaL_error(_State, "Cannot load mission with id %s. Id is already in use.", _TempStr);
 	}
 	_Mission->Id = _Id;
 	lua_pop(_State, 1);
@@ -844,16 +826,19 @@ int LuaMissionLoad(lua_State* _State) {
 			if(lua_type(_State, -1) != LUA_TFUNCTION)
 				return luaL_error(_State, "Mission.Trigger is not a function.");
 			_Mission->Trigger = luaL_ref(_State, LUA_REGISTRYINDEX); 
-		} else {
-			lua_pushstring(_State, "Event");
-			lua_rawget(_State, 1);
-			if(lua_type(_State, -1) != LUA_TNIL) {
-				if(lua_type(_State, -1) != LUA_TNUMBER)
-					return luaL_error(_State, "Mission.Event is not an integer.");
-				_Mission->TriggerEvent = lua_tointeger(_State, -1);
-				lua_pop(_State, 1);
-			}
 		}
+		lua_pop(_State, 1);
+		lua_pushstring(_State, "Event");
+		lua_rawget(_State, 1);
+		if(lua_type(_State, -1) != LUA_TNIL) {
+			if(lua_type(_State, -1) != LUA_TNUMBER)
+				return luaL_error(_State, "Mission.Event is not an integer.");
+			_Mission->TriggerEvent = lua_tointeger(_State, -1);
+			lua_pop(_State, 1);
+			_Mission->Flags = _Mission->Flags | MISSION_FEVENT;
+			goto skip_meantime;
+		}
+		lua_pop(_State, 1);
 
 		lua_pushstring(_State, "MeanTime");
 		lua_rawget(_State, 1);
@@ -890,6 +875,7 @@ int LuaMissionLoad(lua_State* _State) {
 		_Mission->MeanPercent = pow(1 - _Prob, _MeanTime - 1) * _Prob;
 		lua_pop(_State, 1);
 	}
+	skip_meantime:
 	lua_pushstring(_State, "NoMenu");
 	lua_rawget(_State, 1);
 	if(lua_type(_State, -1) != LUA_TNIL) {
@@ -917,6 +903,18 @@ int LuaMissionLoad(lua_State* _State) {
 }
 
 int LuaMissionSetVar(lua_State* _State) {
+	return 1;
+}
+
+int LuaMissionStatUtility(lua_State* _State) {
+	int _StatOne = luaL_checkinteger(_State, 1);
+	int _StatTwo = luaL_checkinteger(_State, 2);
+
+	if(_StatOne < BIGGUYSTAT_MIN || _StatOne > BIGGUYSTAT_MAX)	
+		return luaL_error(_State, "Argument #1 is not a valid value for a stat. Expected [1, 100] got %d", _StatOne);
+	if(_StatTwo < BIGGUYSTAT_MIN || _StatTwo > BIGGUYSTAT_MAX)	
+		return luaL_error(_State, "Argument #2 is not a valid value for a stat. Expected [1, 100] got %d", _StatTwo);
+	lua_pushinteger(_State, (MISSION_UTMAX / 2) + ((_StatOne - _StatTwo) * MISSION_UTMAX/ 100));
 	return 1;
 }
 
@@ -1116,6 +1114,10 @@ void InitMissionLua(lua_State* _State) {
 	lua_rawset(_State, -3);
 	lua_pushstring(_State, "print");
 	lua_getglobal(_State, "print");
+	lua_rawset(_State, -3);
+	lua_pushstring(_State, "Event");
+	lua_newtable(_State);
+	LuaAddEnum(_State, -1, g_LuaMissionEventEnum);
 	lua_rawset(_State, -3);
 	LuaSetEnv(_State, "Mission");
 	LuaRegisterObject(_State, "MissionFrame", NULL, g_LuaFuncsMissionFrame);

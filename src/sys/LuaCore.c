@@ -116,15 +116,15 @@ static const luaL_Reg g_LuaFuncsMath[] = {
 };
 
 static const struct LuaObjectReg g_LuaCoreObjects[] = {
-		{"Iterator", NULL, g_LuaFuncsIterator},
-		{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
-		{"LinkedList", NULL, g_LuaFuncsLinkedList},
-		{"List", NULL, g_LuaFuncsList},
-		{"Rule", NULL, g_LuaFuncsRule},
-		{"Array", NULL, g_LuaFuncsArray},
-		{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
-		{"Mission", NULL, g_LuaFuncsMission},
-		{NULL, NULL, NULL}
+	{"Iterator", NULL, g_LuaFuncsIterator},
+	{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
+	{"LinkedList", NULL, g_LuaFuncsLinkedList},
+	{"List", NULL, g_LuaFuncsList},
+	{"Rule", NULL, g_LuaFuncsRule},
+	{"Array", NULL, g_LuaFuncsArray},
+	{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
+	{"Mission", NULL, g_LuaFuncsMission},
+	{NULL, NULL, NULL}
 };
 
 int LuaCallFuncError(lua_State* _State) {

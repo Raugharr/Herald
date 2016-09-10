@@ -4,97 +4,19 @@
  */
 
 #include "GoapTest.h"
+#include "DataStruct.h"
+#include "RedBlackTest.h"
+#include "IntervalTreeTest.h"
+#include "MathTest.h"
 
 #include "../src/sys/LuaCore.h"
 #include "../src/Date.h"
-#include "../src/sys/LinkedList.h"
-#include "../src/sys/HashTable.h"
 
 #include <lua/lualib.h>
 #include <lua/lauxlib.h>
 #include <stdlib.h>
 #include <check.h>
 
-START_TEST(LinkedListPushBackTest) {
-	struct LinkedList _List =  {0};
-	int _Tbl[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-	LnkLstPushBack(&_List, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
-	LnkLstPushBack(&_List, &_Tbl[1]);
-	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[1]);
-	LnkLstPushBack(&_List, &_Tbl[2]);
-	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[2]);
-}
-END_TEST
-
-START_TEST(LinkedListPushFrontTest) {
-	struct LinkedList _List = {0};
-	int _Tbl[] = {0, 1, 2};
-
-	LnkLstPushFront(&_List, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[0]);
-	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
-	LnkLstPushFront(&_List, &_Tbl[1]);
-	ck_assert_ptr_eq(_List.Front->Data, &_Tbl[1]);
-	ck_assert_ptr_eq(_List.Back->Data, &_Tbl[0]);
-}
-END_TEST
-
-START_TEST(LinkedListPopFrontTest) {
-	struct LinkedList _List = {0};
-	int _Tbl[] = {0, 1, 2};
-
-	LnkLstPushFront(&_List, &_Tbl[0]);
-	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[0]);
-	ck_assert_int_eq(_List.Size, 0);
-	ck_assert_ptr_eq(_List.Front, NULL);
-	ck_assert_ptr_eq(_List.Back, NULL);
-	LnkLstPushBack(&_List, &_Tbl[1]);
-	LnkLstPushBack(&_List, &_Tbl[2]);
-	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[1]);
-	ck_assert_ptr_eq(LnkLstPopFront(&_List), &_Tbl[2]);
-	ck_assert_int_eq(_List.Size, 0);
-	ck_assert_ptr_eq(_List.Front, NULL);
-	ck_assert_ptr_eq(_List.Back, NULL);
-}
-END_TEST
-
-START_TEST(LinkedListPopBackTest) {
-	struct LinkedList _List = {0};
-	int _Tbl[] = {0, 1, 2};
-
-	LnkLstPushBack(&_List, &_Tbl[0]);
-	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[0]);
-	ck_assert_int_eq(_List.Size, 0);
-	ck_assert_ptr_eq(_List.Front, NULL);
-	ck_assert_ptr_eq(_List.Back, NULL);
-	LnkLstPushBack(&_List, &_Tbl[1]);
-	LnkLstPushBack(&_List, &_Tbl[2]);
-	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[2]);
-	ck_assert_ptr_eq(LnkLstPopBack(&_List), &_Tbl[1]);
-	ck_assert_int_eq(_List.Size, 0);
-	ck_assert_ptr_eq(_List.Front, NULL);
-	ck_assert_ptr_eq(_List.Back, NULL);
-
-}
-END_TEST
-
-START_TEST(HashTableInsertTest) {
-	struct HashTable _Table = {NULL, 0, 0};
-	int _Data = 5;
-
-	_Table.Table = calloc(sizeof(struct HashNode*), 20);
-	//Should not add a element add not crash the test.
-	HashInsert(&_Table, "Hello", &_Data);
-	_Table.TblSize = 20;
-	HashInsert(&_Table, "Hello", &_Data);
-	ck_assert_ptr_eq(HashSearch(&_Table, "Hello"), &_Data);
-}
-END_TEST
 
 START_TEST(DateAddIntBaseTest) {
 	DATE _Date = 0;
@@ -174,22 +96,6 @@ Suite* CoreSuite(void) {
 	return _Suite;
 }
 
-Suite* DataStructureSuite(void) {
-	Suite* _Suite = suite_create("Data Structures");
-	TCase* _LinkedList = tcase_create("LinkedList");
-	TCase* _HashTable = tcase_create("HashTable");
-
-	tcase_add_test(_LinkedList, LinkedListPushBackTest);
-	tcase_add_test(_LinkedList, LinkedListPushFrontTest);
-	tcase_add_test(_LinkedList, LinkedListPopFrontTest);
-	tcase_add_test(_LinkedList, LinkedListPopBackTest);
-
-	tcase_add_test(_HashTable, HashTableInsertTest);
-	suite_add_tcase(_Suite, _LinkedList);
-	suite_add_tcase(_Suite, _HashTable);
-	return _Suite;
-}
-
 Suite* LuaSuite(void) {
 	Suite* _Suite = suite_create("Lua");
 	TCase* _Case = tcase_create("Core");
@@ -199,15 +105,18 @@ Suite* LuaSuite(void) {
 	return _Suite;
 }
 
-
 int main(void) {
 	Suite* _Suite = CoreSuite();
 	SRunner* _Runner = NULL;	
 	int _FailedCt = 0;
 
 	_Runner = srunner_create(_Suite);
+	srunner_set_fork_status(_Runner, CK_NOFORK);
 	srunner_add_suite(_Runner, DataStructureSuite());
 	srunner_add_suite(_Runner, GoapSuite());
+	srunner_add_suite(_Runner, RedBlackSuite());
+	srunner_add_suite(_Runner, IntervalTreeSuite());
+	srunner_add_suite(_Runner, MathSuite());
 	srunner_run_all(_Runner, CK_NORMAL);
 	_FailedCt = srunner_ntests_failed(_Runner);
 	srunner_free(_Runner);

@@ -12,8 +12,8 @@ Mission.Load {
 		return Frame.Owner == Frame.Owner:GetSettlement():GetLeader()
 	end,
 	NoMenu = true,
-	Id = "Feast.1",
-	Event = OnSpring
+	Event = Event.OnSpring,
+	Id = "FEAST.1"
 }
 
 Mission.Load {
@@ -37,6 +37,10 @@ Mission.Load {
 			AIUtility = function(Frame) end
 		}
 	},
-	Id = "Feast.2",
+	Id = "FEAST.2",
 	OnlyTriggered = false
 }
+
+--Mission.Load {
+--	
+--}

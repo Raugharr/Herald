@@ -1,3 +1,11 @@
+Mission.Load {
+	Name = "Man murdered.",
+	Description  = "[0.FirstName] [0.LastName] has been murdered most foul.",
+	OnTrigger = function(Frame)
+		Frame.SetVar(0, RandomPerson({Adult = true, Count = 1, Male = true}))
+	end,
+	MeanTime = 365 * 20
+}
 --[[Mission.Load {
 	Name = "Murder Plot",
 	Description = "Plotting to kill %s.",

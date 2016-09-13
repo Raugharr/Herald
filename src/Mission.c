@@ -141,14 +141,14 @@ void DestroyMissionFrame(struct MissionFrame* _MissionFrame) {
 }
 
 static inline void SetupMissionFrame(lua_State* _State, struct MissionFrame* _Frame) {
-	LuaCtor(_State, "MissionFrame", _Frame);
+	LuaCtor(_State, _Frame, LOBJ_MISSIONFRAME);
 	lua_pushstring(_State, "From");
 	(_Frame->From != NULL) 
-		? LuaCtor(_State, "BigGuy", _Frame->From) 
+		? LuaCtor(_State, _Frame->From, LOBJ_BIGGUY) 
 		: lua_pushnil(_State);
 	lua_rawset(_State, -3);
 	lua_pushstring(_State, "Owner");
-	LuaCtor(_State, "BigGuy", _Frame->Owner);
+	LuaCtor(_State, _Frame->Owner, LOBJ_BIGGUY);
 	lua_rawset(_State, -3);
 }
 
@@ -323,11 +323,11 @@ void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGu
 		lua_pushstring(_State, "MissionMenu");
 		lua_createtable(_State, 0, 3);
 		lua_pushstring(_State, "Mission");
-		LuaConstCtor(_State, "Mission", _Mission);
+		LuaConstCtor(_State, _Mission, LOBJ_MISSION);
 		lua_rawset(_State, -3);
 
 		lua_pushstring(_State, "BigGuy");
-		LuaCtor(_State, "BigGuy", _Owner);
+		LuaCtor(_State, _Owner, LOBJ_BIGGUY);
 		lua_rawset(_State, -3);
 
 		lua_pushstring(_State, "Data");
@@ -537,7 +537,7 @@ int LuaMissionGetRandomPerson(lua_State* _State) {
 		LARG_TABLE
 	};
 	//int _IsUnique = 0;
-	struct MissionFrame* _Frame = LuaCheckClass(_State, LARG_FRAME, "MissionFrame");
+	struct MissionFrame* _Frame = LuaCheckClass(_State, LARG_FRAME, LOBJ_MISSIONFRAME);
 	struct Settlement* _Settlement = NULL;
 	struct LnkLst_Node* _Itr = NULL;
 	struct BigGuy* _Guy = NULL;
@@ -599,7 +599,7 @@ int LuaMissionGetRandomPerson(lua_State* _State) {
 	//g_MissionFrame->Stack[g_MissionFrame->StackSz].Value.Ptr = _Guy;
 	//g_MissionFrame->Stack[g_MissionFrame->StackSz].Type = MADATA_BIGGUY;
 	//++g_MissionFrame->StackSz;
-	LuaCtor(_State, "BigGuy", _Guy);
+	LuaCtor(_State, _Guy, LOBJ_BIGGUY);
 	return 1;
 	error:
 	return luaL_error(_State, "LuaMissionGetRandomPerson: No available person to select.");
@@ -615,7 +615,7 @@ int LuaMissionGetRandomPerson(lua_State* _State) {
 int LuaMissionCallById(lua_State* _State) {
 	const char* _Str = NULL;
 	int _Id = 0;
-	struct BigGuy* _Owner = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _Owner = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	struct BigGuy* _From = NULL;
 	struct Mission* _Mission = NULL;
 
@@ -630,7 +630,7 @@ int LuaMissionCallById(lua_State* _State) {
 			(luaL_error(_State, "Attempted to call nil mission %s", _Str)) :
 			(luaL_error(_State, "Attempted to call nil mission %d", _Id));
 	if(lua_gettop(_State) >= 3) {
-		_From = LuaCheckClass(_State, 3, "BigGuy");
+		_From = LuaCheckClass(_State, 3, LOBJ_BIGGUY);
 	}
 	MissionCall(_State, _Mission, _Owner, _From);
 	return 0;
@@ -731,22 +731,6 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 		lua_pop(_State, 1);
 	}
 #undef FUNC_FORMATSZ
-}
-
-void MissionLoadTriggerList(lua_State* _State, struct Mission* _Mission) {
-	struct Rule* _Trigger = NULL;
-	const char* _Name = NULL;
-
-	lua_pushstring(_State, "Name");
-	lua_rawget(_State, -2);
-	LuaGetString(_State, -1, &_Name);
-	lua_pop(_State, 1);
-	lua_pushstring(_State, "Trigger");
-	lua_rawget(_State, -2);
-	_Trigger = LuaCheckClass(_State, -1, "Rule");
-	if(_Trigger == NULL)
-		return (void) luaL_error(_State, "Trigger is not a rule.");
-	lua_pop(_State, 1);
 }
 
 int LuaMissionLoad(lua_State* _State) {
@@ -919,7 +903,7 @@ int LuaMissionStatUtility(lua_State* _State) {
 }
 
 int LuaMissionGetVar(lua_State* _State) {
-	struct MissionFrame* _Frame = LuaCheckClass(_State, 1, "MissionFrame");
+	struct MissionFrame* _Frame = LuaCheckClass(_State, 1, LOBJ_MISSIONFRAME);
 	int _Idx = luaL_checkinteger(_State, 2);
 
 	if(_Frame->StackSz - _Idx < 0 || _Idx >= MISSION_STACKSZ)
@@ -932,8 +916,8 @@ int LuaMissionGetVar(lua_State* _State) {
 }
 
 int LuaMissionCombatRound(lua_State* _State) {
-	struct BigGuy* _One = LuaCheckClass(_State, 1, "BigGuy");
-	struct BigGuy* _Two = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _One = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Two = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	int _Result = 0;
 
 	_Result = BigGuyOpposedCheck(_One, _Two, BGSKILL_COMBAT);
@@ -1050,29 +1034,16 @@ const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId
 void InitMissionLua(lua_State* _State) {
 	const char* _Temp = NULL;
 
-	LuaRegisterObject(_State, "MissionOption", NULL, g_LuaFuncsMissionOption);
+	LuaRegisterObject(_State, "MissionOption", LOBJ_MISSIONOPTION, LUA_REFNIL, g_LuaFuncsMissionOption);
 	lua_settop(_State, 0);
 	lua_newtable(_State);
 	lua_pushstring(_State, "Mission");
 	luaL_newlib(_State, g_LuaMissionRuleFuncs);
-
-	lua_pushstring(_State, "LessThan");
-	lua_pushinteger(_State, WSOP_LESSTHAN);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "GreaterThan");
-	lua_pushinteger(_State, WSOP_GREATERTHAN);
-	lua_rawset(_State, -3);
-
-	lua_pushstring(_State, "Equal");
-	lua_pushinteger(_State, WSOP_EQUAL);
-	lua_rawset(_State, -3);
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 3);
 
 	lua_pushstring(_State, "Stat");
 	lua_getglobal(_State, "Stat");
-	lua_rawset(_State, -3);
-
+	lua_rawset(_State, 3);
 
 	lua_pushstring(_State, "Rule");
 	luaL_getmetatable(_State, "Rule");
@@ -1081,7 +1052,7 @@ void InitMissionLua(lua_State* _State) {
 		luaL_getmetatable(_State, g_LuaMissionEnv[i]);
 		if(lua_type(_State, -1) != LUA_TTABLE) {
 			Log(ELOG_WARNING, "%s is not a valid table to include the Mission env table.", g_LuaMissionEnv[i]);
-			lua_pop(_State, 2);
+			lua_pop(_State, 1);
 			continue;
 		}
 		lua_pushstring(_State, g_LuaMissionEnv[i]);
@@ -1096,7 +1067,6 @@ void InitMissionLua(lua_State* _State) {
 				}
 			}
 			SDL_assert(lua_type(_State, -1) == LUA_TFUNCTION);
-			//lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
 			lua_pushvalue(_State, -2);
 			lua_pushvalue(_State, -2);
 			lua_remove(_State, -3);
@@ -1107,24 +1077,23 @@ void InitMissionLua(lua_State* _State) {
 	}
 	lua_pushstring(_State, "Random");
 	lua_pushcfunction(_State, LuaRandom);
-	//lua_pushcclosure(_State, LuaMissionFuncWrapper, 1);
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 1);
 	lua_pushstring(_State, "pairs");
 	lua_getglobal(_State, "pairs");
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 1);
 	lua_pushstring(_State, "print");
 	lua_getglobal(_State, "print");
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 1);
 	lua_pushstring(_State, "Event");
 	lua_newtable(_State);
 	LuaAddEnum(_State, -1, g_LuaMissionEventEnum);
-	lua_rawset(_State, -3);
+	lua_rawset(_State, 1);
 	LuaSetEnv(_State, "Mission");
-	LuaRegisterObject(_State, "MissionFrame", NULL, g_LuaFuncsMissionFrame);
+	LuaRegisterObject(_State, "MissionFrame", LOBJ_MISSIONFRAME, LUA_REFNIL, g_LuaFuncsMissionFrame);
 }
 
 int LuaMissionOptionGetName(lua_State* _State) {
-	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
+	struct MissionOption* _Option = LuaCheckClass(_State, 1, LOBJ_MISSIONOPTION);
 	struct MissionFrame* _Frame = NULL;
 
 	if(lua_gettop(_State) < 1) {
@@ -1136,8 +1105,8 @@ int LuaMissionOptionGetName(lua_State* _State) {
 }
 
 int LuaMissionOptionConditionSatisfied(lua_State* _State) {
-	struct MissionOption* _Option = LuaCheckClass(_State, 1, "MissionOption");
-	struct MissionFrame* _Frame = LuaCheckClass(_State, 2, "MissionFrame");
+	struct MissionOption* _Option = LuaCheckClass(_State, 1, LOBJ_MISSIONOPTION);
+	struct MissionFrame* _Frame = LuaCheckClass(_State, 2, LOBJ_MISSIONFRAME);
 
 	if(_Option->Condition == 0) {
 		lua_pushboolean(_State, 1);

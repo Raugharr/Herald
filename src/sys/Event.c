@@ -218,10 +218,10 @@ void Events() {
 				lua_pushstring(_State, "PlotMessage");
 				lua_createtable(_State, 0, 3);
 				lua_pushstring(_State, "Loser");
-				LuaCtor(_State, "BigGuy", _Loser);
+				LuaCtor(_State, _Loser, LOBJ_BIGGUY);
 				lua_rawset(_State, -3);
 				lua_pushstring(_State, "Winner");
-				LuaCtor(_State, "BigGuy", _Winner);
+				LuaCtor(_State, _Winner, LOBJ_BIGGUY);
 				lua_rawset(_State, -3);
 				lua_pushinteger(g_LuaState, 400);
 				lua_pushinteger(g_LuaState, 300);

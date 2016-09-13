@@ -45,9 +45,9 @@ static const luaL_Reg g_LuaFuncsAnimation[] = {
 };
 
 static const struct LuaObjectReg g_VideoLuaObjects[] = {
-		{"Sprite", NULL, g_LuaFuncsSprite},
-		{"Animation", NULL, g_LuaFuncsAnimation},
-		{NULL, NULL}
+		{LOBJ_SPRITE, "Sprite", LUA_REFNIL, g_LuaFuncsSprite},
+		{LOBJ_ANIMATION, "Animation", LUA_REFNIL, g_LuaFuncsAnimation},
+		{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
 const luaL_Reg g_LuaVideoFuncs[] = {
@@ -73,7 +73,7 @@ int LuaCreateSprite(lua_State* _State) {
 		return 1;
 	}
 	_Sprite = CreateSprite(_Resource, 0, &_Pos);
-	LuaCtor(_State, "Sprite", _Sprite);
+	LuaCtor(_State, _Sprite, LOBJ_SPRITE);
 	return 1;
 }
 
@@ -85,7 +85,7 @@ int LuaCreateAnimation(lua_State* _State) {
 	SDL_Point _Pos = {0, 0};
 
 	_Sprite = CreateSprite(ResourceGetData(_Resource), 0, &_Pos);
-	LuaCtor(_State, "Sprite", _Sprite);
+	LuaCtor(_State, _Sprite, LOBJ_SPRITE);
 	return 1;
 }
 

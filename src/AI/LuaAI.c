@@ -15,12 +15,12 @@ static const luaL_Reg g_LuaFuncsAgent[] = {
 };
 
 const struct LuaObjectReg g_LuaAIObjects[] = {
-		{"Agent", NULL, g_LuaFuncsAgent},
-		{NULL, NULL, NULL}
+		{LOBJ_AGENT, "Agent", LUA_REFNIL, g_LuaFuncsAgent},
+		{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
 int LuaAgentGetAction(lua_State* _State) {
-	struct Agent* _Agent = LuaCheckClass(_State, 1, "Agent");
+	struct Agent* _Agent = LuaCheckClass(_State, 1, LOBJ_AGENT);
 
 	lua_pushinteger(_State, 0);//AgentGetAction(_Agent));
 	return 1;

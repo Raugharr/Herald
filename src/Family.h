@@ -18,7 +18,6 @@
 #define HUSBAND (0)
 #define WIFE (1)
 #define CHILDREN (2)
-#define FAMILY_PROFESSIONS (2)
 
 #define FamilyAddAnimal(_Family, _Animal) AnimalArrayInsert(&(_Family)->Animals, (_Animal))
 #define FamilyTakeAnimal(_Family, _Animal) AnimalArrayRemove(&(_Family)->Animals, (_Animal))
@@ -66,7 +65,7 @@ struct Family {
 	struct Settlement* HomeLoc;
 	struct Family* Parent;
 	const struct Family* Owner; //Used if Caste is CASTE_SERF.
-	const struct Profession* Profession[FAMILY_PROFESSIONS];
+	const struct Profession* Profession;
 	const struct Caste* Caste;
 	//FIXME: We should assume that a person will only have at most 2 fields.
 	// By replacing the array with a static one we should be able to save space.

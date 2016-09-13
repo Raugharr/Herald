@@ -41,12 +41,12 @@ void LuaWorldInit() {
 }
 
 int LuaWorldGetPlayer(lua_State* _State) {
-	LuaCtor(_State, "BigGuy", g_GameWorld.Player);
+	LuaCtor(_State, g_GameWorld.Player, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaWorldGetSettlement(lua_State* _State) {
-	LuaCtor(_State, "Government", FamilyGetSettlement(g_GameWorld.Player->Person->Family)->Government);
+	LuaCtor(_State, FamilyGetSettlement(g_GameWorld.Player->Person->Family)->Government,LOBJ_GOVERNMENT); 
 	return 1;
 }
 
@@ -92,26 +92,26 @@ int LuaWorldSetOnClick(lua_State* _State) {
 }
 
 int LuaWorldGetBigGuy(lua_State* _State) {
-	struct Person* _Person = LuaCheckClass(_State, 1, "Person");
+	struct Person* _Person = LuaCheckClass(_State, 1, LOBJ_PERSON);
 	struct BigGuy* _Guy = NULL;
 
 	if((_Guy = RBSearch(&g_GameWorld.BigGuys, _Person)) == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "BigGuy", _Guy);
+	LuaCtor(_State, _Guy, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaWorldGetPlot(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Plot* _Plot = RBSearch(&g_GameWorld.PlotList, _Guy);
 
 	if(_Plot == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "Plot", _Plot);
+	LuaCtor(_State, _Plot, LOBJ_PLOT);
 	return 1;					
 }
 
@@ -119,7 +119,7 @@ int LuaWorldGetPlot(lua_State* _State) {
 int LuaWorldPolicies(lua_State* _State) {
 	lua_createtable(_State, g_GameWorld.PolicySz, 0);
 	for(int i = 0; i < g_GameWorld.PolicySz; ++i) {
-		LuaCtor(_State, "Policy", &g_GameWorld.Policies[i]);
+		LuaCtor(_State, &g_GameWorld.Policies[i], LOBJ_POLICY);
 		lua_rawseti(_State, -2, i + 1);
 	}
 	return 1;

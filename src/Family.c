@@ -413,7 +413,7 @@ void FamilyAddGoods(struct Family* _Family, int _FamilySize, lua_State* _State, 
 			++g_Log.Indents;
 			lua_getglobal(_State, _FamilyTypes[i]->LuaFunc);
 			lua_pushinteger(_State, _FamilySize);
-			LuaCtor(_State, "Settlement", _Location);
+			LuaCtor(_State, _Location, LOBJ_SETTLEMENT);
 			if(LuaCallFunc(_State, 2, 1, 0) == 0) {
 				--g_Log.Indents;
 				return;
@@ -429,7 +429,7 @@ void FamilyAddGoods(struct Family* _Family, int _FamilySize, lua_State* _State, 
 			lua_getfield(_State, -1, "Goods");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				_Obj = LuaCheckClass(_State, -1, "Good");
+				_Obj = LuaCheckClass(_State, -1, LOBJ_GOOD);
 				((struct Good*)_Obj)->Pos.x = _X;
 				((struct Good*)_Obj)->Pos.y = _Y;
 				ArrayInsertSort_S(&_Family->Goods, _Obj, GoodCmp);
@@ -452,7 +452,7 @@ void FamilyAddGoods(struct Family* _Family, int _FamilySize, lua_State* _State, 
 			lua_getfield(_State, -1, "Buildings");
 			lua_pushnil(_State);
 			while(lua_next(_State, -2) != 0) {
-				if((_Obj = (struct Building*) LuaToObject(_State, -1, "Building")) != NULL)
+				if((_Obj = (struct Building*) LuaToObject(_State, -1, LOBJ_BUILDING))!= NULL)
 					_Family->Buildings[_Family->BuildingCt++] = _Obj;
 					//ArrayInsertSort_S(&_Family->Buildings, _Obj, ObjectCmp);
 				lua_pop(_State, 1);

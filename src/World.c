@@ -503,7 +503,7 @@ void LoadCaste(lua_State* _State, const char* _Name, struct Caste* _Caste) {
 	lua_pop(_State, 1);
 	lua_pushstring(_State, "Behavior");
 	lua_rawget(_State, -2);
-	_Caste->Behavior = LuaCheckClass(_State, -1, "Behavior");
+	_Caste->Behavior = LuaCheckClass(_State, -1, LOBJ_BEHAVIOR);
 	lua_pop(_State, 2);
 }
 
@@ -660,7 +660,7 @@ int GameDefaultClick(const struct Object* _One, const struct Object* _Two) {
 	lua_pushstring(g_LuaState, "ViewSettlementMenu");
 	lua_createtable(g_LuaState, 0, 1);
 	lua_pushstring(g_LuaState, "Settlement");
-	LuaCtor(g_LuaState, "Settlement", ((struct Settlement*)_Two));
+	LuaCtor(g_LuaState, ((struct Settlement*)_Two), LOBJ_SETTLEMENT);
 	lua_rawset(g_LuaState, -3);
 	lua_pushinteger(g_LuaState, 512);
 	lua_pushinteger(g_LuaState, 512);

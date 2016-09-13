@@ -80,8 +80,8 @@ int LuaSettlementCountAcres(lua_State* _State);
 int LuaSettlementExpectedYield(lua_State* _State);
 int LuaSettlementYearlyDeaths(lua_State* _State);
 int LuaSettlementYearlyBirths(lua_State* _State);
-int LuaSettlementBulitinPost(lua_State* _State);
-int LuaSettlementGetBulitins(lua_State* _State);
+int LuaSettlementBulletinPost(lua_State* _State);
+int LuaSettlementGetBulletins(lua_State* _State);
 int LuaSettlementCountAdults(lua_State* _State);
 int LuaSettlementGetFreeWarriors(lua_State* _State);
 int LuaSettlementGetMaxWarriors(lua_State* _State);
@@ -89,14 +89,14 @@ int LuaSettlementMaleAdults(lua_State* _State);
 int LuaSettlementFemaleAdults(lua_State* _State);
 
 
-int LuaBulitinNext(lua_State* _State);
-int LuaBulitinPrev(lua_State* _State);
-int LuaBulitinNextItr(lua_State* _State);
-int LuaBulitinPrevItr(lua_State* _State);
-int LuaBulitinGetOwner(lua_State* _State);
-int LuaBulitinGetDaysRemaining(lua_State* _State);
-int LuaBulitinGetName(lua_State* _State);
-int LuaBulitinGetMission(lua_State* _State);
+int LuaBulletinNext(lua_State* _State);
+int LuaBulletinPrev(lua_State* _State);
+int LuaBulletinNextItr(lua_State* _State);
+int LuaBulletinPrevItr(lua_State* _State);
+int LuaBulletinGetOwner(lua_State* _State);
+int LuaBulletinGetDaysRemaining(lua_State* _State);
+int LuaBulletinGetName(lua_State* _State);
+int LuaBulletinGetMission(lua_State* _State);
 
 int LuaPlotActionDescribe(lua_State* _State);
 int LuaPlotActionGetType(lua_State* _State);

@@ -22,22 +22,21 @@ struct Array;
  * TODO: Instead of using strings for object types instead use integers.
  */
 
-#define LUA_BASECLASS "Object"
 #define LuaStackAssert(_State, _Code) (int __LuaStack = lua_gettop(_State); (_Code) Assert(lua_gettop(_State) != __LuaStack))
 
 //FIXME: The arguments of LuaCtor should match LuaCheckClass and thus be changed to _State, _Ptr, _Class
-#define LuaCtor(_State, _Class, _Ptr)			\
+#define LuaCtor(_State, _Ptr, _Class)			\
 	(lua_createtable((_State), 0, 1),			\
-	LuaInitClass((_State), (_Class), (_Ptr)))
+	LuaInitClass((_State), (_Ptr), (_Class)))
 
 #define LuaAddEnumToTable(_State, _String, _Int)	\
 	(lua_pushstring(_State, _String),				\
 	lua_pushinteger(_State, _Int),					\
 	lua_rawset(_State, -3))
 
-#define LuaConstCtor(_State, _Class, _Ptr)				\
+#define LuaConstCtor(_State,  _Ptr, _Class)				\
 	lua_createtable((_State), 0, 1);					\
-	LuaInitClass((_State), (_Class), (void*) (_Ptr))	
+	LuaInitClass((_State), (void*) (_Ptr), _Class)	
 
 #define LuaCreateLibrary(_State, _LuaReg, _Name)	\
 	luaL_newlib((_State), (_LuaReg));				\
@@ -59,9 +58,59 @@ struct Array;
 
 extern lua_State* g_LuaState;
 
+enum LuaObjectsEnum {
+	LUA_BASECLASS,
+	LOBJ_ITERATOR,
+	LOBJ_LINKEDLISTNODE,
+	LOBJ_LINKEDLIST,
+	LOBJ_LIST,
+	LOBJ_RULE,
+	LOBJ_ARRAY,
+	LOBJ_ARRAYITERATOR,
+	LOBJ_MISSION,
+	LOBJ_BEHAVIOR,
+	LOBJ_BHVCOMPOSITE,
+	LOBJ_BHVDECORATOR,
+	LOBJ_BHVNODE,
+	LOBJ_ARMY,
+	LOBJ_GOVERNMENT,
+	LOBJ_BIGGUY,
+	LOBJ_BIGGUYRELATION,
+	LOBJ_SETTLEMENT,
+	LOBJ_BUILDMAT,
+	LOBJ_BULLETIN,
+	LOBJ_PLOTACTION,
+	LOBJ_PLOT,
+	LOBJ_POLICY,
+	LOBJ_POLICYOPTION,
+	LOBJ_BIGGUYOPINION,
+	LOBJ_PERSON,
+	LOBJ_GOOD,
+	LOBJ_FAMILY,
+	LOBJ_FIELD,
+	LOBJ_ANIMAL,
+	LOBJ_BUILDING,
+	LOBJ_AGENT,
+	LOBJ_WIDGET,
+	LOBJ_CONTAINER,
+	LOBJ_LABEL,
+	LOBJ_TABLE,
+	LOBJ_SURFACE,
+	LOBJ_FONT,
+	LOBJ_BUTTON,
+	LOBJ_IMAGEWIDGET,
+	LOBJ_TEXTBOX,
+	LOBJ_SPRITE,
+	LOBJ_ANIMATION,
+	LOBJ_MISSIONOPTION,
+	LOBJ_MISSIONFRAME,
+	LOBJ_TRAIT
+};
+
 struct LuaObjectReg {
+	int  Class;
 	const char* Name;
-	const char* BaseClass;
+	int  BaseClass;
 	const luaL_Reg* Funcs;
 };
 
@@ -93,19 +142,19 @@ void RegisterLuaObjects(lua_State* _State, const struct LuaObjectReg* _Objects);
  * If _BaseClass is NULL then the prototype will have no subclass.
  * If _Funcs is NULL no Lua functions will be loaded.
  */
-int LuaRegisterObject(lua_State* _State, const char* _Class, const char* _BaseClass, const luaL_Reg* _Funcs);
+int LuaRegisterObject(lua_State* _State, const char* _Name, int _Class, int _BaseClass, const luaL_Reg* _Funcs);
 /**
  * Registers all Lua functions in _Funcs to the global space of _State.
  */
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
-void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, const char* _Class);
-void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, const char* _Class);
-void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, const char* _Class);
+void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, int _Class);
+void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, int  _Class);
+void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, int  _Class);
 
 /**
  * Sets the table at the top of the stack to have _Class as its metatable, and an element __self with _Ptr as its value.
  */
-void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr);
+void LuaInitClass(lua_State* _State, void* _Ptr, int _Class);
 const char* LuaObjectClass(lua_State* _State, int _Arg);
 
 int LuaArrayCreate(lua_State* _State);
@@ -126,7 +175,7 @@ int LuaArrayItr(lua_State* _State);
  * Pointer is located at the table's __self variable only if the table's __class variable is equal to _Class.
  * If the table at _Index is not of type _Class LuaToObject returns NULL.
  */
-void* LuaToObject(lua_State* _State, int _Index, const char* _Class);
+void* LuaToObject(lua_State* _State, int _Index, int _Class);
 /**
  * Takes three arguments from the stack and returns a light user data containing a struct Constraint**.
  * The three arguments are in order, min, max, and interval.
@@ -193,7 +242,7 @@ void* LuaToClass(lua_State* _State, int _Index);
  * Returns a pointer to it's C data or NULL if the element at _Index is not
  * of type _Class.
  */
-void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
+void* LuaTestClass(lua_State* _State, int _Index, int _Class);
 /**
  * Checks if the element located on the stack at _Index is of type _Class.
  * If the element is not the correct _Class LuaCheckClass will recursively
@@ -201,7 +250,7 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class);
  * __baseclass is nil or the __baseclass is equal to _Class.
  * Will raise an error if the table at _Index is not of type _Class.
  */
-void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class);
+void* LuaCheckClass(lua_State* _State, int _Index, int  _Class);
 /**
  * Returns the lowest base class for the object at _Index
  */
@@ -246,7 +295,7 @@ void LuaGetEnv(lua_State* _State, const char* _Env);
 //Index function for Lua classes.
 int LuaClassIndex(lua_State* _State);
 
-int LuaClassError(lua_State* _State, int _Arg, const char* _Class);
+int LuaClassError(lua_State* _State, int _Arg, int _Class);
 int LuaMathRandomVar(lua_State* _State);
 int LuaMathProbability(lua_State* _State);
 #endif

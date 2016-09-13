@@ -13,8 +13,8 @@ enum {
 	BULPRI_HIGH
 };
 
-struct BulitinItem {
-	IMPLICIT_LINKEDLIST(struct BulitinItem);
+struct BulletinItem {
+	IMPLICIT_LINKEDLIST(struct BulletinItem);
 	const struct Mission* SuccMission;
 	const struct Mission* FailMission;
 	struct BigGuy* Owner;
@@ -22,11 +22,11 @@ struct BulitinItem {
 	int DaysLeft; //Time until builitin mission cannot be solved.
 };
 
-const char* BulitinItemGetName(struct BulitinItem* _Item);
-void BulitinItemOnClick(struct BulitinItem* _Item, lua_State* _State, struct BigGuy* _Selector);
+const char* BulletinItemGetName(struct BulletinItem* _Item);
+void BulletinItemOnClick(struct BulletinItem* _Item, lua_State* _State, struct BigGuy* _Selector);
 
-struct BulitinItem* CreateBulitinItem(const struct Mission* _SuccMission, const struct Mission* _FailMission,
+struct BulletinItem* CreateBulletinItem(const struct Mission* _SuccMission, const struct Mission* _FailMission,
 	 struct BigGuy* _Owner, int _DaysLeft, int _Priority);
-void DestroyBulitinItem(struct BulitinItem* _Item);
-void BulitinThink(struct BulitinItem* _Item);
+void DestroyBulletinItem(struct BulletinItem* _Item);
+void BulletinThink(struct BulletinItem* _Item);
 #endif

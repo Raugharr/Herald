@@ -29,7 +29,7 @@ struct Army;
 struct ArmyGoal;
 struct Tile;
 struct Object;
-struct BulitinItem;
+struct BulletinItem;
 struct Retinue;
 
 enum {
@@ -61,7 +61,7 @@ struct Settlement {
 	struct Government* Government;
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
-	struct BulitinItem* Bulitin;
+	struct BulletinItem* Bulletin;
 	DATE LastRaid;
 	uint16_t NumPeople;
 	uint16_t YearDeaths; //Record of deaths in this settlement this year.

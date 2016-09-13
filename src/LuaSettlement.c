@@ -15,7 +15,7 @@
 #include "Family.h"
 #include "Person.h"
 #include "Mission.h"
-#include "Bulitin.h"
+#include "Bulletin.h"
 #include "Plot.h"
 #include "Policy.h"
 
@@ -110,8 +110,8 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{"ExpectedYield", LuaSettlementExpectedYield},
 	{"YearlyDeaths", LuaSettlementYearlyDeaths},
 	{"YearlyBirths", LuaSettlementYearlyBirths},
-	{"BulitinPost", LuaSettlementBulitinPost},
-	{"GetBulitins", LuaSettlementGetBulitins},
+	{"BulletinPost", LuaSettlementBulletinPost},
+	{"GetBulletins", LuaSettlementGetBulletins},
 	{"CountAdults", LuaSettlementCountAdults},
 	{"GetFreeWarriors", LuaSettlementGetFreeWarriors},
 	{"GetMaxWarriors", LuaSettlementGetMaxWarriors},
@@ -120,15 +120,15 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaFuncsBulitin[] = {
-	{"Next", LuaBulitinNext},
-	{"Prev", LuaBulitinPrev},
-	{"NextItr", LuaBulitinNextItr},
-	{"PrevItr", LuaBulitinPrevItr},
-	{"GetOwner", LuaBulitinGetOwner},
-	{"DaysLeft", LuaBulitinGetDaysRemaining},
-	{"GetName", LuaBulitinGetName},
-	{"GetMission", LuaBulitinGetMission},
+static const luaL_Reg g_LuaFuncsBulletin[] = {
+	{"Next", LuaBulletinNext},
+	{"Prev", LuaBulletinPrev},
+	{"NextItr", LuaBulletinNextItr},
+	{"PrevItr", LuaBulletinPrevItr},
+	{"GetOwner", LuaBulletinGetOwner},
+	{"DaysLeft", LuaBulletinGetDaysRemaining},
+	{"GetName", LuaBulletinGetName},
+	{"GetMission", LuaBulletinGetMission},
 	{NULL, NULL}
 };
 
@@ -168,19 +168,19 @@ static luaL_Reg g_LuaFuncsPolicyOption[] = {
 };
 
 const struct LuaObjectReg g_LuaSettlementObjects[] = {
-	{"Army", NULL, g_LuaFuncsArmy},
-	{"Government", NULL, g_LuaFuncsGovernment},
-	{"BigGuy", NULL, g_LuaFuncsBigGuy},
-	{"BigGuyRelation", NULL, g_LuaFuncsBigGuyRelation},
-	{"Settlement", NULL, g_LuaFuncsSettlement},
-	{"BuildMat", NULL, NULL},
-	{"Bulitin", NULL, g_LuaFuncsBulitin},
-	{"PlotAction", NULL, g_LuaFuncsPlotAction},
-	{"Plot", NULL, g_LuaFuncsPlot},
-	{"Policy", NULL, g_LuaFuncsPolicy},
-	{"PolicyOption", NULL, g_LuaFuncsPolicyOption},
-	{"BigGuyOpinion", NULL, g_LuaFuncsBigGuyOpinion},
-	{NULL, NULL}
+	{LOBJ_ARMY, "Army", LUA_REFNIL, g_LuaFuncsArmy},
+	{LOBJ_GOVERNMENT, "Government", LUA_REFNIL, g_LuaFuncsGovernment},
+	{LOBJ_BIGGUY, "BigGuy", LUA_REFNIL, g_LuaFuncsBigGuy},
+	{LOBJ_BIGGUYRELATION, "BigGuyRelation", LUA_REFNIL, g_LuaFuncsBigGuyRelation},
+	{LOBJ_SETTLEMENT, "Settlement", LUA_REFNIL, g_LuaFuncsSettlement},
+	{LOBJ_BUILDMAT, "BuildMat", LUA_REFNIL, NULL},
+	{LOBJ_BULLETIN, "Bulletin", LUA_REFNIL, g_LuaFuncsBulletin},
+	{LOBJ_PLOTACTION, "PlotAction", LUA_REFNIL, g_LuaFuncsPlotAction},
+	{LOBJ_PLOT, "Plot", LUA_REFNIL, g_LuaFuncsPlot},
+	{LOBJ_POLICY, "Policy", LUA_REFNIL, g_LuaFuncsPolicy},
+	{LOBJ_POLICYOPTION, "PolicyOption", LUA_REFNIL, g_LuaFuncsPolicyOption},
+	{LOBJ_BIGGUYOPINION, "BigGuyOpinion", LUA_REFNIL, g_LuaFuncsBigGuyOpinion},
+	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
 const struct LuaEnum g_LuaPlotEnum[] = {
@@ -262,35 +262,35 @@ const struct LuaEnumReg g_LuaSettlementEnums[] = {
 };
 
 int LuaArmyGetLeader(lua_State* _State) {
-	struct Army* _Army = LuaCheckClass(_State, 1, "Army");
+	struct Army* _Army = LuaCheckClass(_State, 1, LOBJ_ARMY);
 
-	LuaCtor(_State, "BigGuy", _Army->Leader);
+	LuaCtor(_State, _Army->Leader, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaArmyGetSize(lua_State* _State) {
-	struct Army* _Army = LuaCheckClass(_State, 1, "Army");
+	struct Army* _Army = LuaCheckClass(_State, 1, LOBJ_ARMY);
 
 	lua_pushinteger(_State, ArmyGetSize(_Army));
 	return 1;
 }
 
 int LuaBGGetPerson(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
-	LuaCtor(_State, "Person", _Guy->Person);
+	LuaCtor(_State, _Guy->Person, LOBJ_PERSON);
 	return 1;
 }
 
 int LuaBGGetAuthority(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Authority);
 	return 1;
 }
 
 int LuaBGSetAuthority(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	int _Authority = luaL_checkinteger(_State, 2);
 
 	_Guy->Authority += _Authority;
@@ -298,14 +298,14 @@ int LuaBGSetAuthority(lua_State* _State) {
 }
 
 int LuaBGGetPrestige(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Prestige);
 	return 1;
 }
 
 int LuaBGSetPrestige(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	int _Prestige = luaL_checkinteger(_State, 2);
 
 	_Guy->Prestige += _Prestige;
@@ -313,57 +313,57 @@ int LuaBGSetPrestige(lua_State* _State) {
 }
 
 int LuaBGGetCombat(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_COMBAT]);
 	return 1;
 }
 
 int LuaBGGetStrength(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_STRENGTH]);
 	return 1;
 }
 
 int LuaBGGetToughness(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_TOUGHNESS]);
 	return 1;
 }
 
 int LuaBGGetAgility(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_AGILITY]);
 	return 1;
 }
 
 int LuaBGGetWit(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_WIT]);
 	return 1;
 }
 
 int LuaBGGetCharisma(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_CHARISMA]);
 	return 1;
 }
 
 int LuaBGGetIntelligence(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	lua_pushinteger(_State, _Guy->Stats[BGSKILL_INTELLIGENCE]);
 	return 1;
 }
 
 int LuaBGOpposedChallange(lua_State* _State) {
-	struct BigGuy* _One = LuaCheckClass(_State, 1, "BigGuy");
-	struct BigGuy* _Two = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _One = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Two = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 
 	if(_One == NULL)
 		return luaL_error(_State, "Agument #1 is not a BigGuy.");
@@ -374,63 +374,63 @@ int LuaBGOpposedChallange(lua_State* _State) {
 }
 
 int LuaBGGetAgent(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Agent* _Agent = RBSearch(&g_GameWorld.Agents, _Guy);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	if(_Agent == NULL) {
 		lua_pushnil(_State);
 		goto end;
 	}
-	LuaCtor(_State, "Agent", _Agent);
+	LuaCtor(_State, _Agent, LOBJ_AGENT);
 	end:
 	return 1;
 }
 
 int LuaBGGetRelation(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
-	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Target);
 
 	if(_Relation == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "BigGuyRelation", _Relation);
+	LuaCtor(_State, _Relation, LOBJ_BIGGUYRELATION);
 	return 1;
 }
 
 int LuaBGRelItrNext(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, lua_upvalueindex(1), "BigGuyRelation");
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_BIGGUYRELATION);
 
 	if(_Relation->Next == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "BigGuyRelation", _Relation->Next);
+	LuaCtor(_State, _Relation->Next, LOBJ_BIGGUYRELATION);
 	lua_pushvalue(_State, -1);
 	lua_replace(_State, lua_upvalueindex(1));
 	return 1;
 }
 
 int LuaBGRelationItr(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	if(_Guy->Relations == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "BigGuyRelation", _Guy->Relations); 
+	LuaCtor(_State, _Guy->Relations, LOBJ_BIGGUYRELATION); 
 	lua_pushcclosure(_State, LuaBGRelItrNext, 1);
 	return 1;
 }
 
 int LuaBGSetOpinion(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
-	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	int _Action = luaL_checkinteger(_State, 3);
 	int _Mod = luaL_checkinteger(_State, 4);
 	int _Length = luaL_checkinteger(_State, 5);
@@ -441,7 +441,7 @@ int LuaBGSetOpinion(lua_State* _State) {
 }
 
 int LuaBGSetAction(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	int _Action = luaL_checkint(_State, 2);
 	struct BigGuy* _Target = NULL;
 	void* _Data;
@@ -451,19 +451,19 @@ int LuaBGSetAction(lua_State* _State) {
 	lua_rawget(_State, 3);
 	if(lua_isnil(_State, 3) == 1)
 		return luaL_error(_State, "BigGuy:SetAction's 3rd argument is not an object");
-	_Target = LuaCheckClass(_State, 3, "BigGuy");
+	_Target = LuaCheckClass(_State, 3, LOBJ_BIGGUY);
 	_Data = lua_touserdata(_State, 4);
 	BigGuySetAction(_Guy, _Action, _Target, _Data);
 	return 0;
 }
 
 int LuaBGImproveRelationTarget(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	if(_Guy->Action.Type == BGACT_IMRPOVEREL) {
-		LuaCtor(_State, "BigGuy", _Guy->Action.Target);
+		LuaCtor(_State, _Guy->Action.Target, LOBJ_BIGGUY);
 	} else {
 		return luaL_error(_State, "ImproveRelationTarget argument #1 is not improving relations.");
 	}
@@ -471,63 +471,63 @@ int LuaBGImproveRelationTarget(lua_State* _State) {
 }
 
 int LuaBGGetSettlement(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
-	LuaCtor(_State, "Settlement", FamilyGetSettlement(_Guy->Person->Family));
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
+	LuaCtor(_State, FamilyGetSettlement(_Guy->Person->Family), LOBJ_SETTLEMENT);
 	return 1;
 }
 
 int LuaBGGetFamily(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
-	LuaCtor(_State, "Family", _Guy->Person->Family);
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
+	LuaCtor(_State, _Guy->Person->Family, LOBJ_FAMILY);
 	return 1;
 }
 
 int LuaBGGetName(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	lua_pushstring(_State, _Guy->Person->Name);
 	return 1;
 }
 
 int LuaBGKill(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	PersonDeath(_Guy->Person);
 //	DestroyBigGuy(_Guy);
 	return 0;
 }
 
 int LuaBGPopularity(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	lua_pushinteger(_State, BigGuyPopularity(_Guy));
 	return 1; 
 }
 
 int LuaBGChangePopularity(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	int _Change = luaL_checkinteger(_State, 2);
 
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	_Guy->Popularity += _Change;
 	return 0;
 }
 
 int LuaBGSuccessMargin(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	int _Skill = luaL_checkinteger(_State, 2);
 	int _ReqSkill = 0;
 
@@ -536,20 +536,20 @@ int LuaBGSuccessMargin(lua_State* _State) {
 	else
 		_ReqSkill = SKILLCHECK_DEFAULT;
 	if(_Guy == NULL)
-		return LuaClassError(_State, 1, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_BIGGUY);
 	lua_pushinteger(_State, BigGuySuccessMargin(_Guy, _Skill, _ReqSkill));	
 	return 1;
 }
 
 int LuaBGPlotsAgainst(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 
-	CreateLuaLnkLstItr(_State, &_Guy->PlotsAgainst, "Plot");
+	CreateLuaLnkLstItr(_State, &_Guy->PlotsAgainst, LOBJ_PLOT);
 	return 1;
 }
 
 int LuaBGRecruit(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Retinue* _Retinue = NULL;
 	struct Settlement* _Home = PersonHome(_Guy->Person);
 
@@ -567,7 +567,7 @@ int LuaBGRecruit(lua_State* _State) {
 }
 
 int LuaBGIsRecruiting(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Retinue* _Retinue = NULL;
 	struct Settlement* _Home = PersonHome(_Guy->Person);
 
@@ -583,7 +583,7 @@ int LuaBGIsRecruiting(lua_State* _State) {
 }
 
 int LuaBGRetinueSize(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Retinue* _Retinue = NULL;
 	struct Settlement* _Home = PersonHome(_Guy->Person);
 
@@ -599,7 +599,7 @@ int LuaBGRetinueSize(lua_State* _State) {
 }
 
 int LuaBGRetinueTable(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Retinue* _Retinue = NULL;
 	struct Settlement* _Home = PersonHome(_Guy->Person);
 
@@ -614,14 +614,14 @@ int LuaBGRetinueTable(lua_State* _State) {
 	found_retinue:
 	lua_createtable(_State, _Retinue->Warriors.Size, 0);
 	for(int i = 0; i < _Retinue->Warriors.Size; ++i) {
-		LuaCtor(_State, "Person", _Retinue->Warriors.Table[i]);
+		LuaCtor(_State, _Retinue->Warriors.Table[i], LOBJ_PERSON);
 		lua_rawseti(_State, -2, i + 1);
 	}
 	return 1;
 }
 
 int LuaBGHasTrait(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	const char* _TraitName = NULL;
 	const struct Trait* _Trait = NULL;
 	
@@ -634,7 +634,7 @@ int LuaBGHasTrait(lua_State* _State) {
 			lua_pushboolean(_State, HasTrait(_Guy, _Trait));
 			break;
 		case LUA_TTABLE:
-			lua_pushboolean(_State, HasTrait(_Guy, LuaCheckClass(_State, 2, "Trait")));
+			lua_pushboolean(_State, HasTrait(_Guy, LuaCheckClass(_State, 2, LOBJ_TRAIT)));
 			break;
 		default:
 			error:
@@ -645,14 +645,14 @@ int LuaBGHasTrait(lua_State* _State) {
 }
 
 int LuaBGOpinionAction(lua_State* _State) {
-	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, "BigGuyOpinion");
+	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
 
 	lua_pushstring(_State, g_BigGuyOpinionActions[_Opinion->Action]);
 	return 1;
 }
 
 int LuaBGOpinionRelation(lua_State* _State) {
-	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, "BigGuyOpinion");
+	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
 
 	lua_pushinteger(_State, _Opinion->RelMod);
 	return 1;
@@ -660,95 +660,95 @@ int LuaBGOpinionRelation(lua_State* _State) {
 }
 
 int LuaBGRelationGetOpinion(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 
 	if(_Relation == NULL)
-		return LuaClassError(_State, 1, "BigGuyRelation");
+		return LuaClassError(_State, 1, LOBJ_BIGGUYRELATION);
 	lua_pushinteger(_State, _Relation->Modifier);
 	return 1;
 }
 
 int LuaBGRelationGetRelationList(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 	int _Idx = 1;
 
 	lua_createtable(_State, 6, 0);	
 	for(struct BigGuyOpinion* _Opinion = _Relation->Opinions; _Opinion != NULL; _Opinion = _Opinion->Next, ++_Idx) {
-		LuaCtor(_State, "BigGuyOpinion", _Opinion);
+		LuaCtor(_State, _Opinion, LOBJ_BIGGUYOPINION);
 		lua_rawseti(_State, -2, _Idx);
 	}
 	return 1;
 }
 
 int LuaBGRelationBigGuy(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, "BigGuyRelation");
+	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 
 	if(_Relation == NULL)
-		return LuaClassError(_State, 1, "BigGuyRelation");
-	LuaCtor(_State, "BigGuy", _Relation->Person);
+		return LuaClassError(_State, 1, LOBJ_BIGGUYRELATION);
+	LuaCtor(_State, _Relation->Person, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaGovernmentStructure(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 
 	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVTYPE_MASK));
 	return 1;
 }
 
 int LuaGovernmentType(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 
 	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVSTCT_MASK));
 	return 1;
 }
 
 int LuaGovernmentRule(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 
 	lua_pushstring(_State, GovernmentTypeToStr(_Government->GovType, GOVRULE_MASK));
 	return 1;
 }
 
 int LuaGovernmentGetLeader(lua_State* _State) {
-	struct Government* _Gov = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Gov = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 
-	LuaCtor(_State, "BigGuy", _Gov->Leader);
+	LuaCtor(_State, _Gov->Leader, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaGovernmentGetJudge(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 	
-	LuaCtor(_State, "BigGuy", _Government->Appointments.Judge);
+	LuaCtor(_State, _Government->Appointments.Judge, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaGovernmentGetMarshall(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 	
-	LuaCtor(_State, "BigGuy", _Government->Appointments.Marshall);
+	LuaCtor(_State, _Government->Appointments.Marshall, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaGovernmentGetSteward(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
 	
-	LuaCtor(_State, "BigGuy", _Government->Appointments.Steward);
+	LuaCtor(_State, _Government->Appointments.Steward, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaGovernmentHasPolicy(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
-	struct Policy* _Policy = LuaCheckClass(_State, 2, "Policy");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
+	struct Policy* _Policy = LuaCheckClass(_State, 2, LOBJ_POLICY);
 
 	lua_pushboolean(_State, GovernmentHasPolicy(_Government, _Policy));
 	return 1;
 }
 
 int LuaGovernmentGetPolicyCategory(lua_State* _State) {
-	struct Government* _Government = LuaCheckClass(_State, 1, "Government");
-	struct Policy* _Policy = LuaCheckClass(_State, 2, "Policy");
+	struct Government* _Government = LuaCheckClass(_State, 1, LOBJ_GOVERNMENT);
+	struct Policy* _Policy = LuaCheckClass(_State, 2, LOBJ_POLICY);
 	struct ActivePolicy* _ActPol = NULL;
 	int _Category = luaL_checkinteger(_State, 3) - 1;
 
@@ -766,16 +766,16 @@ int LuaGovernmentGetPolicyCategory(lua_State* _State) {
 }
 
 int LuaSettlementGetLeader(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
-	LuaCtor(_State, "BigGuy", _Settlement->Government->Leader);
+	LuaCtor(_State, _Settlement->Government->Leader, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaSettlementGetGovernment(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
-	LuaCtor(_State, "Government", _Settlement->Government);
+	LuaCtor(_State, _Settlement->Government, LOBJ_GOVERNMENT);
 	return 1;
 }
 
@@ -783,7 +783,7 @@ int LuaSettlementGetGovernment(lua_State* _State) {
 #include "World.h"
 
 int LuaSettlementRaiseArmy(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 	struct ArmyGoal _Goal;
 	struct Army* _Army = NULL;
 	struct Settlement* _Raid = NULL;
@@ -793,88 +793,88 @@ int LuaSettlementRaiseArmy(lua_State* _State) {
 	else
 		_Raid = g_GameWorld.Settlements.Front->Data;
 	_Army = CreateArmy(_Settlement, (struct SDL_Point*)&_Settlement->Pos, _Settlement->Government, _Settlement->Government->Leader, ArmyGoalRaid(&_Goal, _Raid));
-	LuaCtor(_State, "Army", _Army);
+	LuaCtor(_State, _Army, LOBJ_ARMY);
 	return 1;
 }
 
 int LuaSettlementGetPopulation(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushinteger(_State, _Settlement->NumPeople);
 	return 1;
 }
 
 int LuaSettlementCountWarriors(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushinteger(_State, SettlementCountWarriors(_Settlement));
 	return 1;
 }
 
 int LuaSettlementGetBigGuys(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
-	CreateLuaLnkLstItr(_State, &_Settlement->BigGuys, "BigGuy");
+	CreateLuaLnkLstItr(_State, &_Settlement->BigGuys, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaSettlementGetNutrition(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushinteger(_State, SettlementGetNutrition(_Settlement));
 	return 1;
 }
 
 int LuaSettlementYearlyNutrition(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, SettlementYearlyNutrition(_Settlement));
 	return 1;
 }
 
 int LuaSettlementCountAcres(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, SettlementCountAcres(_Settlement));
 	return 1;
 }
 
 int LuaSettlementExpectedYield(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, SettlementExpectedYield(_Settlement));
 	return 1;
 }
 
 int LuaSettlementYearlyDeaths(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, _Settlement->YearDeaths);
 	return 1;
 }
 
 int LuaSettlementYearlyBirths(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, _Settlement->YearBirths);
 	return 1;
 }
 
-int LuaSettlementBulitinPost(lua_State* _State) {
-	struct BulitinItem* _Item = NULL;
+int LuaSettlementBulletinPost(lua_State* _State) {
+	struct BulletinItem* _Item = NULL;
 	struct Mission* _Mission = NULL;
 	struct Mission* _MissionFail = NULL;
-	struct BigGuy* _Poster = LuaCheckClass(_State, 1, "BigGuy");
+	struct BigGuy* _Poster = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	const char* _MissionStr = luaL_checkstring(_State, 2);
 	const char* _MissionFailStr = luaL_checkstring(_State, 3);
 	int _DaysLeft = luaL_checkint(_State, 4);
@@ -886,138 +886,138 @@ int LuaSettlementBulitinPost(lua_State* _State) {
 	if((_MissionFail = StrToMission(_MissionFailStr)) == NULL) {
 		luaL_error(_State, "%s is not a mission name.", _MissionFailStr);
 	}
-	_Item = CreateBulitinItem(_Mission, NULL, _Poster, _DaysLeft, _Priority);		 
-	ILL_CREATE(_Poster->Person->Family->HomeLoc->Bulitin, _Item);
+	_Item = CreateBulletinItem(_Mission, NULL, _Poster, _DaysLeft, _Priority);		 
+	ILL_CREATE(_Poster->Person->Family->HomeLoc->Bulletin, _Item);
 	return 0;
 }
 
-int LuaSettlementGetBulitins(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+int LuaSettlementGetBulletins(lua_State* _State) {
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
-	LuaCtor(_State, "Bulitin", _Settlement->Bulitin);
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
+	LuaCtor(_State, _Settlement->Bulletin, LOBJ_BULLETIN);
 	return 1;
 }
 
 int LuaSettlementCountAdults(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	if(_Settlement == NULL)
-		return LuaClassError(_State, 1, "Settlement");
+		return LuaClassError(_State, 1, LOBJ_SETTLEMENT);
 	lua_pushinteger(_State, SettlementAdultPop(_Settlement));
 	return 1;
 }
 
 int LuaSettlementGetFreeWarriors(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushinteger(_State, _Settlement->FreeWarriors.Size);
 	return 1;
 }
 
 int LuaSettlementGetMaxWarriors(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushinteger(_State, _Settlement->MaxWarriors);
 	return 1;
 }
 
 int LuaSettlementMaleAdults(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 	
 	lua_pushinteger(_State, _Settlement->AdultMen);
 	return 1;	
 }
 
 int LuaSettlementFemaleAdults(lua_State* _State) {
-	struct Settlement* _Settlement = LuaCheckClass(_State, 1, "Settlement");
+	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
 	
 	lua_pushinteger(_State, _Settlement->AdultWomen);
 	return 1;	
 }
 
-int LuaBulitinNext(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinNext(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 
-	LuaCtor(_State, "Bulitin", _Item->Next);
+	LuaCtor(_State, _Item->Next, LOBJ_BULLETIN);
 	return 1;
 }
 
-int LuaBulitinPrev(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinPrev(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 
-	LuaCtor(_State, "Bulitin", _Item->Prev);
+	LuaCtor(_State, _Item->Prev, LOBJ_BULLETIN);
 	return 1;
 }
 
-int LuaBulitinNextItr_Aux(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), "Bulitin");
+int LuaBulletinNextItr_Aux(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_BULLETIN);
 
 	if(_Item == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "Bulitin", _Item);
-	LuaCtor(_State, "Bulitin", _Item->Next);
+	LuaCtor(_State, _Item, LOBJ_BULLETIN);
+	LuaCtor(_State, _Item->Next, LOBJ_BULLETIN);
 	lua_replace(_State, lua_upvalueindex(1));
 	return 1;
 }
 
-int LuaBulitinNextItr(lua_State* _State) {
-	LuaCheckClass(_State, 1, "Bulitin");
-	lua_pushcclosure(_State, LuaBulitinNextItr_Aux, 1);
+int LuaBulletinNextItr(lua_State* _State) {
+	LuaCheckClass(_State, 1, LOBJ_BULLETIN);
+	lua_pushcclosure(_State, LuaBulletinNextItr_Aux, 1);
 	return 1;
 }
 
-int LuaBulitinPrevItr_Aux(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), "Bulitin");
+int LuaBulletinPrevItr_Aux(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_BULLETIN);
 
 	if(_Item == NULL) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	LuaCtor(_State, "Bulitin", _Item);
-	LuaCtor(_State, "Bulitin", _Item->Prev);
+	LuaCtor(_State, _Item, LOBJ_BULLETIN);
+	LuaCtor(_State, _Item->Prev, LOBJ_BULLETIN);
 	lua_replace(_State, lua_upvalueindex(1));
 	return 1;
 }
 
-int LuaBulitinPrevItr(lua_State* _State) {
-	lua_pushcfunction(_State, LuaBulitinPrev);
+int LuaBulletinPrevItr(lua_State* _State) {
+	lua_pushcfunction(_State, LuaBulletinPrev);
 	return 1;
 }
 
-int LuaBulitinGetOwner(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinGetOwner(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 
-	LuaConstCtor(_State, "BigGuy", _Item->Owner);
+	LuaConstCtor(_State, _Item->Owner, LOBJ_BIGGUY);
 	return 1;
 }
 
-int LuaBulitinGetDaysRemaining(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinGetDaysRemaining(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 	
 	lua_pushinteger(_State, _Item->DaysLeft);
 	return 1;
 }
 
-int LuaBulitinGetName(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinGetName(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 
-	lua_pushstring(_State, BulitinItemGetName(_Item));
+	lua_pushstring(_State, BulletinItemGetName(_Item));
 	return 1;
 }
 
-int LuaBulitinGetMission(lua_State* _State) {
-	struct BulitinItem* _Item = LuaCheckClass(_State, 1, "Bulitin");
+int LuaBulletinGetMission(lua_State* _State) {
+	struct BulletinItem* _Item = LuaCheckClass(_State, 1, LOBJ_BULLETIN);
 
 	lua_pushinteger(_State, _Item->SuccMission->Id);
 	return 1;
 }
 
 int LuaPlotActionDescribe(lua_State* _State) {
-	struct PlotAction* _Action = LuaCheckClass(_State, 1, "PlotAction");
+	struct PlotAction* _Action = LuaCheckClass(_State, 1, LOBJ_PLOTACTION);
 	char* _Buffer = FrameAlloc(1024);
 	
 	PlotActionEventStr(_Action, &_Buffer, 1024);
@@ -1026,21 +1026,21 @@ int LuaPlotActionDescribe(lua_State* _State) {
 }
 
 int LuaPlotActionGetType(lua_State* _State) {
-	struct PlotAction* _Action = LuaCheckClass(_State, 1, "PlotAction");
+	struct PlotAction* _Action = LuaCheckClass(_State, 1, LOBJ_PLOTACTION);
 
 	lua_pushinteger(_State, _Action->Type);
 	return 1;
 }
 
 int LuaPlotJoin(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
-	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
+	struct BigGuy* _Guy = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	int _Side = luaL_checkinteger(_State, 3);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
 	if(_Guy == NULL)
-		return LuaClassError(_State, 2, "BigGuy");
+		return LuaClassError(_State, 2, LOBJ_BIGGUY);
 	if(_Side != PLOT_ATTACKERS && _Side != PLOT_DEFENDERS)
 		return luaL_error(_State, "Plot.Join uses an invalid number for Side.");
 	PlotJoin(_Plot, _Side, _Guy);
@@ -1048,62 +1048,62 @@ int LuaPlotJoin(lua_State* _State) {
 }
 
 int LuaPlotInPlot(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
-	struct BigGuy* _Guy = LuaCheckClass(_State, 2, "BigGuy");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
+	struct BigGuy* _Guy = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
 	if(_Guy == NULL)
-		return LuaClassError(_State, 2, "BigGuy");
+		return LuaClassError(_State, 2, LOBJ_BIGGUY);
 	lua_pushboolean(_State, IsInPlot(_Plot, _Guy));
 	return 1;
 }
 
 int LuaPlotPlotters(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
-	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_ATTACKERS], "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
+	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_ATTACKERS], LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaPlotDefenders(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
-	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_DEFENDERS], "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
+	CreateLuaLnkLstItr(_State, &_Plot->Side[PLOT_DEFENDERS], LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaPlotTypeStr(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	lua_pushstring(_State, PlotTypeStr(_Plot));
 	return 1;
 }
 
 int LuaPlotLeader(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
-	LuaCtor(_State, _Plot->Side[PLOT_ATTACKERS].Front->Data, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
+	LuaCtor(_State, _Plot->Side[PLOT_ATTACKERS].Front->Data, LOBJ_BIGGUY);
 	return 1;
 }
 	
 int LuaPlotTarget(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	if(_Plot == NULL)
-		return LuaClassError(_State, 1, "Plot");
-	LuaCtor(_State, _Plot->Side[PLOT_DEFENDERS].Front->Data, "BigGuy");
+		return LuaClassError(_State, 1, LOBJ_PLOT);
+	LuaCtor(_State, _Plot->Side[PLOT_DEFENDERS].Front->Data, LOBJ_BIGGUY);
 	return 1;
 }
 
 int LuaPlotGetScore(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	lua_pushinteger(_State, _Plot->WarScore);
 	return 1;
@@ -1111,8 +1111,8 @@ int LuaPlotGetScore(lua_State* _State) {
 
 int LuaPlotCreate(lua_State* _State) {
 	struct Plot* _Plot = NULL;
-	struct BigGuy* _Leader = LuaCheckClass(_State, 1, "BigGuy");
-	struct BigGuy* _Target = LuaCheckClass(_State, 2, "BigGuy");
+	struct BigGuy* _Leader = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
 	int _Type = luaL_checkinteger(_State, 3);
 	void* _Data = NULL;
 	struct ActivePolicy* _PolAct = NULL; 
@@ -1127,13 +1127,13 @@ int LuaPlotCreate(lua_State* _State) {
 	switch(_Type) {
 		case PLOT_REMOVEPOLICY:
 		case PLOT_PASSPOLICY:
-			_Data = LuaCheckClass(_State, 4, "Policy");
+			_Data = LuaCheckClass(_State, 4, LOBJ_POLICY);
 			break;
 		case PLOT_CHANGEPOLICY:
 			_PolAct = malloc(sizeof(struct ActivePolicy));
 
 			lua_rawgeti(_State, 4, 1);
-			_PolAct->Policy = LuaCheckClass(_State, -1, "Policy");
+			_PolAct->Policy = LuaCheckClass(_State, -1, LOBJ_POLICY);
 			lua_rawgeti(_State, 4, 2);
 			_PolicyCat = lua_tointeger(_State, -1) - 1;
 			if(ValidPolicyCategory(_PolicyCat) == 0)
@@ -1148,69 +1148,69 @@ int LuaPlotCreate(lua_State* _State) {
 	}
 	_Plot = CreatePlot(_Type, _Data, _Leader, _Target);
 	//_Plot->WarScore = 9;
-	LuaCtor(_State, "Plot", _Plot);
+	LuaCtor(_State, _Plot, LOBJ_PLOT);
 	return 1;
 }
 
 int LuaPlotAddAction(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 	int _Type = luaL_checkinteger(_State, 2);
-	struct BigGuy* _Actor = LuaCheckClass(_State, 3, "BigGuy");
-	struct BigGuy* _Target = LuaCheckClass(_State, 4, "BigGuy");
+	struct BigGuy* _Actor = LuaCheckClass(_State, 3, LOBJ_BIGGUY);
+	struct BigGuy* _Target = LuaCheckClass(_State, 4, LOBJ_BIGGUY);
 
 	PlotAddAction(_Plot, _Type, _Actor, _Target);
 	return 0;
 }
 
 int LuaPlotGetThreat(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 
 	lua_pushinteger(_State, PlotGetThreat(_Plot));
 	return 1;
 }
 
 int LuaPlotPrevMonthActions(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 	int i = 0;
 
 	lua_createtable(_State, 0, 6);
 	for(const struct PlotAction* _Action = PlotPrevActList(_Plot); _Action != NULL; _Action = _Action->Next) {
-		LuaCtor(_State, "PlotAction", (struct PlotAction*) _Action);
+		LuaCtor(_State, (struct PlotAction*) _Action, LOBJ_PLOTACTION);
 		lua_rawseti(_State, -2, ++i);
 	}
-	//CreateLuaLnkLstItr(_State, PlotPrevActList(_Plot), "PlotAction");
+	//CreateLuaLnkLstItr(_State, PlotPrevActList(_Plot), LOBJ_PLOTACTION);
 	return 1;
 }
 
 int LuaPlotCurrMonthActions(lua_State* _State) {
-	struct Plot* _Plot = LuaCheckClass(_State, 1, "Plot");
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
 	int i = 0;
 
 	lua_createtable(_State, 0, 6);
 	for(const struct PlotAction* _Action = PlotPrevActList(_Plot); _Action != NULL; _Action = _Action->Next) {
-		LuaCtor(_State, "PlotAction", (struct PlotAction*) _Action);
+		LuaCtor(_State, (struct PlotAction*) _Action, LOBJ_PLOTACTION);
 		lua_rawseti(_State, -2, ++i);
 	}
-	//CreateLuaLnkLstItr(_State, PlotCurrActList(_Plot), "PlotAction");
+	//CreateLuaLnkLstItr(_State, PlotCurrActList(_Plot), LOBJ_PLOTACTION);
 	return 1;
 }
 
 int LuaPolicyOptionName(lua_State* _State) {
-	struct PolicyOption* _Opt = LuaCheckClass(_State, 1, "PolicyOption");
+	struct PolicyOption* _Opt = LuaCheckClass(_State, 1, LOBJ_POLICYOPTION);
 
 	lua_pushstring(_State, _Opt->Name);
 	return 1;
 }
 
 int LuaPolicyName(lua_State* _State) {
-	struct Policy* _Policy = LuaCheckClass(_State, 1, "Policy");
+	struct Policy* _Policy = LuaCheckClass(_State, 1, LOBJ_POLICY);
 
 	lua_pushstring(_State, _Policy->Name);
 	return 1;
 }
 
 int LuaPolicyCategory(lua_State* _State) {
-	struct Policy* _Policy = LuaCheckClass(_State, 1, "Policy");
+	struct Policy* _Policy = LuaCheckClass(_State, 1, LOBJ_POLICY);
 
 	lua_pushinteger(_State, _Policy->Category);
 	return 1;
@@ -1218,7 +1218,7 @@ int LuaPolicyCategory(lua_State* _State) {
 
 //FIXME: This should be done on initialization for each Policy.
 int LuaPolicyOptions(lua_State* _State) {
-	struct Policy* _Policy = LuaCheckClass(_State, 1, "Policy");
+	struct Policy* _Policy = LuaCheckClass(_State, 1, LOBJ_POLICY);
 	int _Last = 0;
 	int _Ct = 1;
 	int _Idx = 0;
@@ -1229,7 +1229,7 @@ int LuaPolicyOptions(lua_State* _State) {
 	lua_pushstring(_State, _Policy->Options.Name[0]);
 	lua_rawset(_State, -3);
 	for(int i = 0; i < _Policy->OptionsSz; ++i, ++_Ct) {
-		LuaCtor(_State, "PolicyOption", (void*)&_Policy->Options.Options[i]);
+		LuaCtor(_State, (void*)&_Policy->Options.Options[i], LOBJ_POLICYOPTION);
 		lua_rawseti(_State, -2, _Ct);
 		if(i >= (_Policy->Options.Size[_Idx] + _Last) - 1) {
 			_Last += _Policy->Options.Size[_Idx];

@@ -10,7 +10,7 @@
 #include "Government.h"
 #include "Warband.h"
 #include "Crop.h"
-#include "Bulitin.h"
+#include "Bulletin.h"
 #include "Plot.h"
 #include "Retinue.h"
 
@@ -102,7 +102,7 @@ struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovT
 	_Loc->LastRaid = 0;
 	_Loc->AdultMen = 0;
 	_Loc->AdultWomen = 0;
-	_Loc->Bulitin = NULL;
+	_Loc->Bulletin = NULL;
 	_Loc->MaxWarriors = 0;
 	_Loc->FreeAcres = SETTLEMENT_SPACE;
 	_Loc->UsedAcres = 0;
@@ -143,7 +143,7 @@ float HarvestModifier(uint8_t (* const _HarvestYears)[HARVEST_YEARS]) {
 
 void SettlementThink(struct Settlement* _Settlement) {
 	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	struct BulitinItem* _Bulitin = _Settlement->Bulitin;
+	struct BulletinItem* _Bulletin = _Settlement->Bulletin;
 
 	FieldUpdate(&_Settlement->Meadow);
 	GovernmentThink(_Settlement->Government);
@@ -170,16 +170,16 @@ void SettlementThink(struct Settlement* _Settlement) {
 			RetinueThink(_Itr->Data);
 		}
 	}
-	while(_Bulitin != NULL) {
-		--_Bulitin->DaysLeft;
-		if(_Bulitin->DaysLeft <= 0) {
-			struct BulitinItem* _BulitinNext = _Bulitin->Next;
+	while(_Bulletin != NULL) {
+		--_Bulletin->DaysLeft;
+		if(_Bulletin->DaysLeft <= 0) {
+			struct BulletinItem* _BulletinNext = _Bulletin->Next;
 			
-			ILL_DESTROY(_Settlement->Bulitin, _Bulitin);
-			_Bulitin = _BulitinNext;
+			ILL_DESTROY(_Settlement->Bulletin, _Bulletin);
+			_Bulletin = _BulletinNext;
 			continue;
 		}
-		_Bulitin = _Bulitin->Next;
+		_Bulletin = _Bulletin->Next;
 	}
 }
 

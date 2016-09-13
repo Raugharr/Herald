@@ -23,12 +23,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LUA_CLASSCT (255)
+
 lua_State* g_LuaState = NULL;
 
 const char* g_LuaGlobals[] = {
 		"Environments",
 		NULL
 };
+
+int g_LuaClassTable[LUA_CLASSCT] = {0};
 
 static const luaL_Reg g_LuaObjectFuncs[] = {
 		{"__eq", LuaObjectIsEqual},
@@ -116,15 +120,15 @@ static const luaL_Reg g_LuaFuncsMath[] = {
 };
 
 static const struct LuaObjectReg g_LuaCoreObjects[] = {
-	{"Iterator", NULL, g_LuaFuncsIterator},
-	{"LinkedListNode", "Iterator", g_LuaFuncsLinkedListNode},
-	{"LinkedList", NULL, g_LuaFuncsLinkedList},
-	{"List", NULL, g_LuaFuncsList},
-	{"Rule", NULL, g_LuaFuncsRule},
-	{"Array", NULL, g_LuaFuncsArray},
-	{"ArrayIterator", "Iterator", g_LuaFuncsArrayIterator},
-	{"Mission", NULL, g_LuaFuncsMission},
-	{NULL, NULL, NULL}
+	{LOBJ_ITERATOR, "Iterator", LUA_REFNIL, g_LuaFuncsIterator},
+	{LOBJ_LINKEDLISTNODE, "LinkedListNode", LOBJ_ITERATOR, g_LuaFuncsLinkedListNode},
+	{LOBJ_LINKEDLIST, "LinkedList", LUA_REFNIL, g_LuaFuncsLinkedList},
+	{LOBJ_LIST, "List", LUA_REFNIL, g_LuaFuncsList},
+	{LOBJ_RULE, "Rule", LUA_REFNIL, g_LuaFuncsRule},
+	{LOBJ_ARRAY, "Array", LUA_REFNIL, g_LuaFuncsArray},
+	{LOBJ_ARRAYITERATOR, "ArrayIterator", LOBJ_ARRAY, g_LuaFuncsArrayIterator},
+	{LOBJ_MISSION, "Mission", LUA_REFNIL, g_LuaFuncsMission},
+	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
 int LuaCallFuncError(lua_State* _State) {
@@ -140,13 +144,15 @@ int LuaCallFuncError(lua_State* _State) {
 
 void InitLuaCore() {
 	g_LuaState = luaL_newstate();
+	for(int i = 0; i < LUA_CLASSCT; ++i)
+		g_LuaClassTable[i] = LUA_REFNIL;
 	for(int i = 0; g_LuaGlobals[i] != NULL; ++i) {
 		lua_newtable(g_LuaState);
 		lua_setglobal(g_LuaState, g_LuaGlobals[i]);
 	}
 	lua_atpanic(g_LuaState, LuaCallFuncError);
 	luaL_openlibs(g_LuaState);
-	LuaRegisterObject(g_LuaState, LUA_BASECLASS, NULL, g_LuaObjectFuncs);
+	LuaRegisterObject(g_LuaState, "Object", LUA_BASECLASS, LUA_REFNIL, g_LuaObjectFuncs);
 	RegisterLuaObjects(g_LuaState, g_LuaCoreObjects);
 	LuaCreateLibrary(g_LuaState, g_LuaFuncsRule, "Rule");
 	LuaRegisterFunctions(g_LuaState, g_LuaCoreFuncs);
@@ -163,43 +169,58 @@ void QuitLuaCore() {
 void RegisterLuaObjects(lua_State* _State, const struct LuaObjectReg* _Objects) {
 	int i = 0;
 
-	while(_Objects[i].Name != NULL) {
-		if(LuaRegisterObject(_State, _Objects[i].Name, _Objects[i].BaseClass, _Objects[i].Funcs) == 0)
-			return (void) luaL_error(_State, "Loading Lua functions has failed loading class %s.", _Objects[i].Name);
+	while(_Objects[i].Class != LUA_REFNIL) {
+		if(LuaRegisterObject(_State, _Objects[i].Name, _Objects[i].Class, _Objects[i].BaseClass, _Objects[i].Funcs) == 0)
+			return (void) luaL_error(_State, "Loading Lua functions has failed loading class %s.", _Objects[i].Class);
 		++i;
 	}
 }
 
-int LuaRegisterObject(lua_State* _State, const char* _Name, const char* _BaseClass, const luaL_Reg* _Funcs) {
-	if(luaL_newmetatable(_State, _Name) == 0) {
+int LuaRegisterObject(lua_State* _State, const char* _Name, int _Class, int _BaseClass, const luaL_Reg* _Funcs) {
+	int _Ref = 0;
+	
+	if(g_LuaClassTable[_Class] != LUA_REFNIL)
+		return luaL_error(_State, "Loading Lua class #%d failed. (Class id is already defined.)", _Class);
+	if(_Class < 0 || _Class > 0xFF)
+		return luaL_error(_State, "Loading Lua class #%d failed. (Class id is invalid.)", _Class);
+	if((_BaseClass < 0 && _BaseClass != LUA_REFNIL) || _BaseClass > 0xFF)
+		return luaL_error(_State, "Loading Lua class #%d failed. (Base Class id #%d is invalid.)", _Class, _BaseClass);
+	lua_newtable(_State);
+	lua_pushvalue(_State, -1);
+	_Ref = luaL_ref(_State, LUA_REGISTRYINDEX);
+	if(_Ref == LUA_REFNIL) {
 		lua_pop(_State, 1);
-		return 0;
+		return LUA_REFNIL;
 	}
 	lua_pushliteral(_State, "__index");
 	lua_pushcfunction(_State, LuaClassIndex);
 	lua_rawset(_State, -3);
 	lua_pushstring(_State, "__class");
-	lua_pushstring(_State, _Name);
+	lua_pushinteger(_State, _Ref);
 	lua_rawset(_State, -3);
 	//Give them the base class Object. This doesn't need to be done for a class with a base class as their base class with be an object.
-	if(_BaseClass != NULL) {
+	if(_BaseClass != LUA_REFNIL) {
 		lua_pushliteral(_State, "__baseclass");
-		luaL_getmetatable(_State, _BaseClass);
+		lua_rawgeti(_State, LUA_REGISTRYINDEX, g_LuaClassTable[_BaseClass]);
 		if(lua_type(_State, -1) != LUA_TTABLE) {
-			luaL_error(_State, "Loading Lua class %s failed. Base class %s is not a class.", _Name, _BaseClass);
+			luaL_error(_State, "Loading Lua class #%d failed. (Base class #%d is not defined.)", _Class, _BaseClass);
 			lua_pop(_State, 3);
-			return 0;
+			return LUA_REFNIL;
 		}
 		lua_rawset(_State, -3);
 	}
 	lua_pushliteral(_State, "__newindex");
 	lua_pushnil(_State);
 	lua_rawset(_State, -3);
-	if(_Funcs != NULL) {
+	if(_Funcs != NULL)
 		luaL_setfuncs(_State, _Funcs, 0);
-	}
-	luaL_setmetatable(_State, _Name);
-	lua_pop(_State, 1);
+	//if(luaL_newmetatable(_State, _Name) == 0)
+	//	return luaL_error(_State, "Loading Lua class #%d failed. (Name %s is already taken.)", _Name);
+	lua_rawgeti(_State, LUA_REGISTRYINDEX, _Ref);
+	lua_setfield(_State, LUA_REGISTRYINDEX, _Name);
+	//lua_setmetatable(_State, -2);
+	//lua_pop(_State, 1);
+	g_LuaClassTable[_Class] = _Ref;
 	return 1;
 }
 
@@ -208,31 +229,35 @@ void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs) {
 		lua_register(_State, _Funcs[i].name, _Funcs[i].func);
 }
 
-void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, const char* _Class) {
-	LuaCtor(_State, "LinkedList", (void*)_List);
+void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, int _Class) {
+	LuaCtor(_State, (void*)_List, LOBJ_LINKEDLIST);
 	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, _Class);
+	lua_pushinteger(_State, _Class);
 	lua_rawset(_State, -3);
 }
 
 //QUESTION: Should this be inlined or made a macro.
-void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, const char* _Class) {
-	LuaCtor(_State, "ArrayIterator", (void*)_Array);
+void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, int _Class) {
+	LuaCtor(_State, (void*)_Array, LOBJ_ARRAYITERATOR);
 	lua_pushstring(_State, "__classtype");
-	lua_pushstring(_State, _Class);
+	lua_pushinteger(_State, _Class);
 	lua_rawset(_State, -3);
 }
 
-void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, const char* _Class) {
+void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, int _Class) {
 	lua_createtable(_State, _TableSz, 0);
 	for(int i = 0; i < _TableSz; ++i) {
-		LuaCtor(_State, _Class,(void*)_Table[i]);
+		LuaCtor(_State, (void*)_Table[i], _Class);
 		lua_rawseti(_State, -2, i + 1);
 	}
 }
 
-void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
-	luaL_getmetatable(_State, _Class);
+void LuaInitClass(lua_State* _State, void* _Ptr, int _Class) {
+	if(_Class < 0 || _Class > 0xFF) {
+		Log(ELOG_ERROR, "LuaInitClass: _Class argument got %i but requires [0:255].", _Class);
+		return;
+	}
+	lua_rawgeti(_State, LUA_REGISTRYINDEX, g_LuaClassTable[_Class]);
 	if(lua_type(_State, -1) == LUA_TTABLE) {
 		lua_setmetatable(_State, -2);
 		lua_pushstring(_State, "__self");
@@ -241,7 +266,7 @@ void LuaInitClass(lua_State* _State, const char* _Class, void* _Ptr) {
 		return;
 	}
 	lua_pop(_State, 2);
-	Log(ELOG_WARNING, "Lua class %s does not exist", _Class);
+	Log(ELOG_WARNING, "Lua class %i does not exist", _Class);
 	lua_pushnil(_State);
 }
 
@@ -267,18 +292,17 @@ int LuaArrayCreate(lua_State* _State) {
 	int _Size = luaL_checkinteger(_State, 1);
 	struct Array* _Array = CreateArray(_Size);
 
-	LuaCtor(_State, "Array", _Array);
+	LuaCtor(_State, _Array, LOBJ_ARRAY);
 	return 1;
 }
 
 int LuaArrayItr_Aux(lua_State* _State) {
-	struct Array* _Array = LuaCheckClass(_State, lua_upvalueindex(1), "ArrayIterator");
+	struct Array* _Array = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_ARRAYITERATOR);
 	int _Index = lua_tointeger(_State, lua_upvalueindex(2));
 	int _Change = lua_tointeger(_State, lua_upvalueindex(3));
-	int i;
-	const char* _Class = NULL;
+	int _Class = LUA_REFNIL;
 
-	for(i = _Index; i < _Array->Size; i += _Change) {
+	for(int i = _Index; i < _Array->Size; i += _Change) {
 		if(_Array->Table[_Index] != NULL)
 			break;
 		_Index += _Change;
@@ -293,18 +317,18 @@ int LuaArrayItr_Aux(lua_State* _State) {
 	lua_pushvalue(_State, lua_upvalueindex(1));
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TSTRING)
+	if(lua_type(_State, -1) != LUA_TNUMBER)
 		luaL_error(_State, "Iterator does not have a __classtype.");
 
-	_Class = lua_tostring(_State, -1);
-	LuaCtor(_State, _Class, _Array->Table[_Index]);
+	_Class = lua_tointeger(_State, -1);
+	LuaCtor(_State, _Array->Table[_Index], _Class);
 	lua_pushinteger(_State, _Index + _Change);
 	lua_replace(_State, lua_upvalueindex(2));
 	return 1;
 }
 
 int LuaArrayItrNext(lua_State* _State) {
-	LuaTestClass(_State, 1, "ArrayIterator");
+	LuaTestClass(_State, 1, LOBJ_ARRAYITERATOR);
 	lua_pushinteger(_State, 0);
 	lua_pushinteger(_State, 1);
 	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
@@ -312,7 +336,7 @@ int LuaArrayItrNext(lua_State* _State) {
 }
 
 int LuaArrayItrPrev(lua_State* _State) {
-	LuaTestClass(_State, 1, "ArrayIterator");
+	LuaTestClass(_State, 1, LOBJ_ARRAYITERATOR);
 	lua_pushinteger(_State, 0);
 	lua_pushinteger(_State, -1);
 	lua_pushcclosure(_State, LuaArrayItr_Aux, 3);
@@ -320,21 +344,21 @@ int LuaArrayItrPrev(lua_State* _State) {
 }
 
 int LuaLnkLstNodeIterate(lua_State* _State) {
-	struct LnkLst_Node* _Itr = LuaCheckClass(_State, lua_upvalueindex(1), "LinkedListNode");
+	struct LnkLst_Node* _Itr = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_LINKEDLISTNODE);
 	int _Foward = lua_tointeger(_State, lua_upvalueindex(2));
-	const char* _ItrClass = NULL;
+	int _ItrClass = LUA_REFNIL;
 
 	if(_Itr == NULL)
 		return 0;
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, lua_upvalueindex(1));
-	if(lua_isstring(_State, -1) == 0) {
+	if(lua_isnumber(_State, -1) == 0) {
 		lua_pushnil(_State);
 		return 1;
 	}
-	_ItrClass = lua_tostring(_State, -1);
+	_ItrClass = lua_tointeger(_State, -1);
 	lua_pop(_State, 1);
-	LuaCtor(_State, _ItrClass, _Itr->Data);
+	LuaCtor(_State, _Itr->Data, _ItrClass);
 	if(_Foward != 0)
 		_Itr = _Itr->Next;
 	else
@@ -348,7 +372,7 @@ int LuaLnkLstNodeIterate(lua_State* _State) {
 }
 
 static inline void LuaCreateLnkLstNode(lua_State* _State, struct LnkLst_Node* _Node) {
-	LuaCtor(_State, "LinkedListNode", _Node);
+	LuaCtor(_State, _Node, LOBJ_LINKEDLISTNODE);
 	lua_pushstring(_State, "__classtype");
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, 1);
@@ -356,7 +380,7 @@ static inline void LuaCreateLnkLstNode(lua_State* _State, struct LnkLst_Node* _N
 }
 
 int LuaLnkLstFront(lua_State* _State) {
-	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+	struct LinkedList* _List = LuaCheckClass(_State, 1, LOBJ_LINKEDLIST);
 
 	LuaCreateLnkLstNode(_State, _List->Front);
 	lua_pushinteger(_State, 1);
@@ -365,55 +389,55 @@ int LuaLnkLstFront(lua_State* _State) {
 }
 
 int LuaLnkLstBack(lua_State* _State) {
-	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+	struct LinkedList* _List = LuaCheckClass(_State, 1, LOBJ_LINKEDLIST);
 
 	LuaCreateLnkLstNode(_State, _List->Back);
 	return 1;
 }
 
 int LuaLnkLstSize(lua_State* _State) {
-	struct LinkedList* _List = LuaCheckClass(_State, 1, "LinkedList");
+	struct LinkedList* _List = LuaCheckClass(_State, 1, LOBJ_LINKEDLIST);
 
 	lua_pushinteger(_State, _List->Size);
 	return 1;
 }
 
 int LuaLnkLstNodeNext(lua_State* _State) {
-	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, LOBJ_LINKEDLISTNODE);
 
 	LuaCreateLnkLstNode(_State, _Node->Next);
 	return 1;
 }
 
 int LuaLnkLstNodePrev(lua_State* _State) {
-	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, LOBJ_LINKEDLISTNODE);
 
 	LuaCreateLnkLstNode(_State, _Node->Prev);
 	return 1;
 }
 
 int LuaLnkLstNodeItr(lua_State* _State) {
-	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, "LinkedListNode");
-	const char* _Class = NULL;
+	struct LnkLst_Node* _Node = LuaCheckClass(_State, 1, LOBJ_LINKEDLISTNODE);
+	int  _Class = LUA_REFNIL;
 
 	lua_pushstring(_State, "__classtype");
 	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TSTRING) {
+	if(lua_type(_State, -1) != LUA_TNUMBER) {
 		luaL_error(_State, "__classtype is not defined.");
 		lua_pushnil(_State);
 		return 1;
 	}
-	_Class = lua_tostring(_State, -1);
-	LuaCtor(_State, _Class, _Node->Data);
+	_Class = lua_tointeger(_State, -1);
+	LuaCtor(_State, _Node->Data, _Class);
 	return 1;
 }
 
 int LuaArrayItr(lua_State* _State) {
-	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, "Iterator"));
+	lua_pushlightuserdata(_State, LuaCheckClass(_State, 1, LOBJ_ITERATOR));
 	return 1;
 }
 
-void* LuaToObject(lua_State* _State, int _Index, const char* _Class) {
+void* LuaToObject(lua_State* _State, int _Index, int _Class) {
 	void* _Obj = NULL;
 
 	if((_Obj = LuaTestClass(_State, _Index, _Class)) == NULL)
@@ -783,12 +807,12 @@ void* LuaToClass(lua_State* _State, int _Index) {
 	return _Pointer;
 }
 
-void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
+void* LuaTestClass(lua_State* _State, int _Index, int _Class) {
 	if(lua_getmetatable(_State, _Index) == 0)
 		 luaL_error(_State, LUA_TYPERROR(_State, _Index, _Class, "LuaTestClass"));
 	lua_pushstring(_State, "__class");
 	lua_rawget(_State, -2);
-	if(!lua_isstring(_State, -1) || strcmp(_Class, lua_tostring(_State, -1)) != 0) {
+	if(lua_isnumber(_State, -1) == 1 || _Class == lua_tointeger(_State, -1)) {
 		lua_pop(_State, 2);
 		return NULL;
 	}
@@ -796,10 +820,10 @@ void* LuaTestClass(lua_State* _State, int _Index, const char* _Class) {
 	return LuaToClass(_State, _Index);
 }
 
-void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
+void* LuaCheckClass(lua_State* _State, int _Index, int  _Class) {
 	int _Pop = 4;
 
-	luaL_getmetatable(_State, _Class);
+	lua_rawgeti(_State, LUA_REGISTRYINDEX, g_LuaClassTable[_Class]);
 	if(lua_getmetatable(_State, _Index) == 0) {
 		lua_pop(_State, 1);
 		return NULL;
@@ -818,7 +842,7 @@ void* LuaCheckClass(lua_State* _State, int _Index, const char* _Class) {
 	lua_pushliteral(_State, "__baseclass");
 	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) == LUA_TTABLE) {
-		luaL_getmetatable(_State, _Class);
+		lua_rawgeti(_State, LUA_REGISTRYINDEX, g_LuaClassTable[_Class]);
 	if(!lua_rawequal(_State, -1, -2)) {
 			lua_copy(_State, -2, -4);
 			lua_pop(_State, 3);
@@ -912,7 +936,7 @@ int LuaRuleLuaCall(lua_State* _State) {
 	}
 	SDL_assert(lua_type(_State, -1) == LUA_TTABLE);
 	_Rule = CreateRuleLuaCall(_State, luaL_ref(_State, LUA_REGISTRYINDEX));
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
@@ -924,7 +948,7 @@ int LuaRuleGreaterThan(lua_State* _State) {
 	_Left = LuaValueToRule(_State, 1);
 	_Right = LuaValueToRule(_State, 2);
 	_Rule = CreateRuleComparator(RULE_GREATERTHAN, _Left, _Right);
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
@@ -936,26 +960,26 @@ int LuaRuleLessThan(lua_State* _State) {
 	_Left = LuaValueToRule(_State, 1);
 	_Right = LuaValueToRule(_State, 2);
 	_Rule = CreateRuleComparator(RULE_LESSTHAN, _Left, _Right);
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
 int LuaRuleTrue(lua_State* _State) {
 	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(1);
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
 int LuaRuleFalse(lua_State* _State) {
 	struct Rule* _Rule = (struct Rule*) CreateRuleBoolean(0);
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
 int LuaRuleIfThenElse(lua_State* _State) {
-	struct RuleComparator* _Comparator = LuaCheckClass(_State, 1, "Rule");
-	struct Rule* _OnTrue = LuaCheckClass(_State, 2, "Rule");
-	struct Rule* _OnFalse = LuaCheckClass(_State, 3, "Rule");
+	struct RuleComparator* _Comparator = LuaCheckClass(_State, 1, LOBJ_RULE);
+	struct Rule* _OnTrue = LuaCheckClass(_State, 2, LOBJ_RULE);
+	struct Rule* _OnFalse = LuaCheckClass(_State, 3, LOBJ_RULE);
 	struct Rule* _Rule = NULL;
 
 	switch(_Comparator->Type) {
@@ -967,7 +991,7 @@ int LuaRuleIfThenElse(lua_State* _State) {
 		return luaL_error(_State, "First argument must be a rule comparator.");
 	}
 	_Rule = (struct Rule*) CreateRuleIfThenElse(_Comparator, _OnTrue, _OnFalse);
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
@@ -979,7 +1003,7 @@ int LuaRuleEventFired(lua_State* _State) {
 	for(i = 0; g_EventNames[i] != NULL; ++i) {
 		if(strcmp(g_EventNames[i], _String) == 0) {
 			_Rule = (struct Rule*) CreateRuleEvent(i);
-			LuaCtor(_State, "Rule", _Rule);
+			LuaCtor(_State, _Rule, LOBJ_RULE);
 			return 1;
 		}
 	}
@@ -994,13 +1018,13 @@ int LuaRuleBlock(lua_State* _State) {
 	if(_Args == 0)
 		return luaL_error(_State, "LuaRuleBlock must have at least one argument.");
 	for(int i = 0; i < _Args; ++i) {
-		if(LuaCheckClass(_State, i + 1, "Rule") == NULL)
+		if(LuaCheckClass(_State, i + 1, LOBJ_RULE) == NULL)
 			return luaL_error(_State, "LuaRuleBlock's %i argument is not a Rule.", i + 1);
 	}
 	_Rule = CreateRuleBlock(_Args);
 	for(int i = 0; i < _Args; ++i)
-		_Rule->RuleList[i] = LuaCheckClass(_State, i + 1, "Rule");
-	LuaCtor(_State, "Rule", _Rule);
+		_Rule->RuleList[i] = LuaCheckClass(_State, i + 1, LOBJ_RULE);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
@@ -1013,47 +1037,47 @@ int LuaRuleCond(lua_State* _State) {
 	}
 	_Rule = CreateRuleCond(_Args / 2);
 	for(int i = 1, _Ct = 0; i <= _Args; i += 2, ++_Ct) {
-		_Rule->Conditions[_Ct] = LuaCheckClass(_State, i, "Rule");
-		_Rule->Actions[_Ct] = LuaCheckClass(_State, i + 1, "Rule"); 
+		_Rule->Conditions[_Ct] = LuaCheckClass(_State, i, LOBJ_RULE);
+		_Rule->Actions[_Ct] = LuaCheckClass(_State, i + 1, LOBJ_RULE); 
 	}
-	LuaCtor(_State, "Rule", _Rule);
+	LuaCtor(_State, _Rule, LOBJ_RULE);
 	return 1;
 }
 
 int LuaRuleNegate(lua_State* _State) {
-	struct RuleLuaCall* _Rule = LuaCheckClass(_State, 1, "Rule");
+	struct RuleLuaCall* _Rule = LuaCheckClass(_State, 1, LOBJ_RULE);
 
-	LuaCtor(_State, "Rule", ((struct Rule*) CreateRuleDecorator(RULE_NEGATE, _Rule))); 
+	LuaCtor(_State, ((struct Rule*) CreateRuleDecorator(RULE_NEGATE, _Rule)), LOBJ_RULE); 
 	return 1;
 }
 
 int LuaMissionGetName(lua_State* _State) {
-	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+	struct Mission* _Mission = LuaCheckClass(_State, 1, LOBJ_MISSION);
 
 	lua_pushstring(_State, _Mission->Name);
 	return 1;
 }
 
 int LuaMissionGetDesc(lua_State* _State) {
-	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+	struct Mission* _Mission = LuaCheckClass(_State, 1, LOBJ_MISSION);
 
 	lua_pushstring(_State, _Mission->Description);
 	return 1;
 }
 
 int LuaMissionGetOptions(lua_State* _State) {
-	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+	struct Mission* _Mission = LuaCheckClass(_State, 1, LOBJ_MISSION);
 
 	lua_createtable(_State, 0, _Mission->OptionCt);
 	for(int i = 0; i < _Mission->OptionCt; ++i) {
-		LuaCtor(_State, "MissionOption", &_Mission->Options[i]);
+		LuaCtor(_State, &_Mission->Options[i], LOBJ_MISSIONOPTION);
 		lua_rawseti(_State, -2, i + 1);
 	}
 	return 1;
 }
 
 int LuaMissionChooseOption(lua_State* _State) {
-	struct Mission* _Mission = LuaCheckClass(_State, 1, "Mission");
+	struct Mission* _Mission = LuaCheckClass(_State, 1, LOBJ_MISSION);
 	struct MissionFrame* _Data = NULL;
 	int _Option = luaL_checkinteger(_State, 3);
 
@@ -1067,8 +1091,8 @@ struct Rule* LuaValueToRule(lua_State* _State, int _Index) {
 	struct RulePrimitive* _Rule = NULL;
 
 	if(lua_type(_State, _Index) == LUA_TTABLE) {
-		if((_Rule = LuaToObject(_State, _Index, "Rule")) == NULL) {
-			luaL_error(_State, LUA_TYPERROR(_State, _Index, "Rule", "LuaRuleGreaterThan"));
+		if((_Rule = LuaToObject(_State, _Index, LOBJ_RULE)) == NULL) {
+			luaL_error(_State, LUA_TYPERROR(_State, _Index, LOBJ_RULE, "LuaRuleGreaterThan"));
 			return NULL;
 		}
 	} else {
@@ -1170,7 +1194,7 @@ int LuaClassIndex(lua_State* _State) {
 	return 1;
 }
 
-int LuaClassError(lua_State* _State, int _Arg, const char* _Class) {
+int LuaClassError(lua_State* _State, int _Arg, int  _Class) {
 	const char* _ArgType = NULL;
 
 	_Arg = lua_absindex(_State, _Arg);
@@ -1181,9 +1205,9 @@ int LuaClassError(lua_State* _State, int _Arg, const char* _Class) {
 		lua_pushstring(_State, "__self");
 		lua_rawget(_State, _Arg);	
 		if(lua_touserdata(_State, -1) == NULL)
-			return luaL_error(_State, "Error argument #%d is of type \"%s\" but is NULL.", _Arg, _Class);
+			return luaL_error(_State, "Error argument #%d is of type \"%d\" but is NULL.", _Arg, _Class);
 	}
-	return luaL_error(_State, "Error argument #%d is of type \"%s\" but expected \"%s\".", _Arg, _ArgType, _Class); 
+	return luaL_error(_State, "Error argument #%d is of type \"%s\" but expected \"%d\".", _Arg, _ArgType, _Class); 
 }
 
 int LuaMathRandomVar(lua_State* _State) {

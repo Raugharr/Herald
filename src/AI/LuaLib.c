@@ -30,11 +30,11 @@ static const luaL_Reg g_LuaBehaviorFuncs[] = {
 };
 
 static const struct LuaObjectReg g_LuaAIObjects[] = {
-		{"Behavior", NULL, g_LuaBehaviorFuncs},
-		{"BhvComposite", "Behavior", NULL},
-		{"BhvDecorator", "Behavior", NULL},
-		{"BhvNode", "Behavior", NULL},
-		{NULL, NULL, NULL}
+	{LOBJ_BEHAVIOR, "Behavior", LUA_REFNIL, g_LuaBehaviorFuncs},
+	{LOBJ_BHVCOMPOSITE, "BhvComposite", LOBJ_BEHAVIOR, NULL},
+	{LOBJ_BHVDECORATOR, "BhvDecorator", LOBJ_BEHAVIOR, NULL},
+	{LOBJ_BHVNODE, "BhvNode", LOBJ_BEHAVIOR, NULL},
+	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
 void LuaAILibInit(lua_State* _State) {
@@ -58,7 +58,7 @@ int luaStrLuaBhvCmp(const void* _One, const void* _Two) {
 	struct BehaviorNode* _Node = LuaCheckClass(_State, 1, "BhvNode");
 
 	_Decorator = CreateBehaviorNode(NULL, _Node->Action, 0, _Callback);
-	LuaCtor(_State, "BhvDecorator", _Decorator);
+	LuaCtor(_State, _Decorator, "BhvDecorator");
 	return 1;
 }*/
 
@@ -73,14 +73,14 @@ int LuaBhvCreateComposite(lua_State* _State, BhvCallback _Callback) {
 	_Bhv = CreateBehavior(NULL, NULL, _Len, _Callback);
 		lua_pushnil(_State);
 		while(lua_next(_State, -2) != 0) {
-			if((_Child = LuaCheckClass(_State, -1, "Behavior")) == NULL) {
+			if((_Child = LuaCheckClass(_State, -1, LOBJ_BEHAVIOR)) == NULL) {
 				lua_pop(_State, 1);
 				continue;
 			}
 			_Bhv->Children[_ChildSz++] = _Child;
 			lua_pop(_State, 1);
 		}
-		LuaCtor(_State, "Behavior", _Bhv);
+		LuaCtor(_State, _Bhv, LOBJ_BEHAVIOR);
 		return 1;
 }
 
@@ -100,7 +100,7 @@ struct BehaviorNode* LuaBhvCreateNode(lua_State* _State) {
 	_Behavior = CreateBehaviorNode(_Action->Action, _Args);
 	for(int i = 0; i < _Args; ++i)
 		LuaToPrimitive(_State, 2 + i, &_Behavior->Arguments[i]);
-	LuaCtor(_State, "BhvNode", _Behavior);
+	LuaCtor(_State, _Behavior, LOBJ_BHVNODE);
 	return _Behavior;
 }
 

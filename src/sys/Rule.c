@@ -295,7 +295,7 @@ int RuleLuaCall(const struct RuleLuaCall* _Rule, lua_State* _State) {
 	//Unwrap all elements in order the first is a function and the follwing elements are its arguments.
 	for(int i = 1; i <= _Len; ++i) {
 		lua_rawgeti(_State, _Table, i);
-		if(lua_type(_State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_State, -1, "Rule")) != NULL) {
+		if(lua_type(_State, -1) == LUA_TTABLE && (_RuleArg = LuaTestClass(_State, -1, LOBJ_RULE)) != NULL) {
 			if(_RuleArg->Type == RULE_LUACALL) {
 				if(RuleLuaCall(_RuleArg, _State) == 0)
 					return 0;

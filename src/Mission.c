@@ -263,7 +263,7 @@ void MissionInsert(struct MissionEngine* _Engine, struct Mission* _Mission, cons
 		return;
 	}
 	RBInsert(&_Engine->MissionId, _Mission);
-	if((_Mission->Flags & MISSION_FEVENT) != 0) {
+	if((_Mission->Flags & MISSION_FEVENT) == MISSION_FEVENT) {
 		ArrayInsert_S(&_Engine->Events[_Mission->TriggerEvent], _Mission);
 	} else if((_Mission->Flags & MISSION_FONLYTRIGGER) == 0) {
 		LnkLstPushBack(&_Engine->MissionsTrigger, _Mission);	
@@ -781,6 +781,8 @@ void MissionLoadOption(lua_State* _State, struct Mission* _Mission) {
 		_Mission->Options[0].Condition = 0;
 		_Mission->Options[0].Action = 0;
 		_Mission->Options[0].Utility = 0; 
+		_Mission->Options[0].UtilitySz = 0; 
+		_Mission->Options[0].TextFormatSz = 0; 
 		return;
 	} else if(lua_rawlen(_State, -1) == 0) {
 		goto default_option;
@@ -1152,7 +1154,7 @@ const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId
 	char _Object[PARSESTR_BUFLEN];
 	char _Param[PARSESTR_BUFLEN];
 
-	while(_Pos++ != NULL) {
+	do {
 		switch(_State) {
 			case PARSESTR_NONE:
 				switch(*_Pos) {
@@ -1212,7 +1214,7 @@ const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId
 				_State = PARSESTR_NONE;
 				break;
 		}
-	}
+	} while(_Pos++ != NULL);
 	found_token:
 	for(int i = 0; i < MOBJECT_SIZE; ++i) {
 		if(strcmp(g_MissionObjects[i], _Object) == 0) {
@@ -1367,6 +1369,6 @@ int LuaUtilityQuadratic(lua_State* _State) {
 	_Mult *= _Mult;
 	_MaxMult = (_Max - _Min);
 	_MaxMult *= _MaxMult;
-	lua_pushvalue(_State, _Mult / ((float)_MaxMult) * MISSION_UTMAX);
+	lua_pushnumber(_State, _Mult / ((float)_MaxMult) * MISSION_UTMAX);
 	return 1;
 }

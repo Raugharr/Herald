@@ -10,9 +10,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define RB_RED (0)
-#define RB_BLACK (1)
-#define RB_DBLACK (2)
 #define RB_STRNULL (4) //size of "NULL".
 #define RB_CONTR (RB_STRPTR + RB_STRCLR + 2)
 #define RB_STRCLR (2)
@@ -39,30 +36,19 @@ struct RBNode* __RBMax(struct RBNode* _Node) {
 struct RBNode* __RBMin(struct RBNode* _Node) {
 	if(_Node == NULL)
 		return NULL;
-	//if(_Node->Right == NULL)
-	//	return _Node;
-	//_Node = _Node->Right;
 	while(_Node->Left != NULL) {
 		_Node = _Node->Left;
 	}
 	return _Node;
 }
 
-struct RBNode* RBSibling(struct RBNode* _Node) {
-	if(_Node->Parent == NULL)
-		return NULL;
-	if(_Node == _Node->Parent->Left)
-		return _Node->Parent->Right;
-	return _Node->Parent->Left;
-}
-
-void RBReplace(struct RBNode* _Node, struct RBNode* _Rep) {
+static inline void RBReplace(struct RBNode* _Node, struct RBNode* _Rep) {
 	_Rep->Parent = _Node->Parent;
 	_Rep->Left = _Node->Left;
 	_Rep->Right = _Node->Right;
 }
 
-void RBRotateLeft(struct RBTree* _Tree, struct RBNode* _Root) {
+void RBRotateLeft(struct RBNode** _Tree, struct RBNode* _Root) {
 	struct RBNode* _Parent = _Root->Parent;
 	struct RBNode* _Pivot = _Root->Right;
 
@@ -73,7 +59,7 @@ void RBRotateLeft(struct RBTree* _Tree, struct RBNode* _Root) {
 		_Pivot->Left->Parent = _Root;
 	_Pivot->Parent = _Root->Parent;
 	if(_Root->Parent == NULL)
-		_Tree->Table = _Pivot;
+		(*_Tree) = _Pivot;
 	else
 		if(_Root == _Parent->Left)
 			_Parent->Left = _Pivot;
@@ -83,7 +69,7 @@ void RBRotateLeft(struct RBTree* _Tree, struct RBNode* _Root) {
 	_Root->Parent = _Pivot;
 }
 
-void RBRotateRight(struct RBTree* _Tree, struct RBNode* _Root) {
+void RBRotateRight(struct RBNode** _Tree, struct RBNode* _Root) {
 	struct RBNode* _Parent = _Root->Parent;
 	struct RBNode* _Pivot = _Root->Left;
 
@@ -94,7 +80,7 @@ void RBRotateRight(struct RBTree* _Tree, struct RBNode* _Root) {
 		_Pivot->Right->Parent = _Root;
 	_Pivot->Parent = _Root->Parent;
 	if(_Root->Parent == NULL)
-		_Tree->Table = _Pivot;
+		(*_Tree) = _Pivot;
 	else
 		if(_Root == _Parent->Right)
 			_Parent->Right = _Pivot;
@@ -198,13 +184,15 @@ void RBBalance(struct RBTree* _Tree, struct RBNode* _Node) {
 			} else {
 				if(_Node == _Parent->Right) {
 					_Node = _Parent;
-					RBRotateLeft(_Tree, _Node);
+					RBRotateLeft(&_Tree->Table, _Node);
 					_Parent = _Node->Parent;
 				}
 				_Parent->Color = RB_BLACK;
 				_Parent->Parent->Color = RB_RED;
-				RBRotateRight(_Tree, _Parent->Parent);
+				RBRotateRight(&_Tree->Table, _Parent->Parent);
 			}
+			//FIXME: _Parent can only be _Parent->Parent->Right or _Parent->Parent->Left.
+			//If it is not _Parent->Parent->Left it must be its right.
 		} else if(_Parent == _Parent->Parent->Right) {
 			_Uncle = _Parent->Parent->Left;
 			if(_Uncle != NULL && _Uncle->Color == RB_RED) {
@@ -215,12 +203,12 @@ void RBBalance(struct RBTree* _Tree, struct RBNode* _Node) {
 			} else {
 				if(_Node == _Parent->Left) {
 					_Node = _Parent;
-					RBRotateRight(_Tree, _Node);
+					RBRotateRight(&_Tree->Table, _Node);
 					_Parent = _Node->Parent;
 				}
 				_Parent->Color = RB_BLACK;
 				_Parent->Parent->Color = RB_RED;
-				RBRotateLeft(_Tree, _Parent->Parent);
+				RBRotateLeft(&_Tree->Table, _Parent->Parent);
 			}
 		}
 	}
@@ -366,7 +354,7 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 	} else {
 		_NewNode = _OldNode;
 		goto skip_loop;	
-	} 
+	}
 
 	_Node = _NewNode;
 	_Node->Color = ((_Node->Color == RB_RED) ? (RB_BLACK) : (RB_DBLACK));
@@ -375,21 +363,21 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 		_Parent = _Node->Parent;
 		if(_Sibling != NULL && _Sibling->Color == RB_BLACK) {
 			if(_Sibling->Left != NULL && _Sibling->Left->Color == RB_RED) {
-				RBRotateRight(_Tree, _Sibling);
-				RBRotateLeft(_Tree, _Sibling->Parent);
+				RBRotateRight(&_Tree->Table, _Sibling);
+				RBRotateLeft(&_Tree->Table, _Sibling->Parent);
 				_Node->Color = RB_BLACK;
 			} else if(_Sibling->Right != NULL && _Sibling->Right->Color == RB_RED) {
 				_Sibling->Right->Color = RB_BLACK;
-				RBRotateLeft(_Tree, _Sibling);
+				RBRotateLeft(&_Tree->Table, _Sibling);
 				_Node->Color = RB_BLACK;
 			}
 		} else if(_Sibling != NULL && _Sibling->Color == RB_RED) {
 			_Sibling->Color = RB_BLACK;
 			_Parent->Color = RB_RED;
 			if(_Parent->Right == _Sibling)
-				RBRotateRight(_Tree, _Sibling);
+				RBRotateRight(&_Tree->Table, _Sibling);
 			else
-				RBRotateLeft(_Tree, _Sibling);
+				RBRotateLeft(&_Tree->Table, _Sibling);
 			continue;
 		}
 		if(_Node->Parent != NULL) {
@@ -424,23 +412,6 @@ void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
 		if(_Temp)
 			_Temp->Parent = _Parent;
 	}
-	/*if(_OldNode != _NewNode) {
-		if(_OldNode->Parent != NULL) {
-			if(_OldNode->Parent->Left == _OldNode)
-				_OldNode->Parent->Left = _NewNode;
-			else
-				_OldNode->Parent->Right = _NewNode;
-		}
-		_NewNode->Parent = _OldNode->Parent;
-		_NewNode->Left = _OldNode->Left;
-		_NewNode->Right = _OldNode->Right;
-		if(_NewNode->Right)
-			_NewNode->Right->Parent = _NewNode;
-		if(_NewNode->Left)
-			_NewNode->Left->Parent = _NewNode;
-		if(_OldNode == _Tree->Table)
-			_Tree->Table = _NewNode;
-	}*/
 	_Tree->Table->Color = RB_BLACK;
 	--_Tree->Size;
 	_OldNode->Data = _NewNode->Data;

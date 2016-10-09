@@ -24,7 +24,8 @@ Populations = {
 		},
 		FMRatio = 20,
 		Reproduce = {0.2, 1.8},
-		SpaceReq = 5
+		SpaceReq = 5,
+		Wealth = 0.1
 	},
 	
 	{
@@ -42,7 +43,8 @@ Populations = {
 		},
 		FMRatio = 20,
 		Reproduce = {0.0, 1.0},
-		SpaceReq = 5
+		SpaceReq = 5,
+		Wealth = 1.0
 	},
 	
 	{
@@ -56,7 +58,8 @@ Populations = {
 		Meat = 80,
 		FMRatio = 10,
 		Reproduce = {0.2, 4.0},
-		SpaceReq = 5
+		SpaceReq = 5,
+		Wealth = .2
 	},
 	
 	{
@@ -70,7 +73,8 @@ Populations = {
 		Meat = 3,
 		FMRatio = 24,
 		Reproduce = {0.8, 4.0},
-		SpaceReq = 5
+		SpaceReq = 5,
+		Wealth = 0.01
 	},
 	
 	{
@@ -84,6 +88,7 @@ Populations = {
 		Meat = 18,
 		FMRatio = 20,
 		Reproduce = {0.2, 1.8},
-		SpaceReq = 5
+		SpaceReq = 5,
+		Wealth = .2
 	}
 }

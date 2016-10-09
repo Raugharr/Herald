@@ -241,7 +241,7 @@ struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov) {
 
 	while(_Itr != NULL) {
 		_Person = ((struct BigGuy*)_Itr->Data)->Person;
-		if(_Person->Family->Id == _Person->Family->Id && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
+		if(_Person->Family->Object.Id == _Person->Family->Object.Id && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
 			return (struct BigGuy*)_Itr->Data;
 		}
 		_Itr = _Itr->Next;

@@ -11,27 +11,31 @@
 struct Array* CreateArray(int _Size) {
 	struct Array* _Array = (struct Array*) malloc(sizeof(struct Array));
 
-	ConstructArray(_Array, _Size);
+	CtorArray(_Array, _Size);
 	return _Array;
 }
 
-void ConstructArray(struct Array* _Array, int _Size) {
+void CtorArray(struct Array* _Array, int _Size) {
 	_Array->Table = (_Size == 0) ? (NULL) : (calloc(_Size, sizeof(void*)));
 	_Array->TblSize = _Size;
 	_Array->Size = 0;
 }
 
+void DtorArray(struct Array* _Array) {
+	free(_Array->Table);
+}
+
 struct Array* CopyArray(const struct Array* _Array) {
 	struct Array* _New = CreateArray(_Array->Size);
-	int i;
 
-	for(i = 0; i < _Array->Size; ++i)
+	for(int i = 0; i < _Array->Size; ++i)
 		_New->Table[i] = _Array->Table[i];
 	_New->Size = _Array->Size;
 	return _New;
 }
 
 void DestroyArray(struct Array* _Array) {
+	DtorArray(_Array);
 	free(_Array);
 }
 
@@ -42,14 +46,23 @@ void ArrayInsert_S(struct Array* _Array, void* _Data) {
 	_Array->Table[_Array->Size++] = _Data;
 }
 
+void ArraySet_S(struct Array* _Array, void* _Data, uint32_t _Idx) {
+	while(_Array->Size >= _Idx) {
+		ArrayResize(_Array);	
+	}
+	_Array->Table[_Idx] = _Data;
+	++_Array->Size;
+}
+
 void ArrayRemove(struct Array* _Array, int _Index) {
-	if(_Index < 0 || _Index >= _Array->TblSize)
+	if(_Index < 0 || _Index >= _Array->Size)
 		return;
-	if(_Array->Size > 1)
+	if(_Array->Size > 1) {
 		_Array->Table[_Index] = _Array->Table[_Array->Size - 1];
-	else
+		_Array->Table[_Array->Size - 1] = NULL;
+	} else {
 		_Array->Table[_Index] = NULL;
-	_Array->Table[_Array->Size - 1] = NULL;
+	}
 	--_Array->Size;
 }
 

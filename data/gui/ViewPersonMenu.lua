@@ -44,34 +44,7 @@ end
 function NonPlayerActions(Menu, Left, Right)
 	local Person = Menu.Guy
 
-	Right:CreateButton("Influence", 
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Influence, Person)
-		end)
-	Right:CreateButton("Sabotage",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Sabotage, Person)
-		end)
-	Right:CreateButton("Duel",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Duel, Person)
-		end)
-	Right:CreateButton("Steal Cattle",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.StealCattle, Person)
-		end)
-	Right:CreateButton("Murder",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Murder, Person)
-		end)
-	Right:CreateButton("Cause Dissent",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Dissent, Person)
-		end)
-	Right:CreateButton("Convince",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Convince, Person)
-		end)
+	GeneralActions(Right, Person)
 	Right:CreateButton("Back",
 		function()
 			Right:Clear()
@@ -242,22 +215,14 @@ end
 
 function DisplayRecruitStats(Menu, Left, Right)
 	local Guy = Menu.Guy	
-	local RetinueTable = Guy:GetRetinueTable()
+	local Person = Guy:GetPerson()
+	local Retinue = Person:Retinue()
+	local Warriors = Retinue:Warriors()
 
 	Right:Clear()
-	Right:Paragraph("You currently have " .. Guy:RetinueSize() .. " warriors in your retinue.")
-	if Guy:IsRecruiting() == false then
-		Right:CreateButton("Start recruiting",
-			function()
-				Guy:Recruit()
-			end)
-		else
-			Right:CreateButton("Stop recruiting",
-				function()
-					Guy:Recruit()
-				end)
-	end
-	FillPersonTable(CreatePersonTable(Right, #RetinueTable), RetinueTable)
+	Right:Paragraph("You currently have " .. Warriors:GetSize() .. " warriors in your retinue.")
+	Right:Paragraph("The leader of the retinue is " .. Retinue:Leader():GetPerson():GetName() .. " and has " .. Retinue:Leader():Glory() .. " glory.")
+	FillWarriorTable(CreateWarriorTable(Right, Warriors:GetSize()), Warriors)
 end
 
 function DisplayRelation(Menu, Left, Right)
@@ -277,7 +242,7 @@ function DisplayViewPerson(Menu, Left, Right)
 	Left:Paragraph(Menu.Description)
 	Left:CreateLabel("Owns " .. Menu.OxCount .. " cows.")
 	Left:CreateLabel("Skills")
-	Left:CreateButton("Manage household",
+	Left:CreateButton("Household",
 		function()
 			Left:Clear()
 			DisplayManageHousehold(Menu, Left, Right)
@@ -290,7 +255,7 @@ function DisplayViewPerson(Menu, Left, Right)
 				Right:Clear()
 				NonPlayerActions(Menu, nil, Right)
 			end)
-		Left:CreateButton("Recruit",
+		Left:CreateButton("Retinue",
 			function()
 				DisplayRecruitStats(Menu, Left, Right)
 			end)

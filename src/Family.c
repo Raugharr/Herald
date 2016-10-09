@@ -14,6 +14,7 @@
 #include "BigGuy.h"
 #include "Location.h"
 #include "LuaFamily.h"
+#include "Retinue.h"
 
 #include "sys/Event.h"
 #include "sys/Array.h"
@@ -22,6 +23,7 @@
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
 #include "sys/RBTree.h"
+#include "sys/ITree.h"
 
 #include "AI/LuaLib.h"
 #include "AI/Setup.h"
@@ -51,8 +53,8 @@ struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, str
 	_Family->Name = _Name;
 	memset(_Family->People, 0, sizeof(struct Person*) * (FAMILY_PEOPLESZ));
 	_Family->NumChildren = 0;
-	ConstructArray(&_Family->Goods, 16);
-	ConstructArray(&_Family->Animals, 0);
+	CtorArray(&_Family->Goods, 16);
+	CtorArray(&_Family->Animals, 0);
 	SettlementPlaceFamily(_Location, _Family);
 	_Family->HomeLoc = _Location;
 	_Family->Parent = _Parent;
@@ -68,7 +70,7 @@ struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, str
 	_Family->Food.SlowSpoiled = 0;
 	_Family->Food.FastSpoiled = 0;
 	_Family->Food.AnimalFood = 0;
-	CreateObject((struct Object*)_Family, OBJECT_FAMILY, (ObjectThink) FamilyThink);
+	CreateObject(&_Family->Object, OBJECT_FAMILY, (ObjectThink) FamilyThink);
 	return _Family;
 }
 
@@ -147,7 +149,7 @@ struct Food* FamilyMakeFood(struct Family* _Family) {
 		DestroyInputReq(_Foods[i]);
 	}
 	if(i == 0)
-		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Family->Id);
+		Log(ELOG_WARNING, "Day %i: %i made no food in PAIMakeFood.", DateToDays(g_GameWorld.Date), _Family->Object.Id);
 	end:
 	free(_Foods);
 	if(_FamFood->Base->Category != GOOD_FOOD)
@@ -215,7 +217,43 @@ int FamilyThink(struct Family* _Family) {
 	int _FallowFood = 0; //Food generated from fallow fields.
 	double _Milk = 0;
 
+	if(_Family->IsAlive == false)
+		return 0;
+
+	if(_Family->Caste->Type == CASTE_WARRIOR) {
+		if(DAY(g_GameWorld.Date) != 0) {
+			goto skip_retinue;
+		}
+		struct BigGuy* _Guy = RBSearch(&g_GameWorld.BigGuys, _Family->People[0]);
+		struct Retinue* _Retinue = NULL; 
+
+		if(_Guy == NULL)
+			goto skip_retinue;
+		_Retinue = IntSearch(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id);
+		if(_Guy != NULL && _Retinue->Leader->Person != _Family->People[0]) {
+			struct BigGuyRelation* _Rel = BigGuyGetRelation(_Guy, _Retinue->Leader);
+
+			if(Random(-5, 5) + _Rel->Modifier + ((int)_Retinue->Leader->Glory) - _Guy->Glory <= 0) {
+				for(struct LnkLst_Node* _Itr = g_GameWorld.Settlements.Front; _Itr != NULL; _Itr = _Itr->Next) {
+					struct Settlement* _Settlement = _Itr->Data;
+					
+					if(_Settlement == _Family->HomeLoc) {
+						for(struct Retinue* _NewRet = _Settlement->Retinues; _NewRet != NULL; _NewRet = _NewRet->Next) {
+							if(_NewRet->Leader->Glory > _Retinue->Leader->Glory) {
+								IntSearchNode(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id)->Node.Data = _NewRet;
+								RetinueRemoveWarrior(_Retinue, _Family->People[0]);
+								RetinueAddWarrior(_NewRet, _Family->People[0]);
+								break;		
+							}
+						}
+					}
+				}
+				//Find another retinue.
+			}
+		}
+	}
 	if(DAY(g_GameWorld.Date) == 0) {
+		skip_retinue:
 		if(FamilyGetNutrition(_Family) / FamilyNutReq(_Family) <= 31)
 			PushEvent(EVENT_STARVINGFAMILY, _Family, NULL);
 	}
@@ -307,7 +345,9 @@ int FamilyThink(struct Family* _Family) {
 		_Family->Food.AnimalFood = 0;
 	}
 	escape_months:
-	//Feed people.
+	/*
+	 * Feed people.
+	 */
 	for(int j = 0; j < FAMILY_PEOPLESZ; ++j) {
 		int _MaxFastFood = 0;
 		int _MaxSlowFood = 0;
@@ -337,19 +377,18 @@ int FamilyThink(struct Family* _Family) {
 		_Family->Food.SlowSpoiled -= _MaxSlowFood;
 		if(_Person->Nutrition <= 0) {
 			PersonDeath(_Person);
-
 		}
 	}
 	//Feed animals.
 	for(int i = 0; i < _Family->FieldCt; ++i) {
-		_FallowFood += _Family->Fields[i]->UnusedAcres * _Hay->NutVal * ToPound(_Hay->SeedsPerAcre) * _Hay->YieldMult / 180;
+		_FallowFood += _Family->Fields[i]->UnusedAcres * CropAcreHarvest(_Hay) / 180;
 	}
 	for(int i = 0; i < _Family->Animals.Size; ++i) {
 		struct Animal* _Animal = _Family->Animals.Table[i];
 		int _EatAmt = _Animal->PopType->Nutrition;
 
 		if(_FallowFood >= _EatAmt) {
-			ActorFeed((struct Actor*)_Animal, _EatAmt);
+			_Animal->Nutrition += _EatAmt;
 			_FallowFood -= _EatAmt;
 		}
 		if(_Animal->Nutrition <= 0) {
@@ -673,7 +712,7 @@ int FamilyWorkModifier(const struct Family* _Family) {
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(_Family->People[i] == NULL || _Family->People[i]->Gender == EFEMALE)
 			continue;
-		_WorkMod = _WorkMod + ActorWorkMult((struct Actor*) _Family->People[i], ADULT_AGE, MAX_NUTRITION);
+		_WorkMod = _WorkMod + PersonWorkMult(_Family->People[i]);
 	}
 	return _WorkMod;
 }
@@ -700,3 +739,11 @@ int FamilyCanMake(const struct Family* _Family, const struct GoodBase* _Good) {
 	return 0;
 }
 
+int FamilyGetWealth(const struct Family* _Family) {
+	int _Wealth = 0;
+
+	for(int i = 0; i < _Family->Animals.Size; ++i) {
+		_Wealth += ((struct Animal*)_Family->Animals.Table[i])->PopType->Wealth;
+	}
+	return _Wealth / 100;
+}

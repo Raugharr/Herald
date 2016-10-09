@@ -6,7 +6,17 @@
 #ifndef RBTREE_H
 #define RBTREE_H
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
 typedef int(*RBCallback)(const void*, const void*);
+
+enum RB_COLOR {
+	RB_RED,
+	RB_BLACK,
+	RB_DBLACK
+};
 
 struct RBNode {
 	int Color;
@@ -37,6 +47,7 @@ struct RBTree {
 struct RBTree* CreateRBTree(RBCallback ICallback, RBCallback SCallback);
 struct RBTree* CopyRBTree(struct RBTree* _Tree);
 void DestroyRBTree(struct RBTree* _Tree);
+void RBBalance(struct RBTree* _Tree, struct RBNode* _Node);
 
 void RBInsert(struct RBTree* _Tree, void* _Data);
 /**
@@ -89,5 +100,15 @@ int RBColorCheck(struct RBNode* _Node);
 int RBStrlen(struct RBNode* _Node);
 int RBToString(struct RBNode* _Node, char* _Buffer, int _Size);
 int RBRange(struct RBTree* _Tree, void* _Min, void* _Max, void** _RangeTbl, int _MaxSize);
+void RBRotateLeft(struct RBNode** _Tree, struct RBNode* _Root);
+void RBRotateRight(struct RBNode** _Tree, struct RBNode* _Root);
+static inline struct RBNode* RBSibling(struct RBNode* _Node) {
+	if(_Node->Parent == NULL)
+		return NULL;
+	if(_Node == _Node->Parent->Left)
+		return _Node->Parent->Right;
+	return _Node->Parent->Left;
+}
+
 #endif
 

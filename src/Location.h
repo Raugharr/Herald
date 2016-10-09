@@ -16,7 +16,8 @@
 #include "video/AABB.h"
 
 #define SETTLEMENT_MINBG (3)
-#define SETTLEMENT_SPACE (640 / 4)
+#define MILE_ACRE (640)
+#define SETTLEMENT_SPACE (MILE_ACRE / 3)
 #define HARVEST_YEARS (3)
 #define SettlementRaiseFyrd(_Settlement, _ArmyGoal) CreateArmy((_Settlement), &(_Settlement)->Pos, (_Settlement)->Government, (_Settlement)->Government->Leader, (_ArmyGoal))
 
@@ -38,21 +39,13 @@ enum {
 };
 
 struct Location {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	int LocType;
 	SDL_Rect Pos;
 };
 
 struct Settlement {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	int LocType;
 	SDL_Point Pos;
 	char* Name;
@@ -62,6 +55,7 @@ struct Settlement {
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
 	struct BulletinItem* Bulletin;
+	struct Retinue* Retinues; 
 	DATE LastRaid;
 	uint16_t NumPeople;
 	uint16_t YearDeaths; //Record of deaths in this settlement this year.
@@ -72,16 +66,15 @@ struct Settlement {
 	uint16_t FreeAcres;
 	uint16_t UsedAcres;
 	uint16_t StarvingFamilies;
+	struct LinkedList Families; // List of struct Family*
+	struct LinkedList BigGuys; // List of struct BigGuy*
+	struct LinkedList FreeWarriors; //List of struct Person*
+	struct Field Meadow; //Common area that anyone can use to feed their animals.
+	uint8_t Stats[BGSKILL_SIZE];
 	/**
 	 * Modifier to how many pounds are harvested from each field in this
 	 * settlement. Changes every year and is dependant on the previous year.
 	 */
-	struct LinkedList Families;
-	struct LinkedList BigGuys;
-	struct LinkedList FreeWarriors;
-	struct LinkedList Retinues;
-	struct Field Meadow; //Common area that anyone can use to feed their animals.
-	uint8_t Stats[BGSKILL_SIZE];
 	uint8_t HarvestMod[HARVEST_YEARS];
 };
 
@@ -135,12 +128,10 @@ static inline const struct LnkLst_Node* SettlementPlots(const struct Settlement*
  * \return the first found Plot that is of type _PlotType and contains _PlotData.
  */
 struct Plot* SettlementFindPlot(const struct Settlement* _Settlement, int _PlotType, void* _PlotData);
-static inline void SettlementAddRetinue(struct Settlement* _Settlement, struct Retinue* _Retinue) {
-	LnkLstPushBack(&_Settlement->Retinues, _Retinue);
-}
+struct Retinue* SettlementAddRetinue(struct Settlement* _Settlement, struct BigGuy* _Leader);
 
 static inline int SettlementAllocAcres(struct Settlement* _Settlement, int _Acres) {
-	if(_Settlement->UsedAcres + _Acres > _Settlement->FreeAcres)
+	if(_Settlement->FreeAcres - _Acres < 0)
 		return 0;
 	_Settlement->UsedAcres += _Acres;
 	_Settlement->FreeAcres -= _Acres;

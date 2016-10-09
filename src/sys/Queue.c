@@ -7,13 +7,17 @@
 
 #include <stdlib.h>
 
-struct Queue* CreateQueue(int _Size) {
-	struct Queue* _Queue = (struct Queue*) malloc(sizeof(struct Queue));
-	
+void InitQueue(struct Queue* _Queue, int _Size) {
 	_Queue->Table = malloc(sizeof(int*) * _Size);
 	_Queue->Start = 0;
 	_Queue->Size = 0;
 	_Queue->TblSize = _Size;
+}
+
+struct Queue* CreateQueue(int _Size) {
+	struct Queue* _Queue = (struct Queue*) malloc(sizeof(struct Queue));
+	
+	InitQueue(_Queue, _Size);
 	return _Queue;
 }
 

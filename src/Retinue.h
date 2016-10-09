@@ -18,8 +18,8 @@ struct Person;
 
 struct Retinue {
 	struct BigGuy* Leader;
+	struct Retinue* Next; //Implicit linked list of all retinues in a settlement.
 	struct Array Warriors;
-	int16_t  Happiness; //How happy the warriors are with their leader.
 	int16_t RecruitMod;
 	int16_t FamilySz;//The number of people in all the families of the retinue minus the leader.
 	int8_t IsRecruiting;
@@ -42,8 +42,8 @@ static inline int RetinueIsWarrior(const struct Retinue* _Retinue, const struct 
  * \brief Adds _Warrior to _Retinue if they are of the warrior caste and not
  * already in this retinue.
  */
-void RetinueAddWarrior(struct Retinue* _Retinue, const struct Person* _Warrior);
+void RetinueAddWarrior(struct Retinue* _Retinue, struct Person* _Warrior);
+void RetinueRemoveWarrior(struct Retinue* _Retinue, struct Person* _Warrior);
 void RetinuePayWarriors(struct Retinue* _Retinue);
 void RetinueThink(struct Retinue* _Retinue);
-
 #endif

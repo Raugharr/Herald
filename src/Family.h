@@ -10,6 +10,8 @@
 
 #include "sys/Array.h"
 
+#include <stdbool.h>
+
 #define CHILDREN_SIZE (8)
 #define FAMILY_PEOPLESZ (CHILDREN_SIZE + 2)
 #define FAMILY_BUILDINGCT (2)
@@ -35,6 +37,7 @@ enum {
 	CASTE_THRALL,
 	CASTE_LOWCLASS,
 	CASTE_HIGHCLASS,
+	CASTE_WARRIOR,
 	CASTE_NOBLE,
 	CASTE_SIZE
 };
@@ -52,14 +55,7 @@ struct Caste {
 };
 
 struct Family {
-	int Id;
-	int Type;
-	ObjectThink Think;
-	/*
-	 * LastThink is not used by Object and should be removed.
-	 */
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	const char* Name;
 	struct Person* People[FAMILY_PEOPLESZ];
 	struct Settlement* HomeLoc;
@@ -82,6 +78,7 @@ struct Family {
 	uint8_t NumChildren;
 	uint8_t FieldCt;
 	uint8_t BuildingCt;
+	bool IsAlive;
 };
 
 //FIXME: Remove Family_Init and Family_Quit as they are not specifically related to Family.h and should be moved somewhere else that initializes data.
@@ -141,6 +138,7 @@ void FamilySlaughterAnimals(struct Family* _Family);
 void FamilyShearAnimals(struct Family* _Family);
 int FamilyWorkModifier(const struct Family* _Family);
 int FamilyCanMake(const struct Family* _Family, const struct GoodBase* _Good);
+int FamilyGetWealth(const struct Family* _Family);
 static inline int StoredFoodSufficient(const struct Family* _Family) {
 	uint32_t _FoodOwned = FamilyGetNutrition(_Family);
 	uint32_t _FoodReq = FamilyNutReq(_Family);

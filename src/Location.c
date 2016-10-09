@@ -107,11 +107,11 @@ struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovT
 	_Loc->FreeAcres = SETTLEMENT_SPACE;
 	_Loc->UsedAcres = 0;
 	_Loc->StarvingFamilies = 0;
+	_Loc->Retinues = NULL;
 	for(int i = 0; i < BGSKILL_SIZE; ++i) {
 		_Loc->Stats[i] = SETTLEMENT_AVGSTAT;
 	}
 	ConstructLinkedList(&_Loc->FreeWarriors);
-	ConstructLinkedList(&_Loc->Retinues);
 	_Loc->Meadow.Status = EGROWING;
 	_Loc->Meadow.StatusTime = 0;
 	return _Loc;
@@ -164,10 +164,14 @@ void SettlementThink(struct Settlement* _Settlement) {
 		_Settlement->YearDeaths = 0;
 	}
 	if(DAY(g_GameWorld.Date) == 0) {
+		if(MONTH(g_GameWorld.Date) == 0) {
+			if(_Settlement->FreeAcres + _Settlement->UsedAcres <= MILE_ACRE)
+				_Settlement->FreeAcres += _Settlement->Families.Size;
+		}
 
 		_Settlement->StarvingFamilies = 0;
-		for(struct LnkLst_Node* _Itr = _Settlement->Retinues.Front; _Itr != NULL; _Itr = _Itr->Next) {
-			RetinueThink(_Itr->Data);
+		for(struct Retinue* _Itr = _Settlement->Retinues; _Itr != NULL; _Itr = _Itr->Next) {
+			RetinueThink(_Itr);
 		}
 	}
 	while(_Bulletin != NULL) {
@@ -264,6 +268,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CA
 	struct Family* _Family = NULL;
 	struct BigGuy* _Leader = NULL;
 	uint8_t _BGStats[BGSKILL_SIZE];
+	uint8_t _LeaderCaste = CASTE_NOBLE;
 	int _Motivations[BGMOT_SIZE] = {2, 4};
 	int _MotCt = 0;
 	int _Count = 0;//_Settlement->Families.Size * 0.1f; //How many big guys to make.
@@ -271,7 +276,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CA
 	int* _CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 
 	if(_FamilyCt < 20)
-		_Count = _FamilyCt * 0.5;
+		_Count = _FamilyCt * 0.4;
 	else 
 		_Count = _FamilyCt * 0.2;
 	memset(_CasteCount, 0, sizeof(int) * CASTE_SIZE);
@@ -284,7 +289,7 @@ void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CA
 		_Family = (struct Family*)_Itr->Data;
 		_FamilyItr = _UniqueFamilies.Front;
 		while(_FamilyItr != NULL) {
-			if(((struct Family*)_FamilyItr->Data)->Id == _Family->Id)
+			if(((struct Family*)_FamilyItr->Data)->Object.Id == _Family->Object.Id)
 				goto skip_bigguy;
 			_FamilyItr = _FamilyItr->Next;
 		}
@@ -303,12 +308,15 @@ void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CA
 	}
 	Assert(_Settlement->BigGuys.Size != 0);
 	SettlementSetBGOpinions(&_Settlement->BigGuys);
+	if(_CasteCount[CASTE_NOBLE] == 0) {
+		_LeaderCaste = CASTE_WARRIOR;
+	}
 	for(_Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
 		_Leader = _Itr->Data;
-		if(PERSON_CASTE(_Leader->Person) != CASTE_NOBLE)
-			continue;
+		if(PERSON_CASTE(_Leader->Person) == _LeaderCaste)
+			break;
 	}
-	Assert(PERSON_CASTE(_Leader->Person) != CASTE_NOBLE);
+	Assert(PERSON_CASTE(_Leader->Person) != _LeaderCaste);
 	GovernmentSetLeader(_Settlement->Government, _Leader);
 	LnkLstClear(&_UniqueFamilies);
 }
@@ -381,3 +389,17 @@ struct Plot* SettlementFindPlot(const struct Settlement* _Settlement, int _PlotT
 	return NULL;
 }
 
+struct Retinue* SettlementAddRetinue(struct Settlement* _Settlement, struct BigGuy* _Leader) {
+	struct Retinue* _Retinue = CreateRetinue(_Leader);
+
+	_Retinue->Next = _Settlement->Retinues;
+	_Settlement->Retinues = _Retinue;
+	for(struct LnkLst_Node* _Itr = _Settlement->FreeWarriors.Front; _Itr != NULL; _Itr = _Itr->Next) {
+		if(_Leader== _Itr->Data) {
+			LnkLstRemove(&_Settlement->FreeWarriors, _Itr);
+			break;
+		}
+	}
+	IntInsert(&g_GameWorld.PersonRetinue, _Leader->Person->Object.Id, _Retinue);
+	return _Retinue;
+}

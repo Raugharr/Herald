@@ -21,12 +21,17 @@ unsigned int Hash(const char* _Key) {
 	return (_Hash & 0x7FFFFFFF);
 }
 
-struct HashTable* CreateHash(int _Size) {
-	struct HashTable* _Hash = (struct HashTable*) malloc(sizeof(struct HashTable));
-
+void ConstructHashTable(struct HashTable* _Hash, uint32_t _Size) {
 	_Hash->Table = calloc(_Size, sizeof(void*));
 	_Hash->TblSize = _Size;
 	_Hash->Size = 0;
+}
+
+
+struct HashTable* CreateHash(uint32_t _Size) {
+	struct HashTable* _Hash = (struct HashTable*) malloc(sizeof(struct HashTable));
+	
+	ConstructHashTable(_Hash, _Size);
 	return _Hash;
 }
 

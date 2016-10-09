@@ -13,10 +13,10 @@ typedef struct SDL_Surface SDL_Surface;
  * Table has variable named Menu that contains the currently displaying menu.
  */
 
-#define RestoreScreen(_State) lua_settop((_State), 0);					\
-		if(g_GUIStack.Top != NULL) {									\
-		lua_pushstring((_State), (const char*)g_GUIStack.Top->Data);	\
-		LuaSetMenu_Aux((_State));										\
+#define RestoreScreen(_State) lua_settop((_State), 0);								\
+		if(g_GUIStack.Top != NULL) {												\
+		lua_pushstring((_State), (const char*)g_GUIStack.Top[g_GUIStack.Size]);		\
+		LuaSetMenu_Aux((_State));													\
 		}
 
 struct Widget;

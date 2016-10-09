@@ -11,13 +11,16 @@
 #include "Family.h"
 #include "Location.h"
 #include "World.h"
-#include "Actor.h"
+
+#include <inttypes.h>
+#include <stdbool.h>
 
 #define EMALE (1)
 #define EFEMALE (2)
 #define IsMarried(__Person) (__Person->Family->Wife != NULL)
 #define PersonDead(__Person) (__Person->Nutrition == 0)
 #define MAX_NUTRITION (250)
+#define MAX_WORKRATE (100)
 #define NUTRITION_REQ (2920)
 #define DAYSWORK (100)
 #define ADULT_AGE (13)
@@ -35,33 +38,23 @@ struct Food;
 extern struct MemoryPool* g_PersonPool;
 
 struct Person {
-	int Id;
-	int Type;
-	ObjectThink Think;
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	SDL_Point Pos;
-	int Gender;
-	int Nutrition;
+	int16_t Nutrition;
 	DATE Age;
-	struct ActorJob* Action;
 	const char* Name;
 	struct Family* Family;
 	struct Person* Next;
 	struct Person* Prev;
-	struct Behavior* Behavior;
 	//FIXME: Should be placed in a different spot most people will no be pregnant.
 	struct Pregnancy* Pregnancy;
+	uint8_t Gender;
 };
 
 struct Pregnancy {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	struct Person* Mother;
-	int TTP;//Time to pregancy
+	uint32_t TTP;//Time to pregancy
 };
 
 struct Pregnancy* CreatePregnancy(struct Person* _Person);
@@ -72,10 +65,11 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 //FIXME: DestroyFamily should be called by DestroyPerson if _Person is the last Person in its family.
 void DestroyPerson(struct Person* _Person);
 struct Person* CreateChild(struct Family* _Family);
-int PersonThink(struct Person* _Person);
+void PersonThink(struct Object* _Obj);
 void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* _Family);
 double PersonEat(struct Person* _Person, struct Food* _Food);
 void PersonDeath(struct Person* _Person);
+struct Retinue* PersonRetinue(const struct Person* _Person);
 static inline struct Settlement* PersonHome(const struct Person* _Person) {
 	return _Person->Family->HomeLoc;
 }
@@ -86,12 +80,13 @@ static inline struct Settlement* PersonHome(const struct Person* _Person) {
  */
 int PersonIsWarrior(const struct Person* _Person);
 struct Person* GetFather(struct Person* _Person);
-static inline int IsChild(const struct Person* _Person) {
+static inline bool IsChild(const struct Person* _Person) {
 	return (YEAR(_Person->Age) < ADULT_AGE);
 }
 
-static inline int PersonMature(const struct Person* _Person) {
+static inline bool PersonMature(const struct Person* _Person) {
 	return YEAR(_Person->Age) >= 15;
 }
+uint16_t PersonWorkMult(const struct Person* _Person);
 #endif
 

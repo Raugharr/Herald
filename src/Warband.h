@@ -6,6 +6,7 @@
 #define __WARBAND_H
 
 #include "ArmyGoal.h"
+#include "Herald.h"
 
 #include "video/Sprite.h"
 
@@ -63,11 +64,7 @@ struct Warband {
 };
 
 struct Army {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	struct Sprite Sprite;
 	struct Warband* Warbands; //Implicit linked list.
 	int WarbandCt;

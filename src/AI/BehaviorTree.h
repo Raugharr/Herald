@@ -21,6 +21,10 @@ struct Primitive;
 typedef int(*BhvCallback)(const struct Behavior*, struct Family*, struct HashTable*);
 typedef int(*BhvAction)(struct Family*, struct HashTable*, const struct Primitive*, int);
 
+/*
+ * NOTE: Instead of having each composite have a table of its children use a global table to prevent cache lookups slowing the BT doown.
+ */
+
 struct Behavior {
 	BhvAction Action;
 	BhvCallback Callback;

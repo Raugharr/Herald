@@ -192,8 +192,12 @@ void Events() {
 			break;
 		}
 		if(_Event.type >= g_EventTypes[0] && _Event.type <= g_EventTypes[EVENT_SIZE - 1]) {
+			struct Person* _Person = _Event.user.data1;
+			struct BigGuy* _Guy = RBSearch(&g_GameWorld.BigGuys, _Person);
+
 			EventHookUpdate(&_Event);
-			MissionOnEvent(&g_MissionEngine, _Event.type, _Event.user.data1);
+			if(_Guy != NULL)
+				MissionOnEvent(&g_MissionEngine, _Event.type - EventUserOffset(), _Guy, _Event.user.data2);
 		}
 		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
 			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
@@ -246,11 +250,11 @@ void Events() {
 
 			sprintf(_Buffer, "%s has died, all hail %s", ((struct BigGuy*)_Event.user.data1)->Person->Name, ((struct BigGuy*)_Event.user.data2)->Person->Name);
 			MessageBox(_Buffer);
-		} else if(_Event.type == g_EventTypes[EVENT_NEWRECRUIT]) {
+		} else if(_Event.type == g_EventTypes[EVENT_JOINRETINUE]) {
 			char _Buffer[256];
 
-			if(_Event.user.data1 == g_GameWorld.Player) {
-				sprintf(_Buffer, "You have recruited %s.", ((struct Person*)_Event.user.data2)->Name);
+			if(((struct Retinue*)_Event.user.data2)->Leader == g_GameWorld.Player) {
+				sprintf(_Buffer, "You have recruited %s.", ((struct Person*)_Event.user.data1)->Name);
 				MessageBox(_Buffer);
 			}
 		}

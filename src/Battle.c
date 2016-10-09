@@ -108,7 +108,6 @@ void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
 	struct Warrior* _Ptr = NULL;
 	struct BigGuy* _Guy = NULL;
 	int _CasteWarriorCt = 0;
-	int _AvgScore = 0;
 
 	while(_Warband != NULL) { 
 		_Warrior = _Warband->Warriors;
@@ -124,14 +123,9 @@ void BattleDistPrestige(struct BattleSide* _Side, int _TotalPrestige) {
 		}
 		_Warband = _Warband->Next;
 	}
-	_AvgScore = _TotalPrestige / _CasteWarriorCt;
 	_Itr = _List.Front;
 	while(_Itr != NULL) {
 		if((_Guy = RBSearch(&g_GameWorld.BigGuys, ((struct Warrior*)_Itr->Data)->Person)) != NULL) {
-			int _Score = _CasteWarriorCt * (_AvgScore / ((float)_TotalPrestige));
-			_Guy->Prestige += _Score;		
-			if(_Guy->Motivation == BGMOT_RULE)
-				_Guy->Prestige += max(1, _Score / 10);
 		} else 
 		_Itr = _Itr->Next;
 	}

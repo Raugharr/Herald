@@ -59,7 +59,7 @@ struct Array;
 extern lua_State* g_LuaState;
 
 enum LuaObjectsEnum {
-	LUA_BASECLASS,
+	LUA_BASECLASS = 0,
 	LOBJ_ITERATOR,
 	LOBJ_LINKEDLISTNODE,
 	LOBJ_LINKEDLIST,
@@ -104,7 +104,9 @@ enum LuaObjectsEnum {
 	LOBJ_ANIMATION,
 	LOBJ_MISSIONOPTION,
 	LOBJ_MISSIONFRAME,
-	LOBJ_TRAIT
+	LOBJ_TRAIT,
+	LOBJ_RETINUE,
+	LOBJ_SIZE
 };
 
 struct LuaObjectReg {
@@ -147,8 +149,8 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, int _Class, int _Bas
  * Registers all Lua functions in _Funcs to the global space of _State.
  */
 void LuaRegisterFunctions(lua_State* _State, const luaL_Reg* _Funcs);
-void CreateLuaLnkLstItr(lua_State* _State, const struct LinkedList* _List, int _Class);
-void CreateLuaArrayItr(lua_State* _State, const struct Array* _Array, int  _Class);
+void CreateLuaLnkLstItr(lua_State* _State, struct LinkedList* _List, int _Class);
+void CreateLuaArrayItr(lua_State* _State, struct Array* _Array, int  _Class);
 void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, int  _Class);
 
 /**
@@ -157,7 +159,15 @@ void LuaArrayClassToTable(lua_State* _State, const void** _Table, int _TableSz, 
 void LuaInitClass(lua_State* _State, void* _Ptr, int _Class);
 const char* LuaObjectClass(lua_State* _State, int _Arg);
 
+/**
+ * \brief Pushes an Array onto the Lua stack. _Class represents the class of the objects
+ * that are in the table of _Array.
+ */
+void LuaCtorArray(lua_State* _State, struct Array* _Array, int _Class);
+
 int LuaArrayCreate(lua_State* _State);
+int LuaArrayCreateItr(lua_State* _State);
+int LuaArrayGetSize(lua_State* _State);
 int LuaArrayItrNext(lua_State* _State);
 int LuaArrayItrPrev(lua_State* _State);
 

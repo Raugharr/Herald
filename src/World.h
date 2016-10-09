@@ -12,6 +12,8 @@
 
 #include "sys/LinkedList.h"
 #include "sys/RBTree.h"
+#include "sys/ITree.h"
+#include "sys/Queue.h"
 
 #include "video/MapRenderer.h"
 
@@ -82,15 +84,16 @@ struct GameWorld {
 	 */
 	struct RBTree BigGuyStates;
 	struct RBTree Agents;
-	struct RBTree Crisis;
 	struct RBTree ActionHistory;
 	struct RBTree PlotList;
+	struct IntTree PersonRetinue; //Mapping of a person to their retinue.
 	struct LinkedList MissionFrame;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
 	struct Policy* Policies;
 	struct Constraint** BabyAvg;
 	struct Constraint** AgeGroups;
+	struct Queue FreeWarriors;
 	float DecayRate[WORLD_DECAY];
 	int PolicySz;
 };

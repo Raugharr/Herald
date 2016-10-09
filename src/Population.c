@@ -5,7 +5,6 @@
 
 #include "Population.h"
 
-#include "Actor.h"
 #include "Person.h"
 #include "Good.h"
 #include "Herald.h"
@@ -70,7 +69,7 @@ int AnDepArrayCmp(const void* _One, const void* _Two) {
 }
 
 struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages, double _MaleRatio, int _FMRatio,
-	double _ReproduceMin, double _ReproduceMax, int _SpaceReq) {
+	double _ReproduceMin, double _ReproduceMax, int _SpaceReq, uint8_t _Wealth) {
 	struct Population* _Population = (struct Population*) malloc(sizeof(struct Population));
 
 	_Population->Id = NextId();
@@ -93,6 +92,7 @@ struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat
 	_Population->Hair.Shearable = 0;
 	_Population->ReproduceRate.Min = _ReproduceMin * 100;
 	_Population->ReproduceRate.Max = _ReproduceMax * 100;
+	_Population->Wealth = _Wealth;
 	return _Population;
 }
 
@@ -172,6 +172,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 	double _ReproduceMax = 0.0f;
 	int _Return = -2;
 	int _Top = lua_gettop(_State);
+	double _Wealth = 0;
 
 	lua_getmetatable(_State, _Index);
 	lua_pushnil(_State);
@@ -201,6 +202,8 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 			_Return = LuaGetInteger(_State, -1, &_SpaceReq);
 		} else if(!strcmp("FMRatio", _Key)) {
 			_Return = LuaGetInteger(_State, -1, &_FMRatio);
+		} else if(!strcmp("Wealth", _Key)) {
+			_Return = LuaGetNumber(_State, -1, &_Wealth);
 		} else if(!strcmp("Reproduce", _Key)) {
 			if(lua_type(_State, -1) != LUA_TTABLE)
 				_Return = 0;
@@ -306,7 +309,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		goto fail;
 	}
 	_Ages = CreateConstrntBnds(4, 0, _Young, _Old, _Death);
-	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio, _FMRatio, _ReproduceMin, _ReproduceMax, _SpaceReq);
+	_Pop = CreatePopulation(_Name, _Nutrition, _Meat, _Milk, _Ages, _MaleRatio, _FMRatio, _ReproduceMin, _ReproduceMax, _SpaceReq, ((uint8_t)_Wealth * 100));
 	_Eats = calloc(_List.Size, sizeof(struct FoodBase*));
 	_Itr = _List.Front;
 	i = 0;
@@ -341,22 +344,34 @@ struct Animal* CreateAnimal(const struct Population* _Pop, int _Age, int _Nutrit
 		_Gender = EMALE;
 	} else
 		_Gender = EFEMALE;
-	CtorActor(((struct Actor*)_Animal), OBJECT_ANIMAL,  _X, _Y, (ObjectThink) AnimalThink, _Gender, _Nutrition, _Age);
+	CreateObject(&_Animal->Object, OBJECT_ANIMAL, AnimalThink);
+	_Animal->Age = _Age;
+	_Animal->Pos.x = _X;
+	_Animal->Pos.y = _Y;
+	_Animal->Gender = _Gender;
+	_Animal->Nutrition = _Nutrition;
 	*(const struct Population**)&_Animal->PopType = _Pop;
 	return _Animal;
 }
 
 int AnimalCmp(const void* _One, const void* _Two) {
-	return ((struct Animal*)_One)->Id - ((struct Animal*)_Two)->Id;
+	return ((struct Animal*)_One)->Object.Id - ((struct Animal*)_Two)->Object.Id;
 }
 
 void DestroyAnimal(struct Animal* _Animal) {
-	DtorActor((struct Actor*)_Animal);
+	DestroyObject(&_Animal->Object);
 	free(_Animal);
 }
 
-void AnimalThink(struct Animal* _Animal) {
-	ActorThink((struct Actor*) _Animal, _Animal->PopType);
+void AnimalThink(struct Object* _Obj) {
+	struct Animal* _Animal = (struct Object*) _Obj;
+
+	_Animal->Nutrition -= (AnimalMature(_Animal) == true) ? (_Animal->PopType->Nutrition) : (_Animal->PopType->Nutrition / 2);
+	if(_Animal->Nutrition < 0)
+		_Animal->Nutrition = 0;
+	NextDay(&_Animal->Age);
+	if(_Animal->Nutrition > MAX_NUTRITION)
+		_Animal->Nutrition = MAX_NUTRITION;
 }
 
 void AnimalDepAddAn(const struct AnimalDep* _Dep, const struct Array* _Tbl) {

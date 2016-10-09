@@ -1,13 +1,13 @@
 CC=gcc
 #CFLAGS+= -Wall -std=c99 -pg -ggdb
 OBJFLD=obj/
-DEPS=Herald.h Building.h Crop.h Family.h Good.h Person.h Population.h World.h Actor.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
-WorldState.h Date.h Feud.h Profession.h Trait.h Bulletin.h BigGuyRelation.h Plot.h Policy.h Retinue.h
+DEPS=Herald.h Building.h Crop.h Family.h Good.h Person.h Population.h World.h Location.h Mission.h BigGuy.h Warband.h Government.h LuaFamily.h LuaSettlement.h LuaWorld.h ArmyGoal.h Battle.h \
+WorldState.h Date.h Profession.h Trait.h Bulletin.h BigGuyRelation.h Plot.h Policy.h Retinue.h
 OBJ=$(OBJFLD)Herald.o $(OBJFLD)Building.o $(OBJFLD)Crop.o $(OBJFLD)Family.o \
 $(OBJFLD)Good.o $(OBJFLD)Person.o $(OBJFLD)Population.o $(OBJFLD)World.o \
-$(OBJFLD)Actor.o $(OBJFLD)Location.o $(OBJFLD)Mission.o $(OBJFLD)BigGuy.o $(OBJFLD)Warband.o $(OBJFLD)Government.o \
+$(OBJFLD)Location.o $(OBJFLD)Mission.o $(OBJFLD)BigGuy.o $(OBJFLD)Warband.o $(OBJFLD)Government.o \
 $(OBJFLD)LuaFamily.o $(OBJFLD)LuaSettlement.o $(OBJFLD)LuaWorld.o $(OBJFLD)ArmyGoal.o $(OBJFLD)Battle.o $(OBJFLD)WorldState.o \
-$(OBJFLD)Date.o $(OBJFLD)Feud.o $(OBJFLD)Profession.o $(OBJFLD)Trait.o $(OBJFLD)Bulletin.o $(OBJFLD)BigGuyRelation.o $(OBJFLD)Plot.o \
+$(OBJFLD)Date.o  $(OBJFLD)Profession.o $(OBJFLD)Trait.o $(OBJFLD)Bulletin.o $(OBJFLD)BigGuyRelation.o $(OBJFLD)Plot.o \
 $(OBJFLD)Policy.o $(OBJFLD)Retinue.o
 ODIR=.
 DEFS=

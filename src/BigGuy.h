@@ -20,14 +20,13 @@ struct Person;
 struct Mission;
 struct Trait;
 struct Object;
-struct Feud;
 struct Agent;
 
-#define BIGGUYSTAT_MIN (1)
-#define BIGGUYSTAT_MAX (100)
+#define STAT_MIN (1)
+#define STAT_MAX (100)
 
-#define BG_MINGENSTATS (BGSKILL_SIZE * 60)
-#define BG_MAXGENSTATS (BGSKILL_SIZE * 80)
+#define BG_MINGENSTATS (BGSKILL_SIZE * 40)
+#define BG_MAXGENSTATS (BGSKILL_SIZE * 60)
 #define SKILLCHECK_DEFAULT (100)
 
 #define BigGuyHasPlot(_Guy) (BigGuyGetPlot(_Guy) != NULL)
@@ -38,14 +37,15 @@ struct Agent;
 //These actions should be removed and only GOAP acions should be used instead.
 enum {
 	BGACT_NONE,
-	BGACT_IMRPOVEREL,
+	BGACT_BEFRIEND,
 	BGACT_SABREL,
-	BGACT_GIFT,
-	BGACT_STEALCATTLE,
+	BGACT_STEAL,
 	BGACT_DUEL,
 	BGACT_MURDER,
-	BGACT_DISSENT,
-	BGACT_CONVINCE,
+	BGACT_GAINPOP,
+	BGACT_SABPOP,
+	BGACT_GAINGLORY,
+	BGACT_SABGLORY,
 	BGACT_PLOTOVERTHROW,
 	BGACT_SIZE
 };
@@ -87,57 +87,30 @@ struct BigGuyAction {
 	void* Data;
 };
 
-/**
- * Note: Owner and ActionType are declared first to allow an incomplete BigGuyActionHist to 
- * search for a BigGuyActionHist.
- */
-struct BigGuyActionHist {
-	struct BigGuy* Owner;
-	int ActionType;
-	DATE DayDone;
-};
-
 struct BigGuy {
-	int Id;
-	int Type;
-	ObjectThink Think;
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	struct Person* Person;
 	struct Agent* Agent;
 	struct BigGuyRelation* Relations;
-	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
+	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	int Personality;
 	int Motivation;
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
-	float Authority;
-	float Prestige;
 	float Popularity; 
-	struct BigGuyAction Action;
-	struct LinkedList Feuds;
+	float Glory;
 	struct LinkedList PlotsAgainst;
 	struct Trait** Traits;
 	int16_t PopularityDelta;
 	uint8_t TraitCt; 
 	uint8_t IsDirty;
 	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
-};
-
-struct Crisis {
-	struct WorldState State;
-	int TriggerMask;
-	struct BigGuy* Guy;
+	uint8_t Action;
+	struct BigGuy* ActionTarget;
 };
 
 struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action);
 void DestroyBGActionHist(struct BigGuyActionHist* _Hist);
 int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two);
-
-struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy);
-void DestroyCrisis(struct Crisis* _Crisis);
-
-int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
-int CrisisInsert(const int* _One, const struct Crisis* _Two);
 
 struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation);
 void DestroyBigGuy(struct BigGuy* _BigGuy);
@@ -159,19 +132,16 @@ struct BigGuy* BigGuyLeaderType(struct Person* _Person);
  * a random integer will receive.
  */
 void BGStatsRandom(int _Points, int _StatCt, ...);
-int BGRandPopularity(const struct BigGuy* _Guy);
+int BGRandRes(const struct BigGuy* _Guy, int _Stat);
 /*
  * Creates a big guy with a stat emphasis on warfare.
  */
 void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points);
 
-void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
-void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
 struct Trait** BGRandTraits();
 int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait);
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
-void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
 struct Settlement* BigGuyHome(struct BigGuy* _Guy);
 /**
  * Return 1 if _Target's personality is one that _Guy would prefer to have as an acquaintance.
@@ -208,8 +178,10 @@ int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq);
 int BigGuyPopularity(const struct BigGuy* _Guy);
 void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot);
 int BigGuyPlotPower(const struct BigGuy* _Guy);
-
-struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader, struct Settlement* _Settlement);
+/*
+ * Returns the retinue _Leader controls or NULL if _Leader does not control a retinue.
+ */ 
+struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader);
 
 inline static struct Plot* BigGuyGetPlot(struct BigGuy* _Guy) {
 	return RBSearch(&g_GameWorld.PlotList, _Guy);

@@ -27,11 +27,11 @@ const char* g_BGStateStr[BGBYTE_SIZE] = {
 void AgentSetState(struct Agent* _Agent, int _State);
 
 int AgentICallback(const struct Agent* _One, const struct Agent* _Two) {
-	return _One->Agent->Id - _Two->Agent->Id;
+	return _One->Agent->Object.Id - _Two->Agent->Object.Id;
 }
 
 int AgentSCallback(const struct BigGuy* _One, const struct Agent* _Two) {
-	return _Two->Agent->Id - _One->Id;
+	return _Two->Agent->Object.Id - _One->Object.Id;
 }
 
 int BigGuyStateInsert(const struct Agent* _One, const struct Agent* _Two) {

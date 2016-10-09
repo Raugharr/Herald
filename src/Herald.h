@@ -63,9 +63,9 @@ enum {
 	OBJECT_CONSTRUCT,
 	OBJECT_LOCATION,
 	OBJECT_BIGGUY,
-	OBJECT_FEUD,
 	OBJECT_FAMILY,
 	OBJECT_PLOT,
+	OBJECT_SIZE
 };
 
 struct InputReq {
@@ -85,11 +85,10 @@ typedef void (*ObjectThink)(struct Object*);
  * TODO: Have objects think in order of their type.
  */
 struct Object {
-	int Id;
-	int Type;
+	IMPLICIT_LINKEDLIST(struct Object);
+	uint32_t Id;
 	ObjectThink Think;
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	uint8_t Type;
 };
 
 extern struct LinkedList g_GoodCats[GOOD_SIZE];
@@ -122,8 +121,8 @@ struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 
-void CreateObject(struct Object* _Obj, int _Type, ObjectThink _Think);
-void DestroyObject(struct Object* _Object);
+void CreateObject(struct Object* _Obj, uint8_t _Type, ObjectThink _Think);
+void DestroyObject(struct Object* _Obj);
 void ObjectsThink();
 int NextId();
 

@@ -36,6 +36,23 @@ function CreatePersonTable(Parent, Cols)
 	return Table
 end
 
+function CreateWarriorTable(Parent, Cols)
+	local Table = Parent:CreateTable(2, Cols + 1)
+
+	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:CreateLabel("Name")
+	Table:CreateLabel("Age")
+	return Table
+end
+
+function FillWarriorTable(Tbl, PersonList)
+	for v in PersonList:Itr():Next() do 
+		Tbl:CreateLabel(v:GetName())	
+		Tbl:CreateLabel(PrintYears(v:GetAge()))
+	end
+end
+
 function FillRelationList(Tbl, OpinionList)
 	for k, v in ipairs(OpinionList) do
 		Tbl:CreateLabel(v:Action())
@@ -82,4 +99,19 @@ function GenderName(Animal)
 		return "Male"
 	end
 	return "Female"
+end
+
+function GeneralActions(Container, Target)
+	Container:CreateButton("Raise Popularity", 
+		function()
+			World.GetPlayer():SetAction(Action.RaisePop, nil)
+		end)
+	Container:CreateButton("Raise Glory",
+		function()
+			World.GetPlayer():SetAction(Action.RaiseGlory, nil)
+		end)
+	Container:CreateButton("Steal",
+		function()
+			World.GetPlayer():SetAction(Action.Steal, Target)
+		end)
 end

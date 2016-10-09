@@ -47,6 +47,7 @@ enum {
 
 enum {
 	ACTTYPE_THEFT,
+	ACTTYPE_GENERAL,
 //	ACTTYPE_RUMOR,
 	ACTTYPE_TRAIT,
 	ACTTYPE_RAISEFYRD,
@@ -70,11 +71,11 @@ struct BigGuyOpinion {
 };
 
 struct BigGuyRelation {
-	int Relation;
-	int Modifier;
 	struct BigGuy* Person;
 	struct BigGuyOpinion* Opinions;
 	struct BigGuyRelation* Next;
+	int16_t Modifier;
+	uint8_t Relation; //Filled with a value from BGREL_*
 };
 
 struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);

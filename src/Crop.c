@@ -13,6 +13,7 @@
 #include "Population.h"
 #include "Family.h"
 #include "Location.h"
+#include "Person.h"
 
 #include "sys/RBTree.h"
 #include "sys/LuaCore.h"
@@ -137,7 +138,7 @@ struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres, 
 }
 
 int FieldCmp(const void* _One, const void* _Two) {
-	return ((struct Field*)_One)->Id - ((struct Field*)_Two)->Id;
+	return ((struct Field*)_One)->Object.Id - ((struct Field*)_Two)->Object.Id;
 }
 
 void DestroyField(struct Field* _Field) {

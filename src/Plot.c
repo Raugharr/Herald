@@ -135,11 +135,11 @@ void PlotJoin(struct Plot* _Plot, int _Side, struct BigGuy* _Guy) {
 }
 
 int PlotInsert(const struct Plot* _One, const struct Plot* _Two) {
-	return PlotLeader(_One)->Id - PlotLeader(_Two)->Id;
+	return PlotLeader(_One)->Object.Id - PlotLeader(_Two)->Object.Id;
 }
 
 int PlotSearch(const struct BigGuy* _One, const struct Plot* _Two) {
-	return _One->Id - PlotLeader(_Two)->Id;
+	return _One->Object.Id - PlotLeader(_Two)->Object.Id;
 }
 
 int IsInPlot(const struct Plot* _Plot, const struct BigGuy* _Guy) {

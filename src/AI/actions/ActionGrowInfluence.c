@@ -28,15 +28,14 @@ static int ActionCost(const struct Agent* _Agent) {
 }
 
 static int ActionFunction(struct Agent* _Agent, void* _Data) {
-	struct Retinue* _Retinue = BigGuyRetinue(_Agent->Agent, PersonHome(_Agent->Agent->Person)); 
+	struct Retinue* _Retinue = BigGuyRetinue(_Agent->Agent); 
 	struct Settlement* _Home = PersonHome(_Agent->Agent->Person);
 	int* _State = _Agent->PlanData;
 	
 	switch(*_State) {
 		case ACTSTATE_INIT:
 			if(_Retinue == NULL) {
-				_Retinue = CreateRetinue(_Agent->Agent);
-				SettlementAddRetinue(_Home, _Retinue);
+				_Retinue = SettlementAddRetinue(_Home, _Agent->Agent);
 			}
 			_Retinue->IsRecruiting = 1;
 			*_State = ACTSTATE_CHECK;
@@ -67,7 +66,7 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 		if(BigGuyRelAtLeast(BigGuyGetRelation(_Actor, _Guy), BGREL_LIKE) == 0)
 			++_TotalBG;
 	}
-	_Retinue = BigGuyRetinue(_Actor, PersonHome(_Actor->Person));
+	_Retinue = BigGuyRetinue(_Actor);
 	_PartUtiliy += _TotalBG / _Settlement->BigGuys.Size * 128;
 	_PartUtiliy += _Retinue->Warriors.Size / (_Settlement->MaxWarriors) * 128;
 	_Utility = _PartUtiliy;

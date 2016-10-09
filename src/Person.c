@@ -5,7 +5,6 @@
 
 #include "Person.h"
 
-#include "Actor.h"
 #include "Herald.h"
 #include "Family.h"
 #include "Crop.h"
@@ -38,7 +37,7 @@ struct MemoryPool* g_PersonPool = NULL;
 struct Pregnancy* CreatePregnancy(struct Person* _Person) {
 	struct Pregnancy* _Pregancy = (struct Pregnancy*) malloc(sizeof(struct Pregnancy));
 
-	CreateObject((struct Object*)_Pregancy, OBJECT_PREGANCY, (void(*)(struct Object*))PregnancyThink);
+	CreateObject(&_Pregancy->Object, OBJECT_PREGANCY, (void(*)(struct Object*))PregnancyThink);
 	_Pregancy->TTP = TO_DAYS(BIRTH_TIME) - 15 + Random(0, 29) + 1;
 	_Pregancy->Mother = _Person;
 	return _Pregancy;
@@ -74,7 +73,7 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	}
 
 	_Person = (struct Person*) MemPoolAlloc(g_PersonPool);
-	CtorActor((struct Actor*)_Person, OBJECT_PERSON, _X, _Y, (ObjectThink) PersonThink, _Gender, _Nutrition, _Age);
+	CreateObject(&_Person->Object, OBJECT_PERSON, PersonThink);
 	_Person->Name = _Name;
 	_Person->Age = _Age;
 	_Person->Gender = _Gender;
@@ -83,17 +82,17 @@ struct Person* CreatePerson(const char* _Name, int _Age, int _Gender, int _Nutri
 	_Person->Pregnancy = NULL;
 
 	SettlementAddPerson(_Person->Family->HomeLoc, _Person);
-	_Person->Behavior = NULL;
 	return _Person;
 }
 
 void DestroyPerson(struct Person* _Person) {
 	//struct Family* _Family = _Person->Family;
 
-	DtorActor((struct Actor*)_Person);
+	DestroyObject(&_Person->Object);
 	SettlementRemovePerson(_Person->Family->HomeLoc, _Person);
-	//if(FamilySize(_Family) == 0)
-	//		DestroyFamily(_Family);
+	if(FamilySize(_Person->Family) == 0)
+		_Person->Family->IsAlive = false;
+	//	DestroyFamily(_Family);
 	MemPoolFree(g_PersonPool, _Person);
 }
 
@@ -106,7 +105,9 @@ struct Person* CreateChild(struct Family* _Family) {
 	return _Child;
 }
 
-int PersonThink(struct Person* _Person) {
+void PersonThink(struct Object* _Obj) {
+	struct Person* _Person = (struct Person*) _Obj;
+
 	if(_Person->Gender == EFEMALE) {
 		if(_Person->Family != NULL
 				&& _Person->Pregnancy == NULL
@@ -116,10 +117,12 @@ int PersonThink(struct Person* _Person) {
 			_Person->Pregnancy = CreatePregnancy(_Person);
 		}
 	} 	
-	ActorThink((struct Actor*) _Person, NULL);
+	_Person->Nutrition -= (PersonMature(_Person) == true) ? (NUTRITION_DAILY) : (NUTRITION_CHILDDAILY);
+	if(_Person->Nutrition < 0)
+		_Person->Nutrition = 0;
+	NextDay(&_Person->Age);
 	if(_Person->Nutrition > MAX_NUTRITION)
 		_Person->Nutrition = MAX_NUTRITION;
-	return 1;
 }
 
 void PersonMarry(struct Person* _Father, struct Person* _Mother, struct Family* _Family) {
@@ -172,4 +175,14 @@ struct Person* GetFather(struct Person* _Person) {
 	if(_Family->Parent != NULL)
 		return _Family->Parent->People[HUSBAND];
 	return NULL;
+}
+
+uint16_t PersonWorkMult(const struct Person* _Person) {
+	double _Modifier = _Person->Nutrition / ((double) MAX_NUTRITION);
+	int _WorkRate = MAX_WORKRATE;
+
+	if(YEAR(_Person->Age) < ADULT_AGE) {
+		_WorkRate = MAX_WORKRATE / 2;
+	}
+	return (_Modifier >= 1.0f) ? (_WorkRate) : (_WorkRate * _Modifier);
 }

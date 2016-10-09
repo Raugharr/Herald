@@ -857,7 +857,7 @@ int LuaPopMenu(lua_State* _State) {
 	char* _String = NULL;
 
 	free(StackPop(&g_GUIStack));
-	if((_String = (char*)StackTop(&g_GUIStack)) == NULL) {
+	if((_String = (char*)StackGet(&g_GUIStack, -1)) == NULL) {
 		g_VideoOk = 0;
 		return 0;
 	}

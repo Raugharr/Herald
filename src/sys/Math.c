@@ -63,6 +63,8 @@ uint64_t Rand() {
 uint64_t Random(uint64_t _Min, uint64_t _Max) {
 	uint64_t _Rand = 0;
 
+	if(_Max == 0)
+		return 0;
 	while((_Rand = Rand()) > (MATH_RAND_MAX - ((MATH_RAND_MAX % _Max) + 1))) {}
 	//_Rand = Rand();
 	return _Rand % (_Max - _Min + 1) + _Min;
@@ -95,7 +97,7 @@ void RandTable(double* _Table, int** _IntTable, int _TableSz, int _Amount) {
 	int _CurrAmount = _Amount;
 
 	for(int i = 0; i < _TableSz; ++i) {
-		_IdxAmt = _CurrAmount * _Table[i];
+		_IdxAmt = _Amount * _Table[i];//_CurrAmount * _Table[i];
 		_Temp = (int) _IdxAmt;
 		if(NumberIsInt(_IdxAmt) != 0) {
 			_CurrAmount -= _Temp;
@@ -120,7 +122,7 @@ void RandTable(double* _Table, int** _IntTable, int _TableSz, int _Amount) {
 			}
 			_Percent = _IdxAmt - _Temp;
 			_PercentInt = _Percent * 100;
-			if(Random(0, 100) <= _PercentInt) {
+			if(Random(1, 100) <= _PercentInt) {
 				++((*_IntTable)[i]);
 				--_CurrAmount;
 				if(_CurrAmount <= 0)

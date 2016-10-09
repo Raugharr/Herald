@@ -57,11 +57,7 @@ struct Crop {
 };
 
 struct Field {
-	int Id;
-	int Type;
-	int(*Think)(struct Object*);
-	int LastThink;
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	SDL_Point Pos;
 	const struct Crop* Crop;
 	struct Family* Owner;
@@ -161,6 +157,10 @@ static inline int FieldStatusDays(const struct Field* const _Field) {
 			return _Field->StatusTime / FamilyWorkModifier(_Field->Owner);
 	}
 	return 0;
+}
+
+static inline int CropAcreHarvest(const struct Crop* _Crop) {
+		return _Crop->NutVal * ToPound(_Crop->SeedsPerAcre) * _Crop->YieldMult;
 }
 
 #endif

@@ -5,6 +5,8 @@
 
 #include "ActionDuel.h"
 
+#include <stdbool.h>
+
 #include "../../BigGuy.h"
 #include "../../Location.h"
 #include "../../Family.h"
@@ -43,13 +45,11 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 }
 
 static int ActionIsComplete(const struct Agent* _Agent, void* _Data) {
-	return 1;
+	return true;
 }
 
 static int ActionPrecondition(const struct Agent* _Agent) {
-	struct BigGuyActionHist _Search = {_Agent->Agent, BGACT_DUEL, 0};
-
-	return (RBSearch(&g_GameWorld.ActionHistory, &_Search) == NULL) ? (1) : (0);
+	return true;
 }
 
 void ActionDuel(struct GOAPPlanner* _Planner, struct GoapAction* _Action) {

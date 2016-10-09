@@ -45,6 +45,7 @@
 #include "Warband.h"
 #include "Location.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -58,7 +59,10 @@
 #define NULL ((void*)0)
 #endif
 
-struct GameWorld g_GameWorld = {
+#define LUAFILE_FAILED(_File) _File ".lua is empty or failed to load."
+
+struct GameWorld g_GameWorld = {0};
+/*struct GameWorld g_GameWorld = {
 		1,
 		0,
 		0,
@@ -82,8 +86,9 @@ struct GameWorld g_GameWorld = {
 		NULL,
 		NULL,
 		{0},
+		{0},
 		0
-};
+};*/
 
 static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
 		{(void(*)(void*))ArmyMove, ArmyPathNext, ArmyPathPrev, NULL},
@@ -121,11 +126,11 @@ void GameOnClick(struct Object* _Obj) {
 }
 
 int FamilyICallback(const struct Family* _One, const struct Family* _Two) {
-	return _One->Id - _Two->Id;
+	return _One->Object.Id - _Two->Object.Id;
 }
 
 int FamilySCallback(const int* _One, const struct Family* _Two) {
-	return (*_One) - _Two->Id;
+	return (*_One) - _Two->Object.Id;
 }
 
 int FamilyTypeCmp(const void* _One, const void* _Two) {
@@ -143,35 +148,60 @@ void PlayerOnHarvest(const struct EventData* _Data, void* _Extra1, void* _Extra2
 
 void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 	int _X, int _Y, struct Constraint * const *  const _AgeGroups, struct Constraint * const * const _BabyAvg) {
-	int _AcresPerFarmer = 10;
-	int _CropTypes = 1 ;
-	const struct Crop* _Crops[_CropTypes];
-	int _AnimalTypes = 2;
-	const struct Population* _Animals[_AnimalTypes];
+	int _AcresPerFarmer = 14;
+	int _AnimalTypes = 3;
 	int _AnimalTypeCt[_AnimalTypes];
-	int _MaxChildren = 3;
 	int _MaxFamilies = 0;
 	int _MaxFarmers = 0;
+	int _Count = 0;
+	int _BestGlory = 0;
+	struct BigGuy* _BestWarrior =  NULL;
 	struct Family* _Parent = NULL;
+	struct BigGuy* _Leader = NULL;
 	struct Settlement* _Settlement = NULL;
-	double _CastePercent[CASTE_SIZE] = {0, 1.00, 0.00, 0.00};
+	struct Retinue* _Retinue = NULL;
+	double _CastePercent[CASTE_SIZE] = {0, 0.50, 0.20, 0.30, 0.0};
+	uint8_t _CropTypes = 1;
+	uint8_t _CurrCaste = CASTE_THRALL;
+	uint8_t _MaxChildren = 4;
+	uint8_t _AnimalUsed = 0;
+	const struct Crop* _Crops[_CropTypes];
+	const struct Crop* _Hay = HashSearch(&g_Crops, "Hay");
+	const struct Population* _Animals[_AnimalTypes];
+	int* _CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 
 	_Crops[0] = HashSearch(&g_Crops, "Rye");
 	_Animals[0] = HashSearch(&g_Populations, "Ox");
-	_AnimalTypeCt[0] = 4;
+	_AnimalTypeCt[0] = CropAcreHarvest(_Hay) * _AcresPerFarmer / 2 / (_Animals[0]->Nutrition * 180);
 	_Animals[1] = HashSearch(&g_Populations, "Sheep");
-	_AnimalTypeCt[0] = 14;
-	//TODO: AgeGroups and BabyAvg should not be here but instead in an argument.
+	_AnimalTypeCt[1] = CropAcreHarvest(_Hay) * _AcresPerFarmer / 2 / (_Animals[1]->Nutrition * 180);
+	_Animals[2] = HashSearch(&g_Populations, "Pig");
+	_AnimalTypeCt[2] = CropAcreHarvest(_Hay) * _AcresPerFarmer / 2 / (_Animals[2]->Nutrition * 180);
+		//TODO: AgeGroups and BabyAvg should not be here but instead in an argument.
 	_Settlement = CreateSettlement(_X, _Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
 	_MaxFarmers = _Settlement->FreeAcres / _AcresPerFarmer;
 	_MaxFamilies += (_MaxFarmers / 10) + ((_MaxFarmers % 10) != 0); 
-	for(;_MaxFarmers> 0; --_MaxFarmers) {
-		_Parent = CreateRandFamily("Bar", Random(0, _MaxChildren) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement, _FamilyTypes, &g_Castes[CASTE_LOWCLASS]);
+	RandTable(_CastePercent, &_CasteCount, CASTE_SIZE, _MaxFarmers);
+	for(int i = 0; i < _MaxFarmers; ++i) {
+		while(_CurrCaste < CASTE_SIZE && _CasteCount[_CurrCaste] + _Count <= i) {
+			_Count += _CasteCount[_CurrCaste];
+			++_CurrCaste;
+		}
+		_Parent = CreateRandFamily("Bar", Random(0, _MaxChildren) + 2, NULL, _AgeGroups, _BabyAvg, _X, _Y, _Settlement, _FamilyTypes, &g_Castes[_CurrCaste]);
 		_Parent->Food.SlowSpoiled = ((NUTRITION_REQ * 2) + (NUTRITION_CHILDREQ * _Parent->NumChildren)) * 2;
-		//Add animals
-		for(int i = 0; i < _AnimalTypeCt[0]; ++i)
-			FamilyAddAnimal(_Parent, CreateAnimal(_Animals[0], Random(0, _Animals[0]->Ages[AGE_DEATH]->Max), _Animals[0]->MaxNutrition, _X, _Y));	
-		//Add fields.
+		/*
+		 * Add animals
+		 */
+		 if(_CurrCaste == CASTE_THRALL || _CurrCaste == CASTE_LOWCLASS) {
+			 _AnimalUsed = Random(1, 2);
+		} else {
+			_AnimalUsed = 0;
+		}
+		for(int i = 0; i < _AnimalTypeCt[_AnimalUsed]; ++i)
+			FamilyAddAnimal(_Parent, CreateAnimal(_Animals[_AnimalUsed], Random(0, _Animals[_AnimalUsed]->Ages[AGE_DEATH]->Max), _Animals[_AnimalUsed]->MaxNutrition, _X, _Y));	
+		/*
+		 * Add Fields
+		 */
 		for(int i = 0; i < _CropTypes; ++i) {
 			if(SettlementAllocAcres(_Settlement, _AcresPerFarmer) != 0) {
 				struct Good* _Good = NULL;
@@ -186,6 +216,20 @@ void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 		RBInsert(&_World->Families, _Parent);
 	}
 	TribalCreateBigGuys(_Settlement, _CastePercent);
+	for(struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
+		struct BigGuy* _Guy = _Itr->Data;
+		if(_Guy->Person->Family->Caste->Type == CASTE_WARRIOR && _Guy->Glory > _BestGlory) {
+			_Leader = _Guy;
+			_BestGlory = _Guy->Glory;
+		}
+	}
+	_Retinue = SettlementAddRetinue(_Settlement, _Leader); 
+	for(struct LnkLst_Node* _Itr = _Settlement->Families.Front; _Itr != NULL; _Itr = _Itr->Next) {
+		struct Family* _Family = _Itr->Data;
+
+		if(_Family->Caste->Type == CASTE_WARRIOR && _Family != _Leader->Person->Family)
+			RetinueAddWarrior(_Retinue, _Family->People[0]);
+	}
 }
 /*
  * TODO: This function is currently useless as instead of calling RandomsizeManorPop,
@@ -198,6 +242,12 @@ int RandomizeManorPop(struct Constraint* const * _Constraint, int _Min, int _Max
 	return Random(_Constraint[_Index]->Min, _Constraint[_Index]->Max);
 }
 
+int FilterGameEvents(void* _None, SDL_Event* _Event) {
+	if(_Event->type >= EventUserOffset())
+		return 0;
+	return 1;
+}
+
 int PopulateWorld(struct GameWorld* _World) {
 	struct FamilyType** _FamilyTypes = NULL;
 	struct Constraint* const * _ManorSize = NULL;
@@ -205,7 +255,7 @@ int PopulateWorld(struct GameWorld* _World) {
 	int _ManorMin = 0;
 	int _ManorMax = 0;
 	int _ManorInterval = 0;
-	int i = 0;
+	int _Idx = 0;
 
 	if(LuaLoadFile(g_LuaState, "std.lua", NULL) != LUA_OK) {
 		goto end;
@@ -233,20 +283,20 @@ int PopulateWorld(struct GameWorld* _World) {
 	_FamilyTypes = alloca(lua_rawlen(g_LuaState, -1) + 1 * sizeof(struct FamilyType*));
 	lua_pushnil(g_LuaState);
 	while(lua_next(g_LuaState, -2) != 0) {
-		_FamilyTypes[i] = alloca(sizeof(struct FamilyType));
+		_FamilyTypes[_Idx] = alloca(sizeof(struct FamilyType));
 		lua_pushnil(g_LuaState);
 		lua_next(g_LuaState, -2);
-		LuaGetNumber(g_LuaState, -1, &_FamilyTypes[i]->Percent);
+		LuaGetNumber(g_LuaState, -1, &_FamilyTypes[_Idx]->Percent);
 		lua_pop(g_LuaState, 1);
 		lua_next(g_LuaState, -2);
 		LuaGetString(g_LuaState, -1, &_Temp);
-		_FamilyTypes[i]->LuaFunc = calloc(strlen(_Temp) + 1, sizeof(char));
-		strcpy(_FamilyTypes[i]->LuaFunc, _Temp);
-		++i;
+		_FamilyTypes[_Idx]->LuaFunc = calloc(strlen(_Temp) + 1, sizeof(char));
+		strcpy(_FamilyTypes[_Idx]->LuaFunc, _Temp);
+		++_Idx;
 		lua_pop(g_LuaState, 3);
 	}
 	lua_pop(g_LuaState, 1);
-	InsertionSort(_FamilyTypes, i, FamilyTypeCmp, sizeof(*_FamilyTypes));
+	InsertionSort(_FamilyTypes, _Idx, FamilyTypeCmp, sizeof(*_FamilyTypes));
 	lua_getglobal(g_LuaState, "AgeGroups");
 	LuaConstraintBnds(g_LuaState);
 	if((g_GameWorld.AgeGroups = lua_touserdata(g_LuaState, -1)) == NULL) {
@@ -263,10 +313,14 @@ int PopulateWorld(struct GameWorld* _World) {
 		return 0;
 	}
 	lua_pop(g_LuaState, 4);
-	_FamilyTypes[i] = NULL;
-	PopulateManor(_World, _FamilyTypes, 2,  4, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+	_FamilyTypes[_Idx] = NULL;
+	SDL_SetEventFilter(FilterGameEvents, NULL);
+	PopulateManor(_World, _FamilyTypes, 4,  6, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
 	g_GameWorld.Player = PickPlayer();
-	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 4,  8);
+	PopulateManor(_World, _FamilyTypes, 12, 12, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+	PopulateManor(_World, _FamilyTypes, 16, 8, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+	//PopulateManor(_World, _FamilyTypes, 10, 4, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+	SDL_SetEventFilter(NULL, NULL);
 	//g_GameWorld.Player = PickPlayer(); //Remove when the Settlement placement function is completed for settlements on the edge of the map.
 	//PopulateManor(_World, RandomizeManorPop(_ManorSize, _ManorMin, _ManorMax), _FamilyTypes, 8,  4);
 	DestroyConstrntBnds((struct Constraint**)_ManorSize);
@@ -394,6 +448,7 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
 	SDL_Point _ScreenSize = {ceil(SDL_WIDTH / ((float)TILE_WIDTH)), ceil(SDL_HEIGHT / ((float)TILE_HEIGHT_THIRD))};
 
+	_GameWorld->IsPaused = 1;
 	_GameWorld->MapRenderer = CreateMapRenderer(_Area, &_ScreenSize);
 
 	_GameWorld->SettlementMap.BoundingBox.w = _Area * _Area;
@@ -402,34 +457,32 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	ConstructLinkedList(&_GameWorld->Settlements);
 	_GameWorld->BigGuys.Table = NULL;
 	_GameWorld->BigGuys.Size = 0;
-	_GameWorld->BigGuys.ICallback = (int(*)(const void*, const void*)) BigGuyIdInsert;
-	_GameWorld->BigGuys.SCallback = (int(*)(const void*, const void*)) BigGuyIdCmp;
+	_GameWorld->BigGuys.ICallback = (RBCallback) BigGuyIdInsert;
+	_GameWorld->BigGuys.SCallback = (RBCallback) BigGuyIdCmp;
 
 	_GameWorld->BigGuyStates.Table = NULL;
 	_GameWorld->BigGuyStates.Size = 0;
-	_GameWorld->BigGuyStates.ICallback = (int(*)(const void*, const void*)) BigGuyStateInsert;
-	_GameWorld->BigGuyStates.SCallback = (int(*)(const void*, const void*)) BigGuyMissionCmp;
+	_GameWorld->BigGuyStates.ICallback = (RBCallback) BigGuyStateInsert;
+	_GameWorld->BigGuyStates.SCallback = (RBCallback) BigGuyMissionCmp;
 	_GameWorld->Player = NULL;
 
 	_GameWorld->Families.Table = NULL;
 	_GameWorld->Families.Size = 0;
-	_GameWorld->Families.ICallback = (int (*)(const void*, const void*))FamilyICallback;
-	_GameWorld->Families.SCallback = (int (*)(const void*, const void*))FamilySCallback;
+	_GameWorld->Families.ICallback = (RBCallback) FamilyICallback;
+	_GameWorld->Families.SCallback = (RBCallback) FamilySCallback;
+
+	_GameWorld->PersonRetinue.Table = NULL;
+	_GameWorld->PersonRetinue.Size = 0;
 
 	_GameWorld->Agents.Table = NULL;
 	_GameWorld->Agents.Size = 0;
-	_GameWorld->Agents.ICallback = (int(*)(const void*, const void*))AgentICallback;
-	_GameWorld->Agents.SCallback = (int(*)(const void*, const void*))AgentSCallback;
-
-	_GameWorld->Crisis.Table = NULL;
-	_GameWorld->Crisis.Size = 0;
-	_GameWorld->Crisis.ICallback = (int(*)(const void*, const void*))CrisisSearch;
-	_GameWorld->Crisis.SCallback = (int(*)(const void*, const void*))CrisisInsert;
+	_GameWorld->Agents.ICallback = (RBCallback) AgentICallback;
+	_GameWorld->Agents.SCallback = (RBCallback) AgentSCallback;
 
 	_GameWorld->ActionHistory.Table = NULL;
 	_GameWorld->ActionHistory.Size = 0;
-	_GameWorld->ActionHistory.ICallback = (RBCallback) BigGuyActionHistIS;
-	_GameWorld->ActionHistory.SCallback = (RBCallback) BigGuyActionHistIS;
+	//_GameWorld->ActionHistory.ICallback = (RBCallback) BigGuyActionHistIS;
+	//_GameWorld->ActionHistory.SCallback = (RBCallback) BigGuyActionHistIS;
 
 	_GameWorld->PlotList.Table = NULL;
 	_GameWorld->PlotList.Size = 0;
@@ -519,18 +572,20 @@ void GoodTableLoadInputs(lua_State* _State, struct GoodBase* _Base) {
 	LnkLstPushBack(&g_GoodCats[GoodType(_Base)], _Base);
 }
 
-void LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _HashTable, void*(*_LoadFunc)(lua_State*, int), void(*_ListInsert)(struct LinkedList*, void*), size_t _NameOffset) {
+bool LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _HashTable, void*(*_LoadFunc)(lua_State*, int), void(*_ListInsert)(struct LinkedList*, void*), size_t _NameOffset) {
 	struct LinkedList _List = LinkedList(); 
 	struct LnkLst_Node* _Itr = NULL;
 
 	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0)
-		return;
+		return false;
 	if(_List.Size < 20)
 		_HashTable->TblSize = 20;
 	else
 		_HashTable->TblSize = (_List.Size * 5) / 4;
 	_HashTable->Table = (struct HashNode**) calloc(_HashTable->TblSize, sizeof(struct HashNode*));
 	memset(_HashTable->Table, 0, _HashTable->TblSize * sizeof(struct HashNode*));
+	if(_List.Size == 0)
+		return false;
 	_Itr = _List.Front;
 	while(_Itr != NULL) {
 		const char** _KeyName = (const char**)(_Itr->Data + _NameOffset);
@@ -540,6 +595,7 @@ void LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _Ha
 	}
 	//LISTTOHASH(&_List, _Itr, _HashTable, (_Itr->Data) + _NameOffset);
 	LnkLstClear(&_List);
+	return true;
 }
 
 void LuaLookupTable(lua_State* _State, const char* _TableName, struct HashTable* _Table, void(*_CallFunc)(lua_State*, void*)) {
@@ -595,10 +651,19 @@ void WorldInit(int _Area) {
 
 	if(LuaLoadFile(g_LuaState, "goods.lua", NULL) != LUA_OK)
 		goto end;
-	LuaTableToHash("goods.lua", "Goods", &g_Goods, (void*(*)(lua_State*, int))&GoodLoad, LnkLstPushBack, offsetof(struct GoodBase, Name));
-	LuaTableToHash("traits.lua", "Traits", &g_Traits, (void*(*)(lua_State*, int))&TraitLoad, LnkLstPushBack, offsetof(struct Trait, Name));
+	if(LuaTableToHash("goods.lua", "Goods", &g_Goods, (void*(*)(lua_State*, int))&GoodLoad, LnkLstPushBack, offsetof(struct GoodBase, Name)) == false) {
+		Log(ELOG_ERROR, "goods");
+		exit(1);
+	}
+	if(LuaTableToHash("traits.lua", "Traits", &g_Traits, (void*(*)(lua_State*, int))&TraitLoad, LnkLstPushBack, offsetof(struct Trait, Name)) == false) {
+		Log(ELOG_ERROR, LUAFILE_FAILED("traits"));
+		exit(1);
+	}
 	LuaLookupTable(g_LuaState, "Traits", &g_Traits, (void(*)(lua_State*, void*)) TraitLoadRelations);
-	LuaTableToHash("crops.lua", "Crops", &g_Crops, (void*(*)(lua_State*, int))&CropLoad, LnkLstPushBack, offsetof(struct Crop, Name));
+	if(LuaTableToHash("crops.lua", "Crops", &g_Crops, (void*(*)(lua_State*, int))&CropLoad, LnkLstPushBack, offsetof(struct Crop, Name)) == false) {
+		Log(ELOG_ERROR, LUAFILE_FAILED("crops"));
+		exit(1);
+	}
 	//Fill the Goods table with mappings to each element with their name as the key to be used for GoodLoadOutput and GoodLoadInput.
 	LuaLookupTable(g_LuaState, "Goods", &g_Goods, (void(*)(lua_State*, void*)) GoodTableLoadInputs);	
 	LuaTableToHash("populations.lua", "Populations", &g_Populations, (void*(*)(lua_State*, int))&PopulationLoad, LnkLstPushBack, offsetof(struct Population, Name));
@@ -614,11 +679,8 @@ void WorldInit(int _Area) {
 	LoadCaste(g_LuaState, "Craftsman", &g_Castes[CASTE_HIGHCLASS]);
 	LoadCaste(g_LuaState, "Warrior", &g_Castes[CASTE_NOBLE]);
 	lua_pop(g_LuaState, 1);
-
-	g_Castes[CASTE_THRALL].Type = CASTE_THRALL;
-	g_Castes[CASTE_LOWCLASS].Type = CASTE_LOWCLASS;
-	g_Castes[CASTE_HIGHCLASS].Type = CASTE_HIGHCLASS;
-	g_Castes[CASTE_NOBLE].Type = CASTE_NOBLE;
+	for(int i = 0; i < CASTE_SIZE; ++i)
+		g_Castes[i].Type = i;
 	lua_getglobal(g_LuaState, "Human");
 	if(lua_isnil(g_LuaState, -1) != 0) {
 		Log(ELOG_WARNING, "Human table does not exist");
@@ -752,7 +814,7 @@ int World_Tick() {
 		AgentThink((struct Agent*)_Stack[i].Node->Data);
 	}
 	ObjectsThink();
-	MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuyStates);
+	MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuys);
 	NextDay(&g_GameWorld.Date);
 	++g_GameWorld.Tick;
 	if(MONTH(g_GameWorld.Date) != _OldMonth) {

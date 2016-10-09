@@ -19,10 +19,6 @@ int LuaArmyGetLeader(lua_State* _State);
 int LuaArmyGetSize(lua_State* _State);
 
 int LuaBGGetPerson(lua_State* _State);
-int LuaBGGetAuthority(lua_State* _State);
-int LuaBGSetAuthority(lua_State* _State);
-int LuaBGGetPrestige(lua_State* _State);
-int LuaBGSetPrestige(lua_State* _State);
 int LuaBGGetCombat(lua_State* _State);
 int LuaBGGetStrength(lua_State* _State);
 int LuaBGGetToughness(lua_State* _State);
@@ -36,20 +32,21 @@ int LuaBGGetRelation(lua_State* _State);
 int LuaBGRelationItr(lua_State* _State);
 int LuaBGSetOpinion(lua_State* _State);
 int LuaBGSetAction(lua_State* _State);
-int LuaBGImproveRelationTarget(lua_State* _State);
 int LuaBGGetSettlement(lua_State* _State);
 int LuaBGGetFamily(lua_State* _State);
 int LuaBGGetName(lua_State* _State);
 int LuaBGKill(lua_State* _State);
 int LuaBGPopularity(lua_State* _State);
 int LuaBGChangePopularity(lua_State* _State);
+int LuaBGGlory(lua_State* _State);
+int LuaBGChangeGlory(lua_State* _State);
 int LuaBGSuccessMargin(lua_State* _State);
 int LuaBGPlotsAgainst(lua_State* _State);
-int LuaBGRecruit(lua_State* _State);
-int LuaBGIsRecruiting(lua_State* _State);
-int LuaBGRetinueSize(lua_State* _State);
-int LuaBGRetinueTable(lua_State* _State);
 int LuaBGHasTrait(lua_State* _State);
+//int LuaBGRecruit(lua_State* _State);
+//int LuaBGIsRecruiting(lua_State* _State);
+//int LuaBGRetinueSize(lua_State* _State);
+//int LuaBGRetinueTable(lua_State* _State);
 
 int LuaBGOpinionAction(lua_State* _State);
 int LuaBGOpinionRelation(lua_State* _State);
@@ -123,4 +120,6 @@ int LuaPolicyOptions(lua_State* _State);
 
 int LuaPolicyOptionName(lua_State* _State);
 
+int LuaRetinueLeader(lua_State* _State);
+int LuaRetinueWarriors(lua_State* _State);
 #endif

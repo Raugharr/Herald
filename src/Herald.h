@@ -85,8 +85,8 @@ typedef void (*ObjectThink)(struct Object*);
  * TODO: Have objects think in order of their type.
  */
 struct Object {
-	IMPLICIT_LINKEDLIST(struct Object);
 	uint32_t Id;
+	IMPLICIT_LINKEDLIST(struct Object);
 	ObjectThink Think;
 	uint8_t Type;
 };

@@ -70,7 +70,7 @@ struct Family* CreateFamily(const char* _Name, struct Settlement* _Location, str
 	_Family->Food.SlowSpoiled = 0;
 	_Family->Food.FastSpoiled = 0;
 	_Family->Food.AnimalFood = 0;
-	CreateObject(&_Family->Object, OBJECT_FAMILY, (ObjectThink) FamilyThink);
+	CreateObject(&_Family->Object, OBJECT_FAMILY, FamilyThink);
 	return _Family;
 }
 
@@ -211,52 +211,62 @@ void FamilyCraftGoods(struct Family* _Family) {
 	}
 }
 
-int FamilyThink(struct Family* _Family) {
+void FamilyObjThink(struct Object* _Obj) {
+	struct Object* _Front = _Obj;
+
+	while(_Obj != NULL) {
+		FamilyThink(_Obj);
+		_Obj = _Obj->Next;
+	}
+	if(DAY(g_GameWorld.Date) == 0) {
+		for(_Obj = _Front; _Obj != NULL; _Obj = _Obj->Next) {
+			struct Family* _Family = (struct Family*) _Obj;
+
+			if(FamilyGetNutrition(_Family) / FamilyNutReq(_Family) <= 31)
+				PushEvent(EVENT_STARVINGFAMILY, _Family, NULL);
+			if(_Family->Caste->Type == CASTE_WARRIOR) {
+				struct BigGuy* _Guy = RBSearch(&g_GameWorld.BigGuys, _Family->People[0]);
+				struct Retinue* _Retinue = NULL; 
+
+				if(_Guy == NULL)
+					break;
+				_Retinue = IntSearch(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id);
+				if(_Guy != NULL && _Retinue->Leader->Person != _Family->People[0]) {
+					struct BigGuyRelation* _Rel = BigGuyGetRelation(_Guy, _Retinue->Leader);
+
+					if(Random(-5, 5) + _Rel->Modifier + ((int)_Retinue->Leader->Glory) - _Guy->Glory <= 0) {
+						for(struct LnkLst_Node* _Itr = g_GameWorld.Settlements.Front; _Itr != NULL; _Itr = _Itr->Next) {
+							struct Settlement* _Settlement = _Itr->Data;
+							
+							if(_Settlement == _Family->HomeLoc) {
+								for(struct Retinue* _NewRet = _Settlement->Retinues; _NewRet != NULL; _NewRet = _NewRet->Next) {
+									if(_NewRet->Leader->Glory > _Retinue->Leader->Glory) {
+										IntSearchNode(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id)->Node.Data = _NewRet;
+										RetinueRemoveWarrior(_Retinue, _Family->People[0]);
+										RetinueAddWarrior(_NewRet, _Family->People[0]);
+										break;		
+									}
+								}
+							}
+						}
+						//Find another retinue.
+					}
+				}
+			}
+		}
+	}
+}
+
+void FamilyThink(struct Object* _Obj) {
+	struct Family* _Family = (struct Family*) _Obj;
 	struct Person* _Person = NULL;
 	const struct Crop* _Hay = HashSearch(&g_Crops, "Hay");
 	int _FallowFood = 0; //Food generated from fallow fields.
 	double _Milk = 0;
 
 	if(_Family->IsAlive == false)
-		return 0;
+		return;
 
-	if(_Family->Caste->Type == CASTE_WARRIOR) {
-		if(DAY(g_GameWorld.Date) != 0) {
-			goto skip_retinue;
-		}
-		struct BigGuy* _Guy = RBSearch(&g_GameWorld.BigGuys, _Family->People[0]);
-		struct Retinue* _Retinue = NULL; 
-
-		if(_Guy == NULL)
-			goto skip_retinue;
-		_Retinue = IntSearch(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id);
-		if(_Guy != NULL && _Retinue->Leader->Person != _Family->People[0]) {
-			struct BigGuyRelation* _Rel = BigGuyGetRelation(_Guy, _Retinue->Leader);
-
-			if(Random(-5, 5) + _Rel->Modifier + ((int)_Retinue->Leader->Glory) - _Guy->Glory <= 0) {
-				for(struct LnkLst_Node* _Itr = g_GameWorld.Settlements.Front; _Itr != NULL; _Itr = _Itr->Next) {
-					struct Settlement* _Settlement = _Itr->Data;
-					
-					if(_Settlement == _Family->HomeLoc) {
-						for(struct Retinue* _NewRet = _Settlement->Retinues; _NewRet != NULL; _NewRet = _NewRet->Next) {
-							if(_NewRet->Leader->Glory > _Retinue->Leader->Glory) {
-								IntSearchNode(&g_GameWorld.PersonRetinue, _Family->People[0]->Object.Id)->Node.Data = _NewRet;
-								RetinueRemoveWarrior(_Retinue, _Family->People[0]);
-								RetinueAddWarrior(_NewRet, _Family->People[0]);
-								break;		
-							}
-						}
-					}
-				}
-				//Find another retinue.
-			}
-		}
-	}
-	if(DAY(g_GameWorld.Date) == 0) {
-		skip_retinue:
-		if(FamilyGetNutrition(_Family) / FamilyNutReq(_Family) <= 31)
-			PushEvent(EVENT_STARVINGFAMILY, _Family, NULL);
-	}
 	FamilyWorkField(_Family);
 	for(int i = 0; i < _Family->Animals.Size; ++i) {
 		struct Animal* _Animal = _Family->Animals.Table[i];
@@ -396,7 +406,7 @@ int FamilyThink(struct Family* _Family) {
 			DestroyAnimal(_Animal);
 		}
 	}
-	return 1;
+	return;
 }
 
 int FamilySize(const struct Family* _Family) {

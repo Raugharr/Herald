@@ -87,7 +87,7 @@ static struct ObjectList g_Objects = {
 	{NULL, NULL, NULL},
 	{NULL, NULL, NULL},
 	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
+	{NULL, NULL, FamilyObjThink},
 	{NULL, NULL, NULL}}
 };
 
@@ -310,17 +310,20 @@ void DestroyObject(struct Object* _Obj) {
 }
 
 void ObjectsThink() {
-	//struct Object* _Obj = g_Objects.Front;
-	//struct Object* _Next = NULL;
 	for(int i = 0; i < OBJECT_SIZE; ++i) {
-		if(g_Objects.ObjectList[i].Think != NULL)
+		if(g_Objects.ObjectList[i].Think != NULL) {
 			g_Objects.ObjectList[i].Think(g_Objects.ObjectList[i].Front);
+		} else {
+			struct Object* _Obj = g_Objects.ObjectList[i].Front;
+			struct Object* _Next = NULL;
+
+			while(_Obj != NULL) {
+				_Next = _Obj->Next;
+				_Obj->Think(_Obj);
+				_Obj = _Next;
+			}
+		}
 	}
-	/*while(_Obj != NULL) {
-		_Next = _Obj->Next;
-		_Obj->Think(_Obj);
-		_Obj = _Next;
-	}*/
 }
 
 int NextId() {return g_Id++;}

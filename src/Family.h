@@ -90,7 +90,8 @@ struct Family* CreateRandFamily(const char* _Name, int _Size, struct Family* _Pa
 void DestroyFamily(struct Family* _Family);
 struct Food* FamilyMakeFood(struct Family* _Family);
 void FamilyWorkField(struct Family* _Family);
-int FamilyThink(struct Family* _Family);
+void FamilyObjThink(struct Object* _Obj);
+void FamilyThink(struct Object* _Obj);
 /**
  * Returns how many people are in _Family.
  */

@@ -105,7 +105,7 @@ int GoapNodeInList(const struct GoapPathNode* _Node, struct GoapPathNode* _OpenL
 	return 0;
 }
 
-void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const struct Agent* _Agent, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path) {
+void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const struct Agent* _Agent, const struct WorldState* _Start, struct WorldState* _End, uint8_t* _PathSz, struct GoapPathNode** _Path) {
 	struct WorldState _CurrentState;
 	struct WorldState _ItrState;
 	struct GoapPathNode _OpenList[GOAP_OPENLIST];
@@ -277,7 +277,7 @@ const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _Goal
 	return (_Best >= 0.25f) ? (_GoalSet->Goals[_BestIdx]) : (NULL);
 }
 
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State,  uint8_t* _PathSize, struct GoapPathNode** _Path) {
 	struct WorldState _EndState;
 	const struct GoapGoal* _Goal = NULL;
 	const struct GoapAction* _Action = NULL ;
@@ -290,6 +290,8 @@ void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, s
 		_Goal->Setup(_Agent);
 	}
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
+	if(_Path == NULL)
+		return;
 	_Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
 	if(_Agent->PlanData == NULL && _Action->Create != NULL) {
 		_Agent->PlanData = _Action->Create(_Agent);

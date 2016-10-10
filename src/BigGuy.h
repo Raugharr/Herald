@@ -31,9 +31,6 @@ struct Agent;
 
 #define BigGuyHasPlot(_Guy) (BigGuyGetPlot(_Guy) != NULL)
 
-#define BIGGUY_PERSONALITIES (4)
-
-
 //These actions should be removed and only GOAP acions should be used instead.
 enum {
 	BGACT_NONE,
@@ -93,7 +90,6 @@ struct BigGuy {
 	struct Agent* Agent;
 	struct BigGuyRelation* Relations;
 	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
-	int Personality;
 	int Motivation;
 	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Popularity; 
@@ -143,16 +139,6 @@ int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait);
 
 void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
 struct Settlement* BigGuyHome(struct BigGuy* _Guy);
-/**
- * Return 1 if _Target's personality is one that _Guy would prefer to have as an acquaintance.
- * Return 0 if _Target's personality is not compatable.
- */
-int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target);
-/**
- * \return A number that exists in [0, 2] that should be used to modify all opinion
- * values that _Guy has of _Target.
- */
-double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target);
 
 /**
  * \brief

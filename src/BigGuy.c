@@ -164,7 +164,6 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SI
 	CreateObject((struct Object*)_BigGuy, OBJECT_BIGGUY, (ObjectThink) BigGuyThink);
 
 	ConstructLinkedList(&_BigGuy->PlotsAgainst);
-	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
 	_BigGuy->Traits = BGRandTraits(&_BigGuy->TraitCt);
 	_BigGuy->Action = BGACT_NONE;
 	return _BigGuy;
@@ -378,28 +377,6 @@ void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, v
 
 struct Settlement* BigGuyHome(struct BigGuy* _Guy) {
 	return _Guy->Person->Family->HomeLoc;
-}
-
-int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
-	switch(_Guy->Personality) {
-	case 0:
-	case 1:
-		if(_Target->Personality > 1)
-			return 0;
-		return 1;
-	case 2:
-	case 3:
-		if(_Target->Personality < 2)
-			return 0;
-		return 1;
-	}
-	return 0;
-}
-
-double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
-	static double _TableMod[][4] = {{2, 1.5, 1, .5}, {1.5, 2, .5, 1}, {.5, 1, 2, 1.5}, {1, .5, 1.5, 2}};
-
-	return _TableMod[_Guy->Personality][_Target->Personality];
 }
 
 int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill) {

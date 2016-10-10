@@ -333,9 +333,12 @@ int PopulateWorld(struct GameWorld* _World) {
 struct BigGuy* PickPlayer() {
 	struct Settlement* _Settlement = g_GameWorld.Settlements.Front->Data;
 	struct BigGuy* _Player = NULL;
+	struct Agent* _Agent = NULL;
 
-	RBDelete(&g_GameWorld.Agents, _Settlement->Government->Leader);
 	_Player = _Settlement->Government->Leader;
+	_Agent = RBSearch(&g_GameWorld.Agents, _Player);
+	RBDelete(&g_GameWorld.Agents, _Player);
+	DestroyAgent(_Agent);
 	EventHook(EVENT_FARMING, PlayerOnHarvest, _Player->Person->Family, NULL, NULL);
 	return _Player;
 }

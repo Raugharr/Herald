@@ -154,8 +154,7 @@ void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 	int _MaxFamilies = 0;
 	int _MaxFarmers = 0;
 	int _Count = 0;
-	int _BestGlory = 0;
-	struct BigGuy* _BestWarrior =  NULL;
+	float _BestGlory = 0;
 	struct Family* _Parent = NULL;
 	struct BigGuy* _Leader = NULL;
 	struct Settlement* _Settlement = NULL;
@@ -218,11 +217,15 @@ void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 	TribalCreateBigGuys(_Settlement, _CastePercent);
 	for(struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
 		struct BigGuy* _Guy = _Itr->Data;
-		if(_Guy->Person->Family->Caste->Type == CASTE_WARRIOR && _Guy->Glory > _BestGlory) {
+
+		if(_Guy->Person->Family->Caste->Type == CASTE_WARRIOR && _Guy != _Settlement->Government->Leader) {
 			_Leader = _Guy;
-			_BestGlory = _Guy->Glory;
+			_Leader->Glory = BGRandRes(_Leader, BGSKILL_COMBAT) / 10;
+			goto found_warlord;
 		}
 	}
+	_Leader = _Settlement->Government->Leader;
+	found_warlord:
 	_Retinue = SettlementAddRetinue(_Settlement, _Leader); 
 	for(struct LnkLst_Node* _Itr = _Settlement->Families.Front; _Itr != NULL; _Itr = _Itr->Next) {
 		struct Family* _Family = _Itr->Data;

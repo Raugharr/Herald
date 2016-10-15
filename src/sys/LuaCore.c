@@ -37,6 +37,7 @@ int g_LuaClassTable[LUA_CLASSCT] = {0};
 
 static const luaL_Reg g_LuaObjectFuncs[] = {
 	{"__eq", LuaObjectIsEqual},
+	{"Equal", LuaObjectIsEqual},
 	{"GetClassName", LuaObjectGetClassName},
 	{"Null", LuaNull},
 	{NULL, NULL}

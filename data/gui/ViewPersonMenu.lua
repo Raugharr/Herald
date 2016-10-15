@@ -2,13 +2,21 @@ Menu.__savestate = false
 Menu.moveable = true
 
 require("BigGuyAux")
+require("PlotMenu")
 
-function DisplayPlotMenu(Menu, Left, Right)
+--[[function DisplayPlotMenu(Menu, Left, Right)
 	local Actions = {}
+	local Plot = Menu.Plot
 
 	Left:Clear()
-	Left:CreateLabel("Current threat: " .. tostring(Menu.Plot:GetThreat()))
-	Left:CreateLabel("Warscore: " .. tostring(Menu.Plot:GetScore()))
+	if Plot:IsStarted() == false then
+		Left:CreateButton("Start plot.",
+			function()
+				Plot:Start(true)
+			end)
+	end
+	Left:CreateLabel("Current threat: " .. tostring(Plot:GetThreat()))
+	Left:CreateLabel("Warscore: " .. tostring(Plot:GetScore()))
 	Left:CreateButton("Show Plotters", 
 		function()
 			DisplayPlotters(Menu, Left, Right)
@@ -20,60 +28,57 @@ function DisplayPlotMenu(Menu, Left, Right)
 	Left:CreateButton("Show History",
 		function()
 			Right:Clear()
-			for i, Action in ipairs(Menu.Plot:PrevMonthActions()) do
+			for i, Action in ipairs(Plot:PrevMonthActions()) do
 				Right:CreateLabel(Action:Describe())	
 			end
 		end)
-	Actions[#Actions + 1] = Left:CreateButton("Prevent Damage",
-		function()
-			Menu.Plot:AddAction(Plot.Prevent,  World.GetPlayer(), Menu.Guy)			
-		end)
+	Menu.CbtLbl = Left:CreateLabel("Combat Abilities")
 	Actions[#Actions + 1] = Left:CreateButton("Double Damage",
 		function()
-			Menu.Plot:AddAction(Plot.DoubleDamage,  World.GetPlayer(), nil)			
+			Plot:AddAction(Plot.DoubleDamage,  World.GetPlayer(), nil)			
 		end)
 	Actions[#Actions + 1] = Left:CreateButton("Double Attack",
 		function()
-			Menu.Plot:AddAction(Plot.DoubleAttack,  World.GetPlayer(), nil)			
+			Plot:AddAction(Plot.DoubleAttack,  World.GetPlayer(), nil)			
 		end)
+	Left:CreateLabel("Wit Abilities")
+	Actions[#Actions + 1] = Left:CreateButton("Prevent Damage",
+		function()
+			Plot:AddAction(Plot.Prevent,  World.GetPlayer(), Menu.Guy)			
+		end)
+	Left:CreateLabel("Charisma")
 	Left:CreateButton("Back", function()
 		DisplayViewPerson(Menu, Left, Right)
 	end)
+end
+--]]
+
+function DisplayPlots(Menu, Left, Right)
+	local Guy = Menu.Guy
+	local Retinue = Guy:GetPerson():Retinue()
+
+	Right:Clear()
+	if Retinue ~= nil and Retinue:Leader():Equal(Guy) then
+		Right:CreateButton("Takeover Retinue",
+			function()
+			Plot.Create(World.GetPlayer(), Guy, Plot.Type.ControlRetinue)
+		end)
+	end
+	Right:CreateButton("Back", 
+		function()
+			Right:Clear()
+		end)
 end
 
 function NonPlayerActions(Menu, Left, Right)
 	local Person = Menu.Guy
 
-	GeneralActions(Right, Person)
+	GeneralActions(Right, World.GetPlayer(), Person)
 	Right:CreateButton("Back",
 		function()
 			Right:Clear()
 			DisplayViewPerson(Menu, Left, Right)
 		end)
-end
-
-function DisplayPlotDefenders(Menu, Left, Right)
-	local List = {}
-	local PersonList = {} 
-
-	Right:Clear()
-	List = FillList(Menu.Plot:Defenders().Front, Menu.Plot:Defenders())
-	for k, v in ipairs(List) do
-		PersonList[#PersonList + 1] = v:GetPerson()
-	end
-	FillPersonTable(CreatePersonTable(Right, #PersonList), PersonList, Menu.Plot:Defenders()) 
-end
-
-function DisplayPlotters(Menu, Left, Right)
-	local List = {}
-	local PersonList = {} 
-
-	Right:Clear()
-	List = FillList(Menu.Plot:Plotters().Front, Menu.Plot:Plotters())
-	for k, v in ipairs(List) do
-		PersonList[#PersonList + 1] = v:GetPerson()
-	end
-	FillPersonTable(CreatePersonTable(Right, #PersonList), PersonList, Menu.Plot:Plotters())
 end
 
 function DisplayPlotsAgainst(Menu, Left, Right)
@@ -217,8 +222,11 @@ function DisplayRecruitStats(Menu, Left, Right)
 	local Guy = Menu.Guy	
 	local Person = Guy:GetPerson()
 	local Retinue = Person:Retinue()
-	local Warriors = Retinue:Warriors()
-
+	local Warriors = nil 
+	if Retinue == nil then
+		return	
+	end
+	Warriors = Retinue:Warriors()
 	Right:Clear()
 	Right:Paragraph("You currently have " .. Warriors:GetSize() .. " warriors in your retinue.")
 	Right:Paragraph("The leader of the retinue is " .. Retinue:Leader():GetPerson():GetName() .. " and has " .. Retinue:Leader():Glory() .. " glory.")
@@ -291,7 +299,10 @@ function DisplayViewPerson(Menu, Left, Right)
 				DisplayPlotMenu(Menu, Left, Right)
 			end)
 	else
-		Left:CreateLabel("Plots")
+		Left:CreateButton("Plots",
+			function()
+				DisplayPlots(Menu, Left, Right)
+			end)
 	end 
 	Left:CreateButton("Plots Against",
 		function()

@@ -149,11 +149,10 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SI
 	_BigGuy->Relations = NULL;
 	memcpy(&_BigGuy->Stats, _Stats, sizeof(uint8_t) * BGSKILL_SIZE);
 	_BigGuy->Action = BGACT_NONE;
-	_BigGuy->TriggerMask = 0;
 	_BigGuy->Motivation = _Motivation;
 	_BigGuy->Agent = CreateAgent(_BigGuy);
 	_BigGuy->Popularity = BGRandRes(_BigGuy, BGSKILL_CHARISMA);
-	_BigGuy->Glory = BGRandRes(_BigGuy, BGSKILL_COMBAT);
+	_BigGuy->Glory = 0;
 	_BigGuy->PopularityDelta = 0;
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
 	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);

@@ -91,7 +91,6 @@ struct BigGuy {
 	struct BigGuyRelation* Relations;
 	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	int Motivation;
-	int TriggerMask; //Mask of all trigger types that have been fired recently.
 	float Popularity; 
 	float Glory;
 	struct LinkedList PlotsAgainst;

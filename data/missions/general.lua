@@ -8,7 +8,7 @@ Mission.Load {
 		for Itr in Frame.Owner:GetTraits():Next() do
 			local TraitName = Itr:GetName()
 
-			if TraitName == "Greedy" or TraitName:Name == "Lazy" then
+			if TraitName == "Greedy" or TraitName:Name() == "Lazy" then
 				Mission.FireEvent("General.2", Frame.Owner, Target)
 			elseif TraitName == "Honest" then
 				Mission.FireEvent("General.3", Frame.Owner, Target)
@@ -24,7 +24,7 @@ Mission.Load {
 	Description = "You didn't help [From.FirstName] fix their cart.",
 	OnTrigger = function(Frame)
 		Frame.Owner:SetOpinion(Frame.From, Relation.Action.General, -10, Relation.Length.Medium, Relation.Opinion.Average)
-	end
+	end,
 	OnlyTriggered = false,
 	Id = "General.2"
 }

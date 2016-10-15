@@ -5,6 +5,7 @@ Mission.Load {
 		Frame.Owner:ChangePopularity(1)
 	end,
 	Action = Action.RaisePop,
+	OnlyTriggered = false,
 	MeanTime = 90,
 	Id = "Actions.1"
 }

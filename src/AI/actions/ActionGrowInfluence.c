@@ -23,32 +23,25 @@ enum {
 	ACTSTATE_END
 };
 
+struct ActionData {
+	struct BigGuy* Target;
+	uint8_t State;
+};
+
 static int ActionCost(const struct Agent* _Agent) {
 	return 1;
 }
 
 static int ActionFunction(struct Agent* _Agent, void* _Data) {
-	struct Retinue* _Retinue = BigGuyRetinue(_Agent->Agent); 
-	struct Settlement* _Home = PersonHome(_Agent->Agent->Person);
-	int* _State = _Agent->PlanData;
-	
-	switch(*_State) {
-		case ACTSTATE_INIT:
-			if(_Retinue == NULL) {
-				_Retinue = SettlementAddRetinue(_Home, _Agent->Agent);
-			}
-			_Retinue->IsRecruiting = 1;
-			*_State = ACTSTATE_CHECK;
-		case ACTSTATE_CHECK:
-			if(_Home->FreeWarriors.Size == 0) {
-				*_State = ACTSTATE_END;
-			}
-			break;
-		case ACTSTATE_END:
-			_Retinue->IsRecruiting = 0;
-			break;
+	//struct Retinue* _Retinue = BigGuyRetinue(_Agent->Agent); 
+	//struct Settlement* _Home = PersonHome(_Agent->Agent->Person);
+	//struct ActionData* _Data = _Agent->PlanData;
 
-	}
+	/*switch(_Data->State) {
+		case ACTSTATE_INIT:
+			break;
+	}*/
+	
 	return 1;
 }
 
@@ -81,10 +74,10 @@ static int ActionIsComplete(const struct Agent* _Agent, void* _Data) {
 }
 
 static void* ActionCreate(const struct Agent* _Agent) {
-	int* _State = malloc(sizeof(int));	
+	struct ActionData* _Data = malloc(sizeof(struct ActionData));	
 
-	*_State = ACTSTATE_INIT;
-	return _State;
+	_Data->State = ACTSTATE_INIT;
+	return _Data;
 }
 
 static void ActionDestroy(void* _Data) {

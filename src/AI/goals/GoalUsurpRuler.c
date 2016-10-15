@@ -43,9 +43,9 @@ int GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _Max)
 	if(_Owner == _Leader)
 		return 0;
 	_Relation = BigGuyGetRelation(_Owner, _Leader);
-	if(BigGuyRelAtMost(_Relation, BGREL_DISLIKE) == 0)
-		return 0;
-	_Cost = (-_Relation->Modifier) + (-BIGGUY_DISLIKEMIN) + (BigGuyPopularity(_Agent->Agent) - BigGuyPopularity(_Leader)); 
+	//if(BigGuyRelAtMost(_Relation, BGREL_DISLIKE) == 0)
+	//	return 0;
+	_Cost = (-_Relation->Modifier) + (BigGuyPopularity(_Agent->Agent) - BigGuyPopularity(_Leader)) * (_Agent->Greed / (float)0x80); 
 	return _Cost;
 }
 

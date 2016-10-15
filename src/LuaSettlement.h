@@ -43,6 +43,7 @@ int LuaBGChangeGlory(lua_State* _State);
 int LuaBGSuccessMargin(lua_State* _State);
 int LuaBGPlotsAgainst(lua_State* _State);
 int LuaBGHasTrait(lua_State* _State);
+int LuaBGMurder(lua_State* _State);
 //int LuaBGRecruit(lua_State* _State);
 //int LuaBGIsRecruiting(lua_State* _State);
 //int LuaBGRetinueSize(lua_State* _State);
@@ -111,6 +112,8 @@ int LuaPlotAddAction(lua_State* _State);
 int LuaPlotGetThreat(lua_State* _State);
 int LuaPlotPrevMonthActions(lua_State* _State);
 int LuaPlotCurrMonthActions(lua_State* _State);
+int LuaPlotHasStarted(lua_State* _State);
+int LuaPlotStart(lua_State* _State);
 
 int LuaPolicyOptionName(lua_State* _State);
 

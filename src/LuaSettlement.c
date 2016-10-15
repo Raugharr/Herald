@@ -74,10 +74,7 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{"SuccessMargin", LuaBGSuccessMargin},
 	{"PlotsAgainst", LuaBGPlotsAgainst},
 	{"HasTrait", LuaBGHasTrait},
-	//{"Recruit", LuaBGRecruit},
-	//{"IsRecruiting", LuaBGIsRecruiting},
-	//{"RetinueSize", LuaBGRetinueSize},
-	//{"GetRetinueTable", LuaBGRetinueTable},
+	{"Murder", LuaBGMurder},
 	{NULL, NULL}
 };
 
@@ -149,6 +146,8 @@ static const luaL_Reg g_LuaFuncsPlot[] = {
 	{"GetThreat", LuaPlotGetThreat},
 	{"PrevMonthActions", LuaPlotPrevMonthActions},
 	{"CurrMonthActions", LuaPlotCurrMonthActions},
+	{"HasStarted", LuaPlotHasStarted},
+	{"Start", LuaPlotStart},
 	{NULL, NULL}
 };
 
@@ -200,6 +199,7 @@ const struct LuaEnum g_LuaPlotTypeEnum[] = {
 	{"NewPolicy", PLOT_PASSPOLICY},
 	{"ChangePolicy", PLOT_CHANGEPOLICY},
 	{"RemovePolicy", PLOT_REMOVEPOLICY},
+	{"ControlRetinue", PLOT_CONRETINUE},
 	{NULL, 0}
 };
 
@@ -557,6 +557,14 @@ int LuaBGHasTrait(lua_State* _State) {
 	return 1;
 }
 
+int LuaBGMurder(lua_State* _State) {
+	struct BigGuy* _Murderer = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
+	struct BigGuy* _Target = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
+
+	PersonDeath(_Target->Person);	
+	PushEvent(EVENT_MURDERED, _Target, _Murderer);
+	return 0;
+}
 /*int LuaBGRecruit(lua_State* _State) {
 	struct BigGuy* _Leader = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct Settlement* _Home = PersonHome(_Leader->Person);
@@ -1099,11 +1107,13 @@ int LuaPlotCreate(lua_State* _State) {
 	int _PolicyCat = 0;
 
 	if(_Leader == NULL)
-		return luaL_error(_State, "Leader is invalid.");
+		return luaL_error(_State, "Cannot create plot: Leader is invalid.");
+	if(_Leader == _Target)
+		return luaL_error(_State, "Cannot create plot: target and plotter are the same.");
 	if(BigGuyHasPlot(_Leader) != 0)
-		return luaL_error(_State, "Leader already has a plot.");
+		return luaL_error(_State, "Cannot create plot: Leader already has a plot.");
 	if(IsPlotTypeValid(_Type) == 0)
-		return luaL_error(_State, "Invalid plot type.");
+		return luaL_error(_State, "Cannot create plot: Invalid plot type.");
 	switch(_Type) {
 		case PLOT_REMOVEPOLICY:
 		case PLOT_PASSPOLICY:
@@ -1173,6 +1183,22 @@ int LuaPlotCurrMonthActions(lua_State* _State) {
 	}
 	//CreateLuaLnkLstItr(_State, PlotCurrActList(_Plot), LOBJ_PLOTACTION);
 	return 1;
+}
+int LuaPlotHasStarted(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
+
+	lua_pushboolean(_State, _Plot->HasStarted);
+	return 1;
+}
+
+int LuaPlotStart(lua_State* _State) {
+	struct Plot* _Plot = LuaCheckClass(_State, 1, LOBJ_PLOT);
+	int _Start = 0;
+
+	luaL_checktype(_State, 2, LUA_TBOOLEAN);
+	_Start = lua_toboolean(_State, _Start);
+	_Plot->HasStarted = _Start;
+	return 0;
 }
 
 int LuaPolicyOptionName(lua_State* _State) {

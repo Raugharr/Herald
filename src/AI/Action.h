@@ -29,14 +29,18 @@ static AgentGoals g_GOAPGoalList = {
 	NULL
 };
 
-const char* g_GoalSetOverthrow[] = {
-	"Overthrow Ruler",
+static const char* g_GoalSetOverthrow[] = {
 	"Challange Leader",
 	NULL
 };
 
-const char** g_GoapGoalSetList[] = {
+static const char* g_GoalSetWarlord[] = {
+	NULL
+};
+
+static const char** g_GoapGoalSetList[] = {
 	g_GoalSetOverthrow,
+	g_GoalSetWarlord,
 	NULL
 };
 #endif

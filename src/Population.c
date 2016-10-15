@@ -364,7 +364,7 @@ void DestroyAnimal(struct Animal* _Animal) {
 }
 
 void AnimalThink(struct Object* _Obj) {
-	struct Animal* _Animal = (struct Object*) _Obj;
+	struct Animal* _Animal = (struct Animal*) _Obj;
 
 	_Animal->Nutrition -= (AnimalMature(_Animal) == true) ? (_Animal->PopType->Nutrition) : (_Animal->PopType->Nutrition / 2);
 	if(_Animal->Nutrition < 0)

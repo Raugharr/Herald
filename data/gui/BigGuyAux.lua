@@ -101,17 +101,33 @@ function GenderName(Animal)
 	return "Female"
 end
 
-function GeneralActions(Container, Target)
+function GeneralActions(Container, Owner, Target)
 	Container:CreateButton("Raise Popularity", 
 		function()
-			World.GetPlayer():SetAction(Action.RaisePop, nil)
+			Owner:SetAction(Action.RaisePop, nil)
 		end)
 	Container:CreateButton("Raise Glory",
 		function()
-			World.GetPlayer():SetAction(Action.RaiseGlory, nil)
+			Owner:SetAction(Action.RaiseGlory, nil)
 		end)
+	if Owner == Target or Target == nil then
+		return
+	end
 	Container:CreateButton("Steal",
 		function()
-			World.GetPlayer():SetAction(Action.Steal, Target)
+			Owner:SetAction(Action.Steal, Target)
 		end)
+	Container:CreateButton("Befriend", 
+		function()
+			Owner:SetAction(Action.Befriend, Target)
+		end)
+	Container:CreateButton("Murder",
+		function()
+			Owner:SetAction(Action.Murder, Target)
+		end)
+	Container:CreateButton("Duel", 
+		function()
+			Owner:SetAction(Action.Duel, Target)
+		end)
+
 end

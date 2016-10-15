@@ -55,9 +55,6 @@ struct AgentInfo {
 struct Agent {
 	struct BigGuy* Agent;
 	void* PlanData;
-	int PlanIdx; //The current plan we are impelenting -1 if none.
-	int PlanSz;
-	int GoalState;
 	AgentStateUpdate Update;
 	const struct GoapGoalSet* GoalSet;
 	const struct GoapGoal* CurrGoal;
@@ -65,6 +62,11 @@ struct Agent {
 	struct Blackboard Blackboard;
 	struct AgentSensor Sensors[WorldStateBytes];
 	struct WorldState State;
+	int8_t PlanIdx; //The current plan we are impelenting -1 if none.
+	uint8_t Greed;
+	uint8_t Honor;
+	uint8_t GoalState;
+	uint8_t PlanSz;
 };
 
 int AgentICallback(const struct Agent* _One, const struct Agent* _Two);

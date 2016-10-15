@@ -235,10 +235,6 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 	return _Cont;
 }
 
-const struct GoapAction* GoapPathGetAction(const struct GoapPathNode* _Node) {
-	return _Node->Action;
-}
-
 double AUtilityFunction(double _Num, int _Func) {
 	switch(_Func) {
 		case UTILITY_LINEAR:
@@ -292,7 +288,7 @@ void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, s
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
 	if(_Path == NULL)
 		return;
-	_Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
+	_Action = _Agent->Plan[_Agent->PlanIdx]->Action;
 	if(_Agent->PlanData == NULL && _Action->Create != NULL) {
 		_Agent->PlanData = _Action->Create(_Agent);
 	}

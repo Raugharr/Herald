@@ -12,32 +12,32 @@
 struct GameWorld;
 
 struct Label {
-	DECLARE_WIDGET;
+	struct Widget Widget;
 	int (*SetText)(struct Widget*, SDL_Texture*);
 	SDL_Texture* Text;
 };
 
 struct Table {
-	DECLARE_CONTAINER;
+	struct Container Container;
 	int Rows;
 	int Columns;
 	struct Area CellMax; /* max area of a cell. */
 };
 
 struct TextBox {
-	DECLARE_WIDGET;
+	struct Widget Widget;
 	SDL_Texture* TextSurface;
 	struct LinkedList Letters; /* List of letters in the text box. */
 	SDL_Rect TextRect;
 };
 
 struct ContextItem {
-	DECLARE_CONTAINER;
+	struct Container Container;
 	int ShowContexts;
 };
 
 struct Button {
-	DECLARE_WIDGET;
+	struct Widget Widget;
 	int (*SetText)(struct Widget*, SDL_Texture*);
 	SDL_Texture* Text;
 	SDL_Color Background;

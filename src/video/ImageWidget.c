@@ -16,11 +16,11 @@ struct ImageWidget* CreateImageWidget() {
 
 void ConstructImageWidget(struct ImageWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct Sprite* _Sprite) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
-	_Widget->OnDraw = ImageOnDraw;
-	_Widget->OnFocus = ImageOnFocus;
-	_Widget->OnUnfocus = ImageOnUnfocus;
-	_Widget->OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyImageWidget;
-	_Widget->OnDraw = ImageOnDraw;
+	_Widget->Widget.OnDraw = ImageOnDraw;
+	_Widget->Widget.OnFocus = ImageOnFocus;
+	_Widget->Widget.OnUnfocus = ImageOnUnfocus;
+	_Widget->Widget.OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyImageWidget;
+	_Widget->Widget.OnDraw = ImageOnDraw;
 	_Widget->Sprite = _Sprite;
 }
 

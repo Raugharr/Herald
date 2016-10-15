@@ -212,8 +212,8 @@ int LuaCreateLabel(lua_State* _State) {
 		_Rect.w = _Surface->w;
 		_Rect.h = _Surface->h;
 	}
-	_Rect.x = _Parent->Rect.x;
-	_Rect.y = _Parent->Rect.y;
+	_Rect.x = _Parent->Widget.Rect.x;
+	_Rect.y = _Parent->Widget.Rect.y;
 	lua_newtable(_State);
 	_Label = CreateLabel();
 	ConstructLabel(_Label, _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
@@ -230,12 +230,12 @@ int LuaCreateButton(lua_State* _State) {
 	struct Font* _Font = g_GUIDefs.Font;
 	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color/*g_GUIDefs.FontUnfocus*/));
 	//SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
-	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
+	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
 	struct Button* _Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
 
 	LuaGuiGetRef(_State);
 	lua_pushvalue(_State, 3);
-	_Button->LuaOnClickFunc = luaL_ref(_State, -2);
+	_Button->Widget.LuaOnClickFunc = luaL_ref(_State, -2);
 	LuaCtor(_State, _Button, LOBJ_BUTTON);
 	return 1;
 }
@@ -350,7 +350,7 @@ int LuaCreateWorldRender(lua_State* _State) {
 	 
 	lua_newtable(_State);
 	_Widget = CreateGWWidget();
-	ConstructGWWidget(_Widget, _Parent, &_Parent->Rect, _State, &g_GameWorld);
+	ConstructGWWidget(_Widget, _Parent, &_Parent->Widget.Rect, _State, &g_GameWorld);
 	LuaCtor(_State, _Widget, LOBJ_WIDGET);
 	return 1;	
 }
@@ -417,7 +417,7 @@ int LuaCreateWindow(lua_State* _State) {
 	_Container = CreateContainer();
 	ConstructContainer(_Container, NULL, &_Rect, _State, 0, &_Margins);
 	_Container->NewChild = FixedConNewChild;
-	_Container->Parent = NULL;
+	_Container->Widget.Parent = NULL;
 
 	lua_pushvalue(_State, LARG_TABLE);
 	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
@@ -433,7 +433,7 @@ int LuaCreateWindow(lua_State* _State) {
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	GuiSetParentHook(NULL);
 	//WidgetSetParent(NULL, (struct Widget*) _Container);
-	_Container->IsDraggable = 1;
+	_Container->Widget.IsDraggable = 1;
 	GuiZBuffAdd(_Container);
 	return 1;
 }
@@ -441,7 +441,7 @@ int LuaCreateWindow(lua_State* _State) {
 int LuaCreateImage(lua_State* _State) {
 	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
 	struct Sprite* _Sprite = LuaCheckClass(_State, 2, LOBJ_SPRITE);
-	SDL_Rect _Rect = {_Parent->Rect.x, _Parent->Rect.y, 0, 0};
+	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, 0, 0};
 	struct ImageWidget* _Widget = CreateImageWidget();
 
 	if(_Sprite == NULL) {
@@ -451,10 +451,10 @@ int LuaCreateImage(lua_State* _State) {
 	_Rect.w = _Sprite->Rect.w;
 	_Rect.h = _Sprite->Rect.h;
 	ConstructImageWidget(_Widget, _Parent, &_Rect, _State, _Sprite);
-	_Sprite->SpritePos.x = _Widget->Rect.x;
-	_Sprite->SpritePos.y = _Widget->Rect.y;
-	_Sprite->SpritePos.w = _Widget->Rect.w;
-	_Sprite->SpritePos.h = _Widget->Rect.h;
+	_Sprite->SpritePos.x = _Widget->Widget.Rect.x;
+	_Sprite->SpritePos.y = _Widget->Widget.Rect.y;
+	_Sprite->SpritePos.w = _Widget->Widget.Rect.w;
+	_Sprite->SpritePos.h = _Widget->Widget.Rect.h;
 	LuaCtor(_State, _Widget, LOBJ_IMAGEWIDGET);
 	return 1;
 }
@@ -546,8 +546,8 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_newtable(_State);
 	_MenuContainer = CreateContainer();
 	ConstructContainer(_MenuContainer, NULL, &_MenuRect, _State, 0, &_MenuMargin);
-	_MenuContainer->OnDraw = (int(*)(struct Widget*))MenuOnDraw;
-	_MenuContainer->OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))MenuOnClick;
+	_MenuContainer->Widget.OnDraw = (int(*)(struct Widget*))MenuOnDraw;
+	_MenuContainer->Widget.OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))MenuOnClick;
 	_MenuContainer->NewChild = FixedConNewChild;
 	lua_pushvalue(_State, SETMENU_TABLE);
 	LuaInitClass(_State, _MenuContainer, LOBJ_CONTAINER);
@@ -1044,7 +1044,7 @@ int LuaWidgetGetParent(lua_State* _State) {
 	lua_getglobal(_State, "GUI");
 	lua_pushstring(_State, "Widgets");
 	lua_rawget(_State, -2);
-	lua_rawgeti(_State, -1, _Widget->Parent->LuaRef);
+	lua_rawgeti(_State, -1, _Widget->Parent->Widget.LuaRef);
 	lua_insert(_State, -2);
 	lua_pop(_State, -2);
 	return 1;
@@ -1171,7 +1171,7 @@ int LuaContainerClear(lua_State* _State) {
 int LuaContainerClose(lua_State* _State) {
 	struct Container* _Container = LuaToObject(_State, 1, LOBJ_CONTAINER);
 
-	_Container->OnDestroy((struct Widget*)_Container, _State);
+	_Container->Widget.OnDestroy((struct Widget*)_Container, _State);
 	return 0;
 }
 
@@ -1213,12 +1213,12 @@ int LuaContainerParagraph(lua_State* _State) {
 	_Rect.w = TTF_FontFaceIsFixedWidth(_Font->Font);
 	_Rect.x = 0;
 	_Rect.y = 0;
-	_PRect.w = _Parent->Rect.w;
-	_PRect.h = _Parent->Rect.h;
+	_PRect.w = _Parent->Widget.Rect.w;
+	_PRect.h = _Parent->Widget.Rect.h;
 	_NewContainer = CreateContainer();
 	ConstructContainer(_NewContainer, _Parent, &_PRect, _State, 0, &_Margins);
 	_NewContainer->NewChild = VertConNewChild;
-	_NewContainer->CanFocus = 0;
+	_NewContainer->Widget.CanFocus = 0;
 	while(*_Temp != '\0') {
 		do {
 			if((*_Temp) == ' ') {
@@ -1229,7 +1229,7 @@ int LuaContainerParagraph(lua_State* _State) {
 			}
 			TTF_GlyphMetrics(_Font->Font, *_Temp, NULL, NULL, NULL, NULL, &_CharWidth);
 			_WordWidth += _CharWidth;
-			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Rect.w) {
+			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Widget.Rect.w) {
 				_Temp -= _WordSz;
 				//NOTE: Used to stop infinite loop when the parent is to small to hold a single letter.
 				if(_WordSz == 0 && _Temp == _String)
@@ -1258,7 +1258,7 @@ int LuaContainerParagraph(lua_State* _State) {
 			_PRect.h += _Rect.h;
 			ConstructLabel(_Label, _NewContainer, &_Rect, _State, SurfaceToTexture(ConvertSurface(_Surface)), _Font);
 		_String = _Temp + 1;
-		_Label->CanFocus = 0;
+		_Label->Widget.CanFocus = 0;
 		}
 		_Rect.w = 0;
 		_Ct = 0;
@@ -1320,7 +1320,7 @@ int LuaTableSetCellWidth(lua_State* _State) {
 	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
 
 	_Table->CellMax.w = luaL_checkinteger(_State, 2);
-	_Table->Rect.w = _Table->CellMax.w * _Table->Rows;
+	_Table->Container.Widget.Rect.w = _Table->CellMax.w * _Table->Rows;
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1329,7 +1329,7 @@ int LuaTableSetCellHeight(lua_State* _State) {
 	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
 
 	_Table->CellMax.h = luaL_checkinteger(_State, 2);
-	_Table->Rect.h = _Table->CellMax.h * _Table->Columns;
+	_Table->Container.Widget.Rect.h = _Table->CellMax.h * _Table->Columns;
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1439,7 +1439,7 @@ int QuitGUILua(lua_State* _State) {
 		lua_pushstring(_State, "__screen");
 		lua_rawget(_State, -2);
 		_Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-		_Container->OnDestroy((struct Widget*)_Container, _State);
+		_Container->Widget.OnDestroy((struct Widget*)_Container, _State);
 		lua_pushstring(_State, "__events");
 		lua_rawget(_State, -3);
 		_Events = (struct GUIEvents*) lua_touserdata(_State, -1);

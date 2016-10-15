@@ -22,8 +22,8 @@ void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* 
 	SDL_Color _Src = {255, 255, 255, 255};
 
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
-	_Widget->OnDraw = LabelOnDraw;
-	_Widget->OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyLabel;
+	_Widget->Widget.OnDraw = LabelOnDraw;
+	_Widget->Widget.OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyLabel;
 	_Widget->SetText = LabelSetText;
 	_Widget->Text = _Text;
 	SDL_SetTextureBlendMode(_Text, SDL_BLENDMODE_ADD);
@@ -42,7 +42,6 @@ int LabelOnDraw(struct Widget* _Widget) {
 
 	if(_Widget->IsVisible == 0)
 		return 1;
-	//SDL_SetRenderDrawColor(g_Renderer, g_GUIDefs.FontFocus.r, g_GUIDefs.FontFocus.g, g_GUIDefs.FontFocus.b,  g_GUIDefs.FontFocus.a);
 	SDL_QueryTexture(((struct Label*)_Widget)->Text, NULL, NULL, &_Rect.w, &_Rect.h);
 	_Rect.x = _Widget->Rect.x + ((_Widget->Rect.w - _Rect.w) / 2);
 	_Rect.y = _Widget->Rect.y + ((_Widget->Rect.h - _Rect.h) / 2);
@@ -64,13 +63,13 @@ struct Button* CreateButton(void) {
 
 struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
 	ConstructLabel((struct Label*)_Widget, _Parent, _Rect, _State, _Text, _Font); //Only Temporary
-	_Widget->OnDraw = ButtonOnDraw;
+	_Widget->Widget.OnDraw = ButtonOnDraw;
 	_Widget->Background.r = 0x80;
 	_Widget->Background.g = 0x80;
 	_Widget->Background.b = 0x80;
 	_Widget->Background.a = 0xFF;
-	_Widget->OnFocus = ButtonOnFocus;
-	_Widget->OnUnfocus = ButtonOnUnFocus;
+	_Widget->Widget.OnFocus = ButtonOnFocus;
+	_Widget->Widget.OnUnfocus = ButtonOnUnFocus;
 	return _Widget;
 }
 
@@ -100,11 +99,11 @@ int ButtonOnDraw(struct Widget* _Widget) {
 
 void ButtonSetClickable(struct Button* _Button, int _Clickable) {
 	if(_Clickable == 1) {
-		_Button->OnDraw = ButtonOnDraw;
-		_Button->Clickable  = 1;
+		_Button->Widget.OnDraw = ButtonOnDraw;
+		_Button->Widget.Clickable  = 1;
 	} else {
-		_Button->OnDraw = LabelOnDraw;
-		_Button->Clickable  = 0;
+		_Button->Widget.OnDraw = LabelOnDraw;
+		_Button->Widget.Clickable  = 0;
 	}
 }
 
@@ -120,20 +119,20 @@ void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* 
 
 	_Rect->h = _THeight * _Columns;
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
-	_Widget->HorzFocChange = TableHorzFocChange;
-	_Widget->ChildrenSz = _Columns * _Rows;
-	_Widget->Children = calloc(_Widget->ChildrenSz, sizeof(struct Widget*));
-	_Widget->OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyTable;
-	_Widget->NewChild = TableNewChild;
-	_Widget->RemChild = DynamicRemChild;
+	_Widget->Container.HorzFocChange = TableHorzFocChange;
+	_Widget->Container.ChildrenSz = _Columns * _Rows;
+	_Widget->Container.Children = calloc(_Widget->Container.ChildrenSz, sizeof(struct Widget*));
+	_Widget->Container.Widget.OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyTable;
+	_Widget->Container.NewChild = TableNewChild;
+	_Widget->Container.RemChild = DynamicRemChild;
 	_Widget->Columns = _Columns;
 	_Widget->Rows = _Rows;
-	_Widget->VertFocChange = _Rows;
+	_Widget->Container.VertFocChange = _Rows;
 	_Widget->CellMax.w = 32;
 	_Widget->CellMax.h = 32;
 	++_Font->RefCt;
 	for(i = 0; i < _Size; ++i)
-		_Widget->Children[i] = NULL;
+		_Widget->Container.Children[i] = NULL;
 }
 
 void DestroyTable(struct Table* _Table, lua_State* _State) {
@@ -148,8 +147,8 @@ void TableNewChild(struct Container* _Parent, struct Widget* _Child) {
 		_Row -= ((struct Table*)_Parent)->Rows;
 		++_Col;
 	}
-	_Child->Rect.x = _Parent->Rect.x + (_Row * ((struct Table*)_Parent)->CellMax.w);
-	_Child->Rect.y = _Parent->Rect.y + (_Col * ((struct Table*)_Parent)->CellMax.h);
+	_Child->Rect.x = _Parent->Widget.Rect.x + (_Row * ((struct Table*)_Parent)->CellMax.w);
+	_Child->Rect.y = _Parent->Widget.Rect.y + (_Col * ((struct Table*)_Parent)->CellMax.h);
 	if(_Child->Rect.w > ((struct Table*)_Parent)->CellMax.w)
 		_Child->Rect.w = ((struct Table*)_Parent)->CellMax.w;
 	if(_Child->Rect.h > ((struct Table*)_Parent)->CellMax.h)
@@ -179,9 +178,9 @@ void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _
 	ConstructWidget((struct Widget*)_TextBox, _Parent, &_Rect, _State); 
 	_TextBox->TextSurface = NULL;
 	ConstructLinkedList(&_TextBox->Letters);
-	_TextBox->OnDraw = (GuiCallWidget) TextBoxOnDraw;
-	_TextBox->OnKey = (GuiOnKey) TextBoxOnKey;
-	_TextBox->OnDestroy = (GuiCallDestroy) DestroyTextBox;
+	_TextBox->Widget.OnDraw = (GuiCallWidget) TextBoxOnDraw;
+	_TextBox->Widget.OnKey = (GuiOnKey) TextBoxOnKey;
+	_TextBox->Widget.OnDestroy = (GuiCallDestroy) DestroyTextBox;
 }
 
 void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod) {
@@ -208,12 +207,12 @@ void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod)
 	assert(i == _Widget->Letters.Size);
 	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(g_GUIFonts->Font, _Buffer, g_GUIDefs.FontUnfocus));
 	SDL_QueryTexture(_Widget->TextSurface, NULL, NULL, &_Widget->TextRect.w, &_Widget->TextRect.h);
-	if(_Widget->TextRect.w> _Widget->Rect.w)
-		_Widget->TextRect.w= _Widget->Rect.w;
-	if(_Widget->TextRect.h> _Widget->Rect.h)
-		_Widget->TextRect.h= _Widget->Rect.h;
-	_Widget->TextRect.x = _Widget->Rect.x;
-	_Widget->TextRect.y = _Widget->Rect.y;
+	if(_Widget->TextRect.w> _Widget->Widget.Rect.w)
+		_Widget->TextRect.w= _Widget->Widget.Rect.w;
+	if(_Widget->TextRect.h> _Widget->Widget.Rect.h)
+		_Widget->TextRect.h= _Widget->Widget.Rect.h;
+	_Widget->TextRect.x = _Widget->Widget.Rect.x;
+	_Widget->TextRect.y = _Widget->Widget.Rect.y;
 }
 
 int TextBoxOnDraw(struct TextBox* _Widget) {
@@ -226,29 +225,29 @@ struct ContextItem* CreateContextItem(void) {
 
 void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
 	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
-	_Widget->OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
-	_Widget->OnFocus = (struct Widget* (*)(struct Widget*, const SDL_Point*))ContextItemOnFocus;
-	_Widget->OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;
-	_Widget->NewChild = ContextItemNewChild;
-	_Widget->VertFocChange = 0;
-	_Widget->HorzFocChange = ContextHorzFocChange;
+	_Widget->Container.Widget.OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
+	_Widget->Container.Widget.OnFocus = (struct Widget* (*)(struct Widget*, const SDL_Point*))ContextItemOnFocus;
+	_Widget->Container.Widget.OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;
+	_Widget->Container.NewChild = ContextItemNewChild;
+	_Widget->Container.VertFocChange = 0;
+	_Widget->Container.HorzFocChange = ContextHorzFocChange;
 	_Widget->ShowContexts = 0;
 }
 
 int ContextItemOnDraw(struct ContextItem* _Container) {
 	if(_Container->ShowContexts != 0) {
-		for(int i = 1; i < _Container->ChildCt; ++i)
-			_Container->Children[i]->OnDraw(_Container->Children[i]);
+		for(int i = 1; i < _Container->Container.ChildCt; ++i)
+			_Container->Container.Children[i]->OnDraw(_Container->Container.Children[i]);
 	}
-	if(_Container->ChildCt > 0)
-		_Container->Children[0]->OnDraw(_Container->Children[0]);
+	if(_Container->Container.ChildCt > 0)
+		_Container->Container.Children[0]->OnDraw(_Container->Container.Children[0]);
 	return 1;
 }
 
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point) {
 	ContainerOnFocus((struct Container*)_Widget, _Point);
 	_Widget->ShowContexts = 1;
-	_Widget->VertFocChange = _Widget->ChildCt;
+	_Widget->Container.VertFocChange = _Widget->Container.ChildCt;
 	return (struct Widget*) _Widget;
 }
 

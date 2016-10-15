@@ -29,10 +29,10 @@ struct KeyMouseState;
 struct Font {
 	TTF_Font* Font;
 	char* Name; //Replace with TTF_FontFaceStyleName.
-	int Size;
 	struct Font* Next;
 	struct Font* Prev;
-	int RefCt;
+	uint8_t Size;
+	volatile int16_t RefCt;
 };
 
 /*

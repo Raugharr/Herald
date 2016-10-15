@@ -159,7 +159,7 @@ struct Font* CreateFont(const char* _Name, int _Size) {
 }
 
 void DestroyFont(struct Font* _Font) {
-	if(--_Font->RefCt > 0 || (_Font == g_GUIDefs.Font && _Font->RefCt != -1))
+	if(--_Font->RefCt > 0)
 		return;
 	if(_Font == g_GUIFonts) {
 		g_GUIFonts = _Font->Next;

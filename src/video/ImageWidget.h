@@ -10,7 +10,7 @@
 #include <SDL2/SDL.h>
 
 struct ImageWidget {
-	DECLARE_WIDGET;
+	struct Widget Widget;
 	struct Sprite* Sprite;
 };
 

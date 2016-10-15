@@ -140,8 +140,8 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
-	int _X = _Parent->Margins.Left + _Parent->Rect.x;
-	int _Y = _Parent->Margins.Top + _Parent->Rect.y;
+	int32_t _X = _Parent->Margins.Left + _Parent->Rect.x;
+	int32_t _Y = _Parent->Margins.Top + _Parent->Rect.y;
 
 	for(int i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;

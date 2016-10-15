@@ -94,15 +94,15 @@ extern struct Font* g_GUIFonts;
 extern struct Stack g_GUIStack;
 
 struct Margin {
-	int Top;
-	int Left;
-	int Right;
-	int Bottom;
+	int32_t Top;
+	int32_t Left;
+	int32_t Right;
+	int32_t Bottom;
 };
 
 struct Area {
-	int w;
-	int h;
+	int32_t w;
+	int32_t h;
 };
 
 struct Widget {

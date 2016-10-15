@@ -8,8 +8,11 @@
 #include "Herald.h"
 
 #include "BigGuy.h"
+#include "Person.h"
 
 #include "sys/LinkedList.h"
+
+#include <stdbool.h>
 
 #define PLOT_OVERTHROW_MAXSCORE (10)
 #define IsPlotTypeValid(_Type) ((_Type) >= 0 && (_Type) < PLOT_SIZE)
@@ -20,6 +23,7 @@ struct ActivePolicy;
 
 enum {
 	PLOT_OVERTHROW,
+	PLOT_CONRETINUE,
 	PLOT_PASSPOLICY,
 	PLOT_CHANGEPOLICY,
 	PLOT_REMOVEPOLICY,
@@ -61,18 +65,8 @@ struct PlotAction {
 };
 
 struct Plot {
-	int Id;
-	int Type;
-	ObjectThink Think;
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
-	int PlotType;
+	struct Object Object;
 	void* PlotData;
-	struct LinkedList Side[PLOT_SIDES];
-	struct LinkedList SideAsk[PLOT_SIDES];
-	int SidePower[PLOT_SIDES]; //Assumption on how strong each side is.
-	int Threat[PLOT_SIDES]; //How much threat each side has accumulated.
-	uint8_t StatMods[PLOT_SIDES][BGSKILL_SIZE]; 
 	/**
 	 *One ActionList represents the current month's actions and can be added to,
 	 * the other ActionList represents the previous month's actions and is intended
@@ -83,9 +77,16 @@ struct Plot {
 	  * TODO: This should be an inplicit list of ActionPlots.
 	  */
 	struct PlotAction* ActionList[2]; 
-	int CurrActList; //Which ActionList is being used for the current month.
-	int WarScore;
-	int MaxScore;
+	struct LinkedList Side[PLOT_SIDES];
+	struct LinkedList SideAsk[PLOT_SIDES];
+	int16_t SidePower[PLOT_SIDES]; //Assumption on how strong each side is.
+	int16_t Threat[PLOT_SIDES]; //How much threat each side has accumulated.
+	int16_t WarScore;
+	int16_t MaxScore;
+	uint8_t StatMods[PLOT_SIDES][BGSKILL_SIZE]; 
+	uint8_t Type;
+	uint8_t CurrActList; //Which ActionList is being used for the current month.
+	bool HasStarted;
 };
 
 struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct BigGuy* _Target);
@@ -101,6 +102,14 @@ static inline struct Plot* CreateChangePolicyPlot(struct ActivePolicy* _Policy, 
 	return CreatePlot(PLOT_CHANGEPOLICY, _Policy, _Owner, _Target);
 }
 
+static inline struct Plot* CreateConRetinuePlot(struct BigGuy* _Owner, struct BigGuy* _Target) {
+	struct Retinue* _Retinue = IntSearch(&g_GameWorld.PersonRetinue, _Owner->Person->Object.Id);
+
+	if(_Retinue == NULL)
+		return NULL;
+	return CreatePlot(PLOT_CONRETINUE, _Retinue, _Owner, _Target);
+}
+
 static inline int PlotPower(const struct Plot* _Plot, int _Side) {
 	return _Plot->SidePower[_Side];
 }
@@ -109,7 +118,7 @@ void DestroyPlot(struct Plot* _Plot);
 void PlotJoin(struct Plot* _Plot, int _Side, struct BigGuy* _Guy);
 int PlotInsert(const struct Plot* _One, const struct Plot* _Two);
 int PlotSearch(const struct BigGuy* _One, const struct Plot* _Two);
-void PlotThink(struct Plot* _Plot);
+void PlotThink(struct Object* _Obj);
 const struct PlotAction* const PlotPrevActList(const struct Plot* _Plot);
 const struct  PlotAction* const PlotCurrActList(const struct Plot* _Plot);
 /**

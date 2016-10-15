@@ -14,6 +14,7 @@
 
 #include "sys/Math.h"
 #include "sys/Event.h"
+#include "sys/Log.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -32,25 +33,36 @@ static const char* g_PlotTypeStr[] = {
 };	
 
 const char* PlotTypeStr(const struct Plot* _Plot) {
-	return g_PlotTypeStr[_Plot->PlotType];
+	return g_PlotTypeStr[_Plot->Type];
 }
 
 static struct {
-	int SkillUsed;
-	int Damage; 	
+	uint8_t SkillUsed;
+	int8_t Damage; 	
 	const char* Name;
 } g_PlotActionTypes[PLOTACT_SIZE] = {
 	{BGSKILL_SIZE, 0, "None"},
 	{BGSKILL_WIT, 1, "Attack"},
 	{BGSKILL_WIT, 0, "Lower Stat"},
+	{BGSKILL_WIT, 0, "Stop Attack"},
 	{BGSKILL_COMBAT, 2, "Double Damage"},
 	{BGSKILL_COMBAT, 1, "Double Attack"},
-	{BGSKILL_WIT, 0, "Stop Attack"},
+	{BGSKILL_COMBAT, 1, "Support Attack"}
 };
 
 static inline int ActionDamage(const struct PlotAction* _Action) {
 	return g_PlotActionTypes[_Action->Type].Damage;
 	//return ((_Action->Flags & PLOTFLAG_HIT) == PLOTFLAG_HIT) ? (g_PlotActionTypes[_Action->Type].Damage) : (0);
+}
+
+static inline uint8_t BestPlotAction(const struct BigGuy* _Guy) {
+	uint8_t _BestCat = BGSKILL_WIT;
+
+	if(_Guy->Stats[BGSKILL_COMBAT] > _Guy->Stats[_BestCat])
+		_BestCat = BGSKILL_COMBAT;
+	if(_Guy->Stats[BGSKILL_CHARISMA] > _Guy->Stats[_BestCat])
+		_BestCat = BGSKILL_CHARISMA;
+	return _BestCat;
 }
 
 struct PlotAction* CreatePlotAction(int _Type, const struct BigGuy* _Actor, int _ActorSide, struct PlotAction* _Next) {
@@ -75,9 +87,9 @@ void DestroyPlotAction(struct PlotAction* _Action) {
 struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct BigGuy* _Target) {
 	struct Plot* _Plot = (struct Plot*) malloc(sizeof(struct Plot));
 
-	assert(_Type >=0 && _Type < PLOT_SIZE);
-	assert(_Owner != NULL);
-	_Plot->PlotType = _Type;
+	Assert(_Type >=0 && _Type < PLOT_SIZE);
+	Assert(_Owner != NULL);
+	_Plot->Type = _Type;
 	ConstructLinkedList(&_Plot->Side[0]);
 	ConstructLinkedList(&_Plot->SideAsk[0]);
 	ConstructLinkedList(&_Plot->Side[1]);
@@ -92,12 +104,13 @@ struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct Bi
 	_Plot->MaxScore = PLOT_OVERTHROW_MAXSCORE;
 	_Plot->CurrActList = 0;
 	_Plot->PlotData = _Data;
+	_Plot->HasStarted = false;
 	for(int i = 0; i < PLOT_SIDES; ++i) {
 		for(int j = 0; j < BGSKILL_SIZE; ++j) {
 			_Plot->StatMods[i][j] = 0;
 		}
 	}
-	CreateObject((struct Object*) _Plot, OBJECT_PLOT, (ObjectThink) PlotThink);
+	CreateObject(&_Plot->Object, OBJECT_PLOT, PlotThink);
 	PushEvent(EVENT_NEWPLOT, BigGuyHome(_Owner), _Plot);
 	if(_Target != NULL)
 		BigGuyPlotTarget(_Target, _Plot);
@@ -108,7 +121,7 @@ struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct Bi
 }
 
 void DestroyPlot(struct Plot* _Plot) {
-	DestroyObject((struct Object*)_Plot);
+	DestroyObject(&_Plot->Object);
 	RBDelete(&g_GameWorld.PlotList, PlotLeader(_Plot));
 	free(_Plot);
 }
@@ -191,7 +204,7 @@ static inline void PlotPerformAction(struct PlotAction* _Action, struct Plot* _P
 	}
 }
 
-int PlotWarScore(struct Plot* _Plot, const struct LinkedList* _GuyList, struct PlotAction** _Actions, int* _Threat) {
+int PlotWarScore(struct Plot* _Plot, const struct LinkedList* _GuyList, struct PlotAction** _Actions, int16_t* _Threat) {
 	int _Score = 0;
 
 	for(const struct LnkLst_Node* _Itr = _GuyList->Front; _Itr != NULL; _Itr = _Itr->Next) {
@@ -215,7 +228,8 @@ int PlotWarScore(struct Plot* _Plot, const struct LinkedList* _GuyList, struct P
 	return _Score;
 }
 
-void PlotThink(struct Plot* _Plot) {
+void PlotThink(struct Object* _Obj) {
+	struct Plot* _Plot = (struct Plot*) _Obj;
 	int _Diff = 0;
 	int _ScoreDefender = 0;
 	int _ScoreAttacker = 0;
@@ -223,6 +237,9 @@ void PlotThink(struct Plot* _Plot) {
 
 	if(DAY(g_GameWorld.Date) != 0)
 		return;
+	if(_Plot->HasStarted == false) {
+
+	}
 	if(PlotTarget(_Plot) != NULL)
 		_ScoreDefender = PlotWarScore(_Plot, &_Plot->Side[PLOT_DEFENDERS], &PLOT_CURRACTLIST(_Plot), &_Plot->Threat[PLOT_DEFENDERS]);
 	_ScoreAttacker = PlotWarScore(_Plot, &_Plot->Side[PLOT_ATTACKERS], &PLOT_CURRACTLIST(_Plot), &_Plot->Threat[PLOT_ATTACKERS]);
@@ -233,7 +250,7 @@ void PlotThink(struct Plot* _Plot) {
 		goto warscore_end;
 	}
 	if(PlotAttackerWon(_Plot) != 0) {
-		switch(_Plot->PlotType) {
+		switch(_Plot->Type) {
 			case PLOT_OVERTHROW:
 				PushEvent(EVENT_NEWLEADER, PlotTarget(_Plot), PlotLeader(_Plot));
 				break;
@@ -245,6 +262,9 @@ void PlotThink(struct Plot* _Plot) {
 				break;
 			case PLOT_SLANDER:
 				PushEvent(EVENT_SLANDER, NULL, NULL);
+				break;
+			case PLOT_CONRETINUE:
+				PushEvent(EVENT_TAKERET, IntSearch(&g_GameWorld.PersonRetinue, PlotLeader(_Plot)->Object.Id), PlotLeader(_Plot));
 				break;
 		}
 		_Looser = PlotTarget(_Plot);

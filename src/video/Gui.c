@@ -18,9 +18,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rect.h>
 
-struct GUIDef g_GUIDefs = {NULL, {255, 255, 255, 255}, {128, 128, 128, 255}};
+struct HashTable g_GuiStyles = {0};
 int g_GUIMenuChange = 0;
-int g_GUIId = 0;
+uint32_t g_GUIId = 0;
 struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
 struct Font* g_GUIFonts = NULL;
@@ -140,8 +140,8 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
-	int32_t _X = _Parent->Margins.Left + _Parent->Widget.Rect.x;
-	int32_t _Y = _Parent->Margins.Top + _Parent->Widget.Rect.y;
+	int32_t _X = _Parent->Margins.Left;// + _Parent->Widget.Rect.x;
+	int32_t _Y = _Parent->Margins.Top;// + _Parent->Widget.Rect.y;
 
 	for(int i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
@@ -169,15 +169,13 @@ struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point
  * FIXME: Check if _Child already has a parent and if it does delete it from the old parent.
  */
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
-	int i = 0;
-
 	if(_Parent->Children == NULL) {
 		_Parent->Children = calloc(2, sizeof(struct Widget*));
 		memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
 		_Parent->ChildrenSz = 2;
 	} else if(_Parent->ChildCt == _Parent->ChildrenSz) {
 		_Parent->Children = Realloc(_Parent->Children, sizeof(struct Widget*) * _Parent->ChildrenSz * 2);
-		for(i = _Parent->ChildrenSz; i < _Parent->ChildrenSz * 2; ++i)
+		for(int i = _Parent->ChildrenSz; i < _Parent->ChildrenSz * 2; ++i)
 			_Parent->Children[i] = NULL;
 		_Parent->ChildrenSz *= 2;
 	}
@@ -267,15 +265,19 @@ int MenuOnDraw(struct Container* _Container) {
 
 void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point) {
 	struct Widget* _Widget = NULL;
-	SDL_Point _Diff = {_Point->x - _Container->Widget.Rect.x, _Point->y - _Container->Widget.Rect.y};
+	//SDL_Point _Diff = {_Point->x - _Container->Widget.Rect.x, _Point->y - _Container->Widget.Rect.y};
 	SDL_Point _WidgetPos;
+	SDL_Point _OldPos = {_Container->Widget.Rect.x, _Container->Widget.Rect.y};
 
-	_Container->Widget.Rect.x = _Point->x;
-	_Container->Widget.Rect.y = _Point->y;
+	_Container->Widget.Rect.x = _Container->Widget.Parent->Widget.Rect.x + _Point->x;
+	_Container->Widget.Rect.y = _Container->Widget.Parent->Widget.Rect.y + _Point->y;
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		_Widget = _Container->Children[i];
-		_WidgetPos.x = _Widget->Rect.x + _Diff.x;
-		_WidgetPos.y = _Widget->Rect.y +_Diff.y;
+		//_WidgetPos.x = _Widget->Rect.x + _Diff.x;
+		//_WidgetPos.y = _Widget->Rect.y +_Diff.y;
+		//minus by _Point.x .y?
+		_WidgetPos.x = _Widget->Rect.x - _OldPos.x;// + _Point->x;
+		_WidgetPos.y = _Widget->Rect.y - _OldPos.y;// + _Point->y;
 		_Widget->SetPosition(_Widget, &_WidgetPos);
 	}
 }
@@ -327,7 +329,8 @@ void VertConNewChild(struct Container* _Parent, struct Widget* _Child) {
 	SDL_Point _Pos;
 
 	ContainerPosChild(_Parent, _Child, &_Pos);
-	_Pos.x = _Parent->Widget.Rect.x;
+	//_Pos.x = _Parent->Widget.Rect.x;
+	_Pos.x = 0;
 	_Child->SetPosition(_Child, &_Pos);
 }
 
@@ -340,7 +343,8 @@ void HorzConNewChild(struct Container* _Parent, struct Widget* _Child) {
 	SDL_Point _Pos;
 
 	ContainerPosChild(_Parent, _Child, &_Pos);
-	_Pos.y = _Parent->Widget.Rect.y;
+	//_Pos.y = _Parent->Widget.Rect.y;
+	_Pos.y = 0;
 	_Child->SetPosition(_Child, &_Pos);
 }
 
@@ -437,8 +441,8 @@ void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos) {
 	struct Container* _Parent = _Widget->Parent;
 	
 	SDL_assert(_Pos->x >= 0 || _Pos->y >= 0);
-	_Widget->Rect.x = _Pos->x;
-	_Widget->Rect.y = _Pos->y;
+	_Widget->Rect.x = _Pos->x + _Widget->Parent->Widget.Rect.x;
+	_Widget->Rect.y = _Pos->y + _Widget->Parent->Widget.Rect.y;
 
 	SDL_assert(_Widget->Parent != NULL);
 	if((_Widget->Rect.x + _Widget->Rect.w) > (_Parent->Widget.Rect.x + _Parent->Widget.Rect.w))

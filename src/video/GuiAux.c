@@ -18,18 +18,12 @@ struct Label* CreateLabel(void) {
 }
 
 void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
-	SDL_Color _Out;
-	SDL_Color _Src = {255, 255, 255, 255};
-
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->Widget.OnDraw = LabelOnDraw;
 	_Widget->Widget.OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyLabel;
 	_Widget->SetText = LabelSetText;
 	_Widget->Text = _Text;
-	SDL_SetTextureBlendMode(_Text, SDL_BLENDMODE_ADD);
-	GetBlendValue(&_Src, &g_GUIDefs.FontUnfocus, &_Out);
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.b, _Out.g);
-	//SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GuiStyles.FontUnfocus.r, g_GuiStyles.FontUnfocus.b, g_GuiStyles.FontUnfocus.g);
 }
 
 void DestroyLabel(struct Label* _Text, lua_State* _State) {
@@ -79,13 +73,14 @@ struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
 	if(PointInAABB(_Point, &_Widget->Rect) == SDL_FALSE || _Widget->CanFocus == 0) {
 		return NULL;
 	}
-	GetBlendValue(&g_GUIDefs.FontUnfocus, &g_GUIDefs.FontFocus, &_Out);
+	//GetBlendValue(&g_GuiStyles.FontUnfocus, &g_GuiStyles.FontFocus, &_Out);
+	_Out = g_GuiStyles.FontFocus;
 	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.b, _Out.g);
 	return _Widget;
 }
 
 int ButtonOnUnFocus(struct Widget* _Widget) {
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GUIDefs.FontUnfocus.r, g_GUIDefs.FontUnfocus.b, g_GUIDefs.FontUnfocus.g);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GuiStyles.FontUnfocus.r, g_GuiStyles.FontUnfocus.b, g_GuiStyles.FontUnfocus.g);
 	return 1;
 }
 
@@ -205,7 +200,7 @@ void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod)
 	}
 	_Buffer[i] = '\0';
 	assert(i == _Widget->Letters.Size);
-	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(g_GUIFonts->Font, _Buffer, g_GUIDefs.FontUnfocus));
+	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(g_GUIFonts->Font, _Buffer, g_GuiStyles.FontUnfocus));
 	SDL_QueryTexture(_Widget->TextSurface, NULL, NULL, &_Widget->TextRect.w, &_Widget->TextRect.h);
 	if(_Widget->TextRect.w> _Widget->Widget.Rect.w)
 		_Widget->TextRect.w= _Widget->Widget.Rect.w;

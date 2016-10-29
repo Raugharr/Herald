@@ -191,9 +191,10 @@ int LuaCreateLabel(lua_State* _State) {
 	const char* _Text = luaL_checkstring(_State, 2);
 	SDL_Rect _Rect;
 	SDL_Surface* _Surface = NULL;
-	struct Font* _Font = g_GUIDefs.Font;
+	struct Font* _Font = g_GuiStyles.Font;
 	const char* _Name = NULL;
 	int _Size = 0;
+	SDL_Color _White = {255, 255, 255};
 
 	if(lua_gettop(_State) >= 4) {
 		_Name = luaL_checkstring(_State, 3);
@@ -205,7 +206,7 @@ int LuaCreateLabel(lua_State* _State) {
 			_Font = _Font->Next;
 		}
 	}
-	if((_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus))) == NULL) {
+	if((_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _White/*g_GuiStyles.FontUnfocus*/))) == NULL) {
 		_Rect.w = 32;
 		_Rect.h = 32;
 	} else {
@@ -227,9 +228,9 @@ int LuaCreateButton(lua_State* _State) {
 	SDL_Color _Color = {255, 255, 255, 255};
 	luaL_argcheck(_State, 3, lua_isfunction(_State, 3), "Third argument for CreateButton is not a functon");
 
-	struct Font* _Font = g_GUIDefs.Font;
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color/*g_GUIDefs.FontUnfocus*/));
-	//SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	struct Font* _Font = g_GuiStyles.Font;
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color/*g_GuiStyles.FontUnfocus*/));
+	//SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GuiStyles.FontUnfocus));
 	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
 	struct Button* _Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
 
@@ -247,7 +248,7 @@ int LuaCreateTable(lua_State* _State) {
 	int _Columns = luaL_checkinteger(_State, 3);
 	struct Margin _Margins = {0, 0, 0, 0};
 	struct Table* _Table = NULL;
-	struct Font* _Font = g_GUIDefs.Font;
+	struct Font* _Font = g_GuiStyles.Font;
 	SDL_Rect _Rect = {0, 0, 0, 0};
 
 	if(lua_gettop(_State) == 4)
@@ -270,7 +271,7 @@ int LuaCreateTable(lua_State* _State) {
 int LuaCreateTextBox(lua_State* _State) {
 	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
 	struct TextBox* _TextBox = NULL;
-	struct Font* _Font = g_GUIDefs.Font;
+	struct Font* _Font = g_GuiStyles.Font;
 
 	if(_Parent == NULL)
 		LuaClassError(_State, 1, LOBJ_CONTAINER);
@@ -357,9 +358,9 @@ int LuaCreateWorldRender(lua_State* _State) {
 */
 
 int LuaBackgroundColor(lua_State* _State) {
-	g_GUIDefs.Background.r = luaL_checkint(_State, 1);
-	g_GUIDefs.Background.g = luaL_checkint(_State, 2);
-	g_GUIDefs.Background.b = luaL_checkint(_State, 3);
+	g_GuiStyles.Background.r = luaL_checkint(_State, 1);
+	g_GuiStyles.Background.g = luaL_checkint(_State, 2);
+	g_GuiStyles.Background.b = luaL_checkint(_State, 3);
 	return 0;
 }
 
@@ -382,16 +383,16 @@ int LuaGetFont(lua_State* _State) {
 }
 
 int LuaDefaultFont(lua_State* _State) {
-	if(g_GUIDefs.Font != NULL) {
-		g_GUIDefs.Font->RefCt = -1;
-		DestroyFont(g_GUIDefs.Font);
+	if(g_GuiStyles.Font != NULL) {
+		g_GuiStyles.Font->RefCt = -1;
+		DestroyFont(g_GuiStyles.Font);
 	}
-	g_GUIDefs.Font = LuaCheckClass(_State, 1, LOBJ_FONT);
+	g_GuiStyles.Font = LuaCheckClass(_State, 1, LOBJ_FONT);
 	return 0;
 }
 
 int LuaGetDefaultFont(lua_State* _State) {
-	LuaCtor(_State, g_GUIDefs.Font, LOBJ_FONT);
+	LuaCtor(_State, g_GuiStyles.Font, LOBJ_FONT);
 	return 1;
 }
 
@@ -473,10 +474,15 @@ int LuaMenuAsContainer(lua_State* _State) {
 	return 1;
 }
 
-void GuiSetMenu(const char* _Menu, lua_State* _State) {
+void GuiSetMenu(lua_State* _State, const char* _Menu) {
+	char* _NameCopy = NULL;
+
 	lua_settop(_State, 0);
 	lua_pushstring(_State, _Menu);
 	LuaSetMenu_Aux(_State);
+	_NameCopy = calloc(strlen(_Menu) + 1, sizeof(char));
+	strcpy(_NameCopy, _Menu);
+	StackPush(&g_GUIStack, _NameCopy);
 }
 
 int LuaSetMenu(lua_State* _State) {
@@ -566,14 +572,14 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	if(lua_toboolean(_State, -1) == 0) {
 		g_Focus = CreateGUIFocus();
 		g_GUIEvents = CreateGUIEvents();
-		_Font = g_GUIDefs.Font;
+		_Font = g_GuiStyles.Font;
 		while(_Font != NULL) {
 			_Prev = _Font;
 			_Font = _Font->Next;
 			/*NOTE: widgets might stay alive when another menu is brought up,
 		 	* we should only delete fonts to widgets that are dead.
 		 	*/
-			if(_Prev != g_GUIDefs.Font)
+			if(_Prev != g_GuiStyles.Font)
 				DestroyFont(_Prev);
 		}
 	} else {
@@ -640,8 +646,6 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		return luaL_error(_State, "Init is not a function in menu %s.", _Name);
 	}
 	lua_pushvalue(_State, SETMENU_TABLE);
-	//lua_pushinteger(_State, _Width);
-	//lua_pushinteger(_State, _Height);
 	lua_pushvalue(_State, SETMENU_DATA);
 	if(LuaCallFunc(_State, 2, 0, 0) == 0) {
 		if(g_GUIStack.Size > 0) {
@@ -650,6 +654,9 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		return luaL_error(_State, "%s.Init function call failed", _Name);
 	}
 	lua_getglobal(_State, _Name);
+	lua_pushstring(_State, "__input");
+	lua_pushvalue(_State, SETMENU_DATA);
+	lua_rawset(_State, -3);
 	lua_pushstring(_State, "__savestate");
 	lua_rawget(_State, -2);
 	if(lua_type(_State, -1) != LUA_TBOOLEAN) {
@@ -777,6 +784,7 @@ int LuaCloseMenu(lua_State* _State) {
 	GuiClear(_State);
 	DestroyFocus(g_Focus);
 	DestroyGUIEvents(g_GUIEvents);
+	free(StackPop(&g_GUIStack));
 	no_destroy:
 	g_Focus = NULL;
 	g_GUIEvents = NULL;
@@ -801,12 +809,12 @@ void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _Gree
 }
 
 int LuaSetFocusColor(lua_State* _State) {
-	LuaSetColor(_State, &g_GUIDefs.FontFocus.r, &g_GUIDefs.FontFocus.g, &g_GUIDefs.FontFocus.b);
+	LuaSetColor(_State, &g_GuiStyles.FontFocus.r, &g_GuiStyles.FontFocus.g, &g_GuiStyles.FontFocus.b);
 	return 0;
 }
 
 int LuaSetUnfocusColor(lua_State* _State) {
-	LuaSetColor(_State, &g_GUIDefs.FontUnfocus.r, &g_GUIDefs.FontUnfocus.g, &g_GUIDefs.FontUnfocus.b);
+	LuaSetColor(_State, &g_GuiStyles.FontUnfocus.r, &g_GuiStyles.FontUnfocus.g, &g_GuiStyles.FontUnfocus.b);
 	return 0;
 }
 
@@ -974,7 +982,7 @@ int LuaWidgetId(lua_State* _State) {
 
 int LuaWidgetSetX(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+	SDL_Point _Pos = {0, _Widget->Rect.y};
 
 	_Pos.x = luaL_checkinteger(_State, 2);
 	_Widget->SetPosition(_Widget, &_Pos);
@@ -984,7 +992,7 @@ int LuaWidgetSetX(lua_State* _State) {
 
 int LuaWidgetGetX(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+	SDL_Point _Pos = {_Widget->Rect.x, 0};
 
 	_Pos.y = luaL_checkinteger(_State, 2);
 	_Widget->SetPosition(_Widget, &_Pos);
@@ -1207,7 +1215,7 @@ int LuaContainerParagraph(lua_State* _State) {
 	int _Ct = 0;
 
 	if(lua_gettop(_State) < 3)
-		_Font = g_GUIDefs.Font;
+		_Font = g_GuiStyles.Font;
 	else
 		_Font = LuaCheckClass(_State, 3, LOBJ_FONT);
 	_Rect.w = TTF_FontFaceIsFixedWidth(_Font->Font);
@@ -1252,7 +1260,7 @@ int LuaContainerParagraph(lua_State* _State) {
 			strncpy(_Buffer, _String, _Ct);
 			_Buffer[_Ct] = '\0';
 			_Label = CreateLabel();
-			_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GUIDefs.FontUnfocus);
+			_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, g_GuiStyles.FontUnfocus);
 			_Rect.w = _Surface->w;
 			_Rect.h = _Surface->h;
 			_PRect.h += _Rect.h;
@@ -1273,7 +1281,7 @@ int LuaLabelSetText(lua_State* _State) {
 	struct Label* _Label = LuaCheckClass(_State, 1, LOBJ_LABEL);
 	const char* _Text = luaL_checkstring(_State, 2);
 
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(g_GUIDefs.Font->Font, _Text, g_GUIDefs.FontUnfocus));
+	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(g_GuiStyles.Font->Font, _Text, g_GuiStyles.FontUnfocus));
 	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(_Surface));
 	SDL_SetTextureBlendMode(_Label->Text, SDL_BLENDMODE_ADD);
 	return 0;

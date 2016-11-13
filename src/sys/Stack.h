@@ -6,6 +6,8 @@
 #ifndef __STACK_H
 #define __STACK_H
 
+#include "Log.h"
+
 #include <stdint.h>
 
 #ifndef NULL
@@ -30,5 +32,11 @@ void StackPush(struct Stack* _Stack, void* _Data);
 void* StackPop(struct Stack* _Stack);
 void* StackGet(struct Stack* _Stack, int _Index);
 int StackNodeLen(const struct StackNode* _Node);
+
+static inline void* StackTop(struct Stack* _Stack) {
+	if(_Stack->Size == 0)
+		return NULL;
+	return _Stack->Top[_Stack->Size - 1];
+}
 
 #endif

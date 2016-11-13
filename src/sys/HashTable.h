@@ -13,12 +13,12 @@
  * instead of it always being passed.
  */
 struct HashItr {
-	int Index;
+	uint32_t Index;
 	struct HashNode* Node;
 };
 
 struct HashItrCons {
-	int Index;
+	uint32_t Index;
 	const struct HashNode* const Node;
 };
 
@@ -44,6 +44,7 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair);
  * Removes all elements from _Hash.
  */
 void HashClear(struct HashTable* _Hash);
+void HashResize(struct HashTable* _Hash);
 /**
  * Removes element _Key from _Hash.
  * Returns 1 if _Key was removed and 0 if _Key was not found.

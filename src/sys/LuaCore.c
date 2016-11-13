@@ -873,6 +873,7 @@ void* LuaTestClass(lua_State* _State, int _Index, int _Class) {
 void* LuaCheckClass(lua_State* _State, int _Index, int  _Class) {
 	int _Pop = 4;
 
+	_Index = lua_absindex(_State, _Index);
 	lua_rawgeti(_State, LUA_REGISTRYINDEX, g_LuaClassTable[_Class]);
 	if(lua_getmetatable(_State, _Index) == 0) {
 		lua_pop(_State, 1);

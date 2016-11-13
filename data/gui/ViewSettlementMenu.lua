@@ -24,8 +24,8 @@ function DisplayBigGuys(Menu, Left, Right)
 	
 	Right:Clear()
 	Table = Right:CreateTable(4, 16, 0, {0, 0, 0, 0})
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name")
 	Table:CreateLabel("Action");
 	Table:CreateLabel("Our Opinion");
@@ -34,7 +34,7 @@ function DisplayBigGuys(Menu, Left, Right)
 		if Guy ~= World:GetPlayer() then
 			Table:CreateButton(Guy:GetPerson():GetName(),
 				function()
-					GUI.SetMenu("ViewPersonMenu", {Person = Guy:GetPerson()})
+					Gui.SetMenu("ViewPersonMenu", {Person = Guy:GetPerson()})
 				end)
 			Agent = Guy:GetAgent()
 			if Agent ~= nil then
@@ -49,9 +49,9 @@ function DisplayBigGuys(Menu, Left, Right)
 end
 
 function Menu.Init(Menu, Data)
-	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu)
-	Menu.Left = GUI.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
-	Menu.Right = GUI.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
+	Menu.TitleCon = Gui.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu)
+	Menu.Left = Gui.VerticalContainer(0, 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
+	Menu.Right = Gui.VerticalContainer((Menu:GetWidth() / 2), 30, (Menu:GetWidth() / 2), (Menu:GetHeight() - 30), Menu)
 	Menu.Title = Menu.TitleCon:CreateLabel("View Settlement")
 	Menu.Settlement = Data["Settlement"]
 	
@@ -80,7 +80,7 @@ function Menu.Init(Menu, Data)
 		end)
 	Menu.Left:CreateButton("Bulitin",
 		function()
-			GUI.CreateWindow("SettlementBulitinMenu", Data, 512, 512)
+			Gui.CreateWindow("SettlementBulitinMenu", Data, 512, 512)
 		end)
 	Menu.Left:CreateButton("Close",
 		function()

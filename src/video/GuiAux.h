@@ -40,7 +40,6 @@ struct Button {
 	struct Widget Widget;
 	int (*SetText)(struct Widget*, SDL_Texture*);
 	SDL_Texture* Text;
-	SDL_Color Background;
 };
 
 /*
@@ -51,7 +50,7 @@ struct GameWorldWidget {
 */
 
 struct Label* CreateLabel(void);
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, const struct GuiStyle* _Style);
 void DestroyLabel(struct Label* _Text, lua_State* _State);
 int LabelOnDraw(struct Widget* _Widget);
 int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
@@ -65,13 +64,13 @@ void ButtonSetClickable(struct Button* _Button, int _Clickable);
 
 struct Table* CreateTable(void);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-		int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font);
+		int _Spacing, int _Columns, int _Rows, struct Font* _Font);
 void DestroyTable(struct Table* _Table, lua_State* _State);
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 int TableHorzFocChange(const struct Container* _Container);
 
 struct ContextItem* CreateContextItem(void);
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing);
 int ContextItemOnDraw(struct ContextItem* _Container);
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);

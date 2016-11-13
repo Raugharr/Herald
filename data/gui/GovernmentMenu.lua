@@ -4,8 +4,8 @@ Menu.moveable = true;
 function DisplayPolicyOptions(Menu, Right, Pol)
 	Right:Clear()
 	for k, Cat in ipairs(Pol:Options()) do
-		local CatCont = GUI.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
-		local CatPol = GUI.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
+		local CatCont = Gui.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
+		local CatPol = Gui.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
 		CatCont:CreateLabel(Cat.Name)
 		for j, Opt in ipairs(Cat) do
 			if Menu.Government:GetPolicyCategory(Pol, k) ~= j then
@@ -91,7 +91,7 @@ function DisplayGovernment(Menu, Left, Right)
 	Left:Clear()
 	Right:Clear()
 
-	local TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth() / 2, 30, Menu.Left)
+	local TitleCon = Gui.HorizontalContainer(0, 0, Menu:GetWidth() / 2, 30, Menu.Left)
 	local Title = TitleCon:CreateLabel("Government")
 
 	TitleCon:SetFocus(false)
@@ -107,13 +107,13 @@ function DisplayGovernment(Menu, Left, Right)
 		function()
 			DisplayAppointments(Menu, Left, Right)
 		end)
-	Menu.Left:CreateButton("Back", GUI.PopMenu)
+	Menu.Left:CreateButton("Back", Gui.PopMenu)
 end
 
 function Menu.Init(Menu, Data)
 	Menu.Government = Data["Settlement"]
-	Menu.Left = GUI.VerticalContainer(0, 0, Menu:GetWidth() / 2, Menu:GetHeight(), Menu)
-	Menu.Right = GUI.VerticalContainer(Menu:GetWidth() / 2, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
+	Menu.Left = Gui.VerticalContainer(0, 0, Menu:GetWidth() / 2, Menu:GetHeight(), Menu)
+	Menu.Right = Gui.VerticalContainer(Menu:GetWidth() / 2, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
 	DisplayGovernment(Menu, Menu.Left, Menu.Right)	
 end
 

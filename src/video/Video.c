@@ -150,23 +150,12 @@ struct Font* CreateFont(const char* _Name, int _Size) {
 	_Ret->Prev = NULL;
 	_Ret->Next = NULL;
 	_Ret->RefCt = 0;
-	if(g_GUIFonts != NULL) {
-		g_GUIFonts->Prev = _Ret;
-		_Ret->Next = g_GUIFonts;
-	}
-	g_GUIFonts = _Ret;
 	return _Ret;
 }
 
 void DestroyFont(struct Font* _Font) {
 	if(--_Font->RefCt > 0)
 		return;
-	if(_Font == g_GUIFonts) {
-		g_GUIFonts = _Font->Next;
-	} else {
-		_Font->Prev->Next = _Font->Next;
-		_Font->Next->Prev = _Font->Prev;
-	}
 	TTF_CloseFont(_Font->Font);
 	free(_Font->Name);
 	free(_Font);

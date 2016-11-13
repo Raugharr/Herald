@@ -17,13 +17,16 @@ struct Label* CreateLabel(void) {
 	return (struct Label*) malloc(sizeof(struct Label));
 }
 
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
+void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, const struct GuiStyle* _Style) {
+	_Widget->Widget.Style = _Style;
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->Widget.OnDraw = LabelOnDraw;
 	_Widget->Widget.OnDestroy = (void(*)(struct Widget*, lua_State*))DestroyLabel;
 	_Widget->SetText = LabelSetText;
 	_Widget->Text = _Text;
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GuiStyles.FontUnfocus.r, g_GuiStyles.FontUnfocus.b, g_GuiStyles.FontUnfocus.g);
+	//SDL_SetTextureBlendMode(_Widget->Text, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Style->FontUnfocus.r, _Style->FontUnfocus.g, _Style->FontUnfocus.b);
+	//SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, 255, 215, 0);
 }
 
 void DestroyLabel(struct Label* _Text, lua_State* _State) {
@@ -56,14 +59,15 @@ struct Button* CreateButton(void) {
 }
 
 struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font) {
-	ConstructLabel((struct Label*)_Widget, _Parent, _Rect, _State, _Text, _Font); //Only Temporary
+	ConstructLabel((struct Label*)_Widget, _Parent, _Rect, _State, _Text, _Parent->Skin->Button); //Only Temporary
 	_Widget->Widget.OnDraw = ButtonOnDraw;
-	_Widget->Background.r = 0x80;
-	_Widget->Background.g = 0x80;
-	_Widget->Background.b = 0x80;
-	_Widget->Background.a = 0xFF;
+	//_Widget->Background.r = 0x80;
+	//_Widget->Background.g = 0x80;
+	//_Widget->Background.b = 0x80;
+	//_Widget->Background.a = 0xFF;
 	_Widget->Widget.OnFocus = ButtonOnFocus;
 	_Widget->Widget.OnUnfocus = ButtonOnUnFocus;
+	_Widget->Widget.Style = _Parent->Skin->Button;
 	return _Widget;
 }
 
@@ -74,20 +78,22 @@ struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point) {
 		return NULL;
 	}
 	//GetBlendValue(&g_GuiStyles.FontUnfocus, &g_GuiStyles.FontFocus, &_Out);
-	_Out = g_GuiStyles.FontFocus;
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.b, _Out.g);
+	_Out = _Widget->Style->FontFocus;
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Out.r, _Out.g, _Out.b);
 	return _Widget;
 }
 
 int ButtonOnUnFocus(struct Widget* _Widget) {
-	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, g_GuiStyles.FontUnfocus.r, g_GuiStyles.FontUnfocus.b, g_GuiStyles.FontUnfocus.g);
+	const struct GuiStyle* _Style = _Widget->Style;
+
+	SDL_SetTextureColorMod(((struct Label*)_Widget)->Text, _Style->FontUnfocus.r, _Style->FontUnfocus.g, _Style->FontUnfocus.b);
 	return 1;
 }
 
 int ButtonOnDraw(struct Widget* _Widget) {
-	struct Button* _Button = (struct Button*) _Widget;
+	const struct GuiStyle* _Style = _Widget->Style;
 
-	SDL_SetRenderDrawColor(g_Renderer, _Button->Background.r, _Button->Background.b, _Button->Background.g, _Button->Background.a);
+	SDL_SetRenderDrawColor(g_Renderer, _Style->Background.r, _Style->Background.g, _Style->Background.b, _Style->Background.a);
 	SDL_RenderFillRect(g_Renderer, &_Widget->Rect);
 	return LabelOnDraw(_Widget);
 }
@@ -107,13 +113,13 @@ struct Table* CreateTable(void) {
 }
 
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-	int _Spacing, const struct Margin* _Margin, int _Columns, int _Rows, struct Font* _Font) {
+	int _Spacing, int _Columns, int _Rows, struct Font* _Font) {
 	int _THeight = TTF_FontHeight(_Font->Font) + _Spacing;
 	int _Size = _Rows * _Columns;
 	int i;
 
 	_Rect->h = _THeight * _Columns;
-	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
+	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing);
 	_Widget->Container.HorzFocChange = TableHorzFocChange;
 	_Widget->Container.ChildrenSz = _Columns * _Rows;
 	_Widget->Container.Children = calloc(_Widget->Container.ChildrenSz, sizeof(struct Widget*));
@@ -200,7 +206,7 @@ void TextBoxOnKey(struct TextBox* _Widget, unsigned int _Key, unsigned int _Mod)
 	}
 	_Buffer[i] = '\0';
 	assert(i == _Widget->Letters.Size);
-	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(g_GUIFonts->Font, _Buffer, g_GuiStyles.FontUnfocus));
+	_Widget->TextSurface = SurfaceToTexture(TTF_RenderText_Solid(_Widget->Widget.Style->Font->Font, _Buffer, _Widget->Widget.Style->FontUnfocus));
 	SDL_QueryTexture(_Widget->TextSurface, NULL, NULL, &_Widget->TextRect.w, &_Widget->TextRect.h);
 	if(_Widget->TextRect.w> _Widget->Widget.Rect.w)
 		_Widget->TextRect.w= _Widget->Widget.Rect.w;
@@ -218,8 +224,8 @@ struct ContextItem* CreateContextItem(void) {
 	return (struct ContextItem*) malloc(sizeof(struct ContextItem));
 }
 
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
-	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing, _Margin);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing) {
+	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing);
 	_Widget->Container.Widget.OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
 	_Widget->Container.Widget.OnFocus = (struct Widget* (*)(struct Widget*, const SDL_Point*))ContextItemOnFocus;
 	_Widget->Container.Widget.OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;

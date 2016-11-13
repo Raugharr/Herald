@@ -1,16 +1,40 @@
-function GUI.Init()
-	GUI.SetFont(GUI.GetFont("Timeless.ttf", 18))
-	--GUI.SetFocusColor(101, 101, 101)
-	--GUI.SetFocusColor(0, 255, 0);
-	GUI.SetFocusColor(50, 50, 50)
-	GUI.SetUnfocusColor(169, 169, 169)
-	--GUI.BackgroundColor(245, 62, 5)
-	GUI.SetMenu("MainMenu")
+function Gui.Init()
+	--GUI.SetFont(GUI.GetFont("Timeless.ttf", 18))
+	--GUI.SetUnfocusColor(188, 188, 188)
+	--GUI.SetUnfocusColor(198, 198, 198)
+	--GUI.SetUnfocusColor(204, 204, 204)
+	--GUI.SetFocusColor(255, 255, 255)
+	Gui.SetMenu("MainMenu")
 end
 
---[[GUI.Theme {
+Gui.LoadSkin {
 	Name = "Default",
-	Font = Font("Timeless.ttf", 18),
-	FocusColor = Color(0, 163, 118),
-	UnfocusColor = Color(169, 169, 169)
-}--]]
+	Default = {
+		--Name = Gui.Skin.Default,
+		Font = Gui.Font("Timeless.ttf", 14),
+		--FocusColor = Gui.Color(255, 255, 255),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(36, 24, 14)
+	},
+	Button = {
+		--Name = Gui.Skin.Default,
+		Font = Gui.Font("Timeless.ttf", 18),
+		FocusColor = Gui.Color(255, 215, 0),
+
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(128, 128, 128)
+	},
+	DefaultSkin = true
+}
+
+Gui.LoadSkin { 
+	Name = "Header",
+	Default = {
+		Font = Gui.Font("Plain Germanica.ttf", 16),
+		FocusColor = Gui.Color(31, 31, 107),
+		--UnfocusColor = Gui.Color(31, 31, 107),
+		UnfocusColor = Gui.Color(255, 255, 255),
+		Background = Gui.Color(36, 24, 14)
+	}
+}

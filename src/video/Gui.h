@@ -7,6 +7,8 @@
 
 #include "Video.h"
 
+#include "../sys/HashTable.h"
+
 #include <inttypes.h>
 #include <stdbool.h>
 
@@ -25,9 +27,16 @@ typedef void(*GuiOnKey) (struct Widget*, unsigned int, unsigned int);
  */
 struct GUIFocus {
 	const struct Container* Parent;
-	int Index;
-	int Id;
+	uint32_t Index;
+	uint32_t Id;
 	struct GUIFocus* Prev;
+};
+
+struct Margin {
+	int32_t Top;
+	int32_t Left;
+	int32_t Right;
+	int32_t Bottom;
 };
 
 struct GUIEvents {
@@ -37,35 +46,31 @@ struct GUIEvents {
 	int32_t Size;
 };
 
-struct GUIDef {
+struct GuiStyle {
+	uint32_t Name;
 	struct Font* Font;
 	SDL_Color FontFocus;
 	SDL_Color FontUnfocus;
 	SDL_Color Background;
+	struct Margin Margins;
 };
 
-/*struct GuiTheme {
-	char Name[GUITHEME_NAMESZ];
-	SDL_Color FocusColor;
-	SDL_Color UnfocusColor;
-	SDL_Color FocusBack;
-	SDL_Color UnfocusBack;
-};*/
+struct GuiSkin {
+	const char* Name;
+	struct GuiStyle* Label;
+	struct GuiStyle* Button;
+	struct GuiStyle* Table;
+	struct GuiStyle* Container;
+};
 
-extern int g_GUIId;
+extern uint32_t g_GUIId;
 extern int g_GUIMenuChange;
+extern struct HashTable g_GuiSkins;
+extern struct GuiSkin* g_GuiSkinDefault;
+extern struct GuiSkin* g_GuiSkinCurr;
 extern struct GUIFocus* g_Focus;
 extern struct GUIEvents* g_GUIEvents;
-extern struct GUIDef g_GUIDefs;
-extern struct Font* g_GUIFonts;
 extern struct Stack g_GUIStack;
-
-struct Margin {
-	int32_t Top;
-	int32_t Left;
-	int32_t Right;
-	int32_t Bottom;
-};
 
 struct Area {
 	int32_t w;
@@ -92,6 +97,7 @@ struct Widget {
 	bool IsVisible;
 	bool CanFocus;
 	bool IsDraggable;
+	const struct GuiStyle* Style;
 };
 
 struct Container {
@@ -104,8 +110,7 @@ struct Container {
 	uint16_t ChildrenSz;
 	uint16_t ChildCt;
 	int16_t Spacing;
-	SDL_Color Background;
-	struct Margin Margins;
+	const struct GuiSkin* Skin;
 };
 
 struct Container* CreateContainer(void);
@@ -120,7 +125,7 @@ void GuiEmpty();
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
-void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);

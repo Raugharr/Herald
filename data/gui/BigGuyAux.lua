@@ -1,5 +1,5 @@
 function BGStatsContainer(Guy)
-	local Container = GUI.VerticalContainer(0, 0, 1000, 1000) --FIXME: shouldnt need to use a fixed max width and height.
+	local Container = Gui.VerticalContainer(0, 0, 1000, 1000) --FIXME: shouldnt need to use a fixed max width and height.
 
 	Container:CreateLabel("Combat: " .. Guy:GetCombat());
 	Container:CreateLabel("Strength: " .. Guy:GetStrength());
@@ -27,9 +27,11 @@ end
 
 function CreatePersonTable(Parent, Cols)
 	local Table = Parent:CreateTable(3, Cols + 1)
-
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	local Skin = Parent:GetSkin()
+	local Font = Skin:Table():GetFont()
+	
+	Table:SetCellWidth(Font:Width() * 8)
+	Table:SetCellHeight(Font:Height())
 	Table:CreateLabel("Name")
 	Table:CreateLabel("Age")
 	Table:CreateLabel("Gender")
@@ -39,8 +41,8 @@ end
 function CreateWarriorTable(Parent, Cols)
 	local Table = Parent:CreateTable(2, Cols + 1)
 
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name")
 	Table:CreateLabel("Age")
 	return Table
@@ -64,8 +66,8 @@ function CreateAnimalTable(Parent, Cols)
 	local Table = Parent:CreateTable(4, Cols + 1)
 
 
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name")
 	Table:CreateLabel("Nutrition")
 	Table:CreateLabel("Age")
@@ -76,8 +78,8 @@ end
 function CreateRelationTable(Parent, Cols)
 	local Table = Parent:CreateTable(2, Cols + 1)
 
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Action");
 	Table:CreateLabel("Modifier");
 	return Table

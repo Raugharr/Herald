@@ -1,8 +1,8 @@
 function Menu.Init(Menu, Data)
 	local Table = Menu:CreateTable(4, 16)
 
-	Table:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Table:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Table:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Table:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Table:CreateLabel("Name");
 	Table:CreateLabel("Owner");
 	Table:CreateLabel("Days Left");

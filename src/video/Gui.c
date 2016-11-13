@@ -18,12 +18,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rect.h>
 
-struct HashTable g_GuiStyles = {0};
+struct HashTable g_GuiSkins = {0};
+struct GuiSkin* g_GuiSkinDefault = NULL;
+struct GuiSkin* g_GuiSkinCurr = NULL;
 int g_GUIMenuChange = 0;
 uint32_t g_GUIId = 0;
 struct GUIFocus* g_Focus = NULL;
 struct GUIEvents* g_GUIEvents = NULL;
-struct Font* g_GUIFonts = NULL;
 struct Stack g_GUIStack = {NULL, 0};
 struct LinkedList g_GuiZBuff = {0, NULL, NULL};
 
@@ -75,6 +76,7 @@ void GuiEmpty() {
 	LnkLstClear(&g_GuiZBuff);
 }
 
+
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	_Widget->Id = NextGUIId();
 	_Widget->IsDraggable = 0;
@@ -97,6 +99,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->Rect.h = _Rect->h;
 	_Widget->OnDrag = WidgetOnDrag;
 	_Widget->Clickable = 1;
+	_Widget->Parent = NULL;
 	if(_Parent != NULL) {
 		WidgetSetParent(_Parent, _Widget);
 		if(WidgetCheckVisibility(_Widget) == 0) {
@@ -110,7 +113,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	}
 }
 
-void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin) {
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
@@ -125,23 +128,20 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->NewChild = NULL;
 	_Widget->RemChild = DynamicRemChild;
 	_Widget->Spacing = _Spacing;
-	_Widget->Margins.Top = _Margin->Top;
-	_Widget->Margins.Left = _Margin->Left;
-	_Widget->Margins.Right = _Margin->Right;
-	_Widget->Margins.Bottom = _Margin->Bottom;
 	_Widget->VertFocChange = 1;
 	_Widget->HorzFocChange = ContainerHorzFocChange;
 	_Widget->Widget.OnDebug = (void(*)(const struct Widget*))ContainerOnDebug;
 	_Widget->Widget.OnDrag = (struct Widget*(*)(struct Widget*, const SDL_Point*))ContainerOnDrag;
-	_Widget->Background.r = 0;
-	_Widget->Background.g = 0;
-	_Widget->Background.b = 0;
-	_Widget->Background.a = 0xFF;
+	//if(_Parent == NULL)
+		_Widget->Skin = g_GuiSkinCurr;
+	//else
+	//	_Widget->Skin = _Parent->Skin;
+	_Widget->Widget.Style = _Widget->Skin->Container;
 }
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos) {
-	int32_t _X = _Parent->Margins.Left;// + _Parent->Widget.Rect.x;
-	int32_t _Y = _Parent->Margins.Top;// + _Parent->Widget.Rect.y;
+	int32_t _X = 0;//_Parent->Widget.Style->Margins.Left;
+	int32_t _Y = 0;//_Parent->Widget.Style->Margins.Top;
 
 	for(int i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
 		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
@@ -169,6 +169,11 @@ struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point
  * FIXME: Check if _Child already has a parent and if it does delete it from the old parent.
  */
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
+	if(_Child->Parent != NULL) {
+		struct Container* _OldParent = _Child->Parent;
+
+		_OldParent->RemChild(_OldParent, _Child);
+	}
 	if(_Parent->Children == NULL) {
 		_Parent->Children = calloc(2, sizeof(struct Widget*));
 		memset(_Parent->Children, 0, sizeof(struct Widget*) * 2);
@@ -237,7 +242,11 @@ void DestroyContainer(struct Container* _Container, lua_State* _State) {
 int ContainerOnDraw(struct Container* _Container) {
 	struct Widget* _Widget = NULL;
 
-	SDL_SetRenderDrawColor(g_Renderer, _Container->Background.r, _Container->Background.g, _Container->Background.b, _Container->Background.a);
+	SDL_SetRenderDrawColor(g_Renderer,
+		_Container->Widget.Style->Background.r, 
+		_Container->Widget.Style->Background.g, 
+		_Container->Widget.Style->Background.b, 
+		_Container->Widget.Style->Background.a);
 	SDL_RenderFillRect(g_Renderer, &_Container->Widget.Rect);
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		_Widget = _Container->Children[i];
@@ -266,18 +275,21 @@ int MenuOnDraw(struct Container* _Container) {
 void ContainerSetPosition(struct Container* _Container, const struct SDL_Point* _Point) {
 	struct Widget* _Widget = NULL;
 	//SDL_Point _Diff = {_Point->x - _Container->Widget.Rect.x, _Point->y - _Container->Widget.Rect.y};
-	SDL_Point _WidgetPos;
+	SDL_Point _WidgetPos = {0, 0};
 	SDL_Point _OldPos = {_Container->Widget.Rect.x, _Container->Widget.Rect.y};
+	SDL_Point _Offset = {0, 0};
 
-	_Container->Widget.Rect.x = _Container->Widget.Parent->Widget.Rect.x + _Point->x;
-	_Container->Widget.Rect.y = _Container->Widget.Parent->Widget.Rect.y + _Point->y;
+	if(_Container->Widget.Parent != NULL) {
+		_Offset.x = _Container->Widget.Parent->Widget.Rect.x;
+		_Offset.y = _Container->Widget.Parent->Widget.Rect.y;
+	}
+
+	_Container->Widget.Rect.x = _Offset.x + _Point->x;
+	_Container->Widget.Rect.y = _Offset.y + _Point->y;
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		_Widget = _Container->Children[i];
-		//_WidgetPos.x = _Widget->Rect.x + _Diff.x;
-		//_WidgetPos.y = _Widget->Rect.y +_Diff.y;
-		//minus by _Point.x .y?
-		_WidgetPos.x = _Widget->Rect.x - _OldPos.x;// + _Point->x;
-		_WidgetPos.y = _Widget->Rect.y - _OldPos.y;// + _Point->y;
+		_WidgetPos.x = _Widget->Rect.x - _OldPos.x;
+		_WidgetPos.y = _Widget->Rect.y - _OldPos.y;
 		_Widget->SetPosition(_Widget, &_WidgetPos);
 	}
 }

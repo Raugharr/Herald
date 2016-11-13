@@ -104,8 +104,8 @@ function DisplayManageHousehold(Menu, Left, Right)
 			end
 			Right = Left:CreateTable(5, 16)	
 			Right:SetX(401)
-			Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+			Right:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+			Right:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 			
 			Right:CreateLabel("Name"):SetFocus(false)
 			Right:CreateLabel("Yield"):SetFocus(false)
@@ -127,8 +127,8 @@ function DisplayManageHousehold(Menu, Left, Right)
 			end
 			Right = Left:CreateTable(2, 16)
 			Right:SetX(401)
-			Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+			Right:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+			Right:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 			Right:CreateLabel("Name"):SetFocus(false)
 			Right:CreateLabel("Quantity"):SetFocus(false)
 			for val in Menu.Person:GetFamily():GetGoods():Next() do
@@ -154,8 +154,8 @@ function DisplayManageHousehold(Menu, Left, Right)
 		end
 		Right = Left:CreateTable(3, 16)
 		Right:SetX(401)
-		Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-		Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+		Right:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+		Right:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 		Right:CreateLabel("Width"):SetFocus(false)
 		Right:CreateLabel("Length"):SetFocus(false)
 	end)
@@ -172,8 +172,14 @@ end
 
 function DisplayPersonStats(Menu, Left, Right)
 	local Person = Menu.Guy
+	local Container = BGStatsContainer(Menu.Guy)
+	local Skin = Right:GetSkin()
 
-	Right:AddChild(BGStatsContainer(Menu.Guy))
+	Right:SetSkin(Gui.GetSkin("Header"))
+	Right:CreateLabel("Stats")
+	Right:SetSkin(Skin)
+	Right:AddChild(Container)
+	return Container
 end
 
 function DisplayFriends(Menu, Left, Right)
@@ -212,10 +218,17 @@ function DisplayFamily(Menu, Left, Right)
 	local Table = nil
 	local PersonTable = nil
 	local Guy = Menu.Guy
+	local Label = nil 
+	local Table = nil
+	local TempSkin = Right:GetSkin()
 
-	Right:Clear()
+	Right:SetSkin(Gui.GetSkin("Header"))
+	Label = Right:CreateLabel("Family members")
+	Right:SetSkin(TempSkin);
 	PersonTable = Menu.Person:GetFamily():GetPeople() 
-	FillPersonTable(CreatePersonTable(Right, #PersonTable), PersonTable)
+	Table = CreatePersonTable(Right, #PersonTable)
+	FillPersonTable(Table, PersonTable)
+	Label:SetX(Table:GetWidth() / 2 - Label:GetWidth() / 2)
 end
 
 function DisplayRecruitStats(Menu, Left, Right)
@@ -268,16 +281,8 @@ function DisplayViewPerson(Menu, Left, Right)
 				DisplayRecruitStats(Menu, Left, Right)
 			end)
 	end
-
-	Left:CreateButton("Stats", 
-		function()
-			Right:Clear()
-			DisplayPersonStats(Menu, Left, Right)
-		end)
-	Left:CreateButton("Family",
-		function()
-			DisplayFamily(Menu, Left, Right)
-		end)
+	Menu.Stats = DisplayPersonStats(Menu, Left, Right)
+	DisplayFamily(Menu, Left, Right)
 	Left:CreateButton("Friends",
 		function()
 			DisplayFriends(Menu, Left, Right)
@@ -310,7 +315,7 @@ function DisplayViewPerson(Menu, Left, Right)
 		end)
 	Left:CreateButton("Back",
 		function()
-			GUI.PopMenu()
+			Menu:Close()	
 		end)
 end
 
@@ -319,8 +324,8 @@ function Menu.Init(Menu, Person)
 	local Family = Person.Person:GetFamily()
 
 	Menu.Person = Person.Person
-	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
-	Menu.Display = GUI.VerticalContainer(401, 0, Menu:GetWidth(), Menu:GetHeight(), Menu) 
+	Menu.MenuBar = Gui.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
+	Menu.Display = Gui.VerticalContainer(401, 0, Menu:GetWidth(), Menu:GetHeight(), Menu) 
 	Menu.Description = Guy:GetName() .. " is of the family " .. Family:GetName() .. ". "
 		 .. "He owns " .. Family:GetBuildingCt() .. " buildings and " .. Family:GetAnimalCt() .. " animals."
 		.. "This family can currently feed itself for "

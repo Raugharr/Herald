@@ -18,9 +18,11 @@ typedef struct SDL_Surface SDL_Surface;
 		lua_pushstring((_State), (const char*)g_GUIStack.Top[g_GUIStack.Size]);		\
 		LuaSetMenu_Aux((_State));													\
 		}
+#define GuiLoadMenu(_State, _File) ((bool)(LuaLoadFile((_State), (_File), "Menu") == LUA_OK))
 
 struct Widget;
 struct GUIMessagePacket;
+typedef struct SDL_Color SDL_Color;
 typedef int(*GUIMessageFunc)(struct GUIMessagePacket*);
 
 extern struct LinkedList g_GUIMessageList;
@@ -52,16 +54,11 @@ int LuaMenuAsContainer(lua_State* _State);
 int LuaContextItem(lua_State* _State);
 //int LuaCreateWorldRender(lua_State* _State);
 
-int LuaBackgroundColor(lua_State* _State);
-int LuaGetFont(lua_State* _State);
-int LuaDefaultFont(lua_State* _State);
-int LuaGetDefaultFont(lua_State* _State);
-
 int LuaCreateWindow(lua_State* _State);
 
 int LuaCreateImage(lua_State* _State);
 
-void GuiSetMenu(const char* _Menu, lua_State* _State);
+void GuiSetMenu(lua_State* _State, const char* _Menu);
 /**
  * Lua function that takes one argument of type string.
  * Calls LuaSetMenu_Aux, then pushes the string onto g_GUIStack.
@@ -76,8 +73,7 @@ int LuaSetMenu(lua_State* _State);
 int LuaSetMenu_Aux(lua_State* _State);
 int LuaCloseMenu(lua_State* _State);
 void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr);
-int LuaSetFocusColor(lua_State* _State);
-int LuaSetUnfocusColor(lua_State* _State);
+int LuaGetFont(lua_State* _State);
 /*
  * Returns the reference id needed for WidgetOnEvent.
  * Only adds the callback to the list of callbacks, does not add it
@@ -113,10 +109,12 @@ int LuaWidgetGetParent(lua_State* _State);
 int LuaWidgetGetFocus(lua_State* _State);
 int LuaWidgetSetFocus(lua_State* _State);
 int LuaWidgetDestroy(lua_State* _State);
+int LuaWidgetSetStyle(lua_State* _State);
 int LuaContainerLeftOf(lua_State* _State);
 int LuaContainerRightOf(lua_State* _State);
 int LuaContainerAbove(lua_State* _State);
 int LuaContainerBelow(lua_State* _State);
+int LuaContainergetSkin(lua_State* _State);
 
 /**
  * Container functions
@@ -127,13 +125,14 @@ int LuaContainerSetChild(lua_State* _State);
 int LuaContainerGetChildCt(lua_State* _State);
 int LuaContainerGetChildren(lua_State* _State);
 int LuaContainerGetSpacing(lua_State* _State);
-int LuaContainerGetMargins(lua_State* _State);
 int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
 int LuaContainerClear(lua_State* _State);
 int LuaContainerClose(lua_State* _State);
 int LuaContainerShrink(lua_State* _State);
 int LuaContainerAddChild(lua_State* _State);
+int LuaContainerSetSkin(lua_State* _State);
+int LuaContainerGetSkin(lua_State* _State);
 
 /**
  * Label functions
@@ -181,5 +180,21 @@ void MessageBox(const char* _Text);
 void GuiSetParentHook(struct Container* _Container);
 struct Container* GuiGetParentHook(void);
 int LuaGuiClose(lua_State* _State);
+int LuaGuiSkin(lua_State* _State);
+void LuaColorToSDL(lua_State* _State, int _Index, SDL_Color* _Color);
+struct GuiStyle* LuaGuiStyle(lua_State* _State, int _Index);
+int LuaColor(lua_State* _State);
 
+int LuaGuiSetSkin(lua_State* _State);
+int LuaGuiGetSkin(lua_State* _State);
+int	LuaGuiStyleGetFont(lua_State* _State);
+int	LuaGuiStyleFontFocus(lua_State* _State);
+int	LuaGuiStyleFontUnfocus(lua_State* _State);
+int	LuaGuiStyleBackgroundColor(lua_State* _State);
+int	LuaGuiStyleMargins(lua_State* _State);
+int	LuaGuiSkinGetName(lua_State* _State);
+int	LuaGuiSkinLabel(lua_State* _State);
+int	LuaGuiSkinButton(lua_State* _State);
+int	LuaGuiSkinTable(lua_State* _State);
+int	LuaGuiSkinContainer(lua_State* _State);
 #endif

@@ -3,7 +3,7 @@ Menu.moveable = true
 
 function Menu.Init(Menu, Data)
 	local Loser = Data["Loser"]
-	Menu.Screen = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
+	Menu.Screen = Gui.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
 	if Null(Loser) == false then
 		Menu.Screen:Paragraph(Data["Winner"]:GetName() .. " has defeated " .. Loser:GetName() .. ".")
 		Menu.Screen:CreateButton("Kill " .. Loser:GetName(),

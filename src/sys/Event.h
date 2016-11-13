@@ -64,14 +64,14 @@ enum {
 	(_State)->KeyboardState = 0;
 
 struct KeyMouseState {
-	unsigned int MouseButton; /* Which button is pressed. */
-	unsigned int MouseState; /* Pressed or released. */
-	unsigned int MouseClicks;
-	unsigned int KeyboardButton; /* Which key is pressed. */
-	unsigned int KeyboardMod;
-	unsigned int MouseMove;
+	uint16_t MouseButton; /* Which button is pressed. */
+	uint16_t MouseState; /* Pressed or released. */
+	uint16_t MouseClicks;
+	uint16_t KeyboardButton; /* Which key is pressed. */
+	uint16_t KeyboardMod;
+	uint16_t MouseMove;
+	int16_t KeyboardState; /* SDL_PRESSED or SDL_RELEASED */
 	SDL_Point MousePos;
-	int KeyboardState; /* Pressed or released. */
 };
 
 struct WEvent {

@@ -12,6 +12,7 @@
 #include "LuaCore.h"
 #include "Log.h"
 
+#include "../video/Gui.h"
 #include "../video/Video.h"
 #include "../video/GuiLua.h"
 
@@ -30,7 +31,7 @@
 #define EVENTPOOL (1024)
 
 static int g_EventTypes[EVENT_SIZE];
-static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
+static struct KeyMouseState g_KeyMouseState = {0};//{0, 0, 0, 0, 0, 0, {0, 0}, 0};
 static struct RBTree* g_EventHooks[EVENT_SIZE];
 int g_EventId = 0;
 const char* g_EventNames[] = {
@@ -259,7 +260,28 @@ void Events() {
 			}
 		}
 	}
+	if(/*(g_KeyMouseState.KeyboardMod & KMOD_LCTRL) == KMOD_LCTRL && */g_KeyMouseState.KeyboardButton == SDLK_r && g_KeyMouseState.KeyboardState == SDL_RELEASED) {
+		const char* _GuiMenu = StackTop(&g_GUIStack);
+		char* _Menu = alloca(sizeof(char) * strlen(_GuiMenu));
+		char* _File = alloca(sizeof(char) * strlen(_GuiMenu) + 5);//+ 1 for \0 and 4 for .lua
 
+		chdir("data/gui");
+		strcpy(_Menu, _GuiMenu);
+		strcpy(_File, _Menu);
+		strcat(_File, ".lua");
+		if(GuiLoadMenu(g_LuaState, _File) == true) {
+			lua_settop(g_LuaState, 0);
+			LuaCloseMenu(g_LuaState);
+			lua_settop(g_LuaState, 0);
+			lua_pushstring(g_LuaState, _Menu);
+			lua_getglobal(g_LuaState, _Menu);
+			lua_pushstring(g_LuaState, "__input");
+			lua_rawget(g_LuaState, -2);
+			lua_remove(g_LuaState, -2);
+			LuaSetMenu(g_LuaState);
+		}
+		chdir("../..");
+	}
 	if(VideoEvents(&g_KeyMouseState) == 0 && g_GameWorld.IsPaused == 0)
 		GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
 }

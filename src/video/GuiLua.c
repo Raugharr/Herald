@@ -237,7 +237,6 @@ int LuaCreateButton(lua_State* _State) {
 
 	struct Font* _Font = _Parent->Skin->Button->Font;
 	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color));
-	//SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, g_GuiStyles.FontUnfocus));
 	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
 	struct Button* _Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
 
@@ -989,7 +988,8 @@ int LuaWidgetSetWidth(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
 	int _Width = luaL_checkinteger(_State, 2);
 
-	_Widget->Rect.w = _Width;
+	//_Widget->Rect.w = _Width;
+	WidgetSetWidth(_Widget, _Width);
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1003,9 +1003,9 @@ int LuaWidgetGetHeight(lua_State* _State) {
 
 int LuaWidgetSetHeight(lua_State* _State) {
 	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	int _Width = luaL_checkinteger(_State, 2);
+	int _Height = luaL_checkinteger(_State, 2);
 
-	_Widget->Rect.h = _Width;
+	WidgetSetHeight(_Widget, _Height);
 	lua_pushvalue(_State, 1);
 	return 1;
 }

@@ -449,6 +449,36 @@ void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, 
 	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;
 }
 
+void WidgetSetWidth(struct Widget* _Widget, int _Width) {
+	const struct Container* _Parent = _Widget->Parent;
+	const struct SDL_Rect* _Rect = NULL;
+
+	_Widget->Rect.w = _Width;
+	for(int i = 0; i < _Parent->ChildCt; ++i) {
+		if(_Parent->Children[i] == _Widget)
+			continue;
+		_Rect = &_Parent->Children[i]->Rect;
+		if(_Rect->x >= _Widget->Rect.x && _Rect->x + _Rect->w <= _Widget->Rect.x + _Widget->Rect.w) {
+			_Parent->Children[i]->Rect.x = _Widget->Rect.x + _Widget->Rect.w + 1;
+		}
+	}
+}
+
+void WidgetSetHeight(struct Widget* _Widget, int _Height) {
+	const struct Container* _Parent = _Widget->Parent;
+	const struct SDL_Rect* _Rect = NULL;
+
+	_Widget->Rect.h = _Height;
+	for(int i = 0; i < _Parent->ChildCt; ++i) {
+		if(_Parent->Children[i] == _Widget)
+			continue;
+		_Rect = &_Parent->Children[i]->Rect;
+		if(_Rect->y >= _Widget->Rect.y && _Rect->y + _Rect->h <= _Widget->Rect.y + _Widget->Rect.y) {
+			_Parent->Children[i]->Rect.y = _Widget->Rect.y + _Widget->Rect.h + 1;
+		}
+	}
+}
+
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos) {
 	struct Container* _Parent = _Widget->Parent;
 	

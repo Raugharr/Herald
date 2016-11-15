@@ -181,6 +181,8 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
  * GUI.EventIds which is needed in order for the callback to function.
  */
 void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
+void WidgetSetWidth(struct Widget* _Widget, int _Width);
+void WidgetSetHeight(struct Widget* _Widget, int _Height);
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos);
 struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
 void WidgetOnDebug(const struct Widget* _Widget);

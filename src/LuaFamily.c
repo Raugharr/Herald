@@ -276,8 +276,10 @@ int LuaFamilyGetPeople(lua_State* _State) {
 
 	if(_Family == NULL)
 		return LuaClassError(_State, 1, LOBJ_FAMILY);
-	lua_createtable(_State, FAMILY_PEOPLESZ, 0);
-	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
+	lua_createtable(_State, _Family->NumChildren + 2, 0);
+	for(int i = 0; i < _Family->NumChildren + 2; ++i) {
+		if(_Family->People[i] == NULL)
+			continue;
 		LuaCtor(_State, _Family->People[i], LOBJ_PERSON);
 		lua_rawseti(_State, -2, i + 1);
 	}

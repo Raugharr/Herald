@@ -22,16 +22,16 @@ enum {
 };
 
 struct Tile {
-	struct Resource* Image;
-	SDL_Rect Rect; //Area of sprite to render.
-	SDL_Rect SpritePos;//Where to render sprite.
+	SDL_Point SpritePos;//Where to render sprite.
 	SDL_Point TilePos;
-	float Forest;
-	float Unbuildable;
-	int Temperature;
+	uint8_t Forest : 4;
+	uint8_t Unbuildable : 4;
+	uint8_t TileVar; //Which variation the will render.
+	uint8_t Temperature;
+	uint8_t TileSheet;
 };
 
-struct Tile* CreateTile(struct MapRenderer* _Renderer, struct Resource* _Image, int _X, int _Y);
+struct Tile* CreateTile(struct MapRenderer* _Renderer, uint8_t _TileSheet, uint8_t _TileVar, int _X, int _Y);
 void DestroyTile(struct Tile* _Tile);
 void GetAdjPos(const SDL_Point* _Pos, SDL_Point* _Adj, int _TileDir);
 struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int _TileDir);
@@ -52,6 +52,9 @@ int TileGetDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End
  * _Radius how far this ring is from the center of the spiral ring.
  */
 int TileNextInRing(const SDL_Point* _Point, SDL_Point* _Adj, int _RingUsed, int _Radius);
+static inline void TileGetTilePos(const struct Tile* _Tile, SDL_Point* _Pos) {
+	*_Pos = _Tile->TilePos;
+}
 int TileNextRing(const SDL_Point* _Point, SDL_Point* _New, int _Radius);
 
 #endif

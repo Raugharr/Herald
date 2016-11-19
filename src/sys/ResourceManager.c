@@ -605,7 +605,7 @@ int ResourceExists(const char* _FilePath) {
 	return (HashSearch(&g_RsrMgr.ResourceTable, _FilePath) != NULL);
 }
 
-void* ResourceGetData(struct Resource* _Res) {
+void* ResourceGetData(const struct Resource* _Res) {
 	if(_Res == NULL)
 		return NULL;
 	return _Res->Data;

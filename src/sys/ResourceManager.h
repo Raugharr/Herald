@@ -108,6 +108,6 @@ struct FileTableEntry* NextFile(DIR* _Dir);*/
 void DestroyResource(struct Resource* _Resource);
 struct Resource* ResourceGet(const char* _FilePath);
 int ResourceExists(const char* _FilePath);
-void* ResourceGetData(struct Resource* _Res);
+void* ResourceGetData(const struct Resource* _Res);
 
 #endif

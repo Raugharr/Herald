@@ -8,13 +8,16 @@
 #include "Sprite.h"
 #include "Tile.h"
 #include "Video.h"
+
+#include "../sys/ResourceManager.h"
 #include "../sys/Math.h"
-#include "../Warband.h"
-#include "../Location.h"
 #include "../sys/Log.h"
 #include "../sys/LinkedList.h"
-#include "../World.h"
 #include "../sys/ResourceManager.h"
+
+#include "../Warband.h"
+#include "../Location.h"
+#include "../World.h"
 
 #include <SDL2/SDL_image.h>
 #include <math.h>
@@ -23,14 +26,10 @@
 struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize) {
 	struct MapRenderer* _Map = (struct MapRenderer*) malloc(sizeof(struct MapRenderer));
 
-	_Map->OddGrass = IMG_LoadTexture(g_Renderer, "data/graphics/grass.png");
-	_Map->Grass = IMG_LoadTexture(g_Renderer, "data/graphics/grass2.png");
-	_Map->Selector = IMG_LoadTexture(g_Renderer, "data/graphics/select.png");
-	_Map->Settlement = IMG_LoadTexture(g_Renderer, "data/graphics/settlement.png");
-	_Map->Warrior = IMG_LoadTexture(g_Renderer, "data/graphics/Warrior.png");
-
-	if(_Map->Grass == NULL)
-		Log(ELOG_WARNING, SDL_GetError());
+	_Map->TileSheets[0].TileFile = ResourceGet("grass.png");
+	_Map->TileSheets[0].Tiles = ResourceGetData(_Map->TileSheets[0].TileFile);
+	_Map->TileSheets[0].VarPos[0].x = 0;
+	_Map->TileSheets[0].VarPos[0].y = 0;
 
 	_Map->TileArea = _MapLength * _MapLength;
 	_Map->TileLength = _MapLength;
@@ -66,7 +65,7 @@ void DestroyMapRenderer(struct MapRenderer* _Map) {
 void MapLoad(struct MapRenderer* _Map) {
 	for(int y = 0; y < _Map->TileLength; ++y)
 		for(int x = 0; x < _Map->TileLength; ++x)
-			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, ResourceGet("grass.png"), x, y);
+			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, 0, 0, x, y);
 }
 
 struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen) {
@@ -124,14 +123,20 @@ void MapTileRenderRect(const struct MapRenderer* _Renderer, const SDL_Point* _Ti
 void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 	struct LinkedList _QuadList = {0, NULL, NULL};
 	struct LnkLst_Node* _Itr = NULL;
+	struct Tile* _Tile = NULL;
 	struct Sprite* _Sprite = NULL;
 	//SDL_Rect _Rect;
 
 	MapObjectsInRect(_Map, MAPRENDER_TILE, &_Map->Screen, &_QuadList);
 	_Itr = _QuadList.Front;
 	while(_Itr != NULL) {
-		_Sprite = (struct Sprite*)_Itr->Data;
-		SpriteOnDraw(_Sprite);
+		_Tile = (struct Tile*)_Itr->Data;
+
+		const struct TileSheet* _TileSheet = &_Map->TileSheets[_Tile->TileSheet]; 
+		SDL_Rect _Rect = {_TileSheet->VarPos[_Tile->TileVar].x, _TileSheet->VarPos[_Tile->TileVar].x, TILE_WIDTH, TILE_HEIGHT};
+		SDL_Rect _SpritePos = {_Tile->SpritePos.x, _Tile->SpritePos.y, TILE_WIDTH, TILE_HEIGHT};
+
+		SDL_RenderCopy(g_Renderer, _TileSheet->Tiles, &_Rect, &_SpritePos);
 		_Itr = _Itr->Next;
 	}
 	LnkLstClear(&_QuadList);
@@ -150,7 +155,7 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 void MapObjectsInRect(struct MapRenderer* _Renderer, int _Layer, const SDL_Rect* _Rect, struct LinkedList* _Data) {
 	if(_Layer < 0 || _Layer >= MAPRENDER_LAYERS)
 		return;
-	QTPointInRectangle(&_Renderer->RenderArea[_Layer], _Rect, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, _Data);
+	QTPointInRectangle(&_Renderer->RenderArea[_Layer], _Rect, (void(*)(const void*, SDL_Point*))TileGetTilePos, _Data);
 }
 
 const struct Tile* MapGetTileConst(const struct MapRenderer* const _Renderer, const SDL_Point* _Point) {

@@ -8,7 +8,10 @@
 #include "QuadTree.h"
 #include "AABB.h"
 
+#include <stdbool.h>
 #include <SDL2/SDL.h>
+
+#define TSHEET_TILES (25) 
 
 struct Tile;
 struct Army;
@@ -23,18 +26,28 @@ enum {
 	MAPRENDER_LAYERS
 };
 
+struct TileSheet {
+	const struct Resource* TileFile;
+	SDL_Texture* Tiles;
+	struct {
+		uint16_t x;
+		uint16_t y;	
+	} VarPos[TSHEET_TILES];
+};
+
 struct MapRenderer {
 	struct Tile** Tiles;
-	int TileLength;
-	int TileArea;
-	int IsRendering;
+	uint32_t TileLength;
+	uint32_t TileArea;
 	struct QuadTree RenderArea[MAPRENDER_LAYERS];
+	struct TileSheet TileSheets[8];
 	SDL_Rect Screen;
 	SDL_Texture* Grass;
 	SDL_Texture* OddGrass;
 	SDL_Texture* Selector;
 	SDL_Texture* Settlement;
 	SDL_Texture* Warrior;
+	bool IsRendering;
 };
 
 struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize);

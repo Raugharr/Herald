@@ -122,6 +122,13 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		if(g_HoverWidget == NULL || g_HoverWidget->Clickable == 0) {
 			return 0;
 		}
+			if(g_HoverWidget->Parent == NULL) {
+				_Container = (struct Container*) g_HoverWidget;
+			} else {
+				_Container = g_HoverWidget->Parent;
+				while(_Container->Widget.Parent != NULL)
+					_Container = _Container->Widget.Parent;
+			}
 			GuiZToTop(_Container);
 			if(g_HoverWidget->LuaOnClickFunc >= 0) {
 				LuaGuiGetRef(g_LuaState);

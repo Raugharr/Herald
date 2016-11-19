@@ -538,7 +538,7 @@ void GuiZToTop(struct Container* _Container) {
 	while(_Itr != NULL) {
 		if((struct Container*) _Itr->Data == _Container) {
 			LnkLstRemove(&g_GuiZBuff, _Itr);
-			LnkLstPushFront(&g_GuiZBuff, _Itr);
+			LnkLstPushFront(&g_GuiZBuff, _Container);
 			return;
 		}
 		_Itr = _Itr->Next;

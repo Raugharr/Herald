@@ -62,34 +62,6 @@
 #define LUAFILE_FAILED(_File) _File ".lua is empty or failed to load."
 
 struct GameWorld g_GameWorld = {0};
-/*struct GameWorld g_GameWorld = {
-		1,
-		0,
-		0,
-		NULL,
-		{NULL, NULL, NULL, NULL, {0, 0, 0, 0}, NULL},
-		NULL,
-		NULL,
-		{NULL, 0, NULL, NULL},
-		NULL,
-		{0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{NULL, 0, NULL, NULL},
-		{0, NULL, NULL},
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		{0},
-		{0},
-		0
-};*/
-
 static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
 		{(void(*)(void*))ArmyMove, ArmyPathNext, ArmyPathPrev, NULL},
 		{(void(*)(void*))BattleThink, BattleNext, BattlePrev, NULL}
@@ -154,7 +126,6 @@ void PopulateManor(struct GameWorld* _World, struct FamilyType** _FamilyTypes,
 	int _MaxFamilies = 0;
 	int _MaxFarmers = 0;
 	int _Count = 0;
-	float _BestGlory = 0;
 	struct Family* _Parent = NULL;
 	struct BigGuy* _Leader = NULL;
 	struct Settlement* _Settlement = NULL;
@@ -350,17 +321,6 @@ int IsPlayerGovernment(const struct GameWorld* _World, const struct Settlement* 
 	return (FamilyGetSettlement(_World->Player->Person->Family)->Government == _Settlement->Government);
 }
 
-struct WorldTile* CreateWorldTile() {
-	struct WorldTile* _Tile = (struct WorldTile*) malloc(sizeof(struct WorldTile));
-
-	_Tile->Temperature = 0;
-	return _Tile;
-
-}
-
-void DestroyWorldTile(struct WorldTile* _Tile) {
-	free(_Tile);
-}
 
 void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point, int _Radius, struct LinkedList* _List) {
 	SDL_Rect _Rect = {_Point->x - _Radius, _Point->y - _Radius, _Radius, _Radius};
@@ -582,8 +542,10 @@ bool LuaTableToHash(const char* _File, const char* _Table, struct HashTable* _Ha
 	struct LinkedList _List = LinkedList(); 
 	struct LnkLst_Node* _Itr = NULL;
 
-	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0)
+	if(LuaLoadList(g_LuaState, _File, _Table, _LoadFunc, _ListInsert, &_List) == 0) {
+		Log(ELOG_ERROR, "Unable to load table %s from file %s.", _Table, _File);
 		return false;
+	}
 	if(_List.Size < 20)
 		_HashTable->TblSize = 20;
 	else
@@ -790,8 +752,11 @@ void GameWorldDraw(const struct GameWorld* _World) {
 	_Tile = ScreenToTile(g_GameWorld.MapRenderer, &_Pos);
 	_Settlement = g_GameWorld.Settlements.Front;
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
-	if(_Tile != NULL)
-		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_Tile->SpritePos);
+	if(_Tile != NULL) {
+		SDL_Rect _SpritePos = {_Tile->SpritePos.x, _Tile->SpritePos.y, TILE_WIDTH, TILE_HEIGHT};
+
+		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_SpritePos);
+	}
 	while(_Settlement != NULL) {
 		SettlementDraw(g_GameWorld.MapRenderer, (struct Settlement*)_Settlement->Data);
 		_Settlement = _Settlement->Next;

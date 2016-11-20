@@ -25,7 +25,6 @@ struct Person;
 struct RBTree;
 struct TaskPool;
 struct BigGuy;
-struct WorldTile;
 struct GameWorld;
 struct KeyMouseState;
 struct Path;
@@ -103,18 +102,9 @@ struct FamilyType {
 	char* LuaFunc;
 };
 
-//Each tile represents a mile of the world.
-struct WorldTile {
-	float Forest;
-	float Unbuildable;
-	int Temperature;
-};
-
 struct BigGuy* PickPlayer();
 int IsPlayerGovernment(const struct GameWorld* _World, const struct Settlement* _Settlement);
 
-struct WorldTile* CreateWorldTile();
-void DestroyWorldTile(struct WorldTile* _Tile);
 /*
  * NOTE: Does this actually work or does it just return everything in a square distance away?
  */

@@ -298,10 +298,11 @@ struct Trait* RandomTrait(struct Trait** _Traits, uint8_t _TraitCt, struct HashI
 
 struct Trait** BGRandTraits(uint8_t* _TraitCt) {
 	struct HashItr* _Itr = HashCreateItr(&g_Traits);
-	struct Trait** _Traits = calloc(*_TraitCt, sizeof(struct Trait*));
+	struct Trait** _Traits = NULL; 
 	struct Trait* _Trait = NULL;
 
 	*_TraitCt = Random(1, 3);
+	_Traits = calloc(*_TraitCt, sizeof(struct Trait*));
 	for(uint8_t i = 0; i < *_TraitCt; ++i) {
 		if((_Trait = RandomTrait(_Traits, i, _Itr)) == NULL) {
 			_Traits[i] = NULL;
@@ -316,7 +317,8 @@ struct Trait** BGRandTraits(uint8_t* _TraitCt) {
 
 int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait) {
 	for(int i = 0; i < _BigGuy->TraitCt; ++i) {
-		if(_BigGuy->Traits[i] == _Trait)
+		if(_BigGuy->Traits[i]
+			 == _Trait)
 			return 1;
 	}
 	return 0;

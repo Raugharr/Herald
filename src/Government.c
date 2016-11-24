@@ -133,6 +133,9 @@ struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlemen
 	_Gov->Leader = NULL;
 	_Gov->NextLeader = NULL;
 
+	for(int i = 0; i < CASTE_SIZE; ++i)
+		_Gov->CastePreference[i] = 0;
+
 	_Gov->Location = _Settlement;
 	NewZoneColor(&_Gov->ZoneColor);
 	EventHook(EVENT_NEWPOLICY, GovOnNewPolicy, _Gov, NULL, NULL);

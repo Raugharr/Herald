@@ -79,12 +79,12 @@ struct GovRelation {
 };
 
 struct Government {
-	int GovType;
-	int GovRank;
-	int AllowedSubjects;
-	int AllowedMilLeaders;
-	int AuthorityLevel;
-	int RulerGender;
+	uint32_t GovType;
+	uint32_t  GovRank;
+	uint32_t AllowedSubjects;
+	uint32_t AllowedMilLeaders;
+	uint32_t AuthorityLevel;
+	uint32_t RulerGender;
 	struct Settlement* Location;
 	struct BigGuy* Leader;
 	struct BigGuy* NextLeader;

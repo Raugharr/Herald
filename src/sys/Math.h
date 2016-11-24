@@ -29,6 +29,7 @@
 //_Int becomes _Num more integers away from 0.
 #define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BIT - 1))) * (_Num))
 #define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BIT - 1)))
+#define sqrt3 (1.732050807568877)
 
 void MathInit();
 

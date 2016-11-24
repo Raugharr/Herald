@@ -96,10 +96,6 @@ void LuaMenuThink(lua_State* _State);
 int LuaScreenWidth(lua_State* _State);
 int LuaScreenHeight(lua_State* _State);
 
-int LuaSendMessage(lua_State* _State);
-void GUIMessageCallback(lua_State* _State, const char* _Key, GUIMessageFunc _Callback, void* _One, void* _Two);
-void GUIMessageCheck(struct LinkedList* _List);
-
 /**
  * Widget functions
  */

@@ -167,7 +167,6 @@ void DestroyEventObserver(struct EventObserver* _EventObs) {
 void Events() {
 	SDL_Event _Event;
 
-	GUIMessageCheck(&g_GUIMessageList);
 	KeyMouseStateClear(&g_KeyMouseState);
 	SDL_GetMouseState(&g_KeyMouseState.MousePos.x, &g_KeyMouseState.MousePos.y);
 	while(SDL_PollEvent(&_Event) != 0) {

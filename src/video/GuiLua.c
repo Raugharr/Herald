@@ -112,6 +112,7 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"AddChild", LuaContainerAddChild},
 		{"SetSkin", LuaContainerSetSkin},
 		{"GetSkin", LuaContainerGetSkin},
+		{"OnHover", LuaContainerOnHover},
 		{NULL, NULL}
 };
 
@@ -539,74 +540,8 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pushstring(_State, _Name);
 	lua_rawset(_State, SETMENU_TABLE);
 
-	lua_pushstring(_State, "__savestate");
-	lua_rawget(_State, SETMENU_TABLE);
-	/* Is __savestate == 0 */
-	if(lua_toboolean(_State, -1) == 0) {
-		g_Focus = CreateGUIFocus();
-		g_GUIEvents = CreateGUIEvents();
-		/*_Font = g_GuiSkins.Font;
-		while(_Font != NULL) {
-			_Prev = _Font;
-			_Font = _Font->Next;
-			*/
-			/*NOTE: widgets might stay alive when another menu is brought up,
-		 	* we should only delete fonts to widgets that are dead.
-		 	*/
-		/*	if(_Prev != g_GuiStyles.Font)
-				DestroyFont(_Prev);
-		}*/
-	} else {
-		/* Restore the previous menu then return. */
-		lua_getglobal(_State, "Gui");
-		lua_pushstring(_State, "ScreenStack");
-		lua_rawget(_State, -2);
-		lua_pushnil(_State);
-		while(lua_next(_State, -2) != 0) {
-			if(lua_type(_State, -1) != LUA_TTABLE) {
-				lua_pop(_State, 1);
-				continue;
-			}
-			lua_pushstring(_State, "__name");
-			lua_rawget(_State, -2);
-
-			if(strcmp(lua_tostring(_State, -1), _Name) == 0) {
-				int i;
-
-				lua_pushstring(_State, "__focus");
-				lua_rawget(_State, -3);
-				g_Focus = lua_touserdata(_State, -1);
-				lua_pushstring(_State, "__events");
-				lua_rawget(_State, -4);
-				g_GUIEvents = lua_touserdata(_State, -1);
-				lua_getglobal(_State, "Gui");
-				lua_pushstring(_State, "EventIds");
-				lua_rawget(_State, -2);
-				lua_remove(_State, -2);
-				lua_pushstring(_State, "__ehooks");
-				lua_rawget(_State, -6);
-				lua_pushnil(_State);
-				i = 0;
-				while(lua_next(_State, -2) != 0) {
-					g_GUIEvents->Events[i++].RefId = luaL_ref(_State, -4);
-				}
-				lua_pop(_State, 4);
-				lua_pushstring(_State, "__refid");
-				lua_rawget(_State, -5);
-				luaL_unref(_State, -6, lua_tointeger(_State, -1));
-				lua_pop(_State, 1);
-				lua_pop(_State, 2);
-				break;
-			}
-			lua_pop(_State, 2);
-		}
-		lua_pop(_State, 5);
-		g_VideoOk = 1;
-		g_GUIMenuChange = 1;
-		GuiZBuffAdd(_MenuContainer);
-		return 0;
-	}
-	lua_pop(_State, 1); //pop __savestate.
+	g_Focus = CreateGUIFocus();
+	g_GUIEvents = CreateGUIEvents();
 	if(lua_type(_State, -1) != LUA_TTABLE) {
 		RestoreScreen(_State);
 		return luaL_error(_State, "%s is not a table.", _Name);
@@ -631,35 +566,6 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	lua_pushstring(_State, "__input");
 	lua_pushvalue(_State, SETMENU_DATA);
 	lua_rawset(_State, -3);
-	lua_pushstring(_State, "__savestate");
-	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TBOOLEAN) {
-		RestoreScreen(_State);
-		return luaL_error(_State, "Menu %s's __savestate field is not a boolean.", _Name);
-	}
-	if(lua_toboolean(_State, -1) > 0) {
-		int _Ref = 0;
-
-		lua_getglobal(_State, _Name);
-		lua_pushstring(_State, "__savestate");
-		lua_pushboolean(_State, 1);
-		lua_rawset(_State, -3);
-
-		lua_pushstring(_State, "__events");
-		lua_pushlightuserdata(_State, g_GUIEvents);
-		lua_rawset(_State, -3);
-
-		lua_getglobal(_State, "Gui");
-		lua_pushstring(_State, "ScreenStack");
-		lua_rawget(_State, -2);
-		lua_pushvalue(_State, -3); /* push global _Name onto stack. */
-		lua_pushvalue(_State, -1); /* push global _Name again for setting __refid. */
-		_Ref = luaL_ref(_State, -3);
-		lua_pushstring(_State, "__refid");
-		lua_pushinteger(_State, _Ref);
-		lua_rawset(_State, -3);
-		lua_pop(_State, 5);
-	}
 	lua_pop(_State, 3);
 	g_VideoOk = 1;
 	GuiZBuffAdd(_MenuContainer);
@@ -685,29 +591,13 @@ int LuaCloseMenu(lua_State* _State) {
 	lua_pushstring(_State, "__name");
 	lua_rawget(_State, -2);
 	lua_getglobal(_State, lua_tostring(_State, -1));
-	lua_pushstring(_State, "__savestate");
-	lua_rawget(_State, -2);
-	if(lua_toboolean(_State, -1) == 0) {
-		lua_pop(_State, 4);
-		goto destroy;
-	}
-	lua_pushstring(_State, "__saved");
-	lua_rawget(_State, -3);
-	if(lua_toboolean(_State, -1) == 1) {
-		lua_pop(_State, 5);
-		goto no_destroy;
-	}
-
-	lua_pop(_State, 5);
+	lua_pop(_State, 3);
 
 	lua_pushstring(_State, "ScreenStack");
 	lua_rawget(_State, -2);
 	_Len = lua_rawlen(_State, -1);
 	if(_Len > 0) {
 		lua_rawgeti(_State, -1, _Len);
-		lua_pushstring(_State, "__saved");
-		lua_pushboolean(_State, 1);
-		lua_rawset(_State, -3);
 		lua_pushstring(_State, "__ehooks");
 		lua_newtable(_State);
 		lua_pushstring(_State, "EventIds");
@@ -724,8 +614,6 @@ int LuaCloseMenu(lua_State* _State) {
 		}
 		lua_pop(_State, 1);
 		lua_rawset(_State, -3);
-		/* unref the Menu from ScreenStack. */
-		//luaL_unref(_State, -2, _Ref);
 		lua_pushstring(_State, "__events");
 		lua_pushlightuserdata(_State, g_GUIEvents);
 		lua_rawset(_State, -3);
@@ -733,13 +621,6 @@ int LuaCloseMenu(lua_State* _State) {
 		lua_pushstring(_State, "__focus");
 		lua_pushlightuserdata(_State, g_Focus);
 		lua_rawset(_State, -3);
-		/* Get the current menu(GUI["ScreenStack"].Len) and assign to the table's __screen field the value of GUI["Screen"]. GUI["ScreenStack"].(#GUI["ScreenStack"].__screen = GUI["Screen"]) */
-		
-		//lua_pushstring(_State, "__screen");
-		//LuaCtor(_State, GetScreen, LOBJ_CONTAINER);
-		//lua_remove(_State, -2);
-		//lua_rawset(_State, -3);
-		//lua_pop(_State, 2);
 		lua_pop(_State, 3);
 		if(_Len == 0)
 			g_VideoOk = 0;
@@ -748,8 +629,8 @@ int LuaCloseMenu(lua_State* _State) {
 		g_VideoOk = 0;
 		lua_pop(_State, 1);
 	}
-	destroy:
-	lua_pushstring(_State, "EventIds");
+	//destroy:
+	/*lua_pushstring(_State, "EventIds");
 	lua_rawget(_State, -2);
 	for(i = 0; i < g_GUIEvents->Size; ++i) {
 		luaL_unref(_State, -1, g_GUIEvents->Events[i].RefId);
@@ -758,7 +639,7 @@ int LuaCloseMenu(lua_State* _State) {
 	GuiClear(_State);
 	DestroyFocus(g_Focus);
 	DestroyGUIEvents(g_GUIEvents);
-	free(StackPop(&g_GUIStack));
+	free(StackPop(&g_GUIStack));*/
 	no_destroy:
 	g_Focus = NULL;
 	g_GUIEvents = NULL;
@@ -1087,12 +968,11 @@ int LuaContainerGetChildCt(lua_State* _State) {
 
 int LuaContainerGetChildren(lua_State* _State) {
 	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	int i;
 
 	lua_getglobal(_State, "Gui");
 	lua_pushstring(_State, "Widgets");
 	lua_newtable(_State);
-	for(i = 0; _Container->Children[i] != NULL; ++i) {
+	for(int i = 0; _Container->Children[i] != NULL; ++i) {
 		lua_rawgeti(_State, -2, _Container->Children[i]->LuaRef);
 		lua_rawseti(_State, -2, i);
 	}
@@ -1165,6 +1045,20 @@ int LuaContainerGetSkin(lua_State* _State) {
 
 	LuaConstCtor(_State, _Container->Skin, LOBJ_GSKIN);
 	return 1;
+}
+
+int LuaContainerOnHover(lua_State* _State) {
+	LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+	luaL_checktype(_State, 2, LUA_TFUNCTION);
+	lua_rawseti(_State, 1, CONTAINER_ONHOVER);
+	return 0;
+}
+
+int LuaContainerOnHoverLoss(lua_State* _State) {
+	LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+	luaL_checktype(_State, 2, LUA_TFUNCTION);
+	lua_rawseti(_State, 1, CONTAINER_ONHOVERLOSS);
+	return 0;
 }
 
 int LuaContainerParagraph(lua_State* _State) {
@@ -1469,10 +1363,11 @@ void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback) {
 }
 
 void LuaGuiGetRef(lua_State* _State) {
-	lua_getglobal(_State, "Gui");
+	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+	/*lua_getglobal(_State, "Gui");
 	lua_pushstring(_State, "Widgets");
 	lua_rawget(_State, -2);
-	lua_remove(_State, -2);
+	lua_remove(_State, -2);*/
 }
 
 int LuaWidgetRef(lua_State* _State) {

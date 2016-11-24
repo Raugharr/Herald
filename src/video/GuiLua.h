@@ -133,6 +133,8 @@ int LuaContainerShrink(lua_State* _State);
 int LuaContainerAddChild(lua_State* _State);
 int LuaContainerSetSkin(lua_State* _State);
 int LuaContainerGetSkin(lua_State* _State);
+int LuaContainerOnHover(lua_State* _State);
+int LuaContainerOnHoverLoss(lua_State* _State);
 
 /**
  * Label functions

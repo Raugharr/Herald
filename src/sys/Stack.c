@@ -6,6 +6,7 @@
 #include "Stack.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 struct Stack* CreateStack(uint32_t _Size) {
 	struct Stack* _Stack = (struct Stack*) malloc(sizeof(struct Stack));
@@ -24,8 +25,19 @@ void DestroyStack(struct Stack* _Stack) {
 void StackPush(struct Stack* _Stack, void* _Data) {
 	if(_Stack->Size >= _Stack->MaxSize) {
 		if(_Stack->MaxSize == 0) {
-			_Stack->MaxSize = 1;
-			_Stack->Top = calloc(sizeof(void*), 1);
+			_Stack->MaxSize = 16;
+			_Stack->Top = calloc(sizeof(void*), 16);
+		} else {
+			void* _Temp = NULL;
+
+			_Stack->MaxSize = _Stack->MaxSize * 2;
+			_Temp = realloc(_Stack->Top, _Stack->MaxSize * sizeof(void*));
+			if(_Temp == NULL) {
+				calloc(sizeof(void*), _Stack->MaxSize);
+				memcpy(_Temp, _Stack->Top, sizeof(void*) * _Stack->MaxSize);
+				free(_Stack->Top);
+				_Stack->Top = _Temp;
+			}
 		}
 	}
 	_Stack->Top[_Stack->Size++] = _Data;

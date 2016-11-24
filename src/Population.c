@@ -257,6 +257,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 				continue;;
 			}
 			_SkinPounds = lua_tonumber(_State, -1);
+			_Return = 1;
 			lua_pop(_State, 1);
 		} else if(!strcmp("Hair", _Key)) {
 			if(lua_type(_State, -1) != LUA_TTABLE) {
@@ -292,6 +293,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 					continue;
 				}
 				_IsShearable = lua_toboolean(_State, -1);
+				_Return = 1;
 				lua_pop(_State, 1);
 		} else {
 			Log(ELOG_WARNING, "%s is not a field of a Population.", _Key);
@@ -303,6 +305,7 @@ struct Population* PopulationLoad(lua_State* _State, int _Index) {
 		}
 		loop_end:
 		lua_pop(_State, 1);
+		_Return = 0;
 	}
 	if(_Young > _Old || _Old > _Death || _Death < 0) {
 		Log(ELOG_WARNING, "%s age limits are invalid.", _Name);

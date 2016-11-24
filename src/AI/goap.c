@@ -24,7 +24,8 @@ void GoapInit() {
 }
 
 void GoapQuit() {
-	DestroyMemoryPool(g_GoapMemPool);
+	if(g_GoapMemPool != NULL)
+		DestroyMemoryPool(g_GoapMemPool);
 }
 
 int GoapNoCost(const struct Agent* _Agent) {
@@ -286,7 +287,7 @@ void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, s
 		_Goal->Setup(_Agent);
 	}
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
-	if(_Path == NULL)
+	if(*_PathSize == 0)
 		return;
 	_Action = _Agent->Plan[_Agent->PlanIdx]->Action;
 	if(_Agent->PlanData == NULL && _Action->Create != NULL) {

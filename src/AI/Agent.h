@@ -12,6 +12,7 @@
 #define AGENT_PLANSZ (16)
 #define AGENT_NOPLAN (-1)
 #define AgentPlan(_Goap, _Agent) \
+	_Agent->PlanSz = 0;																				\
 	GoapPlanUtility(_Goap, (_Agent), &(_Agent)->State, &(_Agent)->PlanSz, (_Agent)->Plan);			\
 	(_Agent)->PlanIdx = 0;																			\
 	(_Agent)->Blackboard.ShouldReplan = 0

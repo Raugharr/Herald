@@ -19,7 +19,7 @@ struct FileTableEntry;
 struct Folder;
 struct Resource;
 
-#define FILETABLEHEADER_NAMESIZE (42)
+#define FILETABLEHEADER_NAMESIZE (58)
 #define FILETABLE_NAMESIZE (64)
 #define FILETABLE_SIGSZ (6)
 #if WINDOWS

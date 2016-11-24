@@ -54,6 +54,7 @@ struct FileTableEntry {
 	Uint16 Offset;
 	struct FileTableEntry* Next;
 	struct Folder* Parent;
+//	void* Padding;
 };
 
 struct Resource {
@@ -305,7 +306,8 @@ struct FileTableEntry* CreateFileTableChain(const char* _DirName, int* _Ct, stru
 				int _Size = strlen(_DirName) + strlen(_LastTable->Filename) + 2;
 				char _NewDir[_Size];
 				//InitString(_NewDir, _Size);
-				strcat(_NewDir, _LastTable->Filename);
+				//strcat(_NewDir, _LastTable->Filename);
+				strcpy(_NewDir, _LastTable->Filename);
 				//strcat(_NewDir, DIR_STR);
 				((struct Folder*)_LastTable)->Child = CreateFileTableChain(_NewDir, _Ct, (struct Folder*)_LastTable);
 				((struct Folder*)_LastTable)->FileCt = (*_Ct) - _CtTemp;

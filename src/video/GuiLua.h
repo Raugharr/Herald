@@ -27,6 +27,14 @@ typedef int(*GUIMessageFunc)(struct GUIMessagePacket*);
 
 extern struct LinkedList g_GUIMessageList;
 
+//Table indexes used to store callbacks for each type of gui event.
+enum {
+	GUIL_ONHOVER = 1,
+	GUIL_ONHOVERLOSS,
+	GUIL_ONKEY,
+	GUIL_ONCLICK
+};
+
 struct GUIMessagePacket {
 	void* One;
 	void* Two;
@@ -165,14 +173,12 @@ int LuaFontHeight(lua_State* _State);
 int InitGUILua(lua_State* _State);
 int QuitGUILua(lua_State* _State);
 int LuaKeyState(lua_State* _State, int _Index);
-void LuaCallEvent(lua_State* _State, int _EvntIndx, struct Widget* _Callback);
 void LuaGuiGetRef(lua_State* _State);
 /**
  * The table that contains the Widget must be on top of the stack.
  */
 int LuaWidgetRef(lua_State* _State);
 void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget);
-void LuaWidgetOnKeyUnref(lua_State* _State, struct Widget* _Widget);
 /**
  * Retrieves the Menu global from the environment Menu and sets it as a global in the main environment.
  */

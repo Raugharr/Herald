@@ -24,7 +24,6 @@ struct GuiSkin* g_GuiSkinCurr = NULL;
 int g_GUIMenuChange = 0;
 uint32_t g_GUIId = 0;
 struct GUIFocus* g_Focus = NULL;
-struct GUIEvents* g_GUIEvents = NULL;
 struct Stack g_GUIStack = {NULL, 0};
 struct LinkedList g_GuiZBuff = {0, NULL, NULL};
 
@@ -32,14 +31,6 @@ int NextGUIId(void) {return g_GUIId++;}
 
 struct Container* CreateContainer(void) {
 	return (struct Container*) malloc(sizeof(struct Container));
-}
-
-struct GUIEvents* CreateGUIEvents(void) {
-	struct GUIEvents* _New = (struct GUIEvents*) malloc(sizeof(struct GUIEvents));
-	_New->TblSz = 16;
-	_New->Size = 0;
-	_New->Events = calloc(_New->TblSz, sizeof(struct WEvent));
-	return _New;
 }
 
 struct GUIFocus* CreateGUIFocus(void) {
@@ -81,7 +72,6 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	_Widget->Id = NextGUIId();
 	_Widget->IsDraggable = 0;
 	_Widget->LuaRef = LuaWidgetRef(_State);
-	_Widget->LuaOnClickFunc = -2;
 	_Widget->CanFocus = 1;
 	_Widget->IsVisible = 1;
 	_Widget->OnClick = WidgetOnClick;
@@ -225,7 +215,6 @@ void DestroyWidget(struct Widget* _Widget, lua_State* _State) {
 	if(GetFocusableWidget() == _Widget)
 		FocusableWidgetNull();
 	LuaWidgetUnref(_State, _Widget);
-	LuaWidgetOnKeyUnref(_State, _Widget);
 	free(_Widget);
 }
 
@@ -428,25 +417,6 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child) {
 		break;
 		}
 	}
-}
-
-void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod) {
-	struct KeyMouseState _State;
-	struct WEvent _WEvent;
-
-	KeyMouseStateClear(&_State);
-	_State.KeyboardState = _KeyState;
-	_State.KeyboardButton = _Key;
-	_State.KeyboardMod = _KeyMod;
-
-	if(g_GUIEvents->Size == g_GUIEvents->TblSz) {
-		g_GUIEvents->Events = realloc(g_GUIEvents->Events, sizeof(struct WEvent) * g_GUIEvents->TblSz * 2);
-		g_GUIEvents->TblSz *= 2;
-	}
-	_WEvent.Event = _State;
-	_WEvent.WidgetId = _Widget->Id;
-	_WEvent.RefId = _RefId;
-	g_GUIEvents->Events[g_GUIEvents->Size++] = _WEvent;
 }
 
 void WidgetSetWidth(struct Widget* _Widget, int _Width) {

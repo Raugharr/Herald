@@ -22,7 +22,6 @@
 #include <SDL2/SDL_image.h>
 
 static struct Widget* g_HoverWidget = NULL;
-static struct Widget* g_FocusWidget = NULL;
 static struct {
 	struct Widget* Widget;
 	SDL_Point Offset;
@@ -68,8 +67,6 @@ void VideoQuit(void) {
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
 	SDL_Quit();
-	if(g_GUIEvents != NULL)
-		DestroyGUIEvents(g_GUIEvents);
 	while(g_Focus != NULL) {
 		_Focus = g_Focus;
 		g_Focus = g_Focus->Prev;
@@ -130,11 +127,16 @@ int VideoEvents(const struct KeyMouseState* _State) {
 					_Container = _Container->Widget.Parent;
 			}
 			GuiZToTop(_Container);
-			if(g_HoverWidget->LuaOnClickFunc >= 0) {
-				LuaGuiGetRef(g_LuaState);
-				lua_rawgeti(g_LuaState, -1, g_HoverWidget->LuaOnClickFunc);
-				LuaCallFunc(g_LuaState, 0, 0, 0);
+			LuaGuiGetRef(g_LuaState);
+			lua_rawgeti(g_LuaState, -1, g_HoverWidget->LuaRef);
+			lua_rawgeti(g_LuaState, -1, GUIL_ONCLICK);
+			if(lua_type(g_LuaState, -1) == LUA_TFUNCTION) {
+				lua_pushvalue(g_LuaState, -2);
+				LuaCallFunc(g_LuaState, 1, 0, 0);
+			} else {
+				lua_pop(g_LuaState, 1);
 			}
+				lua_pop(g_LuaState, 1);
 			g_DraggableWidget.Widget = NULL;
 			return 1;
 	}
@@ -166,11 +168,6 @@ void DestroyFont(struct Font* _Font) {
 	TTF_CloseFont(_Font->Font);
 	free(_Font->Name);
 	free(_Font);
-}
-
-void DestroyGUIEvents(struct GUIEvents* _Events) {
-	free(_Events->Events);
-	free(_Events);
 }
 
 void DestroyFocus(struct GUIFocus* _Focus) {

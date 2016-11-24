@@ -39,13 +39,6 @@ struct Margin {
 	int32_t Bottom;
 };
 
-struct GUIEvents {
-	/* TODO: Events based on clicking a widget are not possible as the hooking widget is not stored. */
-	struct WEvent* Events;
-	int32_t TblSz;
-	int32_t Size;
-};
-
 struct GuiStyle {
 	uint32_t Name;
 	struct Font* Font;
@@ -92,7 +85,6 @@ struct Widget {
 	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*);
 	GuiOnKey OnKey;
 	uint32_t LuaRef;
-	uint32_t LuaOnClickFunc;
 	bool Clickable;
 	bool IsVisible;
 	bool CanFocus;
@@ -175,12 +167,6 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
  */
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
-/*
- * Base for LuaOnKey.
- * Creates the SDL_Event and the WEvent but does not add the event function to
- * GUI.EventIds which is needed in order for the callback to function.
- */
-void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
 void WidgetSetWidth(struct Widget* _Widget, int _Width);
 void WidgetSetHeight(struct Widget* _Widget, int _Height);
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos);

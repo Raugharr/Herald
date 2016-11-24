@@ -17,14 +17,19 @@
 			Log(ELOG_DEBUG, (#_Bool));	\
 		}
 
-	#define AssertIntEq(_Left, _Right)			\
+	#define AssertIntEq(_Left, _Right)				\
 		if(_Left != _Right) {						\
 			Log(ELOG_DEBUG, (#_Left##!=##_Right));	\
+		}
+	#define AssertIntLt(_Left, _Right)				\
+		if(_Left < _Right) {						\
+			Log(ELOG_DEBUG, (#_Left##<##_Right));	\
 		}
 
 #else
 #define Assert(_Bool)
 #define AssertIntEq(_Left, _Right)
+#define AssertIntLt(_Left, _Right)
 #endif
 
 typedef struct lua_State lua_State;

@@ -88,7 +88,7 @@ struct EventData {
 };
 
 struct EventObserver {
-	int EventType;
+	uint32_t EventType;
 	void* OwnerObj;
 	void* One;
 	void* Two;

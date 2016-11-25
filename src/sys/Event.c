@@ -113,6 +113,8 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 		do {
 			//One and Two should be equal by definition of being in the RB node.
 			if(_Obs->One == _Data1 && _Obs->Two == _Data2) {
+				struct EventObserver* _Next = _Obs->Next;
+
 				ILL_DESTROY(_Node->Data, _Obs);
 				if(_Node->Data == NULL) {
 					RBDeleteNode(g_EventHooks[_EventType], _Node);
@@ -120,6 +122,8 @@ void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
 					return;
 				}
 				DestroyEventObserver(_Obs);
+				_Obs = _Next;
+				continue;
 			}
 			_Obs = _Obs->Next;
 		} while(_Obs != NULL);

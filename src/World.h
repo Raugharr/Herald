@@ -67,9 +67,8 @@ struct SubTimeObject {
 };
 
 struct GameWorld {
-	int IsPaused;
 	DATE Date;
-	int Tick;
+	uint32_t Tick;
 	struct MapRenderer* MapRenderer;
 	struct QuadTree SettlementMap;
 	struct RBTree* GoodDeps; //Tree consisting of
@@ -78,10 +77,6 @@ struct GameWorld {
 	struct BigGuy* Player;
 	struct LinkedList Settlements;
 	struct RBTree BigGuys;
-	/*
-	 * NOTE: Is only inserted into and not searched, should be removed as it has no apparent use.
-	 */
-	struct RBTree BigGuyStates;
 	struct RBTree Agents;
 	struct RBTree ActionHistory;
 	struct RBTree PlotList;
@@ -94,7 +89,8 @@ struct GameWorld {
 	struct Constraint** AgeGroups;
 	struct Queue FreeWarriors;
 	float DecayRate[WORLD_DECAY];
-	int PolicySz;
+	uint8_t PolicySz;
+	uint8_t IsPaused;
 };
 
 struct FamilyType {

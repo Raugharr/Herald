@@ -28,6 +28,7 @@
 #include "video/Sprite.h"
 
 #include "sys/TaskPool.h"
+#include "sys/ResourceManager.h"
 #include "sys/Array.h"
 #include "sys/Event.h"
 #include "sys/Constraint.h"
@@ -426,10 +427,6 @@ void GameWorldInit(struct GameWorld* _GameWorld, int _Area) {
 	_GameWorld->BigGuys.ICallback = (RBCallback) BigGuyIdInsert;
 	_GameWorld->BigGuys.SCallback = (RBCallback) BigGuyIdCmp;
 
-	_GameWorld->BigGuyStates.Table = NULL;
-	_GameWorld->BigGuyStates.Size = 0;
-	_GameWorld->BigGuyStates.ICallback = (RBCallback) BigGuyStateInsert;
-	_GameWorld->BigGuyStates.SCallback = (RBCallback) BigGuyMissionCmp;
 	_GameWorld->Player = NULL;
 
 	_GameWorld->Families.Table = NULL;
@@ -727,7 +724,7 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 			g_GameWorld.MapRenderer->Screen.y += 1;
 	}
 	if(_State->MouseButton == SDL_BUTTON_LEFT && _State->MouseState == SDL_RELEASED) {
-		struct LinkedList _List = LinkedList();
+		/*struct LinkedList _List = LinkedList();
 		struct Tile* _Tile = ScreenToTile(_World->MapRenderer, &_State->MousePos);
 
 		if(_Tile == NULL)
@@ -737,7 +734,7 @@ void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _Worl
 		QTPointInRectangle(&g_GameWorld.SettlementMap, &_TileRect, (void(*)(const void*, SDL_Point*))LocationGetPoint, &_List);
 		if(_List.Size > 0)
 			GameOnClick((struct Object*)_List.Front->Data);
-		LnkLstClear(&_List);
+		LnkLstClear(&_List);*/
 	}
 }
 
@@ -745,17 +742,19 @@ void GameWorldDraw(const struct GameWorld* _World) {
 	struct Tile* _Tile = NULL;
 	struct LnkLst_Node* _Settlement = NULL;
 	struct SDL_Point _Pos;
+	struct SDL_Point _TilePos;
 
 	if(_World->MapRenderer->IsRendering == 0)
 		return;
 	GetMousePos(&_Pos);
-	_Tile = ScreenToTile(g_GameWorld.MapRenderer, &_Pos);
+	ScreenToTile(&_Pos, &_TilePos);
+	_Tile = _World->MapRenderer->Tiles[_TilePos.y * _World->MapRenderer->TileLength + _TilePos.x];
 	_Settlement = g_GameWorld.Settlements.Front;
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
 	if(_Tile != NULL) {
 		SDL_Rect _SpritePos = {_Tile->SpritePos.x, _Tile->SpritePos.y, TILE_WIDTH, TILE_HEIGHT};
 
-		SDL_RenderCopy(g_Renderer, g_GameWorld.MapRenderer->Selector, NULL, &_SpritePos);
+		SDL_RenderCopy(g_Renderer, ResourceGetData(g_GameWorld.MapRenderer->Selector), NULL, &_SpritePos);
 	}
 	while(_Settlement != NULL) {
 		SettlementDraw(g_GameWorld.MapRenderer, (struct Settlement*)_Settlement->Data);

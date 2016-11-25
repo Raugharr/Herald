@@ -155,7 +155,6 @@ struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SI
 	_BigGuy->Glory = 0;
 	_BigGuy->PopularityDelta = 0;
 	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
-	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
 	RBInsert(&g_GameWorld.Agents, _BigGuy->Agent);
 	LnkLstPushBack(&FamilyGetSettlement(_Person->Family)->BigGuys, _BigGuy);
 	EventHook(EVENT_DEATH, BGOnDeath, _Person, _BigGuy, NULL);
@@ -180,7 +179,6 @@ void DestroyBigGuy(struct BigGuy* _BigGuy) {
 		_Itr = _Itr->Next;
 	}
 	RBDelete(&g_GameWorld.BigGuys, _BigGuy->Person);
-	RBDelete(&g_GameWorld.BigGuyStates, _BigGuy);
 	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(_BigGuy), _BigGuy, NULL);
 	DestroyObject((struct Object*)_BigGuy);
 	free(_BigGuy->Traits);

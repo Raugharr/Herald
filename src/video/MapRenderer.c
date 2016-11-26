@@ -26,6 +26,7 @@
 struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize) {
 	struct MapRenderer* _Map = (struct MapRenderer*) malloc(sizeof(struct MapRenderer));
 
+	_Map->Selector = ResourceGet("Select.png");
 	_Map->TileSheets[0].TileFile = ResourceGet("grass.png");
 	_Map->TileSheets[0].Tiles = ResourceGetData(_Map->TileSheets[0].TileFile);
 	_Map->TileSheets[0].VarPos[0].x = 0;
@@ -33,7 +34,7 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize) {
 
 	_Map->TileArea = _MapLength * _MapLength;
 	_Map->TileLength = _MapLength;
-	_Map->Tiles = calloc(_Map->TileArea, sizeof(struct Tile*));
+	_Map->Tiles = calloc(_Map->TileArea, sizeof(struct Tile));
 	_Map->IsRendering = 0;
 	for(int i = 0; i < MAPRENDER_LAYERS; ++i) {
 		_Map->RenderArea[i].NorthEast = NULL;
@@ -57,47 +58,103 @@ struct MapRenderer* CreateMapRenderer(int _MapLength, SDL_Point* _RenderSize) {
 void DestroyMapRenderer(struct MapRenderer* _Map) {
 	SDL_DestroyTexture(_Map->Grass);
 	SDL_DestroyTexture(_Map->OddGrass);
-	SDL_DestroyTexture(_Map->Selector);
 	SDL_DestroyTexture(_Map->Settlement);
 	SDL_DestroyTexture(_Map->Warrior);
 }
 
 void MapLoad(struct MapRenderer* _Map) {
-	for(int y = 0; y < _Map->TileLength; ++y)
-		for(int x = 0; x < _Map->TileLength; ++x)
-			_Map->Tiles[x + (y * _Map->TileLength)] = CreateTile(_Map, 0, 0, x, y);
-}
+	struct Tile* _Tile = NULL;
 
-struct Tile* ScreenToTile(struct MapRenderer* _Map, const SDL_Point* _Screen) {
-	SDL_Point _Hex = {0, 0};
-	SDL_Point _RelPos;
-	int _OddCol = 0;
-
-	_Hex.y = _Screen->y / TILE_HEIGHT_THIRD;
-	_RelPos.y = _Screen->y - (_Hex.y * TILE_HEIGHT);
-	_OddCol = ((_Hex.y & 1) == 1);
-	if(_OddCol != 0) {
-		_Hex.x = (_Screen->x - (TILE_WIDTH / 2)) / TILE_WIDTH;
-		_RelPos.x = _Screen->x - (_Hex.x * TILE_WIDTH);
-	} else {
-		_Hex.x = _Screen->x / TILE_WIDTH;
-		_RelPos.x = _Screen->x - (_Hex.x * TILE_WIDTH) - (TILE_WIDTH / 2);
-	}
-	if(_RelPos.y < 0) {
-		if(_RelPos.y < (TILE_GRADIENT * _RelPos.x) + (TILE_HEIGHT / 2)) {
-			//--_Hex.y;
-			//if(_OddCol != 0)
-			//	++_Hex.x;
-		} else if(_RelPos.y < (TILE_GRADIENT * _RelPos.x) - (TILE_HEIGHT / 2)) {
-			--_Hex.y;
-			//if(_OddCol == 0)
-			//	++_Hex.x;
+	for(int y = 0; y < _Map->TileLength; ++y) {
+		for(int x = 0; x < _Map->TileLength; ++x) {
+			_Tile->Forest = 0;
+			_Tile->Temperature = 0;
+			_Tile->Unbuildable = 0;
+			_Tile->TileSheet = 0;
+			_Tile->TileVar = 0;
 		}
 	}
-	if(_Hex.x < 0 || _Hex.x > _Map->TileLength
-			|| _Hex.y < 0 || _Hex.y > _Map->TileLength)
-		return NULL;
-	return MapGetTile(_Map, &_Hex);
+}
+
+void ScreenToTile(const SDL_Point* _Screen, struct SDL_Point* _Hex) {
+	SDL_Point _SectPxl = {0};
+	uint32_t _SectX = _Screen->x / (2 * TILE_DIST);
+	uint32_t _SectY = _Screen->y / (TILE_HEIGHT_THIRD);
+	uint32_t _ArrayX = _SectX;
+	uint32_t _ArrayY = _SectY;
+
+	_SectPxl.x = _Screen->x % (2 * TILE_DIST);
+	_SectPxl.y = _Screen->y % (TILE_HEIGHT_THIRD);
+	if((_SectY & 1) == 0) {
+		//A
+		if(_SectPxl.y < ((TILE_HEIGHT / 4) - _SectPxl.x * TILE_GRADIENT)) {
+			_ArrayX = _SectX - 1;
+			_ArrayY = _SectY - 1;
+		} else if(_SectPxl.y < (-(TILE_HEIGHT / 4) + _SectPxl.x * TILE_GRADIENT)) {
+			_ArrayY = _SectY - 1;
+		}
+	} else {
+		//B
+		if(_SectPxl.x >= (TILE_DIST)) {
+			if(_SectPxl.y < (2 * (TILE_HEIGHT / 4) - _SectPxl.x * TILE_GRADIENT)) {
+			//	_ArrayX = _SectX - 1;
+				_ArrayY = _SectY - 1;
+			}
+		} else {
+			if(_SectPxl.y < (_SectPxl.x * TILE_GRADIENT)) {
+				_ArrayY = _SectY - 1;
+			} else {
+				_ArrayX = _SectX - 1;
+			}
+		}
+	}
+	_Hex->x = _ArrayX;
+	_Hex->y = _ArrayY;
+	/*if(_Hex->x < 0 || _Hex->x > _Map->TileLength
+			|| _Hex->y < 0 || _Hex->y > _Map->TileLength)
+		return;*/
+}
+
+/*void HexRound(float x, float y, float z, SDL_Point* _Out) {
+	float rx = round(x);
+	float ry = round(y);
+	float rz = round(z);
+	float xDiff = abs(rx - x);
+	float yDiff = abs(ry - y);
+	float zDiff = abs(rz - z); 
+
+	if(xDiff > yDiff && xDiff > zDiff) { 
+		rz = -ry - rz;	
+	} else if(yDiff > zDiff) {
+		ry = -rx - rz;
+	} else {
+		rz = -rz - ry;
+	}
+	_Out->x = rx;
+	_Out->y = rz;
+}
+
+void ScreenToTile(const SDL_Point* _Screen, SDL_Point* _Hex) {
+	float q = (_Screen->x * sqrt3 / 3 - _Screen->y / 3) / (TILE_WIDTH / 2);
+	float r  = _Screen->y * 2/3 / (TILE_WIDTH / 2); 
+
+	HexRound(q, -q-r, r, _Hex);
+	_Hex->y = _Hex->y + (_Hex->x - (_Hex->x & 1)) / 2;
+}*/
+
+void TileRing(struct MapRenderer* _Renderer, SDL_Point* _Center, uint32_t _Radius, struct Tile** _Out) {
+	int _Count = 0;
+	SDL_Point _Tile = {_Center->x, _Center->y};
+	struct Tile* _Temp = NULL;
+
+	for(int i = 0; i < 6; ++i) {
+		for(int j = 0; j < _Radius; ++j) {
+			TileNeighbor(i, &_Tile, &_Tile);
+			_Temp = MapGetTile(_Renderer, &_Tile);
+			if(_Temp != NULL)
+				_Out[_Count++] = _Temp;
+		}
+	}
 }
 
 void TilesInRange(struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List) {
@@ -125,20 +182,25 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 	struct LnkLst_Node* _Itr = NULL;
 	struct Tile* _Tile = NULL;
 	struct Sprite* _Sprite = NULL;
-	//SDL_Rect _Rect;
 
-	MapObjectsInRect(_Map, MAPRENDER_TILE, &_Map->Screen, &_QuadList);
+/*	MapObjectsInRect(_Map, MAPRENDER_TILE, &_Map->Screen, &_QuadList);
 	_Itr = _QuadList.Front;
-	while(_Itr != NULL) {
-		_Tile = (struct Tile*)_Itr->Data;
+	while(_Itr != NULL) {*/
+	for(int x = 0; x < _Map->Screen.w; ++x) {
+		for(int y = 0; y < _Map->Screen.h; ++y) {
+			_Tile = &_Map->Tiles[(_Map->Screen.y + y) * _Map->TileLength + (_Map->Screen.x + x)];
 
-		const struct TileSheet* _TileSheet = &_Map->TileSheets[_Tile->TileSheet]; 
-		SDL_Rect _Rect = {_TileSheet->VarPos[_Tile->TileVar].x, _TileSheet->VarPos[_Tile->TileVar].x, TILE_WIDTH, TILE_HEIGHT};
-		SDL_Rect _SpritePos = {_Tile->SpritePos.x, _Tile->SpritePos.y, TILE_WIDTH, TILE_HEIGHT};
+			const struct TileSheet* _TileSheet = &_Map->TileSheets[_Tile->TileSheet]; 
+			SDL_Rect _Rect = {_TileSheet->VarPos[_Tile->TileVar].x, _TileSheet->VarPos[_Tile->TileVar].x, TILE_WIDTH, TILE_HEIGHT};
+			SDL_Rect _SpritePos = {x * TILE_WIDTH, y * TILE_HEIGHT_THIRD, TILE_WIDTH, TILE_HEIGHT};
+			if((y & 1) == 1) {
+				_SpritePos.x += (TILE_WIDTH / 2);
+			}
 
-		SDL_RenderCopy(g_Renderer, _TileSheet->Tiles, &_Rect, &_SpritePos);
-		_Itr = _Itr->Next;
+			SDL_RenderCopy(g_Renderer, _TileSheet->Tiles, &_Rect, &_SpritePos);
+		}
 	}
+//	}
 	LnkLstClear(&_QuadList);
 	for(int _Layer = MAPRENDER_TILE + 1; _Layer < MAPRENDER_LAYERS; ++_Layer) {
 		MapObjectsInRect(_Map, _Layer, &_Map->Screen, &_QuadList);
@@ -155,7 +217,7 @@ void MapRender(SDL_Renderer* _Renderer, struct MapRenderer* _Map) {
 void MapObjectsInRect(struct MapRenderer* _Renderer, int _Layer, const SDL_Rect* _Rect, struct LinkedList* _Data) {
 	if(_Layer < 0 || _Layer >= MAPRENDER_LAYERS)
 		return;
-	QTPointInRectangle(&_Renderer->RenderArea[_Layer], _Rect, (void(*)(const void*, SDL_Point*))TileGetTilePos, _Data);
+	QTPointInRectangle(&_Renderer->RenderArea[_Layer], _Rect, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, _Data);
 }
 
 const struct Tile* MapGetTileConst(const struct MapRenderer* const _Renderer, const SDL_Point* _Point) {
@@ -165,7 +227,7 @@ const struct Tile* MapGetTileConst(const struct MapRenderer* const _Renderer, co
 struct Tile* MapGetTile(struct MapRenderer* _Renderer, const SDL_Point* _Point) {
 	if(_Point->x < 0 || _Point->x >= _Renderer->TileLength || _Point->y < 0 || _Point->y >= _Renderer->TileLength)
 		return NULL;
-	return _Renderer->Tiles[(_Point->y * _Renderer->TileLength) + _Point->x];
+	return &_Renderer->Tiles[(_Point->y * _Renderer->TileLength) + _Point->x];
 }
 
 void MapDrawColorOverlay(const struct MapRenderer* _Renderer, const SDL_Point* _Point, SDL_Color* _Color) {

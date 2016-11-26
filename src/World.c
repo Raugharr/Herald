@@ -714,14 +714,15 @@ int GameFyrdClick(const struct Object* _One, const struct Object* _Two) {
 
 void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World) {
 	if(_State->KeyboardState == SDL_RELEASED) {
-		if(_State->KeyboardButton == SDLK_a)
+		if(_State->KeyboardButton == SDLK_a && g_GameWorld.MapRenderer->Screen.x > 0) {
 			g_GameWorld.MapRenderer->Screen.x -= 1;
-		else if(_State->KeyboardButton == SDLK_d)
+		} else if(_State->KeyboardButton == SDLK_d && g_GameWorld.MapRenderer->Screen.x < g_GameWorld.MapRenderer->TileLength) {
 			g_GameWorld.MapRenderer->Screen.x += 1;
-		else if(_State->KeyboardButton == SDLK_w)
+		} else if(_State->KeyboardButton == SDLK_w && g_GameWorld.MapRenderer->Screen.y > 0) {
 			g_GameWorld.MapRenderer->Screen.y -= 1;
-		else if(_State->KeyboardButton == SDLK_s)
+		} else if(_State->KeyboardButton == SDLK_s && g_GameWorld.MapRenderer->Screen.y < g_GameWorld.MapRenderer->TileLength) {
 			g_GameWorld.MapRenderer->Screen.y += 1;
+		}
 	}
 	if(_State->MouseButton == SDL_BUTTON_LEFT && _State->MouseState == SDL_RELEASED) {
 		/*struct LinkedList _List = LinkedList();
@@ -748,11 +749,11 @@ void GameWorldDraw(const struct GameWorld* _World) {
 		return;
 	GetMousePos(&_Pos);
 	ScreenToTile(&_Pos, &_TilePos);
-	_Tile = _World->MapRenderer->Tiles[_TilePos.y * _World->MapRenderer->TileLength + _TilePos.x];
+	_Tile = &_World->MapRenderer->Tiles[_TilePos.y * _World->MapRenderer->TileLength + _TilePos.x];
 	_Settlement = g_GameWorld.Settlements.Front;
 	MapRender(g_Renderer, g_GameWorld.MapRenderer);
 	if(_Tile != NULL) {
-		SDL_Rect _SpritePos = {_Tile->SpritePos.x, _Tile->SpritePos.y, TILE_WIDTH, TILE_HEIGHT};
+		SDL_Rect _SpritePos = {0, 0, TILE_WIDTH, TILE_HEIGHT};
 
 		SDL_RenderCopy(g_Renderer, ResourceGetData(g_GameWorld.MapRenderer->Selector), NULL, &_SpritePos);
 	}
@@ -789,7 +790,7 @@ int World_Tick() {
 	++g_GameWorld.Tick;
 	if(MONTH(g_GameWorld.Date) != _OldMonth) {
 		for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
-			g_GameWorld.MapRenderer->Tiles[i]->Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
+			g_GameWorld.MapRenderer->Tiles[i].Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
 		}
 	}
 	--_Ticks;

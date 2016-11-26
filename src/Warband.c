@@ -242,7 +242,12 @@ void DestroyArmy(struct Army* _Army) {
 }
 
 int ArmyPathHeuristic(struct Tile* _One, struct Tile* _Two) {
-	return TileGetDistance(&_One->TilePos, &_Two->TilePos);
+	SDL_Point _PosOne;
+	SDL_Point _PosTwo;
+
+	TileToPos(g_GameWorld.MapRenderer, _One, &_PosOne);
+	TileToPos(g_GameWorld.MapRenderer, _Two, &_PosTwo);
+	return TileGetDistance(&_PosOne, &_PosTwo);
 }
 
 void ArmyThink(struct Army* _Army) {

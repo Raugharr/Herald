@@ -67,6 +67,7 @@ void MapLoad(struct MapRenderer* _Map) {
 
 	for(int y = 0; y < _Map->TileLength; ++y) {
 		for(int x = 0; x < _Map->TileLength; ++x) {
+			_Tile = &_Map->Tiles[y * _Map->TileLength + x];
 			_Tile->Forest = 0;
 			_Tile->Temperature = 0;
 			_Tile->Unbuildable = 0;

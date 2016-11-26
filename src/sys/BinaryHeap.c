@@ -91,10 +91,6 @@ void* BinaryHeapRemove(struct BinaryHeap* _Heap, int _Index) {
 	return _Top;
 }
 
-void* BinaryHeapTop(struct BinaryHeap* _Heap) {
-	return (_Heap->Size > 0) ? (_Heap->Table[0]) : (NULL);
-}
-
 void BinaryHeapIncrease(struct BinaryHeap* _Heap, int _Index) {
 	int _Min = BinaryHeapLeft(_Index);
 

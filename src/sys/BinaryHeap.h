@@ -12,6 +12,10 @@
 #define BinaryHeapIsNode(_Index, _Heap) ((_Index) < (_Heap)->Size && _Heap->Table[(_Index)] != NULL)
 #define BinaryHeapPop(_Heap) BinaryHeapRemove((_Heap), 0)
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
 struct BinaryHeap {
 	void** Table;
 	int TblSz;
@@ -23,7 +27,10 @@ struct BinaryHeap* CreateBinaryHeap(int _Size, int (*_ICallback)(const void*, co
 void DestroyBinaryHeap(struct BinaryHeap* _Heap);
 void BinaryHeapInsert(struct BinaryHeap* _Heap, void* _Data);
 void* BinaryHeapRemove(struct BinaryHeap* _Heap, int _Index);
-void* BinaryHeapTop(struct BinaryHeap* _Heap);
+static inline void* BinaryHeapTop(struct BinaryHeap* _Heap) {
+	return (_Heap->Size > 0) ? (_Heap->Table[0]) : (NULL);
+}
+
 void BinaryHeapIncrease(struct BinaryHeap* _Heap, int _Index);
 
 #endif

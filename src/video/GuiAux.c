@@ -113,13 +113,13 @@ struct Table* CreateTable(void) {
 }
 
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-	int _Spacing, int _Columns, int _Rows, struct Font* _Font) {
-	int _THeight = TTF_FontHeight(_Font->Font) + _Spacing;
+	int _Columns, int _Rows, struct Font* _Font) {
+	int _THeight = TTF_FontHeight(_Font->Font);
 	int _Size = _Rows * _Columns;
 	int i;
 
 	_Rect->h = _THeight * _Columns;
-	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing);
+	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State);
 	_Widget->Container.HorzFocChange = TableHorzFocChange;
 	_Widget->Container.ChildrenSz = _Columns * _Rows;
 	_Widget->Container.Children = calloc(_Widget->Container.ChildrenSz, sizeof(struct Widget*));
@@ -224,8 +224,8 @@ struct ContextItem* CreateContextItem(void) {
 	return (struct ContextItem*) malloc(sizeof(struct ContextItem));
 }
 
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing) {
-	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State, _Spacing);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
+	ConstructContainer((struct Container*)_Widget, _Parent, _Rect, _State);
 	_Widget->Container.Widget.OnDraw = (int(*)(struct Widget*))ContextItemOnDraw;
 	_Widget->Container.Widget.OnFocus = (struct Widget* (*)(struct Widget*, const SDL_Point*))ContextItemOnFocus;
 	_Widget->Container.Widget.OnUnfocus = (int(*)(struct Widget*))ContextItemOnUnfocus;

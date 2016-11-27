@@ -103,7 +103,7 @@ void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect
 	}
 }
 
-void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing) {
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State) {
 	ConstructWidget((struct Widget*)_Widget, _Parent, _Rect, _State);
 	_Widget->Children = NULL;
 	_Widget->ChildrenSz = 0;
@@ -117,7 +117,6 @@ void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SD
 	_Widget->Widget.OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))ContainerOnClick;
 	_Widget->NewChild = NULL;
 	_Widget->RemChild = DynamicRemChild;
-	_Widget->Spacing = _Spacing;
 	_Widget->VertFocChange = 1;
 	_Widget->HorzFocChange = ContainerHorzFocChange;
 	_Widget->Widget.OnDebug = (void(*)(const struct Widget*))ContainerOnDebug;
@@ -134,8 +133,8 @@ void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Poi
 	int32_t _Y = 0;//_Parent->Widget.Style->Margins.Top;
 
 	for(int i = 0; i < _Parent->ChildCt - 1 && _Parent->Children[i] != NULL; ++i) {
-		_X += _Parent->Spacing + _Parent->Children[i]->Rect.w + _Parent->Spacing;
-		_Y += _Parent->Spacing + _Parent->Children[i]->Rect.h + _Parent->Spacing;
+		_X += _Child->Style->Margins.Right + _Parent->Children[i]->Rect.w;
+		_Y += _Child->Style->Margins.Bottom + _Parent->Children[i]->Rect.h;
 	}
 	_Pos->x = _X;
 	_Pos->y = _Y;
@@ -159,10 +158,18 @@ struct Widget* ContainerOnDrag(struct Container* _Widget, const struct SDL_Point
  * FIXME: Check if _Child already has a parent and if it does delete it from the old parent.
  */
 void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
+	if(_Parent->Widget.Id == _Child->Id)
+		return;
+	//Check if _Child already has a parent.
 	if(_Child->Parent != NULL) {
 		struct Container* _OldParent = _Child->Parent;
 
 		_OldParent->RemChild(_OldParent, _Child);
+	}
+	//Check if _Child is already a child.
+	for(int i = 0; i < _Parent->ChildCt; ++i) {
+		if(_Parent->Children[i] == _Child)
+			return;
 	}
 	if(_Parent->Children == NULL) {
 		_Parent->Children = calloc(2, sizeof(struct Widget*));
@@ -181,11 +188,13 @@ void WidgetSetParent(struct Container* _Parent, struct Widget* _Child) {
 		_Child->Rect.w = _Parent->Widget.Rect.w - _Child->Rect.x;
 		if(_Child->Rect.w < 0)
 			_Child->Rect.w = 0;
+		Log(ELOG_WARNING, "Widget #%i cannot fit in parent, width is now %i.", _Child->Id, _Child->Rect.w);
 	}
 	if(_Child->Rect.y +_Child->Rect.h > _Parent->Widget.Rect.y +_Parent->Widget.Rect.h) {
 		_Child->Rect.h = _Parent->Widget.Rect.h - _Child->Rect.y;
 		if(_Child->Rect.h < 0)
 			_Child->Rect.h = 0;
+		Log(ELOG_WARNING, "Widget #%i cannot fit in parent, Height is now 0.", _Child->Id, _Child->Rect.h);
 	}
 }
 
@@ -419,34 +428,40 @@ void DynamicRemChild(struct Container* _Parent, struct Widget* _Child) {
 	}
 }
 
-void WidgetSetWidth(struct Widget* _Widget, int _Width) {
+bool WidgetSetWidth(struct Widget* _Widget, int _Width) {
 	const struct Container* _Parent = _Widget->Parent;
-	const struct SDL_Rect* _Rect = NULL;
+	//const struct SDL_Rect* _Rect = NULL;
 
+	if(_Widget->Rect.x + _Width > _Parent->Widget.Rect.x + _Parent->Widget.Rect.w)
+		return false;
 	_Widget->Rect.w = _Width;
-	for(int i = 0; i < _Parent->ChildCt; ++i) {
+/*	for(int i = 0; i < _Parent->ChildCt; ++i) {
 		if(_Parent->Children[i] == _Widget)
 			continue;
 		_Rect = &_Parent->Children[i]->Rect;
 		if(_Rect->x >= _Widget->Rect.x && _Rect->x + _Rect->w <= _Widget->Rect.x + _Widget->Rect.w) {
 			_Parent->Children[i]->Rect.x = _Widget->Rect.x + _Widget->Rect.w + 1;
 		}
-	}
+	}*/
+	return true;
 }
 
-void WidgetSetHeight(struct Widget* _Widget, int _Height) {
+bool WidgetSetHeight(struct Widget* _Widget, int _Height) {
 	const struct Container* _Parent = _Widget->Parent;
-	const struct SDL_Rect* _Rect = NULL;
+//	const struct SDL_Rect* _Rect = NULL;
 
+	if(_Widget->Rect.y + _Height > _Parent->Widget.Rect.y + _Parent->Widget.Rect.h)
+		return false;
 	_Widget->Rect.h = _Height;
-	for(int i = 0; i < _Parent->ChildCt; ++i) {
+/*	for(int i = 0; i < _Parent->ChildCt; ++i) {
 		if(_Parent->Children[i] == _Widget)
 			continue;
 		_Rect = &_Parent->Children[i]->Rect;
 		if(_Rect->y >= _Widget->Rect.y && _Rect->y + _Rect->h <= _Widget->Rect.y + _Widget->Rect.y) {
 			_Parent->Children[i]->Rect.y = _Widget->Rect.y + _Widget->Rect.h + 1;
 		}
-	}
+	}*/
+	return true;
 }
 
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos) {

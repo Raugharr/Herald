@@ -64,13 +64,13 @@ void ButtonSetClickable(struct Button* _Button, int _Clickable);
 
 struct Table* CreateTable(void);
 void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-		int _Spacing, int _Columns, int _Rows, struct Font* _Font);
+		int _Columns, int _Rows, struct Font* _Font);
 void DestroyTable(struct Table* _Table, lua_State* _State);
 void TableNewChild(struct Container* _Parent, struct Widget* _Child);
 int TableHorzFocChange(const struct Container* _Container);
 
 struct ContextItem* CreateContextItem(void);
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing);
+void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 int ContextItemOnDraw(struct ContextItem* _Container);
 struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
 int ContextItemOnUnfocus(struct ContextItem* _Widget);

@@ -7,6 +7,7 @@ typedef struct SDL_Surface SDL_Surface;
 
 #include "../sys/LinkedList.h"
 #include "../sys/Rule.h"
+#include "../sys/LuaCore.h"
 
 /**
  * GuiLua uses a table on the global space called GUI.
@@ -21,11 +22,14 @@ typedef struct SDL_Surface SDL_Surface;
 #define GuiLoadMenu(_State, _File) ((bool)(LuaLoadFile((_State), (_File), "Menu") == LUA_OK))
 
 struct Widget;
-struct GUIMessagePacket;
 typedef struct SDL_Color SDL_Color;
-typedef int(*GUIMessageFunc)(struct GUIMessagePacket*);
+extern const struct LuaEnumReg g_LuaGuiEnums[];
 
-extern struct LinkedList g_GUIMessageList;
+enum {
+	GUIL_CNVERT,
+	GUIL_CNHORZ,
+	GUIL_CNFIXED
+};
 
 //Table indexes used to store callbacks for each type of gui event.
 enum {
@@ -35,7 +39,7 @@ enum {
 	GUIL_ONCLICK
 };
 
-struct GUIMessagePacket {
+/*struct GUIMessagePacket {
 	void* One;
 	void* Two;
 	struct Primitive RecvPrim;
@@ -48,7 +52,7 @@ struct GUIMessagePair {
 	const char* Key;
 	void* One;
 	void* Two;
-};
+};*/
 
 int LuaCreateLabel(lua_State* _State);
 int LuaCreateButton(lua_State* _State);
@@ -128,7 +132,6 @@ int LuaContainerGetChild(lua_State* _State);
 int LuaContainerSetChild(lua_State* _State);
 int LuaContainerGetChildCt(lua_State* _State);
 int LuaContainerGetChildren(lua_State* _State);
-int LuaContainerGetSpacing(lua_State* _State);
 int LuaContainerParagraph(lua_State* _State);
 int LuaContainerHorizontalCenter(lua_State* _State);
 int LuaContainerClear(lua_State* _State);
@@ -139,6 +142,7 @@ int LuaContainerSetSkin(lua_State* _State);
 int LuaContainerGetSkin(lua_State* _State);
 int LuaContainerOnHover(lua_State* _State);
 int LuaContainerOnHoverLoss(lua_State* _State);
+int LuaContainerOnNewChild(lua_State* _State);
 
 /**
  * Label functions

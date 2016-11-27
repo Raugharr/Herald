@@ -45,7 +45,6 @@
 	if(lua_type(_State, -1) == LUA_TNIL)		\
 		luaL_error(_State, "Menu %s not not exist", (_Name))
 
-struct LinkedList g_GUIMessageList = {0, NULL, NULL};
 struct Container* g_GuiParentHook = NULL;
 
 static const luaL_Reg g_LuaFuncsGUI[] = {
@@ -96,7 +95,6 @@ static const luaL_Reg g_LuaFuncsWidget[] = {
 static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"SetChild", LuaContainerSetChild},
 		{"GetChildCt", LuaContainerGetChildCt},
-		{"Spacing", LuaContainerGetSpacing},
 		{"CreateLabel", LuaCreateLabel},
 		{"CreateTable", LuaCreateTable},
 		{"CreateTextBox", LuaCreateTextBox},
@@ -112,6 +110,10 @@ static const luaL_Reg g_LuaFuncsContainer[] = {
 		{"SetSkin", LuaContainerSetSkin},
 		{"GetSkin", LuaContainerGetSkin},
 		{"OnHover", LuaContainerOnHover},
+		{"OnNewChild", LuaContainerOnNewChild},
+		//{"HorizontalContainer", LuaContainerHorizontal},
+		//{"VerticalContainer", LuaContainerVertical},
+		//{"FixedContainer", LuaContainerFixed},
 		{NULL, NULL}
 };
 
@@ -180,6 +182,18 @@ static const struct LuaObjectReg g_GuiLuaObjects[] = {
 	{LOBJ_GSTYLE, "GStyle", LUA_REFNIL, g_LuaFuncsGuiStyle},
 	{LOBJ_GSKIN, "GSkin", LUA_REFNIL, g_LuaFuncsGuiSkin},
 	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
+};
+
+const struct LuaEnum g_LuaContainerEnum[] = {
+	{"Vertical", GUIL_CNVERT},
+	{"Horizontal", GUIL_CNHORZ},
+	{"Fixed", GUIL_CNFIXED},
+	{NULL, 0}
+};
+
+const struct LuaEnumReg g_LuaGuiEnums[] = {
+	{"Container", NULL,  g_LuaContainerEnum},
+	{NULL, NULL}
 };
 
 //FIXME: Font should become a Lua class.
@@ -264,7 +278,7 @@ int LuaCreateTable(lua_State* _State) {
 	if(_Font == NULL)
 		luaL_error(_State, "No default font or font passed as argument.");
 	lua_createtable(_State, 2, 2);
-	ConstructTable(_Table, _Parent, &_Rect,_State, 0, _Columns, _Rows, _Font);
+	ConstructTable(_Table, _Parent, &_Rect,_State, _Columns, _Rows, _Font);
 	LuaInitClass(_State, _Table, LOBJ_TABLE);
 	return 1;
 }
@@ -299,7 +313,7 @@ struct Container* LuaContainer(lua_State* _State) {
 		_Parent = LuaCheckClass(_State, 5, LOBJ_CONTAINER);
 	_Container = CreateContainer();
 	lua_createtable(_State, 2, 2);
-	ConstructContainer(_Container, _Parent, &_Rect, _State, 0);
+	ConstructContainer(_Container, _Parent, &_Rect, _State);
 	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
 	return _Container;
 }
@@ -339,7 +353,7 @@ int LuaContextItem(lua_State* _State) {
 	}
 	lua_newtable(_State);
 	_Container = CreateContextItem();
-	ConstructContextItem(_Container, _Parent, &_Rect, _State, luaL_checkint(_State, 5));
+	ConstructContextItem(_Container, _Parent, &_Rect, _State);
 	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
 	return 1;
 }
@@ -388,7 +402,7 @@ int LuaCreateWindow(lua_State* _State) {
 	LuaCopyTable(_State, -2);
 	lua_newtable(_State);
 	_Container = CreateContainer();
-	ConstructContainer(_Container, NULL, &_Rect, _State, 0);
+	ConstructContainer(_Container, NULL, &_Rect, _State);
 	_Container->NewChild = FixedConNewChild;
 	_Container->Widget.Parent = NULL;
 
@@ -437,7 +451,7 @@ int LuaMenuAsContainer(lua_State* _State) {
 	struct SDL_Rect _Rect = {0, 0, 0, 0};
 
 	lua_newtable(_State);
-	ConstructContainer(_Container, NULL, &_Rect, _State, 0);
+	ConstructContainer(_Container, NULL, &_Rect, _State);
 	GuiSetParentHook(_Container);
 	LuaCreateWindow(_State);
 	//LuaSetMenu_Aux(_State);
@@ -521,7 +535,7 @@ int LuaSetMenu_Aux(lua_State* _State) {
 	_MenuRect.h = _Height;
 	lua_newtable(_State);
 	_MenuContainer = CreateContainer();
-	ConstructContainer(_MenuContainer, NULL, &_MenuRect, _State, 0);
+	ConstructContainer(_MenuContainer, NULL, &_MenuRect, _State);
 	_MenuContainer->Widget.OnDraw = (int(*)(struct Widget*))MenuOnDraw;
 	_MenuContainer->Widget.OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))MenuOnClick;
 	_MenuContainer->NewChild = FixedConNewChild;
@@ -882,13 +896,6 @@ int LuaContainerGetChildren(lua_State* _State) {
 	return 1;
 }
 
-int LuaContainerGetSpacing(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-
-	lua_pushinteger(_State, _Container->Spacing);
-	return 1;
-}
-
 int LuaContainerHorizontalCenter(lua_State* _State) {
 	lua_pushinteger(_State, GetHorizontalCenter(LuaCheckClass(_State, 1, LOBJ_CONTAINER), LuaCheckClass(_State, 2, LOBJ_WIDGET)));
 	return 1;
@@ -955,6 +962,37 @@ int LuaContainerOnHover(lua_State* _State) {
 	return 0;
 }
 
+int LuaContainerOnNewChild(lua_State* _State) {
+	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+	int _OnChild = luaL_checkinteger(_State, 2);
+	
+	switch(_OnChild) {
+		case GUIL_CNVERT:
+			_Container->NewChild = VertConNewChild;
+			break;
+		case GUIL_CNHORZ:
+			_Container->NewChild = HorzConNewChild;
+			break;
+		case GUIL_CNFIXED:
+			_Container->NewChild = FixedConNewChild;
+			break;
+	}
+	return 0;
+}
+
+
+int LuaContainerHorizontal(lua_State* _State) {
+	return 0;
+}
+
+int LuaContainerVertical(lua_State* _State) {
+	return 0;
+}
+
+int LuaContainerFixed(lua_State* _State) {
+	return 0;
+}
+
 int LuaContainerOnHoverLoss(lua_State* _State) {
 	LuaCheckClass(_State, 1, LOBJ_CONTAINER);
 	luaL_checktype(_State, 2, LUA_TFUNCTION);
@@ -988,7 +1026,7 @@ int LuaContainerParagraph(lua_State* _State) {
 	_PRect.w = _Parent->Widget.Rect.w;
 	_PRect.h = _Parent->Widget.Rect.h;
 	_NewContainer = CreateContainer();
-	ConstructContainer(_NewContainer, _Parent, &_PRect, _State, 0);
+	ConstructContainer(_NewContainer, _Parent, &_PRect, _State);
 	_NewContainer->NewChild = VertConNewChild;
 	_NewContainer->Widget.CanFocus = 0;
 	while(*_Temp != '\0') {
@@ -1089,18 +1127,20 @@ int LuaTableGetColumns(lua_State* _State) {
 
 int LuaTableSetCellWidth(lua_State* _State) {
 	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+	int _CellMax = luaL_checkinteger(_State, 2);
 
-	_Table->CellMax.w = luaL_checkinteger(_State, 2);
-	_Table->Container.Widget.Rect.w = _Table->CellMax.w * _Table->Rows;
+	if(WidgetSetWidth(&_Table->Container.Widget, _CellMax * _Table->Rows) == true)
+		_Table->CellMax.w = _CellMax;
 	lua_pushvalue(_State, 1);
 	return 1;
 }
 
 int LuaTableSetCellHeight(lua_State* _State) {
 	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+	int _CellMax = luaL_checkinteger(_State, 2);
 
-	_Table->CellMax.h = luaL_checkinteger(_State, 2);
-	_Table->Container.Widget.Rect.h = _Table->CellMax.h * _Table->Columns;
+	if(WidgetSetWidth(&_Table->Container.Widget, _CellMax * _Table->Columns) == true)
+		_Table->CellMax.h = _CellMax;
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1310,8 +1350,8 @@ int LuaContainerLeftOf(lua_State* _State) {
 	if(_Rel->Parent != _Base->Parent)
 		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
 	_Pos.x = _Rel->Rect.x - _Base->Rect.w;
-	_Pos.y = _Rel->Rect.y;
-	_Base->SetPosition((struct Widget*) _Rel, &_Pos);
+	_Pos.y = _Base->Rect.y;
+	_Rel->SetPosition((struct Widget*) _Rel, &_Pos);
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1324,8 +1364,8 @@ int LuaContainerRightOf(lua_State* _State) {
 	if(_Rel->Parent != _Base->Parent)
 		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
 	_Pos.x = _Rel->Rect.x + _Base->Rect.w;
-	_Pos.y = _Rel->Rect.y;
-	_Base->SetPosition((struct Widget*) _Rel, &_Pos);
+	_Pos.y = _Base->Rect.y;
+	_Rel->SetPosition((struct Widget*) _Rel, &_Pos);
 	lua_pushvalue(_State, 1);
 	return 1;
 }
@@ -1556,9 +1596,17 @@ int	LuaGuiStyleBackgroundColor(lua_State* _State) {
 }
 
 int	LuaGuiStyleMargins(lua_State* _State) {
-	//struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
 
-	//LuaCtor(_State, _Style->Margins, LOBJ_FONT);
+	lua_createtable(_State, 4, 0);
+	lua_pushinteger(_State, _Style->Margins.Top);
+	lua_rawseti(_State, -2, 1);
+	lua_pushinteger(_State, _Style->Margins.Left);
+	lua_rawseti(_State, -2, 1);
+	lua_pushinteger(_State, _Style->Margins.Bottom);
+	lua_rawseti(_State, -2, 1);
+	lua_pushinteger(_State, _Style->Margins.Right);
+	lua_rawseti(_State, -2, 1);
 	return 0;
 }
 

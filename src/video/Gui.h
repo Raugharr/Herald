@@ -101,7 +101,6 @@ struct Container {
 	struct Widget** Children;
 	uint16_t ChildrenSz;
 	uint16_t ChildCt;
-	int16_t Spacing;
 	const struct GuiSkin* Skin;
 };
 
@@ -117,7 +116,7 @@ void GuiEmpty();
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
-void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing);
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);
@@ -167,8 +166,8 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
  */
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
-void WidgetSetWidth(struct Widget* _Widget, int _Width);
-void WidgetSetHeight(struct Widget* _Widget, int _Height);
+bool WidgetSetWidth(struct Widget* _Widget, int _Width);
+bool WidgetSetHeight(struct Widget* _Widget, int _Height);
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos);
 struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
 void WidgetOnDebug(const struct Widget* _Widget);

@@ -77,7 +77,7 @@ void MapLoad(struct MapRenderer* _Map) {
 	}
 }
 
-void ScreenToTile(const SDL_Point* _Screen, struct SDL_Point* _Hex) {
+void ScreenToHex(const SDL_Point* _Screen, struct SDL_Point* _Hex) {
 	SDL_Point _SectPxl = {0};
 	uint32_t _SectX = _Screen->x / (2 * TILE_DIST);
 	uint32_t _SectY = _Screen->y / (TILE_HEIGHT_THIRD);

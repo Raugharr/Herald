@@ -56,7 +56,7 @@ void MapLoad(struct MapRenderer* _Map);
 /**
  * Finds the tile that corrisponds with the screen position given by _Screen.
  */
-void ScreenToTile(const SDL_Point* _Screen, SDL_Point* _Hex);
+void ScreenToHex(const SDL_Point* _Screen, SDL_Point* _Hex);
 void TileRing(struct MapRenderer* _Renderer, SDL_Point* _Center, uint32_t _Radius, struct Tile** _Out);
 void TilesInRange(struct MapRenderer* _Renderer, const SDL_Point* _Pos, int _Range, struct LinkedList* _List);
 /*

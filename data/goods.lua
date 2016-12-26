@@ -24,14 +24,15 @@ Goods = {
 	{Name = "Quern", Category = "Material", InputGoods = {{"Stone", 3}}, OutputGoods = {{"Flour", 300}}},
 	{Name = "Dirt", Category = "Material", InputGoods = {}},
 	{Name = "Wood", Category = "Material", InputGoods = {}},
-	{Name = "Spear", Category = "Weapon", Type = "Spear", MeleeAttack = 3, Charge = 1, InputGoods = {}},
-	{Name = "Sword", Category = "Weapon", Type = "Sword", MeleeAttack = 4, Charge = 1, InputGoods = {}},
-	{Name = "Hunting Bow", Category = "Weapon", Type = "Bow", MeleeAttack = 0, RangeDamage = 3, InputGoods = {}},
+	{Name = "Seax", Category = "Weapon", Type = "Sword", MeleeAttack = 20, InputGoods = {}},
+	{Name = "Spear", Category = "Weapon", Type = "Spear", MeleeAttack = 30, InputGoods = {}},
+	{Name = "Sword", Category = "Weapon", Type = "Sword", MeleeAttack = 40, InputGoods = {}},
+	{Name = "Hunting Bow", Category = "Weapon", Type = "Bow", MeleeAttack = 0, RangeAttack = 15, InputGoods = {}},
 	{Name = "Arrow", Category = "Material", RangeDamage = 1, InputGoods = {}},
 	--{Name = "Seax", Category = "Weapon", Type = "Seax", MeleeAttack = 2, Charge = 1, InputGoods = {}}
-	{Name = "Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 2, InputGoods = {}},
-	{Name = "Partial Leather Armor", Category = "Armor", Type = "Armor", Defense = 1, InputGoods = {}},
-	{Name = "Full Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 3, InputGoods = {{"Leather Body Armor", 1}, {"Partial Leather Armor", 1}}},
-	{Name = "Wooden Shield", Category = "Armor", Type = "Shield", Defense = 2, InputGoods = {}}
+	{Name = "Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 10, InputGoods = {}},
+	{Name = "Partial Leather Armor", Category = "Armor", Type = "Armor", Defense = 5, InputGoods = {}},
+	{Name = "Full Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 15, InputGoods = {{"Leather Body Armor", 1}, {"Partial Leather Armor", 1}}},
+	{Name = "Shield", Category = "Armor", Type = "Armor", Defense = 5, InputGoods = {}}
 	--{Name = "Javalin", Category = "Weapon", Type = "Javelin", Damage = 2, RangeDamage = 3, Impact = 1 InputGoods = {}},
 }

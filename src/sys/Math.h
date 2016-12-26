@@ -29,6 +29,7 @@
 //_Int becomes _Num more integers away from 0.
 #define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BIT - 1))) * (_Num))
 #define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BIT - 1)))
+#define sqrt3 (1.732050807568877)
 
 void MathInit();
 
@@ -61,5 +62,13 @@ int PrevPowTwo(int _Num);
 int64_t Ipow(int64_t base, uint8_t exp);
 static inline double NormalDistribution(double _Var, uint32_t _Variance, uint32_t _Mean) {
 	return pow(((double)1) / (sqrt(2 * _Variance * M_PI)), (-pow(_Var - _Mean, 2)) / (2 * _Variance));
+}
+
+static inline double Quadratic(uint32_t _Num, uint32_t _Min, uint32_t _Max) {
+	uint32_t _Mult = (_Num - _Min);
+	uint32_t _MaxMult = (_Max - _Min);
+	_Mult *= _Mult;
+	_MaxMult *= _MaxMult;
+	return _Mult / ((double)_MaxMult);
 }
 #endif

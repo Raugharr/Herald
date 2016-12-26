@@ -6,6 +6,10 @@
 #ifndef __STACK_H
 #define __STACK_H
 
+#include "Log.h"
+
+#include <stdint.h>
+
 #ifndef NULL
 	#define NULL ((void*)0)
 #endif
@@ -16,19 +20,23 @@ struct StackNode {
 };
 
 struct Stack {
-	struct StackNode* Top;
-	int Size;
+	void** Top;
+	uint32_t Size;
+	uint32_t MaxSize;
 };
 
-struct Stack* CreateStack();
-struct Stack* CopyStack(struct Stack* _Stack);
+struct Stack* CreateStack(uint32_t _Size);
 void DestroyStack(struct Stack* _Stack);
 
 void StackPush(struct Stack* _Stack, void* _Data);
 void* StackPop(struct Stack* _Stack);
 void* StackGet(struct Stack* _Stack, int _Index);
 int StackNodeLen(const struct StackNode* _Node);
-struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat);
-static inline void* StackTop(struct Stack* _Stack) {return (_Stack->Top == NULL) ? (NULL) : (_Stack->Top->Data);}
+
+static inline void* StackTop(struct Stack* _Stack) {
+	if(_Stack->Size == 0)
+		return NULL;
+	return _Stack->Top[_Stack->Size - 1];
+}
 
 #endif

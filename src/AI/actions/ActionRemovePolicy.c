@@ -55,13 +55,13 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	int _Utility = 0;
 	int _Caste = PERSON_CASTE(_Agent->Agent->Person); 
-	int _Preference = -PersonGetGovernment(_Agent->Agent->Person)->CastePreference[_Caste];
+	//int _Preference = -PersonGetGovernment(_Agent->Agent->Person)->CastePreference[_Caste];
 	struct BigGuyRelation* _Relation = _Agent->Agent->Relations;
 
 	*_Min = 0;
 	*_Max = 255;
-	if(_Preference <= 0)
-		return 0;
+	//if(_Preference <= 0)
+	//	return 0;
 	//Check for an existing plot to change a policy, if there is join it if it is strong enough.
 	if(_Agent->Blackboard.Plot != NULL) {
 		_Utility = PlotPower(_Agent->Blackboard.Plot, PLOT_ATTACKERS) - PlotPower(_Agent->Blackboard.Plot, PLOT_DEFENDERS);

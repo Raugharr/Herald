@@ -20,6 +20,7 @@ extern struct RBTree g_ActorObservers;
 struct Location;
 struct MissionEngine;
 struct EventData;
+struct Faction;
 
 /**
  * Function prototype for all functions that are used in event callbacks.
@@ -30,7 +31,6 @@ typedef void (*EventCallback)(const struct EventData*, void*, void*);
 
 enum {
 	EVENT_CRISIS = 0,
-	EVENT_FEUD,
 	EVENT_BIRTH,
 	EVENT_BATTLE,
 	EVENT_DEATH,
@@ -43,30 +43,35 @@ enum {
 	EVENT_ENDPLOT,
 	EVENT_NEWPOLICY,
 	EVENT_CHANGEPOLICY,
-	EVENT_NEWRECRUIT,
+	EVENT_JOINRETINUE,
+	EVENT_QUITRETINUE,
+	EVENT_BATTLESTART,
+	EVENT_BATTLEEND,
+	EVENT_MURDERED,
+	EVENT_TAKERET,
 	EVENT_SIZE
 };
 
-#define KeyMouseStateClear(_State)	\
-	(_State)->MouseButton = -1;		\
-	(_State)->MouseState = -1;		\
-	(_State)->MouseClicks = 0;		\
-	(_State)->KeyboardButton = 0;	\
-	(_State)->KeyboardMod = 0;		\
-	(_State)->MouseMove = 0;		\
-	(_State)->MousePos.x = -1;		\
-	(_State)->MousePos.y = -1;		\
-	(_State)->KeyboardState = 0;
+#define KeyMouseStateClear(State)	\
+	(State)->MouseButton = -1;		\
+	(State)->MouseState = -1;		\
+	(State)->MouseClicks = 0;		\
+	(State)->KeyboardButton = 0;	\
+	(State)->KeyboardMod = 0;		\
+	(State)->MouseMove = 0;		\
+	(State)->MousePos.x = -1;		\
+	(State)->MousePos.y = -1;		\
+	(State)->KeyboardState = 0;
 
 struct KeyMouseState {
-	unsigned int MouseButton; /* Which button is pressed. */
-	unsigned int MouseState; /* Pressed or released. */
-	unsigned int MouseClicks;
-	unsigned int KeyboardButton; /* Which key is pressed. */
-	unsigned int KeyboardMod;
-	unsigned int MouseMove;
+	uint16_t MouseButton; /* Which button is pressed. */
+	uint16_t MouseState; /* Pressed or released. */
+	uint16_t MouseClicks;
+	uint16_t KeyboardButton; /* Which key is pressed. */
+	uint16_t KeyboardMod;
+	uint16_t MouseMove;
+	int16_t KeyboardState; /* SDL_PRESSED or SDL_RELEASED */
 	SDL_Point MousePos;
-	int KeyboardState; /* Pressed or released. */
 };
 
 struct WEvent {
@@ -76,14 +81,14 @@ struct WEvent {
 };
 
 struct EventData {
-	int EventType;
+	uint32_t EventType;
 	void* OwnerObj;
 	void* One;
 	void* Two;
 };
 
 struct EventObserver {
-	int EventType;
+	uint32_t EventType;
 	void* OwnerObj;
 	void* One;
 	void* Two;
@@ -98,17 +103,19 @@ struct EventObserver {
  */
 void EventInit();
 void EventQuit();
-void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2);
-void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data);
-void EventHookUpdate(const SDL_Event* _Event);
+void EventHook(int EventType, EventCallback Callback, void* Owner, void* Data1, void* Data2);
+void EventHookRemove(int EventType, void* Owner, void* Data1, void* Data);
+void EventHookUpdate(const SDL_Event* Event);
 
-void PushEvent(int _Type, void* _Data1, void* _Data2);
-struct EventObserver* CreateEventObserver(int _EventType, EventCallback _Callback, void* _Owner, void* _One, void* _Two);
-void DestroyEventObserver(struct EventObserver* _EventObs);
+void PushEvent(int Type, void* Data1, void* Data2);
+struct EventObserver* CreateEventObserver(int EventType, EventCallback Callback, void* Owner, void* One, void* Two);
+void DestroyEventObserver(struct EventObserver* EventObs);
 void Events();
-void GetMousePos(struct SDL_Point* _Point);
-int StringToEvent(const char* _Str);
+void GetMousePos(struct SDL_Point* Point);
+int StringToEvent(const char* Str);
 int EventUserOffset();
+
+void EventFactionGoalEnd(struct Faction* Faction, uint32_t Goal, lua_State* State);
 
 #endif
 

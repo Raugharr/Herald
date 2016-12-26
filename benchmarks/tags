@@ -1,0 +1,17 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CC	./Makefile	/^CC=gcc$/;"	m
+CoroBench	./main.c	/^void CoroBench(int One, int Two) {$/;"	f
+DEPS	./Makefile	/^DEPS=$/;"	m
+LIB	./Makefile	/^LIB=-lm -lcheck -lpthread -lrt -llua5.2 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image$/;"	m
+MainCoro	./main.c	/^void MainCoro() {$/;"	f
+NAME	./Makefile	/^NAME=herald-bench$/;"	m
+OBJ	./Makefile	/^OBJ=$(SRCOBJFLD)*$/;"	m
+OBJFLD	./Makefile	/^OBJFLD=obj\/$/;"	m
+RegBench	./main.c	/^void RegBench(int One, int Two) {$/;"	f
+SRCOBJFLD	./Makefile	/^SRCOBJFLD=..\/src\/obj\/$/;"	m
+main	./main.c	/^int main(int argc, const char* argv[]) {$/;"	f

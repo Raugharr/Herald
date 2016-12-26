@@ -7,7 +7,7 @@
 
 typedef struct lua_State lua_State;
 
-void LuaWorldInit();
+void LuaWorldInit(lua_State* State);
 int LuaWorldGetPlayer(lua_State* _State);
 int LuaWorldGetSettlement(lua_State* _State);;
 int LuaWorldGetDate(lua_State* _State);

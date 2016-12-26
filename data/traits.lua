@@ -7,14 +7,14 @@ Traits = {
 	},
 	{
 		Name = "Coward",
-		Dislikes = {"Brave", "Loyal"},
 		Likes = {"Coward"},
+		Dislikes = {"Brave", "Loyal"},
 		Prevents = {"Brave"}
 	},
 	{
 		Name = "Greedy",
-		Dislikes = {"Greedy"},
 		Likes = {"Ambitious"},
+		Dislikes = {"Greedy"},
 		Prevents = {}
 	},
 	{
@@ -25,8 +25,8 @@ Traits = {
 	},
 	{
 		Name = "Ambitious",
-		Dislikes = {"Coward"},
 		Likes = {"Greedy"},
+		Dislikes = {"Coward"},
 		Prevents = {}
 	},
 	{
@@ -37,26 +37,32 @@ Traits = {
 	},
 	{
 		Name = "Honest",
-		Likes = {},
-		Dislikes = {},
+		Likes = {"Honest", "Kind"},
+		Dislikes = {"Greedy"},
 		Prevents = {}
 	},
 	{
 		Name = "Lazy",
 		Likes = {},
-		Dislikes = {},
-		Prevents = {}
+		Dislikes = {"Ambitious"},
+		Prevents = {"Ambitious"}
 	},
 	{
 		Name = "Kind",
-		Likes = {},
-		Dislikes = {},
+		Likes = {"Kind", "Honest"},
+		Dislikes = {"Cruel"},
+		Prevents = {"Cruel"}
+	},
+	{
+		Name = "Cruel",
+		Likes = {"Cruel", "Greedy"},
+		Dislikes = {"Kind"},
 		Prevents = {}
 	},
 	{
 		Name = "Narcissist",
 		Likes = {},
-		Dislikes = {},
+		Dislikes = {"Honest", "Narcissist"},
 		Prevents = {}
 	},
 	{

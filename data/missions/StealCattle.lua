@@ -1,6 +1,3 @@
---[[
---]]
-
 Mission.Load {
 	Name = "Steal Cattle",
 	Description = "It would be nice to have more cattle.",
@@ -10,31 +7,29 @@ Mission.Load {
 			Trigger = function (Frame)
 				local Target = Frame:RandomPerson({Male = true, Adult = true})
 				local Success = Frame.Owner:OpposedChallange(Target, Stat.Wit)
-			--	
-			--	if Success >= 2 then
+
+				if Success >= 0 then
 					Mission.FireEvent("STLCT.3", Frame.Owner, Target)	
-			--	elseif Success < 2 and Success > 0 then
-			--		Mission.FireEvent("STLCT.3", Frame.Owner, Target)
-			--	end
+				else
+					Mission.FireEvent("STLCT.2", Frame.Owner, Target)
+				end
 			end,
 			AIUtility = function(Frame)
 			end
 		},
-			--[[Text = "Resit the urge.",
-			function Trigger(Mission)
-
-			end--]]
 	},
-	Id = "STLCT.1",
+	Action = Action.Steal,
+	OnlyTriggered = false,
 	MeanTime = {
-		Base = 365,
+		Base = 60,
 		{
 			Modifier = 0.8,
 			Trigger = function(Frame)
 				return Frame.Owner:HasTrait("Greedy") == true
 			end
 		}
-	}
+	},
+	Id = "STLCT.1"
 }
 
 Mission.Load {
@@ -82,7 +77,7 @@ Mission.Load {
 		{
 			Text = "Kill [From.FirstName]",
 			Trigger = function(Frame)
-				Mission.FireEvent("Duel.2", From.Owner, From.Target)
+				Mission.FireEvent("DUEL.2", Frame.Owner, Frame.From)
 			end,
 			AIUtility = function(Frame)
 				return {Utility.OpposedChallange(Frame.From, Frame.Owner, Stat.Combat)}
@@ -163,7 +158,7 @@ Mission.Load {
 
 			end,
 			Condition = function(Frame)
-				return Frame.Owner:SkillCheck(Stat.Wit, 120) >= 0
+				return Frame.Owner:SkillCheck(Stat.Wit, 100) >= 0
 			end
 		}
 	},
@@ -194,6 +189,7 @@ Mission.Load {
 	OnlyTriggered = true
 }
 
+--Crashes the game by calling change popularity on a person instead of a BigGuy.
 Mission.Load {
 	Name = "Caught escaping.",
 	Description = "Though you tried to run, [From.FirstName] has caught up to you and seen your face.",
@@ -202,7 +198,7 @@ Mission.Load {
 			Text = "There is nothing I can do.",
 			Trigger = function(Frame) 
 				Frame.From:ChangePopularity(-5)
-				Frame.From:SetOpinion(Frame.Owner, Relation.Action.Theft, 10, Relation.Length.Long, Relation.Strength.Medium)
+				Frame.From:SetOpinion(Frame.Owner, Relation.Action.Theft, 10, Relation.Length.Large, Relation.Opinion.Average)
 			end,
 			AIUtility = function(Frame) end
 		},

@@ -6,17 +6,19 @@
 #ifndef __HASHTABLE_H
 #define __HASHTABLE_H
 
+#include <inttypes.h>
+
 /*
  * FIXME: HashItr and HashItrCons should store their HashTable as a variable
  * instead of it always being passed.
  */
 struct HashItr {
-	int Index;
+	uint32_t Index;
 	struct HashNode* Node;
 };
 
 struct HashItrCons {
-	int Index;
+	uint32_t Index;
 	const struct HashNode* const Node;
 };
 
@@ -27,11 +29,12 @@ struct HashNode {
 
 struct HashTable {
 	struct HashNode** Table;
-	int TblSize;
-	int Size;
+	uint32_t TblSize;
+	uint32_t Size;
 };
 
-struct HashTable* CreateHash(int _Size);
+void ConstructHashTable(struct HashTable* _Hash, uint32_t _Size);
+struct HashTable* CreateHash(uint32_t _Size);
 void DestroyHash(struct HashTable* _Hash);
 
 struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key);
@@ -41,6 +44,7 @@ void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair);
  * Removes all elements from _Hash.
  */
 void HashClear(struct HashTable* _Hash);
+void HashResize(struct HashTable* _Hash);
 /**
  * Removes element _Key from _Hash.
  * Returns 1 if _Key was removed and 0 if _Key was not found.

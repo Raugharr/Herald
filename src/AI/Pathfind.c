@@ -46,12 +46,12 @@ struct PathData {
 };
 
 struct PathNodeScore {
-	int g;
-	int h;
-	int f;
-	int Direction;
 	const struct Tile* Node;
 	const struct PathNodeScore* Parent;
+	uint16_t g;
+	uint16_t h;
+	uint16_t f;
+	uint8_t Direction;
 };
 
 void PathfindInit() {
@@ -185,18 +185,20 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 	struct LnkLst_Node* _Itr = NULL;
 	struct BinaryHeap _OpenList = {NULL, PATHFIND_OPENSIZE, 0, PathNodeScoreCmp};
 	struct PathNodeScore* _Current = NULL;
+	SDL_Point _Pos;
 
 	_OpenList.Table = PathStackNext();
 	BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_StartTile, 0, _Path->Heuristic(_StartTile, _Goal), TILE_SIZE, NULL));
 	while(_OpenList.Size > 0 && _OpenList.Size <= _OpenList.TblSz) {
 		_Current = BinaryHeapTop(&_OpenList);
 		LnkLstPushBack(&_ClosedList, BinaryHeapPop(&_OpenList));
-		if(_Current->Node->TilePos.x == _Goal->TilePos.x && _Current->Node->TilePos.y == _Goal->TilePos.y)
+		if(BinaryHeapTop(&_OpenList) == _Goal)
 			break;
 		/*
 		 * Fill the open list with _Tile's neighbors.
 		 */
-		TileGetAdjTiles(g_GameWorld.MapRenderer, _Current->Node, _Neighbors);
+		TileToPos(g_GameWorld.MapRenderer, _Current->Node, &_Pos);
+		TileSpiral(g_GameWorld.MapRenderer, &_Pos, 1, _Neighbors);
 		for(int i = 0; i < TILE_SIZE; ++i) {
 			if(_Neighbors[i] != NULL) {
 				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
@@ -221,9 +223,9 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 						goto loop_end;
 					}
 				}
-					BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
-					loop_end:
-					continue;
+				BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
+				loop_end:
+				continue;
 			}
 		}
 	}

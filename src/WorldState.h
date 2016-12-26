@@ -24,7 +24,7 @@
 #define STATEOPCODE_BITS (8)
 #define STATEOPCODE_MAX (0xFF)
 
-typedef unsigned int /*int64_t*/ WorldState_t;
+typedef uint32_t /*int64_t*/ WorldState_t;
 typedef uint8_t WorldStateAtom_t;
 
 enum {

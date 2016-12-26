@@ -14,7 +14,6 @@
 #include "../sys/Math.h"
 
 #include "../BigGuy.h"
-#include "../Actor.h"
 #include "../Population.h"
 #include "../Building.h"
 #include "../Good.h"
@@ -155,18 +154,18 @@ int PAIConstructBuild(struct Family* _Family, struct HashTable* _Vars, const str
 }
 
 int PAIHasShelter(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	int i;
+/*	int i;
 	struct Array* _Array = &_Family->Buildings;
 	void** _PerTbl = _Array->Table;
 
 	for(i = 0; i < _Array->Size; ++i)
 		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_ANIMAL) == ERES_ANIMAL)
-			return 1;
+			return 1;*/
 	return 0;
 }
 
 int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	int i;
+	/*int i;
 	int j;
 	int k;
 	int _AnSize = 0;
@@ -211,7 +210,7 @@ int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct
 	}
 	for(i = 0; i < _AnSize; ++i)
 		free(_AnimalCt[i]);
-	free(_AnimalCt);
+	free(_AnimalCt);*/
 	return 1;
 }
 

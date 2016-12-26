@@ -5,12 +5,20 @@
 
 #include "Policy.h"
 
+#include "World.h"
+
 #include "sys/Log.h"
+#include "sys/LuaCore.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-void ConstructPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category) {
+#include <lua/lauxlib.h>
+#include <lua/lualib.h>
+
+static uint16_t g_PolicyId = 0;
+
+void CtorPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category) {
 	_Policy->Name = calloc(strlen(_Name) + 1, sizeof(char));
 	_Policy->Description = calloc(strlen(_Description) + 1, sizeof(char));
 	_Policy->Category = _Category;
@@ -24,6 +32,7 @@ void ConstructPolicy(struct Policy* _Policy, const char* _Name, const char* _Des
 	}
 	strcpy((char*)_Policy->Name, _Name);
 	strcpy((char*)_Policy->Description, _Description);
+	_Policy->Id = g_PolicyId;
 }
 
 void DestroyPolicy(struct Policy* _Policy) {
@@ -33,17 +42,19 @@ void DestroyPolicy(struct Policy* _Policy) {
 	free((char*) _Policy->Description);
 }
 
-void PolicyAddOption(struct Policy* _Policy, int _Row, const char* _Name, PolicyOptFunc _CallFunc, PolicyOptUtility _Utility) {
+void PolicyAddOption(struct Policy* _Policy, int _Row, const char* _Name, const char* _Desc, PolicyOptFunc _CallFunc, PolicyOptUtility _Utility) {
 	struct PolicyOption* _Opt = &_Policy->Options.Options[_Policy->OptionsSz];
 
-	Assert(_Row < 0 || _Row > POLICY_SUBSZ || _Policy->Options.Size[_Row] == POLICYCAT_UNUSED);
+	Assert(!(_Row < 0 || _Row > POLICY_SUBSZ || _Policy->Options.Size[_Row] == POLICYCAT_UNUSED));
 	++_Policy->OptionsSz;
 	++_Policy->Options.Size[_Row];
 	_Opt->Name = calloc(sizeof(char), strlen(_Name) + 1);
-	_Opt->OnPass= _CallFunc;
+	_Opt->Desc = calloc(sizeof(char), strlen(_Desc) + 1);
+	_Opt->OnPass = _CallFunc;
 	_Opt->OnRemove = NULL;
 	_Opt->Utility = _Utility;
 	strcpy((char*) _Opt->Name, _Name);
+	strcpy((char*) _Opt->Desc, _Desc);
 }
 
 void PolicyAddCategory(struct Policy* _Policy, const char* _Name) {
@@ -91,4 +102,64 @@ const struct PolicyOption* PolicyChange(const struct ActivePolicy* _Policy) {
 		}
 	}
 	return NULL;
+}
+
+int LuaPolicyLoad(lua_State* State) {
+	struct Policy* Policy = NULL;
+	const char* PolicyName = NULL;
+	const char* Name = NULL;
+	const char* Desc = NULL;
+	int Category = 0;
+	int OptCt = 0;
+
+	lua_pushstring(State, "Name");
+	lua_rawget(State, 1);
+	if(LuaGetString(State, -1, &PolicyName) == 0) {
+		return luaL_error(State, "Policy Name parameter is not a string.");
+	}
+	lua_pushstring(State, "Desc");
+	lua_rawget(State, 1);
+	if(LuaGetString(State, -1, &Desc) == 0) {
+		return luaL_error(State, "Policy Desc parameter is not a string.");
+	}
+	lua_pushstring(State, "Category");
+	lua_rawget(State, 1);
+	if(LuaGetInteger(State, -1, &Category) == 0) {
+		return luaL_error(State, "Policy Category parameter is not a string.");
+	}
+
+	lua_pop(State, 3);
+	lua_pushstring(State, "Options");
+	lua_rawget(State, 1);
+	if(!lua_istable(State, -1)) {
+		free(Policy);
+		return luaL_error(State, "Policy Desc parameter is not a string.");
+	}
+	Policy = malloc(sizeof(struct Policy));
+	CtorPolicy(Policy, PolicyName, Desc, Category);
+	PolicyAddCategory(Policy, "Foo");
+	lua_pushnil(State);
+	while(lua_next(State, -2) != 0) {
+		if(lua_istable(State, -1) == 0)
+			return luaL_error(State, "Policy %s, option is not a table.", PolicyName);
+		lua_pushstring(State, "Name");
+		lua_rawget(State, -2);
+		if(LuaGetString(State, -1, &Name) == 0) {
+			free(Policy);
+			return luaL_error(State, "Policy %s, option Name parameter is not a string.", PolicyName);
+		}
+		lua_pop(State, 1);
+		lua_pushstring(State, "Desc");
+		lua_rawget(State, -2);
+		if(LuaGetString(State, -1, &Name) == 0) {
+			free(Policy);
+			return luaL_error(State, "Policy %s, option Desc parameter is not a string.", PolicyName);
+		}
+		lua_pop(State, 2);
+		PolicyAddOption(Policy, 0, Name, Desc, NULL, NULL);
+		++OptCt;
+	}
+	lua_pop(State, 1);
+	ArrayInsert_S(&g_GameWorld.Policies, Policy); 
+	return 0;
 }

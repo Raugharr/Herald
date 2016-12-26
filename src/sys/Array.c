@@ -7,31 +7,38 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <alloca.h>
 
 struct Array* CreateArray(int _Size) {
 	struct Array* _Array = (struct Array*) malloc(sizeof(struct Array));
 
-	ConstructArray(_Array, _Size);
+	CtorArray(_Array, _Size);
 	return _Array;
 }
 
-void ConstructArray(struct Array* _Array, int _Size) {
+void CtorArray(struct Array* _Array, int _Size) {
 	_Array->Table = (_Size == 0) ? (NULL) : (calloc(_Size, sizeof(void*)));
 	_Array->TblSize = _Size;
 	_Array->Size = 0;
 }
 
+void DtorArray(struct Array* _Array) {
+	free(_Array->Table);
+}
+
 struct Array* CopyArray(const struct Array* _Array) {
 	struct Array* _New = CreateArray(_Array->Size);
-	int i;
 
-	for(i = 0; i < _Array->Size; ++i)
+	for(int i = 0; i < _Array->Size; ++i)
 		_New->Table[i] = _Array->Table[i];
 	_New->Size = _Array->Size;
 	return _New;
 }
 
 void DestroyArray(struct Array* _Array) {
+	if(_Array == NULL)
+		return;
+	DtorArray(_Array);
 	free(_Array);
 }
 
@@ -42,14 +49,23 @@ void ArrayInsert_S(struct Array* _Array, void* _Data) {
 	_Array->Table[_Array->Size++] = _Data;
 }
 
+void ArraySet_S(struct Array* _Array, void* _Data, uint32_t _Idx) {
+	while(_Array->Size >= _Idx) {
+		ArrayResize(_Array);	
+	}
+	_Array->Table[_Idx] = _Data;
+	++_Array->Size;
+}
+
 void ArrayRemove(struct Array* _Array, int _Index) {
-	if(_Index < 0 || _Index >= _Array->TblSize)
+	if(_Index < 0 || _Index >= _Array->Size)
 		return;
-	if(_Array->Size > 1)
+	if(_Array->Size > 1) {
 		_Array->Table[_Index] = _Array->Table[_Array->Size - 1];
-	else
+		_Array->Table[_Array->Size - 1] = NULL;
+	} else {
 		_Array->Table[_Index] = NULL;
-	_Array->Table[_Array->Size - 1] = NULL;
+	}
 	--_Array->Size;
 }
 
@@ -72,17 +88,17 @@ void ArrayResize(struct Array* _Array) {
 	_Array->TblSize = _Size;
 }
 
-void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {
+/*void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {
 	int j;
-	int* _Node[_SizeOf];
-	int** _Off;
+	void* _Node = alloca(_SizeOf);
+	void* _Off = alloca(_SizeOf);
 
 	if(_Count <= 1)
 		return;
 	for(int _Base = 1; _Base < _Count; ++_Base) {
 		memcpy(_Node, (int**)(_Table + _SizeOf * _Base), _SizeOf);
 		j = _Base - 1;
-		while(j > 0 && _Callback(_Node, (void**)(_Table + _SizeOf * j)) < 0) {
+		while(j >= 0 && _Callback(_Node, (void**)(_Table + _SizeOf * j)) < 0) {
 			_Off = _Table + _SizeOf * (j + 1);
 			memcpy(_Off,  (int**)(_Table + _SizeOf * j), _SizeOf);
 			--j;
@@ -90,8 +106,43 @@ void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf
 		_Off = _Table + _SizeOf * (j + 1);
 		memcpy(_Off,  _Node, _SizeOf);
 	}
+}*/
+
+#define Offset(Base, Size, Idx) ((Base) + (Size) * (Idx))
+void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {
+	int j;
+	void* _Swap = alloca(_SizeOf);
+
+	if(_Count <= 1)
+		return;
+	for(int _Base = 1; _Base < _Count; ++_Base) {
+		memcpy(_Swap, Offset(_Table, _SizeOf, _Base), _SizeOf);
+		j = _Base;
+		while(j > 0 && _Callback(Offset(_Table, _SizeOf, j - 1), _Swap) > 0) {
+			memcpy(Offset(_Table, _SizeOf, j), Offset(_Table, _SizeOf, j - 1), _SizeOf);
+			--j;
+		}
+		memcpy(Offset(_Table, _SizeOf, j), _Swap, _SizeOf);
+	}
 }
 
+void InsertionSortPtr(void* _Table[], size_t _Count, CompCallback _Callback) {
+	int j;
+	void* _Swap = NULL;
+
+	if(_Count <= 1)
+		return;
+	for(int _Base = 1; _Base < _Count; ++_Base) {
+		_Swap = _Table[_Base];
+		j = _Base;
+		while(j > 0 && _Callback(_Table[j - 1], _Swap) > 0) {
+			_Table[j] =  _Table[j - 1];
+			--j;
+		}
+		_Table[j] = _Swap;
+	}
+
+}
 void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Size) {
 	/*
 	int i = _Left;

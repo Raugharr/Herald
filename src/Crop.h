@@ -11,12 +11,12 @@
 #include <SDL2/SDL.h>
 
 #define CROP_ROTATIONS (2)
-#define FieldTotalAcres(_Field) ((_Field)->Acres + (_Field)->UnusedAcres)
+#define FieldTotalAcres(Field) ((Field)->Acres + (Field)->UnusedAcres)
 #define GROWDEG_MAX (88)
 #define TEMP_AVG (70)
 #define PLANT_TIME (2)
-#define CropName(_Crop) ((_Crop)->Name)
-#define FieldHarvestMod(_Field, _Mod) ((_Field)->Acres * (_Field)->Crop->SeedsPerAcre * (_Field)->Crop->YieldMult * _HarvestMod)
+#define CropName(Crop) ((Crop)->Name)
+#define FieldHarvestMod(Field, Mod) ((Field)->Acres * (Field)->Crop->SeedsPerAcre * (Field)->Crop->YieldMult * HarvestMod)
 
 typedef struct lua_State lua_State;
 struct LinkedList;
@@ -44,7 +44,7 @@ struct Crop {
 	int Id;
 	const struct FoodBase* const Output;
 	const char* Name;
-	int Type;
+	uint16_t Type;
 	double NutVal; //Nutritional Value per pound.
 	double YieldMult; //How many pounds of seed to expect from one pound.
 	double PlantMult; //Multiplier to time required to plant this crop.
@@ -57,11 +57,7 @@ struct Crop {
 };
 
 struct Field {
-	int Id;
-	int Type;
-	int(*Think)(struct Object*);
-	int LastThink;
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	SDL_Point Pos;
 	const struct Crop* Crop;
 	struct Family* Owner;
@@ -72,71 +68,71 @@ struct Field {
 	int16_t StatusTime; //How much more time it will take to reach the next status.
 };
 
-struct Crop* CreateCrop(const char* _Name, int _Type, int _PerAcre, double _NutVal, double _YieldMult, int _GrowingDegree, int _GrowingBase, int _SurviveWinter);
-void DestroyCrop(struct Crop* _Crop);
-struct Crop* CropLoad(lua_State* _State, int _Index);
+struct Crop* CreateCrop(const char* Name, int Type, int PerAcre, double NutVal, double YieldMult, int GrowingDegree, int GrowingBase, int SurviveWinter);
+void DestroyCrop(struct Crop* Crop);
+struct Crop* CropLoad(lua_State* State, int Index);
 
-struct Field* CreateField(int _X, int _Y, const struct Crop* _Crop, int _Acres, struct Family* _Owner);
-int FieldCmp(const void* _One, const void* _Two);
-void DestroyField(struct Field* _Field);
-int InputReqFieldCmp(const void* _One, const void* _Two);
+struct Field* CreateField(const struct Crop* Crop, int Acres, struct Family* Owner);
+int FieldCmp(const void* One, const void* Two);
+void DestroyField(struct Field* Field);
+int InputReqFieldCmp(const void* One, const void* Two);
 /**
  * Sets all the Fields data about a specific field to default values.
  */
-void FieldReset(struct Field* _Field);
+void FieldReset(struct Field* Field);
 /**
- * Sets the state of the field to be planting and removed enough seeds from _Seeds
+ * Sets the state of the field to be planting and removed enough seeds from Seeds
  * to fill up the field.
  */
-int FieldPlant(struct Field* _Field, struct Good* _Seeds);
-int FieldHarvest(struct Field* _Field, struct Array* _Goods, float _HarvestMod);
-void FieldUpdate(struct Field* _Field);
-void FieldSetAcres(struct Field* _Field, int _Acres);
-void FieldDivideAcres(struct Field* _Field, int _Acres);
-void FieldClearAcres(struct Field* _Field);
-void FieldRotateCrops(struct Field* _Field);
+int FieldPlant(struct Field* Field, struct Good* Seeds);
+int FieldHarvest(struct Field* Field, struct Array* Goods, float HarvestMod);
+void FieldUpdate(struct Field* Field);
+void FieldSetAcres(struct Field* Field, int Acres);
+void FieldDivideAcres(struct Field* Field, int Acres);
+void FieldClearAcres(struct Field* Field);
+void FieldRotateCrops(struct Field* Field);
 /**
- * Sets _Fields's acres to how many acres grown with _Seeds->Quantity.
+ * Sets Fields's acres to how many acres grown with Seeds->Quantity.
  */
-void FieldAcreage(struct Field* _Field, const struct Good* _Seeds);
+void FieldAcreage(struct Field* Field, const struct Good* Seeds);
 /**
  * Returns how many degrees a plant has grown over a day given the plants
  * minimum and maximum degrees that it can grow in and the temperature for the day.
  */
-int GrowingDegree(int _MinTemp, int _MaxTemp, int _BaseTemp);
+int GrowingDegree(int MinTemp, int MaxTemp, int BaseTemp);
 /**
- * Returns how many acres are in the aarray _Fields.
+ * Returns how many acres are in the aarray Fields.
  */
-static inline int FieldsGetAcreage(struct Field* const * _Fields, int _FieldSz) {
-	int _Acreage = 0;
+static inline int FieldsGetAcreage(struct Field* const * Fields, int FieldSz) {
+	int Acreage = 0;
 
-	for(int i = 0; i < _FieldSz; ++i) {
-		_Acreage = _Acreage + FieldTotalAcres(_Fields[i]);
+	for(int i = 0; i < FieldSz; ++i) {
+		Acreage = Acreage + FieldTotalAcres(Fields[i]);
 	}
-	return _Acreage;
+	return Acreage;
 }
 
 /**
- * Fills the array _Fields with elements of type struct Field* that contain
+ * Fills the array Fields with elements of type struct Field* that contain
  * crops necessary to feed the family and their animals.
- * \note _Fields should be an array of Field* that has a length of FAMILY_FIELDCT.
- * \return The new size of _Fields.
+ * \note Fields should be an array of Field* that has a length of FAMILY_FIELDCT.
+ * \return The new size of Fields.
  */
-int SelectCrops(struct Family* _Family, struct Field* _Fields[], int _FieldSz, int _FieldMaxSz);
+int SelectCrops(struct Family* Family, struct Field* Fields[], int FieldSz, int FieldMaxSz);
 /**
- * @pre Every element in _Fields must contain a struct Field*. Every
- * element in _Crops must be a struct InputReq where the Req variable is
+ * @pre Every element in Fields must contain a struct Field*. Every
+ * element in Crops must be a struct InputReq where the Req variable is
  * a struct Crop*.
  */
-int PlanFieldCrops(struct Field* _Fields[], struct LinkedList* _Crops, struct Family* _Family, int _FieldSz, int _FieldMaxSz);
+int PlanFieldCrops(struct Field* Fields[], struct LinkedList* Crops, struct Family* Family, int FieldSz, int FieldMaxSz);
 /**
  * Combines all fields in the array into one.
  */
-void FieldAbosrb(struct Field* _Fields[], int _FieldSz);
+void FieldAbosrb(struct Field* Fields[], int FieldSz);
 
-void FieldChangeStatus(struct Field* _Field);
-static inline const char* FieldStatusName(const struct Field* const _Field) {
-	switch(_Field->Status) {
+void FieldChangeStatus(struct Field* Field);
+static inline const char* FieldStatusName(const struct Field* const Field) {
+	switch(Field->Status) {
 		case EFALLOW:
 			return "Fallow";
 		case EPLOWING:
@@ -151,16 +147,20 @@ static inline const char* FieldStatusName(const struct Field* const _Field) {
 	return "None";
 }
 
-static inline int FieldStatusDays(const struct Field* const _Field) {
-	switch(_Field->Status) {
+static inline int FieldStatusDays(const struct Field* const Field) {
+	switch(Field->Status) {
 		case EGROWING:
-			return _Field->StatusTime / TEMP_AVG;	
+			return Field->StatusTime / TEMP_AVG;	
 		case EFALLOW:
 			return 0;
 		default:
-			return _Field->StatusTime / FamilyWorkModifier(_Field->Owner);
+			return Field->StatusTime / FamilyWorkModifier(Field->Owner);
 	}
 	return 0;
+}
+
+static inline int CropAcreHarvest(const struct Crop* Crop) {
+		return Crop->NutVal * ToPound(Crop->SeedsPerAcre) * Crop->YieldMult;
 }
 
 #endif

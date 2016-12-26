@@ -11,6 +11,7 @@
 #include "sys/Constraint.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #define BIGGUY_RELMAX (100)
@@ -47,6 +48,7 @@ enum {
 
 enum {
 	ACTTYPE_THEFT,
+	ACTTYPE_GENERAL,
 //	ACTTYPE_RUMOR,
 	ACTTYPE_TRAIT,
 	ACTTYPE_RAISEFYRD,
@@ -70,11 +72,11 @@ struct BigGuyOpinion {
 };
 
 struct BigGuyRelation {
-	int Relation;
-	int Modifier;
 	struct BigGuy* Person;
 	struct BigGuyOpinion* Opinions;
 	struct BigGuyRelation* Next;
+	int16_t Modifier;
+	uint8_t Relation; //Filled with a value from BGREL_*
 };
 
 struct BigGuyRelation* CreateBigGuyRelation(struct BigGuy* _Guy, struct BigGuy* _Actor);
@@ -99,16 +101,16 @@ void BigGuyRelationUpdate(struct BigGuyRelation* _Relation);
  * \return The relation _Guy has with _Target if one exists or NULL if no relation exists.
  */
 struct BigGuyRelation* BigGuyGetRelation(const struct BigGuy* _Guy, const struct BigGuy* _Target);
-static inline int BigGuyRelAtLeast(const struct BigGuyRelation* _Rel, int _RelType) {
+static inline bool BigGuyRelAtLeast(const struct BigGuyRelation* _Rel, int _RelType) {
 	if(_Rel == NULL)
-		return 1;
+		return true;
 		//return Fuzify(g_OpinionMods, _Rel->Modifier) <= BGREL_NEUTURAL;
 	return Fuzify(g_OpinionMods, _Rel->Modifier) >= _RelType;
 }
 
-static inline int BigGuyRelAtMost(const struct BigGuyRelation* _Rel, int _RelType) {
+static inline bool BigGuyRelAtMost(const struct BigGuyRelation* _Rel, int _RelType) {
 	if(_Rel == NULL)
-		return 1;
+		return true;
 		//return Fuzify(g_OpinionMods, _Rel->Modifier) <= BGREL_NEUTURAL;
 	return Fuzify(g_OpinionMods, _Rel->Modifier) <= _RelType;
 }

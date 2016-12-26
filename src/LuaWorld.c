@@ -32,12 +32,24 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{"GetBigGuy", LuaWorldGetBigGuy},
 		{"GetPlot", LuaWorldGetPlot},
 		{"Policies", LuaWorldPolicies},
+		{"LoadPolicy", LuaPolicyLoad},
 		{NULL, NULL}
 };
 
-void LuaWorldInit() {
-	luaL_newlib(g_LuaState, g_LuaWorldFuncs);
-	lua_setglobal(g_LuaState, "World");
+void LuaWorldInit(lua_State* State) {
+	luaL_newlib(State, g_LuaWorldFuncs);
+	lua_pushstring(State, "Castes"); 
+	lua_createtable(State, CASTE_SIZE, 0);
+	for(int i = 0; i < CASTE_SIZE; ++i) {
+		lua_pushstring(State, g_CasteNames[i]);
+		lua_rawseti(State, -2, i + 1);
+	}
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "CasteNum");
+	lua_pushinteger(State, CASTE_SIZE);
+	lua_rawset(State, -3);
+	lua_setglobal(State, "World");
 }
 
 int LuaWorldGetPlayer(lua_State* _State) {
@@ -117,9 +129,9 @@ int LuaWorldGetPlot(lua_State* _State) {
 
 //FIXME: Should use a static Lua table constructed at program beginning instead.
 int LuaWorldPolicies(lua_State* _State) {
-	lua_createtable(_State, g_GameWorld.PolicySz, 0);
-	for(int i = 0; i < g_GameWorld.PolicySz; ++i) {
-		LuaCtor(_State, &g_GameWorld.Policies[i], LOBJ_POLICY);
+	lua_createtable(_State, g_GameWorld.Policies.Size, 0);
+	for(int i = 0; i < g_GameWorld.Policies.Size; ++i) {
+		LuaCtor(_State, g_GameWorld.Policies.Table[i], LOBJ_POLICY);
 		lua_rawseti(_State, -2, i + 1);
 	}
 	return 1;

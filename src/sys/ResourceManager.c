@@ -31,6 +31,7 @@
 	_Buffer[_Off];					\
 	_Off += _Size
 
+#define WRITESZ (sizeof(struct FileTableEntry)) //(FILETABLE_NAMESIZE + 8)
 #define FILE_ERROR "Cannot open file: %s, %s"
 #define RESOURCETBL_SZ (128)
 
@@ -198,9 +199,11 @@ struct FileTableEntry* CreateFileTableEntry(const char* _Name, Uint16 _FileSize)
 	struct FileTableEntry* _FileTable = (struct FileTableEntry*) malloc(sizeof(struct FileTableEntry));
 
 	memset(_FileTable->Filename, 0, sizeof(_FileTable->Filename));
-	for(int i = 0; i < FILETABLE_NAMESIZE; i++)
-		_FileTable->Filename[i] = _Name[i];
-	if(((struct Folder*)_FileTable)->IsFile == 0)
+	strcpy(_FileTable->Filename, _Name);
+	//for(int i = 0; i < FILETABLE_NAMESIZE; i++)
+	//	_FileTable->Filename[i] = _Name[i];
+	//If crash look here.
+	//if(((struct Folder*)_FileTable)->IsFile == 0)
 		((struct Folder*)_FileTable)->IsFile = 1;
 	_FileTable->FileSize = _FileSize;
 	_FileTable->Offset = 0;
@@ -305,7 +308,8 @@ struct FileTableEntry* CreateFileTableChain(const char* _DirName, int* _Ct, stru
 				int _Size = strlen(_DirName) + strlen(_LastTable->Filename) + 2;
 				char _NewDir[_Size];
 				//InitString(_NewDir, _Size);
-				strcat(_NewDir, _LastTable->Filename);
+				//strcat(_NewDir, _LastTable->Filename);
+				strcpy(_NewDir, _LastTable->Filename);
 				//strcat(_NewDir, DIR_STR);
 				((struct Folder*)_LastTable)->Child = CreateFileTableChain(_NewDir, _Ct, (struct Folder*)_LastTable);
 				((struct Folder*)_LastTable)->FileCt = (*_Ct) - _CtTemp;
@@ -457,7 +461,7 @@ void CreatePak(const char* _DirName) {
 				_BufferLen = _FileTable->FileSize;
 			}
 		}
-		if((_Error = write(_OutFile, _FileTable, sizeof(struct FileTableEntry))) != sizeof(struct FileTableEntry)) {
+		if((_Error = write(_OutFile, _FileTable, WRITESZ)) != WRITESZ) {
 			Log(ELOG_ERROR, FILE_ERROR, _Header.Name, strerror(errno));
 			goto end;
 		}
@@ -605,7 +609,7 @@ int ResourceExists(const char* _FilePath) {
 	return (HashSearch(&g_RsrMgr.ResourceTable, _FilePath) != NULL);
 }
 
-void* ResourceGetData(struct Resource* _Res) {
+void* ResourceGetData(const struct Resource* _Res) {
 	if(_Res == NULL)
 		return NULL;
 	return _Res->Data;

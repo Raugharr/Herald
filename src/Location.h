@@ -10,15 +10,17 @@
 #include "Good.h"
 #include "Retinue.h"
 #include "BigGuy.h"
+#include "Faction.h"
 
 #include "sys/LinkedList.h"
 
 #include "video/AABB.h"
 
 #define SETTLEMENT_MINBG (3)
-#define SETTLEMENT_SPACE (640 / 4)
+#define MILE_ACRE (640)
+#define SETTLEMENT_SPACE (MILE_ACRE / 3)
 #define HARVEST_YEARS (3)
-#define SettlementRaiseFyrd(_Settlement, _ArmyGoal) CreateArmy((_Settlement), &(_Settlement)->Pos, (_Settlement)->Government, (_Settlement)->Government->Leader, (_ArmyGoal))
+#define SettlementRaiseFyrd(Settlement, ArmyGoal) CreateArmy((Settlement), (Settlement)->Government->Leader, (ArmyGoal))
 
 struct BigGuy;
 struct Family;
@@ -32,28 +34,8 @@ struct Object;
 struct BulletinItem;
 struct Retinue;
 
-enum {
-	ELOC_SETTLEMENT,
-	ELOC_FOREST
-};
-
-struct Location {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
-	int LocType;
-	SDL_Rect Pos;
-};
-
 struct Settlement {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
-	int LocType;
+	struct Object Object;
 	SDL_Point Pos;
 	char* Name;
 	struct Person* People;
@@ -62,6 +44,12 @@ struct Settlement {
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
 	struct BulletinItem* Bulletin;
+	struct Retinue* Retinues; 
+	struct Faction Factions;
+	struct LinkedList Families; // List of struct Family*
+	struct LinkedList BigGuys; // List of struct BigGuy*
+	struct LinkedList FreeWarriors; //List of struct Person*
+	struct Field Meadow; //Common area that anyone can use to feed their animals.
 	DATE LastRaid;
 	uint16_t NumPeople;
 	uint16_t YearDeaths; //Record of deaths in this settlement this year.
@@ -72,78 +60,73 @@ struct Settlement {
 	uint16_t FreeAcres;
 	uint16_t UsedAcres;
 	uint16_t StarvingFamilies;
+	uint16_t CasteCount[CASTE_SIZE];
+	uint8_t Stats[BGSKILL_SIZE];
+	uint8_t CasteHappiness[CASTE_SIZE];
 	/**
 	 * Modifier to how many pounds are harvested from each field in this
 	 * settlement. Changes every year and is dependant on the previous year.
 	 */
-	struct LinkedList Families;
-	struct LinkedList BigGuys;
-	struct LinkedList FreeWarriors;
-	struct LinkedList Retinues;
-	struct Field Meadow; //Common area that anyone can use to feed their animals.
-	uint8_t Stats[BGSKILL_SIZE];
 	uint8_t HarvestMod[HARVEST_YEARS];
 };
 
-void LocationGetPoint(const struct Location* _Location, SDL_Point* _Point);
+void LocationGetPoint(const struct Settlement* Location, SDL_Point* Point);
 
-struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovType);
-void DestroySettlement(struct Settlement* _Location);
+struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType);
+void DestroySettlement(struct Settlement* Location);
 
-void SettlementThink(struct Settlement* _Settlement);
-void SettlementDraw(const struct MapRenderer* _Renderer, struct Settlement* _Settlement);
+void SettlementThink(struct Settlement* Settlement);
+void SettlementDraw(const struct MapRenderer* Renderer, struct Settlement* Settlement);
 
 /**
  * Adds a family to the settlement.
  */
-void SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family);
-void SettlementRemoveFamily(struct Settlement* _Location, struct Family* _Family);
+void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family);
+void SettlementRemoveFamily(struct Settlement* Location, struct Family* Family);
 /**
  * Returns 1 if _Location is determed to be non-hostile to _Army.
  * Otherwise returns 0.
  */
-int SettlementIsFriendly(const struct Settlement* _Location, struct Army* _Army);
-void SettlementGetCenter(const struct Settlement* _Location, SDL_Point* _Pos);
+int SettlementIsFriendly(const struct Settlement* Location, struct Army* Army);
+void SettlementGetCenter(const struct Settlement* Location, SDL_Point* Pos);
 /**
  *\brief Adds a person to the settlement.
  */
-void SettlementAddPerson(struct Settlement* _Settlement, struct Person* _Person);
-void SettlementRemovePerson(struct Settlement* _Settlement, struct Person* _Person);
+void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person);
+void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person);
 /**
  * \return The number of adult men who own a weapon and are capable of fighting.
  */
-int SettlementCountWarriors(const struct Settlement* _Settlement);
-void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CASTE_SIZE]);
-int SettlementBigGuyCt(const struct Settlement* _Settlement);
-int SettlementAdultPop(const struct Settlement* _Settlement);
+int SettlementCountWarriors(const struct Settlement* Settlement);
+void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CASTE_SIZE]);
+int SettlementBigGuyCt(const struct Settlement* Settlement);
+int SettlementAdultPop(const struct Settlement* Settlement);
 
 /**
  * \return The cumulative nutritional value the people in _Settlement have.
  */
-int SettlementGetNutrition(const struct Settlement* _Settlement);
+int SettlementGetNutrition(const struct Settlement* Settlement);
 /**
- *	\return How much nutritional value is required in a year by _Settlement.
+ *	\return How much nutritional value is required in a year by Settlement.
  */
-int SettlementYearlyNutrition(const struct Settlement* _Settlement);
-int SettlementCountAcres(const struct Settlement* _Settlement);
-int SettlementExpectedYield(const struct Settlement* _Settlement);
-float HarvestModifier(uint8_t (* const _HarvestYears)[HARVEST_YEARS]);
-static inline const struct LnkLst_Node* SettlementPlots(const struct Settlement* _Settlement) {
+int SettlementYearlyNutrition(const struct Settlement* Settlement);
+int SettlementCountAcres(const struct Settlement* Settlement);
+int SettlementExpectedYield(const struct Settlement* Settlement);
+float HarvestModifier(uint8_t (* const HarvestYears)[HARVEST_YEARS]);
+static inline const struct LnkLst_Node* SettlementPlots(const struct Settlement* Settlement) {
 	return NULL;
 }
 /**
- * \return the first found Plot that is of type _PlotType and contains _PlotData.
+ * \return the first found Plot that is of type PlotType and contains PlotData.
  */
-struct Plot* SettlementFindPlot(const struct Settlement* _Settlement, int _PlotType, void* _PlotData);
-static inline void SettlementAddRetinue(struct Settlement* _Settlement, struct Retinue* _Retinue) {
-	LnkLstPushBack(&_Settlement->Retinues, _Retinue);
-}
+struct Plot* SettlementFindPlot(const struct Settlement* Settlement, int PlotType, void* PlotData);
+struct Retinue* SettlementAddRetinue(struct Settlement* Settlement, struct BigGuy* Leader);
 
-static inline int SettlementAllocAcres(struct Settlement* _Settlement, int _Acres) {
-	if(_Settlement->UsedAcres + _Acres > _Settlement->FreeAcres)
+static inline int SettlementAllocAcres(struct Settlement* Settlement, int Acres) {
+	if(Settlement->FreeAcres - Acres < 0)
 		return 0;
-	_Settlement->UsedAcres += _Acres;
-	_Settlement->FreeAcres -= _Acres;
+	Settlement->UsedAcres += Acres;
+	Settlement->FreeAcres -= Acres;
 	return 1;
 }
 #endif

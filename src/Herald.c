@@ -61,7 +61,13 @@ struct LifoAllocator g_StackAllocator;
 
 struct ObjectList {
 	struct RBTree SearchTree;
-	struct LinkedList ThinkList;
+	struct {
+		struct Object* Front;
+		struct Object* Back;
+		ObjectThink Think;
+	} ObjectList[OBJECT_SIZE];
+	//struct Object* Front;
+	//struct Object* Back;
 };
 
 struct MissionEngine g_MissionEngine;
@@ -69,10 +75,23 @@ struct MissionEngine g_MissionEngine;
 //TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
-	{0, NULL, NULL}
+	{{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, NULL},
+	{NULL, NULL, FamilyObjThink},
+	{NULL, NULL, NULL}}
 };
 
-int g_Id = 0;
+static uint32_t g_Id = 0;
 struct Constraint** g_OpinionMods = NULL;
 
 int IdISCallback(const int* _One, const int* _Two) {
@@ -226,12 +245,14 @@ struct Array* ListToArray(const struct LinkedList* _List) {
 	return _Array;
 }
 
+//FIXME: We should be able to easily calculate the size of the outgoing table, there should be no need to allocate memory here.
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack) {
 	struct StackNode _Node;
 	void** _Return = NULL;
 	int i;
 
 	if(_Size == 0) {
+		//No Elements exist in Tbl return set containing NULL.
 		if(_Stack == NULL) {
 			_Return = malloc(sizeof(void*));
 			*((int**)_Return) = 0;
@@ -273,34 +294,65 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	return _Return;
 }
 
-void CreateObject(struct Object* _Obj, int _Type, ObjectThink _Think) {
+/* Use a single array to store the power set.
+ * To distinguish the sets and to allow them to be easy to use add an extra _Size to the front of the table such that
+ * given {a, b, c} we return the array 
+ * {addr(8), addr(9), addr(11), addr(13), addr(15), addr(18), addr(21), addr(24) 
+ 	NULL,
+	a, NULL,
+	b, NULL,
+	c NULL,
+	a, b, NULL,
+	a c, NULL,
+	b c, NULL,
+	a, b, c, NULL}
+	where addr(x) is the address of the xth elemenet of the array.
+*/
+/*void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack) {
+	void* _Array = calloc(_Size << 1, sizeof(void*));
+	uint64_t _Mask = 1;
+	uint32_t _Set = 1;
+
+	_Array[0] = NULL;
+	while(_Mask < (_Size << 1)) {
+		for(int i = 0; i < Set; ++i) {
+			if(((i << 0) & _Set) != (i << 0))
+				continue;
+		}
+	}
+}*/
+
+void CreateObject(struct Object* _Obj, uint8_t _Type, ObjectThink _Think) {
 	_Obj->Id = NextId();
 	_Obj->Type = _Type;
 	_Obj->Think = _Think;
-	_Obj->LastThink = 1;
 	RBInsert(&g_Objects.SearchTree, _Obj);
 	if(_Think != NULL) {
-		LnkLstPushBack(&g_Objects.ThinkList, _Obj);
-		_Obj->ThinkObj = g_Objects.ThinkList.Back;
+		ILL_CREATE(g_Objects.ObjectList[_Type].Front, _Obj);
 	}
 }
 
-void DestroyObject(struct Object* _Object) {
-	RBDelete(&g_Objects.SearchTree, _Object);
-	if(_Object->Think != NULL)
-		LnkLstRemove(&g_Objects.ThinkList, _Object->ThinkObj);
+void DestroyObject(struct Object* _Obj) {
+	RBDelete(&g_Objects.SearchTree, _Obj);
+	if(_Obj->Think != NULL) {
+		ILL_DESTROY(g_Objects.ObjectList[_Obj->Type].Front, _Obj);
+	}
 }
 
 void ObjectsThink() {
-	struct LnkLst_Node* _Itr = g_Objects.ThinkList.Front;
-	struct LnkLst_Node* _Next = NULL;
-	struct Object* _Object = NULL;
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		if(g_Objects.ObjectList[i].Think != NULL) {
+			g_Objects.ObjectList[i].Think(g_Objects.ObjectList[i].Front);
+		} else {
+			struct Object* _Obj = g_Objects.ObjectList[i].Front;
+			struct Object* _Next = NULL;
 
-	while(_Itr != NULL) {
-		_Object = ((struct Object*)_Itr->Data);
-		_Next = _Itr->Next;
-		_Object->Think(_Object);
-		_Itr = _Next;
+			while(_Obj != NULL) {
+				_Next = _Obj->Next;
+				_Obj->Think(_Obj);
+				_Obj = _Next;
+			}
+		}
 	}
 }
 

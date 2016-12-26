@@ -20,6 +20,9 @@ struct Policy;
 #define NULL ((void*)0)
 #endif
 
+#define TAX_MAX (100)
+#define TAX_MIN (0)
+
 struct Government;
 
 typedef struct BigGuy*(*GovernmentSuccession)(const struct Government*);
@@ -79,12 +82,8 @@ struct GovRelation {
 };
 
 struct Government {
-	int GovType;
-	int GovRank;
-	int AllowedSubjects;
-	int AllowedMilLeaders;
-	int AuthorityLevel;
-	int RulerGender;
+	uint16_t GovType;
+	uint16_t  GovRank;
 	struct Settlement* Location;
 	struct BigGuy* Leader;
 	struct BigGuy* NextLeader;
@@ -97,7 +96,12 @@ struct Government {
 		struct BigGuy* Marshall;
 		struct BigGuy* Steward;
 	} Appointments;
-	int CastePreference[CASTE_SIZE];
+	uint8_t TaxRate;//Percent from 0 to 100
+	uint8_t RulerGender;
+	uint8_t AllowedSubjects;
+	uint8_t AllowedMilLeaders;
+	int8_t* PolicyPop; //How popular a specific policy is. Determines the effective percentage of bets.
+	int8_t* PolicyOp; //How unpopular a specific policy is. Determines the effective percentage of bets against a policy.
 	SDL_Color ZoneColor;
 };
 
@@ -110,36 +114,36 @@ struct RepublicGovernment {
 };
 
 
-struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement);
-void DestroyGovernment(struct Government* _Gov);
+struct Government* CreateGovernment(int GovType, int GovRank, struct Settlement* Settlement);
+void DestroyGovernment(struct Government* Gov);
 
-void GovernmentThink(struct Government* _Gov);
-const char* GovernmentTypeToStr(int _GovType, int _Mask);
+void GovernmentThink(struct Government* Gov);
+const char* GovernmentTypeToStr(int GovType, int Mask);
 /**
- * Sets _Gov's government rank to _NewRank. If _Gov cannot contain all of its subjects because of its new rank they will be
- * popped from its SubGovernment list and then placed into _ReleasedSubjects.
+ * Sets Gov's government rank to NewRank. If Gov cannot contain all of its subjects because of its new rank they will be
+ * popped from its SubGovernment list and then placed into ReleasedSubjects.
  */
-void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects);
+void GovernmentLowerRank(struct Government* Gov, int NewRank, struct LinkedList* ReleasedSubjects);
 
 /*
- * Sets _Subject as a subject government of _Parent.
- * If _Subject's government rank is equal to or higher than _Parent's rank GovernmentLowerRank will be called
- * and the released subjects added to _Parent's subjects.
+ * Sets Subject as a subject government of Parent.
+ * If Subject's government rank is equal to or higher than Parent's rank GovernmentLowerRank will be called
+ * and the released subjects added to Parent's subjects.
  */
-void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject, int _Relation);
+void GovernmentLesserJoin(struct Government* Parent, struct Government* Subject, int Relation);
 
-struct BigGuy* MonarchyNewLeader(const struct Government* _Gov);
-struct BigGuy* ElectiveNewLeader(const struct Government* _Gov);
-struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov);
+struct BigGuy* MonarchyNewLeader(const struct Government* Gov);
+struct BigGuy* ElectiveNewLeader(const struct Government* Gov);
+struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* Gov);
 /*
- * Returns the top most parent of _Gov.
+ * Returns the top most parent of Gov.
  */
-struct Government* GovernmentTop(struct Government* _Gov);
-void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy);
+struct Government* GovernmentTop(struct Government* Gov);
+void GovernmentSetLeader(struct Government* Gov, struct BigGuy* Guy);
 
-void GovernmentAddPolicy(struct Government* _Gov, const struct Policy* _Policy);
-void GovernmentRemovePolicy(struct Government* _Gov, const struct Policy* _Policy);
-void GovernmentUpdatePolicy(struct Government* _Gov, struct ActivePolicy* _OldPolicy, const struct ActivePolicy* _Policy);
-int GovernmentHasPolicy(const struct Government* _Gov, const struct Policy* _Policy);
+void GovernmentAddPolicy(struct Government* Gov, const struct Policy* Policy);
+void GovernmentRemovePolicy(struct Government* Gov, const struct Policy* Policy);
+void GovernmentUpdatePolicy(struct Government* Gov, struct ActivePolicy* OldPolicy, const struct ActivePolicy* Policy);
+int GovernmentHasPolicy(const struct Government* Gov, const struct Policy* Policy);
 
 #endif

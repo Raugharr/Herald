@@ -3,7 +3,7 @@ local BanditCount = 12
 local BanditStrength = BanditCount * 6
 
 LeaderStat[Stat.Combat] = 75
-LeaderStatpStat.Strength] = 75
+LeaderStat[Stat.Strength] = 75
 LeaderStat[Stat.Toughness] = 75
 
 local function EnoughWarriors(Frame)
@@ -13,6 +13,7 @@ local function EnoughWarriors(Frame)
 
 	if Men > BanditStrength then
 		return true
+	end
 	return false
 end
 
@@ -24,15 +25,15 @@ local function FightBandits(Frame)
 	local MenDead = 0 
 	local WarriorsDead = 0
 
-	if Frame[FyrdRaised] == 1 then
+	if Frame:GetVar("FyrdRaised", 1) then
 		Warriors = Settlement:GetMaxWarriors()
 		Men = (Settlement:MaleAdults() - Warriors)
 		WarriorRatio = Warriors / Men
-	elseif Frame[FyrdRaised] == 2 then
+	elseif Frame:GetVar("FyrdRaised", 2) then
 		Warriors = Settlement:GetMaxWarriors()
 		Men = 0
 		WarriorRatio = 1
-	elseif Frame[FyrdRaised] == 3 then 
+	elseif Frame:GetVar("FyrdRaised", 3) then 
 		Warriors = Frame.Owner:GetRetinue():GetSize()
 		Men = 0
 		WarriorRatio = 1
@@ -45,10 +46,10 @@ local function FightBandits(Frame)
 	if WarriorsDead > Warriors then
 		WarriorsDead = Warriors
 	end
-	for Itr in Frame.RandomPerson({Warrior = true, Male = true, Count = MenDead}) do
+	for Itr in ipairs(Frame:RandomPerson({Warrior = true, Male = true, Count = MenDead})) do
 		Itr:Kill()
 	end
-	for Itr in Frame.RandomPerson({Warrior = false, Male = true, Count = WarriorsDead}) do
+	for Itr in ipairs(Frame:RandomPerson({Warrior = false, Male = true, Count = WarriorsDead})) do
 		Itr:Kill()
 	end
 end
@@ -60,32 +61,32 @@ Mission.Load {
 		{
 			Text = "Bring anyone who is willing to fight.",
 			Trigger = function(Frame) 
-			Frame[FyrdRaised] = 1
-			if EnoughWarriors(Frame) == true then
-				Mission.FireEvent("BANDT.2", Frame.Owner)
-				Frame.Owner:ChangePopularity(-1)
-			else
-				Mission.FireEvent("BANDT.3", Frame.Owner)
-			end
+				Frame:SetVar("FyrdRaised", 1)
+				if EnoughWarriors(Frame) == true then
+					Mission.FireEvent("BANDT.2", Frame.Owner)
+					Frame.Owner:ChangePopularity(-1)
+				else
+					Mission.FireEvent("BANDT.3", Frame.Owner)
+				end
 			end,
 			AIUtility = function(Frame) 
-				return {Utility.Linear(Frame.Owner:GetSettlement():GetMaxWarriors(), BanditCount * 1.5),
-						Utility.IParabula((Settlement:MaleAdults() - Warriors), Settlement:MaleAdults())}
+				return Utility.Join(Utility.Linear(0, BanditCount * 1.5, Frame.Owner:GetSettlement():GetMaxWarriors()),
+					Utility.Quadratic(0, Settlement:MaleAdults()), (Settlement:MaleAdults() - Warriors))
 			end
 		},
 		{
 			Text = "Bring every warrior.",
 			Trigger = function(Frame) 
-			Frame[FyrdRaised] = 2
-			if EnoughWarriors(Frame) == true then
-				Mission.FireEvent("BANDT.2", Frame.Owner)
-				Frame.Owner:ChangePopularity(-.5)
-			else
-				Mission.FireEvent("BANDT.3", Frame.Owner)
-			end
+				Frame:SetVar("FyrdRaised", 2)
+				if EnoughWarriors(Frame) == true then
+					Mission.FireEvent("BANDT.2", Frame.Owner)
+					Frame.Owner:ChangePopularity(-.5)
+				else
+					Mission.FireEvent("BANDT.3", Frame.Owner)
+				end
 			end,
 			AIUtility = function(Frame) 
-				return Utility.Linear(Frame.Owner:GetSettlement():GetMaxWarriors(), BanditCount * 1.5)
+				return Utility.Linear(0, BanditCount * 1.5, Frame.Owner:GetSettlement():GetMaxWarriors())
 			end,
 			Condition = function(Frame)
 				return Frame.Owner:GetSettlement():GetMaxWarriors() > 0
@@ -94,15 +95,17 @@ Mission.Load {
 		{
 			Text = "Bring your retinue.",
 			Trigger = function(Frame) 
-			Frame[FyrdRaised] = 3
-			if EnoughWarriors(Frame) == true then
-				Mission.FireEvent("BANDT.2", Frame.Owner)
-				Frame.Owner:ChangePopularity(-.5)
-			else
-				Mission.FireEvent("BANDT.3", Frame.Owner)
-			end
+				Frame:SetVar("FyrdRaised", 3)
+				if EnoughWarriors(Frame) == true then
+					Mission.FireEvent("BANDT.2", Frame.Owner)
+					Frame.Owner:ChangePopularity(-.5)
+				else
+					Mission.FireEvent("BANDT.3", Frame.Owner)
+				end
 			end,
-			AIUtility = function(Frame) end
+			AIUtility = function(Frame) 
+				return Utility.Linear(0, BanditCount * 1.5, Frame.Owner:GetRetinue():Size())
+			end
 		},
 	},
 	Id = "BANDT.1",
@@ -128,7 +131,10 @@ Mission.Load {
 				Frame.Owner:GetFamily():TakeNutrition(Person.Nutrition * BanditCount * 7)
 				Mission.FireEvent("BANDT.8", Frame.Owner)
 			end,
-			AIUtility = function(Frame) end,
+			AIUtility = function(Frame) 
+				local BanditFood = Person.Nutrition * BanditCount * 7
+				return Utility.Quadratic(BanditFood,  BanditFood * 4, Frame.Owner:GetFamily():GetNutrition())
+			end,
 			Condition = function(Frame)
 				local Nutrition = Frame.Owner:GetFamily():GetNutrition()
 
@@ -138,10 +144,12 @@ Mission.Load {
 		{
 			Text = "Give them gifts.",
 			Trigger = function(Frame)
-				Frame.Owner:TakeWealth(Person.Nutrition * BanditCount * 10)
+				Frame.Owner:TakeWealth(5)
 				Mission.FireEvent("BANDT.8", Frame.Owner)
 			 end,
-			AIUtility = function(Frame) end
+			AIUtility = function(Frame) 
+				return Utility.Quadratic(0, 8, Frame.Owner:GetFamily():GetWealth())
+			end,
 			Condition = function(Frame)
 				local Wealth = Frame.Owner:GetFamily():GetWealth()
 
@@ -167,21 +175,22 @@ Mission.Load {
 		{
 			Text = "Bribe them with enough goods to leave.",
 			Trigger = function(Frame)
-				Frame.Owner:TakeWealth(Person.Nutrition * BanditCount * 10)
+				Frame.Owner:TakeWealth(BanditCount)
 				Mission.FireEvent("BANDT.8", Frame.Owner)
 			end,
-			AIUtility = function(Frame) end
+			AIUtility = function(Frame) end,
 			Condition = function(Frame)
-				return Frame.Owner:HasWealth(Person.Nutrition * BanditCount * 10)
+				return Frame.Owner:GetPerson():GetFamily():GetWealth(BanditCount)
 			end
 		},
 		{
 			Text = "We will pay tribute only if you can defeat me.",
 			Trigger = function(Frame) end,
 			AIUtility = function(Frame)
-				return {Utility.Stat(Frame.Owner:GetCombat(), LeaderStat[Stat.Combat]),
-						Utility.Stat(Frame.Owner:GetStrength(), LeaderStat[Stat.Strength]),
-						Utility.Stat(Frame.Owner:GetToughness(), LeaderStat[Stat.Toughness])}
+				
+				return Utility.Join(Utility.Stat(Frame.Owner:GetCombat(), LeaderStat[Stat.Combat]), 
+					Utility.Stat(Frame.Owner:GetStrength(), LeaderStat[Stat.Strength]),
+					Utility.Stat(Frame.Owner:GetToughness(), LeaderStat[Stat.Toughness]))
 			end
 		},
 		{
@@ -189,7 +198,7 @@ Mission.Load {
 			Trigger = function(Frame) 
 				Frame.Owner:SetFlag("BanditTribute", true)
 				for Itr in Frame.Owner:GetSettlement():GetFamilies() do
-					Itr:TakeWealth(Person.Nutrition * 7) 
+					Itr:TakeWealth(3) 
 				end
 			end,
 			AIUtility = function(Frame) end
@@ -204,7 +213,7 @@ Mission.Load {
 	Description = "You have accepted the challange from [From.FirstName] and will fight to the death.",
 	Options = {
 		{
-			Name = "May your sword miss and your shield crumble.",
+			Text = "May your sword miss and your shield crumble.",
 			Trigger = function(Frame)
 				local Result = Mission.CombatRound(Frame.Owner, Frame.Sender)
 				if Result > 1 then
@@ -216,6 +225,9 @@ Mission.Load {
 				elseif Result < 1 then
 					Mission.FireEvent("BANDT.7", Frame.Owner, Frame.Sender)
 				end
+			end,
+			AIUtility = function(Frame) 
+				return Utility.Max
 			end
 		}
 	},
@@ -226,12 +238,15 @@ Mission.Load {
 Mission.Load {
 	Name = "Defeated bandit leader.",
 	Description = "After a protracted duel you have emerged victorius agains the bandit leader. The rest of the bandits, disheartened leave without causing any more trouble.",
-	Options {
+	Options = {
 		{
 			Text = "Hopefully they wont return again.",
 			Trigger = function(Frame)
 				Frame.Owner:ChangePopularity(1)
 			end,
+			AIUtility = function(Frame) 
+				return Utility.Max
+			end
 		}
 	},
 	Id = "BANDT.5",
@@ -243,10 +258,13 @@ Mission.Load {
 	Description = "Seeing their leader fall to the ground dead only angers the remaining bandits into breaking their word and attacking your village anyways.",
 	Options = {
 		{
-			Name = "Bandits can never be trusted.",
+			Text = "Bandits can never be trusted.",
 			Trigger = function(Frame) 
 				FightBandits(Frame)
 			end,
+			AIUtility = function(Frame) 
+				return Utility.Max
+			end
 		}
 	},
 	Id = "BANDT.6",
@@ -258,8 +276,11 @@ Mission.Load {
 	Description = "Everyone in your village is silent as the battle ends in your defeat. No one else is willing to stand up to the bandits now that their chef has fallen.",
 	Options = {
 		{
-			Name = "We are doomed.",
+			Text = "We are doomed.",
 			Trigger = function(Frame) end,
+			AIUtility = function(Frame) 
+				return Utility.Max
+			end
 		}
 	},
 	Id = "BANDT.7",
@@ -271,8 +292,11 @@ Mission.Load {
 	Description = "The bandits being payed offer no further trouble and leave the same way as they came.",
 	Options = {
 		{
-			Name = "Hopefully they won't return.",
+			Text = "Hopefully they won't return.",
 			Trigger = function(Frame) end,
+			AIUtility = function(Frame)
+				return Utility.Max
+			 end
 		}
 	},
 	Id = "BANDT.8",

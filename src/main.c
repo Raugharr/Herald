@@ -9,6 +9,7 @@
 #include "Government.h"
 #include "LuaFamily.h"
 #include "LuaSettlement.h"
+#include "LuaGovernment.h"
 #include "LuaWorld.h"
 #include "Mission.h"
 #include "BigGuy.h"
@@ -45,43 +46,6 @@
 
 #define GAME_TICK (200)
 
-int InitLuaSystem() {
-	InitLuaCore();
-	InitLuaFamily(g_LuaState);
-	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
-	RegisterLuaEnums(g_LuaState, g_LuaSettlementEnums);
-	lua_getglobal(g_LuaState, "Plot");
-	luaL_getmetatable(g_LuaState, "Plot");
-	lua_setmetatable(g_LuaState, -2);
-	lua_pop(g_LuaState, 1);
-	//LuaSettlementObjects(g_LuaState);
-	RegisterLuaObjects(g_LuaState, g_LuaAIObjects);
-
-	InitMissionLua(g_LuaState);
-	InitVideoLua(g_LuaState);
-	lua_newtable(g_LuaState);
-	lua_pushstring(g_LuaState, "__index");
-	lua_pushvalue(g_LuaState, LUA_REGISTRYINDEX);
-	lua_pushstring(g_LuaState, "Animation");
-	lua_rawget(g_LuaState, -2);
-	lua_pop(g_LuaState, 1);
-	lua_rawset(g_LuaState, -3);
-	lua_setmetatable(g_LuaState, -2);
-	LuaSetEnv(g_LuaState, "Animation");
-	lua_pop(g_LuaState, 1);
-
-	LuaWorldInit();
-	Log(ELOG_INFO, "Loading Missions");
-	++g_Log.Indents;
-	LoadAllMissions(g_LuaState, &g_MissionEngine);
-	--g_Log.Indents;
-	return 1;
-}
-
-void QuitLuaSystem() {
-	QuitLuaCore();
-}
-
 void MainCoro() {
 	int _WorldTimer = 0;
 	int _DrawTimer = 0;
@@ -108,7 +72,7 @@ int main(int argc, char* args[]) {
 	struct PakFile _Pak;
 	struct System _Systems[] = {
 			{"Main", HeraldInit, HeraldDestroy},
-			{"Lua", InitLuaSystem, QuitLuaCore},
+			{"Lua", InitLuaSystem, QuitLuaSystem},
 			{"Video", VideoInit, VideoQuit},
 			{NULL, NULL, NULL}
 	};
@@ -129,7 +93,7 @@ int main(int argc, char* args[]) {
 		}
 	}
 	AnimationLoad(g_LuaState, "data/anim/test.lua");
-	WorldInit(300);
+	WorldInit(150);
 
 	CoSchedule(MainCoro);
 	quit:

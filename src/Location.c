@@ -18,6 +18,7 @@
 #include "sys/ResourceManager.h"
 #include "sys/Array.h"
 #include "sys/Log.h"
+#include "sys/Coroutine.h"
 
 #include "video/Sprite.h"
 #include "video/Tile.h"
@@ -30,31 +31,31 @@
 #define HARVESTMOD_MAX 1.6f
 #define SETTLEMENT_AVGSTAT (50)
 
-void LocationGetPoint(const struct Location* _Location, SDL_Point* _Point) {
-	(*_Point).x = _Location->Pos.x;
-	(*_Point).y = _Location->Pos.y;
+void LocationGetPoint(const struct Settlement* Location, SDL_Point* Point) {
+	(*Point).x = Location->Pos.x;
+	(*Point).y = Location->Pos.y;
 }
 
-void SettlementOnPolicyChange(const struct EventData* _Data, void* _Extra) {
-	struct Settlement* _Settlement = _Data->OwnerObj;
-	struct BigGuy* _Guy = NULL;
-	struct BigGuy* _Owner = _Settlement->Government->Leader;
-	int _Amount = (int)_Extra;
+void SettlementOnPolicyChange(const struct EventData* Data, void* Extra) {
+	struct Settlement* Settlement = Data->OwnerObj;
+	struct BigGuy* Guy = NULL;
+	struct BigGuy* Owner = Settlement->Government->Leader;
+	int Amount = (int)Extra;
 
-	for(struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		_Guy = _Itr->Data;
-		if(_Guy == _Owner)
+	for(struct LnkLst_Node* Itr = Settlement->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
+		Guy = Itr->Data;
+		if(Guy == Owner)
 			continue;
-		BigGuyAddOpinion(_Guy, _Owner, ACTTYPE_POLICY, _Amount * 10, OPNLEN_MEDIUM, OPINION_AVERAGE);
+		BigGuyAddOpinion(Guy, Owner, ACTTYPE_POLICY, Amount * 10, OPNLEN_MEDIUM, OPINION_AVERAGE);
 	}
 }
 
-void SettlementSetBGOpinions(struct LinkedList* _List) {
+void SettlementSetBGOpinions(struct LinkedList* List) {
 	struct LnkLst_Node* i = NULL;
 	struct LnkLst_Node* j = NULL;
 
-	for(i = _List->Front; i != NULL; i = i->Next) {
-		for(j = _List->Front; j != NULL; j = j->Next) {
+	for(i = List->Front; i != NULL; i = i->Next) {
+		for(j = List->Front; j != NULL; j = j->Next) {
 			if(i == j) {
 				continue;
 			}
@@ -63,321 +64,370 @@ void SettlementSetBGOpinions(struct LinkedList* _List) {
 	}
 }
 
-struct Settlement* CreateSettlement(int _X, int _Y, const char* _Name, int _GovType) {
-	struct Settlement* _Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
+struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType) {
+	struct Settlement* Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
-	CreateObject((struct Object*)_Loc, OBJECT_LOCATION, (void(*)(struct Object*))SettlementThink);
-	_Loc->LocType = ELOC_SETTLEMENT;
-	_Loc->Pos.x = _X;
-	_Loc->Pos.y = _Y;
-	_Loc->Name = calloc(strlen(_Name) + 1, sizeof(char));
-	_Loc->People = NULL;
-	_Loc->Government = CreateGovernment(_GovType, 0, _Loc);
-	_Loc->NumPeople = 0;
-	_Loc->BigGuys.Size = 0;
-	_Loc->BigGuys.Front = NULL;
-	strcpy(_Loc->Name, _Name);
-	LnkLstPushBack(&g_GameWorld.Settlements, _Loc);
-	QTInsertPoint(&g_GameWorld.SettlementMap, _Loc, &_Loc->Pos);
-	_Loc->Families.Size = 0;
-	_Loc->Families.Front = NULL;
-	_Loc->Families.Back = NULL;
-	_Loc->People = NULL;
-	_Loc->People = NULL;
-	_Loc->YearBirths = 0;
-	_Loc->YearDeaths = 0;
+	CreateObject((struct Object*)Loc, OBJECT_LOCATION, (void(*)(struct Object*))SettlementThink);
+	Loc->Pos.x = X;
+	Loc->Pos.y = Y;
+	Loc->Name = calloc(strlen(Name) + 1, sizeof(char));
+	Loc->People = NULL;
+	Loc->Government = CreateGovernment(GovType, 0, Loc);
+	Loc->NumPeople = 0;
+	Loc->BigGuys.Size = 0;
+	Loc->BigGuys.Front = NULL;
+	strcpy(Loc->Name, Name);
+	LnkLstPushBack(&g_GameWorld.Settlements, Loc);
+	QTInsertPoint(&g_GameWorld.SettlementMap, Loc, &Loc->Pos);
+	Loc->Families.Size = 0;
+	Loc->Families.Front = NULL;
+	Loc->Families.Back = NULL;
+	Loc->People = NULL;
+	Loc->People = NULL;
+	Loc->YearBirths = 0;
+	Loc->YearDeaths = 0;
 	for(uint8_t i = 0; i < HARVEST_YEARS - 1; ++i)
-		_Loc->HarvestMod[i] = 5;
-	_Loc->HarvestMod[HARVEST_YEARS - 1] = 6;
-	_Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &_Loc->Pos);
-	_Loc->Meadow.Pos.x = _Loc->Pos.x;
-	_Loc->Meadow.Pos.y = _Loc->Pos.y;
-	_Loc->Meadow.Crop = HashSearch(&g_Crops, "Hay");
-	_Loc->Meadow.YieldTotal = 0;
-	_Loc->Meadow.Acres = 200;
-	_Loc->Meadow.UnusedAcres = 0;
-	_Loc->Meadow.Owner = NULL;
-	_Loc->BuyOrders = NULL;
-	_Loc->Market = NULL;
-	_Loc->LastRaid = 0;
-	_Loc->AdultMen = 0;
-	_Loc->AdultWomen = 0;
-	_Loc->Bulletin = NULL;
-	_Loc->MaxWarriors = 0;
-	_Loc->FreeAcres = SETTLEMENT_SPACE;
-	_Loc->UsedAcres = 0;
-	_Loc->StarvingFamilies = 0;
-	for(int i = 0; i < BGSKILL_SIZE; ++i) {
-		_Loc->Stats[i] = SETTLEMENT_AVGSTAT;
-	}
-	ConstructLinkedList(&_Loc->FreeWarriors);
-	ConstructLinkedList(&_Loc->Retinues);
-	_Loc->Meadow.Status = EGROWING;
-	_Loc->Meadow.StatusTime = 0;
-	return _Loc;
+		Loc->HarvestMod[i] = 5;
+	Loc->HarvestMod[HARVEST_YEARS - 1] = 6;
+	Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &Loc->Pos);
+	Loc->Meadow.Pos.x = Loc->Pos.x;
+	Loc->Meadow.Pos.y = Loc->Pos.y;
+	Loc->Meadow.Crop = HashSearch(&g_Crops, "Hay");
+	Loc->Meadow.YieldTotal = 0;
+	Loc->Meadow.Acres = 200;
+	Loc->Meadow.UnusedAcres = 0;
+	Loc->Meadow.Owner = NULL;
+	Loc->BuyOrders = NULL;
+	Loc->Market = NULL;
+	Loc->LastRaid = 0;
+	Loc->AdultMen = 0;
+	Loc->AdultWomen = 0;
+	Loc->Bulletin = NULL;
+	Loc->MaxWarriors = 0;
+	Loc->FreeAcres = SETTLEMENT_SPACE;
+	Loc->UsedAcres = 0;
+	Loc->StarvingFamilies = 0;
+	Loc->Retinues = NULL;
+	CtorFaction(&Loc->Factions, Loc);
+	BGStatsWarlord(&Loc->Stats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+	/*for(int i = 0; i < BGSKILL_SIZE; ++i) {
+		_Loc->Stats[i] = _BGStats[i];
+	}*/
+	ConstructLinkedList(&Loc->FreeWarriors);
+	Loc->Meadow.Status = EGROWING;
+	Loc->Meadow.StatusTime = 0;
+	return Loc;
 }
 
-void DestroySettlement(struct Settlement* _Location) {
-	DestroyObject((struct Object*)_Location);
-	LnkLstClear(&_Location->Families);
-	DestroyGameObject(_Location->Sprite);
-	free(_Location->Government);
-	free(_Location->Name);
-	free(_Location);
+void DestroySettlement(struct Settlement* Location) {
+	DestroyObject((struct Object*)Location);
+	LnkLstClear(&Location->Families);
+	DestroyGameObject(Location->Sprite);
+	free(Location->Government);
+	free(Location->Name);
+	free(Location);
 }
 
-uint8_t UpdateHarvestMod(uint8_t (*_HarvestYears)[HARVEST_YEARS], uint8_t _CurrYear) {
-	if(++_CurrYear >= HARVEST_YEARS)
-		_CurrYear = 0;
-	*_HarvestYears[_CurrYear] = Random(1, 10);
-	return _CurrYear;
+uint8_t UpdateHarvestMod(uint8_t (*HarvestYears)[HARVEST_YEARS], uint8_t CurrYear) {
+	if(++CurrYear >= HARVEST_YEARS)
+		CurrYear = 0;
+	*HarvestYears[CurrYear] = Random(1, 10);
+	return CurrYear;
 }
 
-float HarvestModifier(uint8_t (* const _HarvestYears)[HARVEST_YEARS]) {
-	int _Total = 0;
+float HarvestModifier(uint8_t (* const HarvestYears)[HARVEST_YEARS]) {
+	int Total = 0;
 
 	for(int i = 0; i < HARVEST_YEARS; ++i)
-		_Total += (*_HarvestYears)[i];
-	return ((float)_Total) / 10 / 2 + 0.2f;
+		Total += (*HarvestYears)[i];
+	return ((float)Total) / 10 / 2 + 0.2f;
 }
 
-void SettlementThink(struct Settlement* _Settlement) {
-	struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	struct BulletinItem* _Bulletin = _Settlement->Bulletin;
+void SettlementThink(struct Settlement* Settlement) {
+	struct LnkLst_Node* Itr = Settlement->Families.Front;
+	struct BulletinItem* Bulletin = Settlement->Bulletin;
 
-	FieldUpdate(&_Settlement->Meadow);
-	GovernmentThink(_Settlement->Government);
+	FieldUpdate(&Settlement->Meadow);
+	GovernmentThink(Settlement->Government);
 	if(MONTH(g_GameWorld.Date) == 0 && DAY(g_GameWorld.Date) == 0) {
-		if(YEAR(g_GameWorld.Date) - YEAR(_Settlement->LastRaid) >= 1 && DAY(g_GameWorld.Date) == 0) {
+		if(YEAR(g_GameWorld.Date) - YEAR(Settlement->LastRaid) >= 1 && DAY(g_GameWorld.Date) == 0) {
 			//MessageBox(g_LuaState, "You have not raided recently.");
-			_Itr = _Settlement->BigGuys.Front;
-			while(_Itr != NULL) {
-				if(_Settlement->Government->Leader == ((struct BigGuy*)_Itr->Data)) {
-					_Itr = _Itr->Next;
+			Itr = Settlement->BigGuys.Front;
+			while(Itr != NULL) {
+				if(Settlement->Government->Leader == ((struct BigGuy*)Itr->Data)) {
+					Itr = Itr->Next;
 					continue;
 				}
-				BigGuyAddOpinion((struct BigGuy*)_Itr->Data, _Settlement->Government->Leader, ACTTYPE_WARLACK, -10, OPNLEN_SMALL, OPINION_AVERAGE); 
-				_Itr = _Itr->Next;
+				BigGuyAddOpinion((struct BigGuy*)Itr->Data, Settlement->Government->Leader, ACTTYPE_WARLACK, -10, OPNLEN_SMALL, OPINION_AVERAGE); 
+				Itr = Itr->Next;
 			}
 		}
-		_Settlement->YearBirths = 0;
-		_Settlement->YearDeaths = 0;
+		Settlement->YearBirths = 0;
+		Settlement->YearDeaths = 0;
 	}
 	if(DAY(g_GameWorld.Date) == 0) {
+		if(MONTH(g_GameWorld.Date) == 0) {
+			if(Settlement->FreeAcres + Settlement->UsedAcres <= MILE_ACRE)
+				Settlement->FreeAcres += Settlement->Families.Size;
+		}
 
-		_Settlement->StarvingFamilies = 0;
-		for(struct LnkLst_Node* _Itr = _Settlement->Retinues.Front; _Itr != NULL; _Itr = _Itr->Next) {
-			RetinueThink(_Itr->Data);
+		Settlement->StarvingFamilies = 0;
+		for(struct Retinue* Itr = Settlement->Retinues; Itr != NULL; Itr = Itr->Next) {
+			RetinueThink(Itr);
+		}
+		for(int i = 0; i < FACTION_IDSIZE; ++i) {
+			uint32_t InfluenceCost = 0;
+
+			if(FactionIsActive(&Settlement->Factions, i) == false)
+				continue;
+			Settlement->Factions.Power[i] += Settlement->Factions.PowerGain[i];
+			if(Settlement->Factions.Power[i] > FACTION_MAXPOWER(&Settlement->Factions, i))
+				Settlement->Factions.Power[i] = FACTION_MAXPOWER(&Settlement->Factions, i);
+			if(Settlement->Factions.PolicyInfluence[i] != -1) {
+				InfluenceCost = FactionInfluenceCost(&Settlement->Factions, i);
+				if(InfluenceCost > Settlement->Factions.Power[i]) {
+					Settlement->Factions.PolicyInfluence[i] = -1;
+					continue;
+				}
+				if(Settlement->Factions.OpposePolicy[i] == false)
+					Settlement->Government->PolicyPop[Settlement->Factions.PolicyInfluence[i]]++;
+				else
+					Settlement->Government->PolicyPop[Settlement->Factions.PolicyInfluence[i]]--;
+				Settlement->Factions.Power[i] -= InfluenceCost;
+			}
+		}
+		if(Settlement->Factions.Coro != -1) {
+			CoResume(Settlement->Factions.Coro);
 		}
 	}
-	while(_Bulletin != NULL) {
-		--_Bulletin->DaysLeft;
-		if(_Bulletin->DaysLeft <= 0) {
-			struct BulletinItem* _BulletinNext = _Bulletin->Next;
+	while(Bulletin != NULL) {
+		--Bulletin->DaysLeft;
+		if(Bulletin->DaysLeft <= 0) {
+			struct BulletinItem* BulletinNext = Bulletin->Next;
 			
-			ILL_DESTROY(_Settlement->Bulletin, _Bulletin);
-			_Bulletin = _BulletinNext;
+			ILL_DESTROY(Settlement->Bulletin, Bulletin);
+			Bulletin = BulletinNext;
 			continue;
 		}
-		_Bulletin = _Bulletin->Next;
+		Bulletin = Bulletin->Next;
 	}
 }
 
-void SettlementDraw(const struct MapRenderer* _Renderer, struct Settlement* _Settlement) {
-	SDL_Point _Point = {_Settlement->Pos.x, _Settlement->Pos.y};
+void SettlementDraw(const struct MapRenderer* Renderer, struct Settlement* Settlement) {
+	SDL_Point Point = {Settlement->Pos.x, Settlement->Pos.y};
 
-	MapDrawColorOverlay(_Renderer, &_Point, &_Settlement->Government->ZoneColor);
+	MapDrawColorOverlay(Renderer, &Point, &Settlement->Government->ZoneColor);
 }
 
-void SettlementPlaceFamily(struct Settlement* _Location, struct Family* _Family) {
-	_Location->Meadow.Acres = _Location->Meadow.Acres + 10;
+void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family) {
+	Location->Meadow.Acres = Location->Meadow.Acres + 10;
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
-		if(_Family->People[i] == NULL || PersonMature(_Family->People[i]) == 0)
+		if(Family->People[i] == NULL || PersonMature(Family->People[i]) == 0)
 			continue;
-		if(_Family->People[i]->Gender == EMALE)
-			++_Location->AdultMen;
+		if(Family->People[i]->Gender == EMALE)
+			++Location->AdultMen;
 		else
-			++_Location->AdultWomen;
+			++Location->AdultWomen;
 	}
-	LnkLstPushBack(&_Location->Families, _Family);
+	LnkLstPushBack(&Location->Families, Family);
 }
 
-void SettlementRemoveFamily(struct Settlement* _Location, struct Family* _Family) {
-	for(struct LnkLst_Node* _Itr = _Location->Families.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		if(_Itr->Data == _Family) {
-			LnkLstRemove(&_Location->Families, _Itr);
+void SettlementRemoveFamily(struct Settlement* Location, struct Family* Family) {
+	for(struct LnkLst_Node* Itr = Location->Families.Front; Itr != NULL; Itr = Itr->Next) {
+		if(Itr->Data == Family) {
+			LnkLstRemove(&Location->Families, Itr);
 			break;
 		}
 	}
 }
 
-int SettlementIsFriendly(const struct Settlement* _Location, struct Army* _Army) {
-	return (GovernmentTop(_Location->Government) == GovernmentTop(_Army->Government));
+int SettlementIsFriendly(const struct Settlement* Location, struct Army* Army) {
+	return (GovernmentTop(Location->Government) == GovernmentTop(Army->Government));
 }
 
-void SettlementGetCenter(const struct Settlement* _Location, SDL_Point* _Pos) {
-	struct Sprite* _Sprite = _Location->Sprite;
-
-	_Pos->x = _Sprite->TilePos.x;
-	_Pos->y = _Sprite->TilePos.y;
+void SettlementGetCenter(const struct Settlement* Location, SDL_Point* Pos) {
+	Pos->x = Location->Pos.x;
+	Pos->y = Location->Pos.y;
 }
 
-void SettlementAddPerson(struct Settlement* _Settlement, struct Person* _Person) {
-	ILL_CREATE(_Settlement->People, _Person);
-	++_Settlement->NumPeople;
-	if(PersonMature(_Person) != 0 && PERSON_CASTE(_Person) == CASTE_NOBLE) {
-		LnkLstPushBack(&_Settlement->FreeWarriors, _Person);
-		++_Settlement->MaxWarriors;
+void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
+	int Caste = PERSON_CASTE(Person);
+
+	ILL_CREATE(Settlement->People, Person);
+	++Settlement->NumPeople;
+	if(PersonMature(Person) == true) {
+		if(Caste == CASTE_WARRIOR) {
+			LnkLstPushBack(&Settlement->FreeWarriors, Person);
+			++Settlement->MaxWarriors;
+		}
 	}
 }
 
-void SettlementRemovePerson(struct Settlement* _Settlement, struct Person* _Person) {
-	ILL_DESTROY(_Person->Family->HomeLoc->People, _Person);
-	--_Settlement->NumPeople;
-	if(PersonMature(_Person) != 0 && PERSON_CASTE(_Person) == CASTE_NOBLE) {
-		for(struct LnkLst_Node* _Itr = _Settlement->FreeWarriors.Front; _Itr != NULL; _Itr = _Itr->Next) {
-			if(_Itr->Data == _Person) {
-				LnkLstRemove(&_Settlement->FreeWarriors, _Itr);
-				--_Settlement->MaxWarriors;
+void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person) {
+	ILL_DESTROY(Person->Family->HomeLoc->People, Person);
+	--Settlement->NumPeople;
+	if(PersonMature(Person) != 0 && PERSON_CASTE(Person) == CASTE_NOBLE) {
+		for(struct LnkLst_Node* Itr = Settlement->FreeWarriors.Front; Itr != NULL; Itr = Itr->Next) {
+			if(Itr->Data == Person) {
+				LnkLstRemove(&Settlement->FreeWarriors, Itr);
+				--Settlement->MaxWarriors;
 				return;
 			}
 		}
 	}
 }
 
-int SettlementCountWarriors(const struct Settlement* _Settlement) {
-	struct Person* _Person = _Settlement->People;
-	int _Ct = 0;
+int SettlementCountWarriors(const struct Settlement* Settlement) {
+	struct Person* Person = Settlement->People;
+	int Ct = 0;
 
-	while(_Person != NULL) {
-		if(PersonIsWarrior(_Person) != 0)
-			++_Ct;
-		_Person = _Person->Next;
+	while(Person != NULL) {
+		if(PersonIsWarrior(Person) != 0)
+			++Ct;
+		Person = Person->Next;
 	}
-	return _Ct;
+	return Ct;
 }
 
-void TribalCreateBigGuys(struct Settlement* _Settlement, double _CastePercent[CASTE_SIZE]) {
-	struct LinkedList _UniqueFamilies = {0, NULL, NULL};
-	struct LnkLst_Node* _FamilyItr = NULL;
-	struct LnkLst_Node* _Itr = NULL;
-	struct Family* _Family = NULL;
-	struct BigGuy* _Leader = NULL;
-	uint8_t _BGStats[BGSKILL_SIZE];
-	int _Motivations[BGMOT_SIZE] = {2, 4};
-	int _MotCt = 0;
-	int _Count = 0;//_Settlement->Families.Size * 0.1f; //How many big guys to make.
-	int _FamilyCt = _Settlement->Families.Size;
-	int* _CasteCount = alloca(sizeof(int) * CASTE_SIZE);
+void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CASTE_SIZE]) {
+	struct LinkedList UniqueFamilies = {0, NULL, NULL};
+	struct LnkLst_Node* FamilyItr = NULL;
+	struct LnkLst_Node* Itr = NULL;
+	struct Family* Family = NULL;
+	struct BigGuy* Leader = NULL;
+	uint8_t BGStats[BGSKILL_SIZE];
+	uint8_t LeaderCaste = CASTE_NOBLE;
+	int Motivations[BGMOT_SIZE] = {2, 4};
+	int MotCt = 0;
+	int Count = 0;//_Settlement->Families.Size * 0.1f; //How many big guys to make.
+	int FamilyCt = Settlement->Families.Size;
+	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 
-	if(_FamilyCt < 20)
-		_Count = _FamilyCt * 0.5;
+	if(FamilyCt < 20)
+		Count = FamilyCt * 0.4;
 	else 
-		_Count = _FamilyCt * 0.2;
-	memset(_CasteCount, 0, sizeof(int) * CASTE_SIZE);
-	Assert((_CastePercent[CASTE_THRALL] + _CastePercent[CASTE_LOWCLASS] + _CastePercent[CASTE_HIGHCLASS] + _CastePercent[CASTE_NOBLE]) != 100);
-	RandTable(_CastePercent, &_CasteCount, CASTE_SIZE, _Count);
-	_Itr = _Settlement->Families.Front;
-	while(_Itr != NULL) {
-		if(_Count <= 0)
+		Count = FamilyCt * 0.2;
+	memset(CasteCount, 0, sizeof(int) * CASTE_SIZE);
+	//Assert((_CastePercent[CASTE_THRALL] + _CastePercent[CASTE_LOWCLASS] + _CastePercent[CASTE_HIGHCLASS] + _CastePercent[CASTE_NOBLE]) != 100);
+	RandTable(CastePercent, &CasteCount, CASTE_SIZE, Count);
+	Itr = Settlement->Families.Front;
+	while(Itr != NULL) {
+		if(Count <= 0)
 			break;
-		_Family = (struct Family*)_Itr->Data;
-		_FamilyItr = _UniqueFamilies.Front;
-		while(_FamilyItr != NULL) {
-			if(((struct Family*)_FamilyItr->Data)->Id == _Family->Id)
+		Family = (struct Family*)Itr->Data;
+		FamilyItr = UniqueFamilies.Front;
+		while(FamilyItr != NULL) {
+			if(((struct Family*)FamilyItr->Data)->Object.Id == Family->Object.Id)
 				goto skip_bigguy;
-			_FamilyItr = _FamilyItr->Next;
+			FamilyItr = FamilyItr->Next;
 		}
-		if(_CasteCount[_Family->Caste->Type] <= 0)
+		if(CasteCount[Family->Caste] <= 0)
 			goto skip_bigguy;
-		--_CasteCount[_Family->Caste->Type];
-		BGStatsWarlord(&_BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
-		CreateBigGuy(_Family->People[0], &_BGStats, _MotCt);
-		--_Motivations[_MotCt];
-		if(_Motivations[_MotCt] <= 0)
-			++_MotCt;
-		LnkLstPushBack(&_UniqueFamilies, _Family);
-		--_Count;
+		--CasteCount[Family->Caste];
+		BGStatsWarlord(&BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+		CreateBigGuy(Family->People[0], &BGStats, MotCt);
+		--Motivations[MotCt];
+		if(Motivations[MotCt] <= 0)
+			++MotCt;
+		LnkLstPushBack(&UniqueFamilies, Family);
+		--Count;
 		skip_bigguy:
-		_Itr = _Itr->Next;
+		Itr = Itr->Next;
 	}
-	Assert(_Settlement->BigGuys.Size != 0);
-	SettlementSetBGOpinions(&_Settlement->BigGuys);
-	for(_Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		_Leader = _Itr->Data;
-		if(PERSON_CASTE(_Leader->Person) != CASTE_NOBLE)
-			continue;
+	SettlementSetBGOpinions(&Settlement->BigGuys);
+	if(CasteCount[CASTE_NOBLE] == 0) {
+		LeaderCaste = CASTE_WARRIOR;
 	}
-	Assert(PERSON_CASTE(_Leader->Person) != CASTE_NOBLE);
-	GovernmentSetLeader(_Settlement->Government, _Leader);
-	LnkLstClear(&_UniqueFamilies);
-}
-
-int SettlementBigGuyCt(const struct Settlement* _Settlement) {
-	return _Settlement->BigGuys.Size;
-}
-
-int SettlementAdultPop(const struct Settlement* _Settlement) {
-	return _Settlement->Families.Size;
-}
-
-int SettlementGetNutrition(const struct Settlement* _Settlement) {
-	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	int _Nutrition = 0;
-
-	while(_Itr != NULL) {
-		_Nutrition = _Nutrition + FamilyGetNutrition((const struct Family*)_Itr->Data);
-		_Itr = _Itr->Next;
+	for(Itr = Settlement->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
+		Leader = Itr->Data;
+		if(PERSON_CASTE(Leader->Person) == LeaderCaste)
+			break;
 	}
-	return _Nutrition;
+	GovernmentSetLeader(Settlement->Government, Leader);
+	LnkLstClear(&UniqueFamilies);
+	Assert(Settlement->BigGuys.Size > 0);
+	Assert(PERSON_CASTE(Leader->Person) == LeaderCaste);
 }
 
-int SettlementYearlyNutrition(const struct Settlement* _Settlement) {
-	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	const struct Family* _Family = NULL;
-	int _Nutrition = 0;
+int SettlementBigGuyCt(const struct Settlement* Settlement) {
+	return Settlement->BigGuys.Size;
+}
 
-	while(_Itr != NULL) {
-		_Family = ((struct Family*)_Itr->Data);
-		for(int i = 0; i < _Family->FieldCt; ++i) {
-			_Nutrition = _Nutrition + (_Family->Fields[i]->Acres * 400);
+int SettlementAdultPop(const struct Settlement* Settlement) {
+	return Settlement->Families.Size;
+}
+
+int SettlementGetNutrition(const struct Settlement* Settlement) {
+	const struct LnkLst_Node* Itr = Settlement->Families.Front;
+	int Nutrition = 0;
+
+	while(Itr != NULL) {
+		Nutrition = Nutrition + FamilyGetNutrition((const struct Family*)Itr->Data);
+		Itr = Itr->Next;
+	}
+	return Nutrition;
+}
+
+int SettlementYearlyNutrition(const struct Settlement* Settlement) {
+	const struct LnkLst_Node* Itr = Settlement->Families.Front;
+	const struct Family* Family = NULL;
+	int Nutrition = 0;
+
+	while(Itr != NULL) {
+		Family = ((struct Family*)Itr->Data);
+		for(int i = 0; i < Family->FieldCt; ++i) {
+			Nutrition = Nutrition + (Family->Fields[i]->Acres * 400);
 		}
-		_Itr = _Itr->Next;
+		Itr = Itr->Next;
 	}
-	return _Nutrition;
+	return Nutrition;
 }
 
-int SettlementCountAcres(const struct Settlement* _Settlement) {
-	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	int _Acres = 0;
+int SettlementCountAcres(const struct Settlement* Settlement) {
+	const struct LnkLst_Node* Itr = Settlement->Families.Front;
+	int Acres = 0;
 
-	while(_Itr != NULL) {
-		_Acres = _Acres + FamilyCountAcres((struct Family*)_Itr->Data);
-		_Itr = _Itr->Next;
+	while(Itr != NULL) {
+		Acres = Acres + FamilyCountAcres((struct Family*)Itr->Data);
+		Itr = Itr->Next;
 	}
-	return _Acres;
+	return Acres;
 }
 
-int SettlementExpectedYield(const struct Settlement* _Settlement) {
-	const struct LnkLst_Node* _Itr = _Settlement->Families.Front;
-	int _Yield = 0;
+int SettlementExpectedYield(const struct Settlement* Settlement) {
+	const struct LnkLst_Node* Itr = Settlement->Families.Front;
+	int Yield = 0;
 
-	while(_Itr != NULL) {
-		_Yield = _Yield + FamilyExpectedYield((struct Family*)_Itr->Data);
-		_Itr = _Itr->Next;
+	while(Itr != NULL) {
+		Yield = Yield + FamilyExpectedYield((struct Family*)Itr->Data);
+		Itr = Itr->Next;
 	}
-	return _Yield * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&_Settlement->HarvestMod);
+	return Yield * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&Settlement->HarvestMod);
 }
 
-struct Plot* SettlementFindPlot(const struct Settlement* _Settlement, int _PlotType, void* _PlotData) {
-	struct Plot* _Plot = NULL;
+struct Plot* SettlementFindPlot(const struct Settlement* Settlement, int PlotType, void* PlotData) {
+	struct Plot* Plot = NULL;
 
-	for(const struct LnkLst_Node* _Itr = SettlementPlots(_Settlement); _Itr != NULL; _Itr = _Itr->Next) {
-		_Plot = _Itr->Data;
-		if(_Plot->Type == PLOT_CHANGEPOLICY && _Plot->PlotData == _PlotData) {
-			return _Plot;
+	for(const struct LnkLst_Node* Itr = SettlementPlots(Settlement); Itr != NULL; Itr = Itr->Next) {
+		Plot = Itr->Data;
+		if(Plot->Type == PLOT_CHANGEPOLICY && Plot->PlotData == PlotData) {
+			return Plot;
 		}
 	}
 	return NULL;
 }
 
+struct Retinue* SettlementAddRetinue(struct Settlement* Settlement, struct BigGuy* Leader) {
+	struct Retinue* Retinue = CreateRetinue(Leader);
+
+	Retinue->Next = Settlement->Retinues;
+	Settlement->Retinues = Retinue;
+	for(struct LnkLst_Node* Itr = Settlement->FreeWarriors.Front; Itr != NULL; Itr = Itr->Next) {
+		if(Leader== Itr->Data) {
+			LnkLstRemove(&Settlement->FreeWarriors, Itr);
+			break;
+		}
+	}
+	IntInsert(&g_GameWorld.PersonRetinue, Leader->Person->Object.Id, Retinue);
+	return Retinue;
+}

@@ -3,15 +3,18 @@
  * File: World.h
  */
 
-#ifndef __WORLD_H
-#define __WORLD_H
+#ifndef _WORLD_H
+#define _WORLD_H
 
 #include "Herald.h"
 #include "Date.h"
 #include "Family.h"
 
+#include "sys/Array.h"
 #include "sys/LinkedList.h"
 #include "sys/RBTree.h"
+#include "sys/ITree.h"
+#include "sys/Queue.h"
 
 #include "video/MapRenderer.h"
 
@@ -23,7 +26,6 @@ struct Person;
 struct RBTree;
 struct TaskPool;
 struct BigGuy;
-struct WorldTile;
 struct GameWorld;
 struct KeyMouseState;
 struct Path;
@@ -33,9 +35,10 @@ struct Policy;
 extern struct GameWorld g_GameWorld;
 extern int g_TemperatureList[];
 extern int* g_AvgTempMap[MONTHS];
-extern struct Caste g_Castes[CASTE_SIZE];
+extern const char* g_CasteNames[CASTE_SIZE];
 
-#define GameWorldInsertSettlement(_GameWorld, _Settlement) 																				\
+
+#define GameWorldInsertSettlement(_GameWorld, Settlement) 																				\
 {																																		\
 	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
 	QTInsertAABB(&(_GameWorld)->SettlementIndex, (_Settlement), &(_Settlement)->Pos);													\
@@ -46,10 +49,6 @@ enum {
 	SUBTIME_ARMY,
 	SUBTIME_BATTLE,
 	SUBTIME_SIZE
-};
-
-enum {
-	TERRAIN_GRASS
 };
 
 enum {
@@ -66,9 +65,8 @@ struct SubTimeObject {
 };
 
 struct GameWorld {
-	int IsPaused;
 	DATE Date;
-	int Tick;
+	uint32_t Tick;
 	struct MapRenderer* MapRenderer;
 	struct QuadTree SettlementMap;
 	struct RBTree* GoodDeps; //Tree consisting of
@@ -77,22 +75,20 @@ struct GameWorld {
 	struct BigGuy* Player;
 	struct LinkedList Settlements;
 	struct RBTree BigGuys;
-	/*
-	 * NOTE: Is only inserted into and not searched, should be removed as it has no apparent use.
-	 */
-	struct RBTree BigGuyStates;
 	struct RBTree Agents;
-	struct RBTree Crisis;
 	struct RBTree ActionHistory;
 	struct RBTree PlotList;
+	struct IntTree PersonRetinue; //Mapping of a person to their retinue.
 	struct LinkedList MissionFrame;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
-	struct Policy* Policies;
+	struct Array Policies;
 	struct Constraint** BabyAvg;
 	struct Constraint** AgeGroups;
+	struct Queue FreeWarriors;
 	float DecayRate[WORLD_DECAY];
-	int PolicySz;
+	uint8_t PolicySz;
+	uint8_t IsPaused;
 };
 
 struct FamilyType {
@@ -100,38 +96,29 @@ struct FamilyType {
 	char* LuaFunc;
 };
 
-//Each tile represents a mile of the world.
-struct WorldTile {
-	float Forest;
-	float Unbuildable;
-	int Temperature;
-};
-
 struct BigGuy* PickPlayer();
-int IsPlayerGovernment(const struct GameWorld* _World, const struct Settlement* _Settlement);
+int IsPlayerGovernment(const struct GameWorld* World, const struct Settlement* Settlement);
 
-struct WorldTile* CreateWorldTile();
-void DestroyWorldTile(struct WorldTile* _Tile);
 /*
  * NOTE: Does this actually work or does it just return everything in a square distance away?
  */
-void WorldSettlementsInRadius(struct GameWorld* _World, const SDL_Point* _Point, int _Radius, struct LinkedList* _List);
+void WorldSettlementsInRadius(struct GameWorld* World, const SDL_Point* Point, int Radius, struct LinkedList* List);
 
-struct FoodBase** LoadHumanFood(lua_State* _State, struct FoodBase** _FoodArray, const char* _LuaTable);
-void WorldInit(int _Area);
+struct FoodBase** LoadHumanFood(lua_State* State, struct FoodBase** FoodArray, const char* LuaTable);
+void WorldInit(int Area);
 void WorldQuit();
 
-int GameDefaultClick(const struct Object* _One, const struct Object* _Two);
-int GameFyrdClick(const struct Object* _One, const struct Object* _Two);
-void GameWorldEvents(const struct KeyMouseState* _State, struct GameWorld* _World);
-void GameWorldDraw(const struct GameWorld* _World);
-void CreateTempMap(int _Length);
+int GameDefaultClick(const struct Object* One, const struct Object* Two);
+int GameFyrdClick(const struct Object* One, const struct Object* Two);
+void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World);
+void GameWorldDraw(const struct GameWorld* World);
+void CreateTempMap(int Length);
 int World_Tick();
 
-void WorldPathCallback(struct Army* _Army, struct Path* _Path);
+void WorldPathCallback(struct Army* Army, struct Path* Path);
 
-void** SubTimeGetList(int _Type);
-void SetClickState(struct Object* _Data, int _State);
-struct Settlement* WorldGetSettlement(struct GameWorld* _World, SDL_Point* _Pos);
+void** SubTimeGetList(int Type);
+void SetClickState(struct Object* Data, int State);
+struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos);
 
 #endif

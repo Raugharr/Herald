@@ -49,13 +49,13 @@ enum MonthsEnum {
 DATE MonthToInt(const char* _Month);
 DATE DateAdd(DATE _One, DATE _Two);
 DATE DateAddInt(DATE _Date, int _Two);
-DATE DaysBetween(int _DateOne, int _DateTwo);
+uint32_t DaysBetween(DATE _DateOne, DATE  _DateTwo);
 
 extern const char* g_ShortMonths[];
 /*
  * Returns the number of days in a DATE.
  */
-int DateToDays(DATE _Date);
+uint32_t DateToDays(DATE _Date);
 /*
  * Returns a DATE that is _Days old.
  */

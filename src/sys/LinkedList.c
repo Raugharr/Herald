@@ -114,6 +114,7 @@ void LnkLstPushBack(struct LinkedList* _List, void* _Value) {
 void LnkLstPushFront(struct LinkedList* _List, void* _Value) {
 	struct LnkLst_Node* _Node = CreateLnkLstNode(_Value);
 
+	_Node->Data = _Value;
 	if(_List->Front == NULL) {
 		_List->Front = _Node;
 		_List->Back = _Node;

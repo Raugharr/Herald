@@ -24,7 +24,8 @@ void GoapInit() {
 }
 
 void GoapQuit() {
-	DestroyMemoryPool(g_GoapMemPool);
+	if(g_GoapMemPool != NULL)
+		DestroyMemoryPool(g_GoapMemPool);
 }
 
 int GoapNoCost(const struct Agent* _Agent) {
@@ -105,7 +106,7 @@ int GoapNodeInList(const struct GoapPathNode* _Node, struct GoapPathNode* _OpenL
 	return 0;
 }
 
-void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const struct Agent* _Agent, const struct WorldState* _Start, struct WorldState* _End, int* _PathSz, struct GoapPathNode** _Path) {
+void GoapPlanAction(const struct GOAPPlanner* _Planner, const struct GoapGoal* _Goal, const struct Agent* _Agent, const struct WorldState* _Start, struct WorldState* _End, uint8_t* _PathSz, struct GoapPathNode** _Path) {
 	struct WorldState _CurrentState;
 	struct WorldState _ItrState;
 	struct GoapPathNode _OpenList[GOAP_OPENLIST];
@@ -235,10 +236,6 @@ int GoapPathDoAction(const struct GOAPPlanner* _Planner, const struct GoapPathNo
 	return _Cont;
 }
 
-const struct GoapAction* GoapPathGetAction(const struct GoapPathNode* _Node) {
-	return _Node->Action;
-}
-
 double AUtilityFunction(double _Num, int _Func) {
 	switch(_Func) {
 		case UTILITY_LINEAR:
@@ -277,7 +274,7 @@ const struct GoapGoal* GoapBestGoalUtility(const struct GoapGoalSet* const _Goal
 	return (_Best >= 0.25f) ? (_GoalSet->Goals[_BestIdx]) : (NULL);
 }
 
-void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State,  int* _PathSize, struct GoapPathNode** _Path) {
+void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, struct WorldState* _State,  uint8_t* _PathSize, struct GoapPathNode** _Path) {
 	struct WorldState _EndState;
 	const struct GoapGoal* _Goal = NULL;
 	const struct GoapAction* _Action = NULL ;
@@ -290,7 +287,9 @@ void GoapPlanUtility(const struct GOAPPlanner* _Planner, struct Agent* _Agent, s
 		_Goal->Setup(_Agent);
 	}
 	GoapPlanAction(_Planner, _Goal, _Agent, _State, &_EndState, _PathSize, _Path);
-	_Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
+	if(*_PathSize == 0)
+		return;
+	_Action = _Agent->Plan[_Agent->PlanIdx]->Action;
 	if(_Agent->PlanData == NULL && _Action->Create != NULL) {
 		_Agent->PlanData = _Action->Create(_Agent);
 	}

@@ -18,13 +18,13 @@
 #define OUNCE (16)
 #define BUSHEL (60)
 #define GALLON (128)
-#define GoodType(_Good) (ffs((_Good)->Category) - 1)
-#define ToPound(_Quantity) ((_Quantity) / OUNCE)
-#define ToOunce(_Quantity) ((_Quantity) * OUNCE)
-#define ToBushel(_Quantity) ((_Quantity) / BUSHEL)
-#define ToGallon(_Quantity) ((_Quantity) / GALLON)
+#define GoodType(Good) (ffs((Good)->Category) - 1)
+#define ToPound(Quantity) ((Quantity) / OUNCE)
+#define ToOunce(Quantity) ((Quantity) * OUNCE)
+#define ToBushel(Quantity) ((Quantity) / BUSHEL)
+#define ToGallon(Quantity) ((Quantity) / GALLON)
 #define FOOD_MAXPARTS (10)
-#define GoodNutrition(_Good) (ToPound((_Good)->Quantity) * ((struct FoodBase*)(_Good)->Base)->Nutrition)
+#define GoodNutrition(Good) (ToPound((Good)->Quantity) * ((struct FoodBase*)(Good)->Base)->Nutrition)
 
 typedef struct lua_State lua_State;
 struct HashTable;
@@ -42,12 +42,11 @@ enum {
 	GOOD_SEED = (1 << 3),
 	GOOD_TOOL = (1 << 4),
 	GOOD_MATERIAL = (1 << 5),
-	GOOD_CLOTHING = (1 << 6),
-	GOOD_WEAPON = (1 << 7),
-	GOOD_ARMOR = (1 << 8),
-	GOOD_OTHER = (1 << 9),
-	GOOD_FLOUR = (1 << 10),
-	GOOD_SIZE = 11
+	GOOD_WEAPON = (1 << 6),
+	GOOD_ARMOR = (1 << 7),
+	GOOD_OTHER = (1 << 8),
+	GOOD_FLOUR = (1 << 9),
+	GOOD_SIZE = 10
 };
 
 enum {
@@ -101,11 +100,11 @@ struct SellRequest {
 };
 
 struct GoodBase {
-	int Id;
+	uint32_t Id;
 	char* Name;
-	int Category;
 	struct InputReq** InputGoods;
-	int IGSize; //InputGood size.
+	uint32_t Category;
+	uint8_t IGSize; //InputGood size.
 };
 
 struct Good {
@@ -116,45 +115,27 @@ struct Good {
 };
 
 struct WeaponBase {
-	int Id;
-	char* Name;
-	int Category;
-	struct InputReq** InputGoods;
-	int IGSize;
-	int WeaponType;
-	int MeleeAttack;
-	int RangeAttack;
-	int Charge;
-	int Range;
+	struct GoodBase Base;
+	uint16_t WeaponType;
+	int8_t  MeleeAttack;
+	int8_t RangeAttack;
+	int8_t Range;
 };
 
 struct ArmorBase {
-	int Id;
-	char* Name;
-	int Category;
-	struct InputReq** InputGoods;
-	int IGSize;
-	int ArmorType;
-	int Defence;
-	int IsShield;
+	struct GoodBase Base;
+	uint8_t ArmorType;
+	uint8_t Defence;
 };
 
 struct ToolBase {
-	int Id;
-	char* Name;
-	int Category;
-	struct InputReq** InputGoods;
-	int IGSize;
-	int Function;
-	int Quality;
+	struct GoodBase Base;
+	uint8_t Function;
+	uint8_t Quality;
 };
 
 struct FoodBase {
-	int Id;
-	char* Name;
-	int Category;
-	struct InputReq** InputGoods;
-	int IGSize;
+	struct GoodBase Base;
 	double Nutrition;
 };
 
@@ -166,15 +147,6 @@ struct Food {
 	int Parts;
 };
 
-struct ClothingBase {
-	int Id;
-	char* Name;
-	int Category;
-	struct InputReq** InputGoods;
-	int IGSize;
-	int* Locations;
-};
-
 /**
  * @Brief struct that contains a list of each Good that is required as well
  * as if the Good is obtainable.
@@ -184,120 +156,120 @@ struct GoodDep {
 	const struct GoodBase* Good;
 };
 
-int GoodDepCmp(const struct GoodDep* _One, const struct GoodDep* _Two);
-int GoodBaseDepCmp(const struct GoodBase* _Weapon, const struct GoodDep* _Pair);
-int InputReqGoodCmp(const struct InputReq* _One, const struct Good* _Two);
+int GoodDepCmp(const struct GoodDep* One, const struct GoodDep* Two);
+int GoodBaseDepCmp(const struct GoodBase* Weapon, const struct GoodDep* Pair);
+int InputReqGoodCmp(const struct InputReq* One, const struct Good* Two);
 
-struct GoodBase* InitGoodBase(struct GoodBase* _Weapon, const char* _Name, int _Category);
-struct GoodBase* CopyGoodBase(const struct GoodBase* _Good);
-int GoodBaseCmp(const void* _One, const void* _Two);
-void DestroyGoodBase(struct GoodBase* _Weapon);
+struct GoodBase* InitGoodBase(struct GoodBase* Weapon, const char* Name, int Category);
+struct GoodBase* CopyGoodBase(const struct GoodBase* Good);
+int GoodBaseCmp(const void* One, const void* Two);
+void DestroyGoodBase(struct GoodBase* Weapon);
 
-struct BuyRequest* CreateBuyRequest(struct Family* _Family, const struct GoodBase* _Base, int _Quantity);
-void DestroyBuyRequest(struct BuyRequest* _BuyReq);
+struct BuyRequest* CreateBuyRequest(struct Family* Family, const struct GoodBase* Base, int Quantity);
+void DestroyBuyRequest(struct BuyRequest* BuyReq);
 
-int GoodInpGdCmp(const void* _One, const void* _Two);
+int GoodInpGdCmp(const void* One, const void* Two);
 
-struct Good* GoodCopy(const struct Good* _Good);
-struct Good* FoodGoodCopy(const struct Good* _Good);
+struct Good* GoodCopy(const struct Good* Good);
+struct Good* FoodGoodCopy(const struct Good* Good);
 
-struct Good* CreateGood(const struct GoodBase* _Base, int _X, int _Y);
-int GoodCmp(const void* _One, const void* _Two);
-void DestroyGood(struct Good* _Weapon);
+struct Good* CreateGood(const struct GoodBase* Base, int X, int Y);
+int GoodCmp(const void* One, const void* Two);
+void DestroyGood(struct Good* Weapon);
 
-int GoodGBaseCmp(const struct GoodBase* _One, const struct Good* _Two);
-int GoodBaseGoodCmp(const struct GoodBase* _One, const struct Good* _Two);
+int GoodGBaseCmp(const struct GoodBase* One, const struct Good* Two);
+int GoodBaseGoodCmp(const struct GoodBase* One, const struct Good* Two);
 
-struct ToolBase* CreateToolBase(const char* _Name, int _Category, int _Function, int _Quality);
-void DestroyToolBase(struct ToolBase* _Tool);
+struct ToolBase* CreateToolBase(const char* Name, int Category, int Function, int Quality);
+void DestroyToolBase(struct ToolBase* Tool);
 
-struct FoodBase* CreateFoodBase(const char* _Name, int _Category, int _Nutrition);
-void DestroyFoodBase(struct FoodBase* _Food);
+struct FoodBase* CreateFoodBase(const char* Name, int Category, int Nutrition);
+void DestroyFoodBase(struct FoodBase* Food);
 
-struct Food* CreateFood(const struct FoodBase* _Base, int _X, int _Y);
-void DestroyFood(struct Food* _Food);
+struct Food* CreateFood(const struct FoodBase* Base, int X, int Y);
+void DestroyFood(struct Food* Food);
 
-struct ClothingBase* CreateClothingBase(const char* _Name, int _Category);
-void DestroyClothingBase(struct ClothingBase* _Clothing);
+struct ClothingBase* CreateClothingBase(const char* Name, int Category);
+void DestroyClothingBase(struct ClothingBase* Clothing);
 
-struct WeaponBase* CreateWeaponBase(const char* _Name, int _Category);
-void DestroyWeaponBase(struct WeaponBase* _Weapon);
+struct WeaponBase* CreateWeaponBase(const char* Name, int Category);
+void DestroyWeaponBase(struct WeaponBase* Weapon);
 
 /**
- * @Brief Reads a table from _Index from _State that contains data about a Good.
+ * @Brief Reads a table from Index from State that contains data about a Good.
  * @Return NULL if the table is invalid.
  * @Return Good* if the table is valid.
  */
-struct GoodBase* GoodLoad(lua_State* _State, int _Index);
-int GoodLoadInput(lua_State* _State, struct GoodBase* _Weapon);
-int GoodLoadOutput(lua_State* _State, struct GoodBase* _Weapon);
-void GoodLoadConsumableInput(lua_State* _State, struct GoodBase* _Weapon, struct LinkedList* _List);
-void ClothingBaseLoad(lua_State* _State, struct GoodBase* _Weapon, int* _Locations);
-int WeaponBaseLoad(lua_State* _State, struct WeaponBase* _Weapon);
-int ArmorBaseLoad(lua_State* _State, struct ArmorBase* _Armor);
-struct GoodDep* CreateGoodDep(const struct GoodBase* _Weapon);
-void DestroyGoodDep(struct GoodDep* _GoodDep);
+struct GoodBase* GoodLoad(lua_State* State, int Index);
+int GoodLoadInput(lua_State* State, struct GoodBase* Weapon);
+int GoodLoadOutput(lua_State* State, struct GoodBase* Weapon);
+void GoodLoadConsumableInput(lua_State* State, struct GoodBase* Weapon, struct LinkedList* List);
+void ClothingBaseLoad(lua_State* State, struct GoodBase* Weapon, int* Locations);
+int WeaponBaseLoad(lua_State* State, struct WeaponBase* Weapon);
+int ArmorBaseLoad(lua_State* State, struct ArmorBase* Armor);
+struct GoodDep* CreateGoodDep(const struct GoodBase* Weapon);
+void DestroyGoodDep(struct GoodDep* GoodDep);
 /**
  * @Brief Simple wrapper that adds the correct ICallback and SCallback to RBTRee.
  * Creates an RBTree* that contains struct GoodDep* containing a struct GoodBase* and
  * a table of all GoodBases that need the good.
  * The returned RBTree* can be deleted with DestroyRBTree as normal.
  */
-struct RBTree* GoodBuildDep(const struct HashTable* _GoodList);
+struct RBTree* GoodBuildDep(const struct HashTable* GoodList);
 
 /**
- * Iterates through all of _Good's input goods and searches _Tree for them. If they are not found a GoodDep* is created
- * and a GoodDep* containing _Good is added to its DepTbl. Each input good will then have GoodDependencies called on them.
- * A GoodDep* containing _Good is returned.
+ * Iterates through all of Good's input goods and searches Tree for them. If they are not found a GoodDep* is created
+ * and a GoodDep* containing Good is added to its DepTbl. Each input good will then have GoodDependencies called on them.
+ * A GoodDep* containing Good is returned.
  */
-struct GoodDep* GoodDependencies(struct RBTree* _Tree, const struct GoodBase* _Good);
+struct GoodDep* GoodDependencies(struct RBTree* Tree, const struct GoodBase* Good);
 /**
- * Returns a double containing the value of _Base's nutritional value by adding the
- * sum of the nutritional values of the goods used to create _Base together.
+ * Returns a double containing the value of Base's nutritional value by adding the
+ * sum of the nutritional values of the goods used to create Base together.
  */
-double GoodNutVal(struct GoodBase* _Base);
+double GoodNutVal(struct GoodBase* Base);
 /**
- * Creates an array of InputReq* that contain Good and the amount possible to make with the Good*'s in _Goods.
+ * Creates an array of InputReq* that contain Good and the amount possible to make with the Good*'s in Goods.
  */
-struct InputReq** GoodBuildList(const struct Array* _Goods, int* _Size, int _Categories);
+struct InputReq** GoodBuildList(const struct Array* Goods, int* Size, int Categories);
 /**
- *  Returns how many objects of _Good that can be made from the items in _Goods.
+ *  Returns how many objects of Good that can be made from the items in Goods.
  *  Returns 0 if none can be created.
  */
-int GoodCanMake(const struct GoodBase* _Array, const struct Array* _Goods);
+int GoodCanMake(const struct GoodBase* Array, const struct Array* Goods);
 /**
- * Returns the good that has the most quantity that is in the category _Category.
+ * Returns the good that has the most quantity that is in the category Category.
  */
-struct Good* GoodMostAbundant(struct Array* _Goods, int _Category);
+struct Good* GoodMostAbundant(struct Array* Goods, int Category);
 /**
- * Checks if _Seller already has a SellRequest of type _Base at their settlement if
- * they do add _Quantity to the SellRequest. Otherwise a new SellRequest is created
+ * Checks if Seller already has a SellRequest of type Base at their settlement if
+ * they do add Quantity to the SellRequest. Otherwise a new SellRequest is created
  * at the settlement.
  */
-void GoodSell(const struct Family* _Seller, const struct GoodBase* _Base, int _Quantity);
+void GoodSell(const struct Family* Seller, const struct GoodBase* Base, int Quantity);
 /**
- * Checks for a SellRequest that contains _Base. If such a SellRequest exists then attempt
- * to buy _Quantity amount. If the SellRequest does not have enough items to statisfy _Quantity
+ * Checks for a SellRequest that contains Base. If such a SellRequest exists then attempt
+ * to buy Quantity amount. If the SellRequest does not have enough items to statisfy Quantity
  * GoodBuy will continue iterating through all SellRequests to find another valid SellRequest.
- * If _Quantity amount of goods are not able to be bought then a BuyRequest will be created for
+ * If Quantity amount of goods are not able to be bought then a BuyRequest will be created for
  * the remaining amount.
  */
-int GoodBuy(struct Family* _Family, const struct GoodBase* _Base, int _Quantity);
-int GoodPay(struct Family* _Buyer, const struct SellRequest* _SellReq);
-const struct GoodBase* GoodPayInKind(const struct Family* _Buyer, int _Cost, const struct GoodBase* _PayGood, int* _Quantity);
-void SellItem(struct Family* _Buyer, const struct SellRequest* _SellReq);
-int GoodGetValue(const struct GoodBase* _Base);
-struct Good* GoodMake(const struct GoodBase* _Base, int _Quantity, struct Array* _Inputs, int _X, int _Y);
-const struct LinkedList* GoodGetCategory(const char* _Category);
+int GoodBuy(struct Family* Family, const struct GoodBase* Base, int Quantity);
+int GoodPay(struct Family* Buyer, const struct SellRequest* SellReq);
+const struct GoodBase* GoodPayInKind(const struct Family* Buyer, int Cost, const struct GoodBase* PayGood, int* Quantity);
+void SellItem(struct Family* Buyer, const struct SellRequest* SellReq);
+int GoodGetValue(const struct GoodBase* Base);
+struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs, int X, int Y);
+const struct LinkedList* GoodGetCategory(const char* Category);
 
-static inline struct Good* CheckGoodTbl(struct Array* _Array, const char* _GoodName, const struct HashTable* _Search, int _X, int _Y) {
-	const struct GoodBase* _GoodBase = HashSearch(_Search, _GoodName);
-	struct Good* _Good = NULL;
+static inline struct Good* CheckGoodTbl(struct Array* Array, const char* GoodName, const struct HashTable* Search, int X, int Y) {
+	const struct GoodBase* GoodBase = HashSearch(Search, GoodName);
+	struct Good* Good = NULL;
 
-	if((_Good = LinearSearch(_GoodBase, _Array->Table, _Array->Size, (CompCallback) GoodBaseGoodCmp)) == NULL) {
-		_Good = CreateGood(_GoodBase, _X, _Y);
-		ArrayInsertSort(_Array, _Good, GoodCmp);
+	if((Good = LinearSearch(GoodBase, Array->Table, Array->Size, (CompCallback) GoodBaseGoodCmp)) == NULL) {
+		Good = CreateGood(GoodBase, X, Y);
+		ArrayInsertSort(Array, Good, GoodCmp);
 	}
-	return _Good;
+	return Good;
 }
 #endif

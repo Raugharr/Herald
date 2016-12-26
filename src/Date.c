@@ -98,13 +98,13 @@ DATE DateAddInt(DATE _Date, int _Two) {
 	return TO_DATE(_Year, _Month, _Day);
 }
 
-DATE DaysBetween(int _DateOne, int _DateTwo) {
+uint32_t DaysBetween(DATE _DateOne, DATE _DateTwo) {
 	if(_DateTwo < _DateOne)
 		return 0;
 	return DateToDays(_DateTwo) - DateToDays(_DateOne);
 }
 
-int DateToDays(DATE _Date) {
+uint32_t DateToDays(DATE _Date) {
 	int _Total = 0;
 	int _Years = YEAR(_Date);
 	int _Months = MONTH(_Date);

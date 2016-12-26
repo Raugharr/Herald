@@ -6,99 +6,59 @@
 #include "Stack.h"
 
 #include <stdlib.h>
+#include <string.h>
 
-struct Stack* CreateStack() {
+struct Stack* CreateStack(uint32_t _Size) {
 	struct Stack* _Stack = (struct Stack*) malloc(sizeof(struct Stack));
 
-	_Stack->Top = NULL;
 	_Stack->Size = 0;
+	_Stack->MaxSize = _Size;
+	_Stack->Top = calloc(sizeof(void*), _Size);
 	return _Stack;
 }
 
-struct Stack* CopyStack(struct Stack* _Stack) {
-	struct Stack* _NewStack = (struct Stack*) malloc(sizeof(struct Stack));
-	struct StackNode* _StackNode = _Stack->Top;
-	struct StackNode* _PrevNode = NULL;
-	struct StackNode* _Node = NULL;
-
-	_NewStack->Top = NULL;
-	_NewStack->Size = _Stack->Size;
-	if(_StackNode == NULL)
-		return _NewStack;
-	_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
-	_Node->Prev = NULL;
-	_Node->Data = _StackNode->Data;
-	_StackNode = _StackNode->Prev;
-	while(_StackNode != NULL) {
-		_PrevNode = (struct StackNode*) malloc(sizeof(struct StackNode));
-		_PrevNode->Prev = NULL;
-		_PrevNode->Data = _StackNode->Data;
-		_Node->Prev = _PrevNode;
-		_Node = _PrevNode;
-		_StackNode = _StackNode->Prev;
-	}
-	return _NewStack;
-}
 void DestroyStack(struct Stack* _Stack) {
-	struct StackNode* _Node = _Stack->Top;
-	struct StackNode* _Temp = NULL;
-
-	while(_Node != NULL) {
-		_Temp = _Node;
-		_Node = _Temp->Prev;
-		free(_Temp);
-	}
+	free(_Stack->Top);
 	free(_Stack);
 }
 
 void StackPush(struct Stack* _Stack, void* _Data) {
-	struct StackNode* _Node = (struct StackNode*) malloc(sizeof(struct StackNode));
+	if(_Stack->Size >= _Stack->MaxSize) {
+		if(_Stack->MaxSize == 0) {
+			_Stack->MaxSize = 16;
+			_Stack->Top = calloc(sizeof(void*), 16);
+		} else {
+			void* _Temp = NULL;
 
-	_Node->Data = _Data;
-	_Node->Prev = _Stack->Top;
-	_Stack->Top = _Node;
-	++_Stack->Size;
+			_Stack->MaxSize = _Stack->MaxSize * 2;
+			_Temp = realloc(_Stack->Top, _Stack->MaxSize * sizeof(void*));
+			if(_Temp == NULL) {
+				calloc(sizeof(void*), _Stack->MaxSize);
+				memcpy(_Temp, _Stack->Top, sizeof(void*) * _Stack->MaxSize);
+				free(_Stack->Top);
+				_Stack->Top = _Temp;
+			}
+		}
+	}
+	_Stack->Top[_Stack->Size++] = _Data;
 }
 
 void* StackPop(struct Stack* _Stack) {
-	void* _Data = NULL;
-	struct StackNode* _Temp = NULL;
-
-	if(_Stack->Top == NULL)
+	if(_Stack->Size <= 0)
 		return NULL;
-	_Temp = _Stack->Top;
-	_Data = _Temp->Data;
-	_Stack->Top = _Temp->Prev;
 	--_Stack->Size;
-	free(_Temp);
-	return _Data;
+	return _Stack->Top[_Stack->Size];
 }
 
 void* StackGet(struct Stack* _Stack, int _Index) {
-	struct StackNode* _Node = _Stack->Top;
-	int i;
-
 	if(_Index > 0) {
-		if(_Index > _Stack->Size)
+		if(_Index >= _Stack->Size)
 			return NULL;
-		i = _Stack->Size - _Index;
-		while(i >= _Index) {
-			if(_Node == NULL)
-				return NULL;
-			_Node = _Node->Prev;
-			--i;
-		}
-		return _Node->Data;
+		return _Stack->Top[_Index];
 	} else if(_Index < 0) {
-		if(_Index > -(_Stack->Size))
+		if(_Stack->Size + _Index < 0)
 			return NULL;
-		i = 0;
-		while(i > _Index) {
-			if(_Node == NULL)
-				return NULL;
-			_Node = _Node->Prev;
-			--i;
-		}
+		return _Stack->Top[_Stack->Size + _Index];
 	}
 	return NULL;
 }
@@ -113,20 +73,4 @@ int StackNodeLen(const struct StackNode* _Node) {
 		_Node = _Node->Prev;
 	}
 	return _Size;
-}
-
-struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat) {
-	struct StackNode* _Node = NULL;
-	struct StackNode* _Prev = _Stack;
-
-	if(_Cat == NULL)
-		return _Stack;
-	do {
-		_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
-		_Node->Data = _Cat->Data;
-		_Node->Prev = _Prev;
-		_Prev = _Node;
-		_Cat = _Cat->Prev;
-	} while(_Cat != NULL);
-	return _Node;
 }

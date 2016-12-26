@@ -2,18 +2,18 @@ Menu.__savestate = true;
 Menu.moveable = true;
 
 function Menu.Init(Menu, Data)
-	Menu.Screen = GUI.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), 0, {0, 0, 0, 0})
+	Menu.Screen = Gui.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), 0, {0, 0, 0, 0})
 	local Persons = World.GetPersons()
 	local Columns = 16
 	local DTable = Screen:CreateTable(4, Columns, 0, {0, 0, 0, 0})
 	local PersonData = nil
 	local PersonInfo = ""
 	
-	Menu.DTable:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-	Menu.DTable:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+	Menu.DTable:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+	Menu.DTable:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 	Menu.Screen:CreateLabel("Back"):OnKey("Enter", "Released", 
 		function() 
-			GUI.PopMenu()
+			Gui.PopMenu()
 		end)
 	DTable:CreateLabel("First Name"):SetFocus(false)
 	DTable:CreateLabel("Last Name"):SetFocus(false)
@@ -26,7 +26,7 @@ function Menu.Init(Menu, Data)
 		PersonInfo = Person(PersonData)
 		DTable:CreateLabel(PersonInfo.Name):OnKey("Enter", "Released",
 		function()
-			GUI.SetMenu("ViewPersonMenu", PersonInfo)
+			Gui.SetMenu("ViewPersonMenu", PersonInfo)
 		end)
 		DTable:CreateLabel(PersonInfo.Family:GetName())
 		DTable:CreateLabel(PrintYears(PersonInfo.Age))

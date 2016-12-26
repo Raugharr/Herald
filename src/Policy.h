@@ -24,7 +24,7 @@ typedef int (*PolicyOptUtility)(struct Government*, int*, int*);//First int* is 
 enum {
 	POLCAT_MILITARY,
 	POLCAT_ECONOMY,
-	POLCAT_LAW
+	POLCAT_LAW,
 };
 
 enum {
@@ -50,7 +50,8 @@ enum {
  */
 struct PolicyOption {
 	const char* Name;
-	int GovsAllowed;
+	const char* Desc;
+	uint32_t GovsAllowed;
 	int8_t CastePreference[CASTE_SIZE];
 	PolicyOptFunc OnPass;
 	PolicyOptFunc OnRemove;
@@ -64,25 +65,26 @@ struct PolicyOption {
 struct Policy {
 	const char* Name;
 	const char* Description;
-	int Category;
 	struct {
 		char* Name[POLICY_SUBSZ];
-		int Size[POLICY_SUBSZ];
+		int8_t Size[POLICY_SUBSZ];
 		struct PolicyOption Options[POLICY_MAXOPTIONS];
 	} Options;
-	int OptionsSz;
-	int GovsAllowed;
+	uint16_t Id;
+	uint32_t GovsAllowed;
+	uint8_t OptionsSz;
+	uint8_t Category;
 };
 
 struct ActivePolicy {
 	const struct Policy* Policy;
-	int OptionSel[POLICY_SUBSZ];
+	int8_t OptionSel[POLICY_SUBSZ];
 };
 
-void ConstructPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category);
+void CtorPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category);
 void DestroyPolicy(struct Policy* _Policy);
 
-void PolicyAddOption(struct Policy* _Policy, int _Row,  const char* _Name, PolicyOptFunc _CallFunc, PolicyOptUtility _Utility);
+void PolicyAddOption(struct Policy* _Policy, int _Row,  const char* _Name, const char* _Desc, PolicyOptFunc _CallFunc, PolicyOptUtility _Utility);
 void PolicyAddCategory(struct Policy* _Policy, const char* _Name);
 /**
  * \brief Returns a pointer to the first element in _Row.
@@ -95,5 +97,6 @@ void DestroyPolicyOption(struct PolicyOption* _Opt);
  * NULL if no policy is being changed.
  */
 const struct PolicyOption* PolicyChange(const struct ActivePolicy* _Policy);
+int LuaPolicyLoad(lua_State* State);
 
 #endif

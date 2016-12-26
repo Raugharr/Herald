@@ -2,14 +2,19 @@
 
 #include "LuaCore.h"
 
+#include "Log.h"
+
 #include <string.h>
 #include <alloca.h>
+#include <assert.h>
 #include <stdarg.h>
+
 #include <SDL2/SDL.h>
 #include <lua/lua.h>
 #include <lua/lauxlib.h>
 
-#define COSCH_MAX 32
+#define COSCH_MAX 255 
+#define CO_OFFSET 56
 
 struct Coroutine g_Coroutines[COSCH_MAX];
 jmp_buf g_CoScheduleJmp;
@@ -46,7 +51,7 @@ void CoSchedule(Coroutine _Routine) {
 
 		g_Coroutines[g_CoRun].Status = CO_NORMAL;
 		if(g_Coroutines[g_CoRun].ArgCt != 0) {
-			__asm__("movl %0, %%eax\n\t"
+			__asm__("mov %0, %%eax\n\t"
 					"loop_start:\n\t"
 					"cmp $0, %%eax\n\t"
 					"jle loop_end\n\t"
@@ -64,8 +69,8 @@ void CoSchedule(Coroutine _Routine) {
 			g_Coroutines[g_CoRun].Routine();
 		}
 		g_Coroutines[g_CoRun].Status = CO_DEAD;
-		if(g_Coroutines[g_CoRun].From != NULL) {
-			struct Coroutine* _Coro = g_Coroutines[g_CoRun].From;
+		if(g_Coroutines[g_CoRun].From != -1) {
+			struct Coroutine* _Coro = &g_Coroutines[g_Coroutines[g_CoRun].From];
 			volatile int8_t* _Stack = alloca(CO_STACKSZ);
 
 			g_CoRun = _Coro->Id;
@@ -85,7 +90,7 @@ void CoSchedule(Coroutine _Routine) {
 	}
 }
 
-int CoSpawn(Coroutine _Routine, int _Argc, ... ) {
+int CoSpawn(Coroutine _Routine, uint8_t _Argc, ... ) {
 	va_list _VList;
 	int _SkipCt = 0;
 	int _StartId = g_CoId;
@@ -102,10 +107,10 @@ int CoSpawn(Coroutine _Routine, int _Argc, ... ) {
 		}
 		if(_SkipCt == COSCH_MAX)
 			return -1;
-		SDL_assert(g_Coroutines[g_CoId].Status == CO_DEAD);
+	//	SDL_assert(g_Coroutines[g_CoId].Status == CO_DEAD);
 	}
 	va_start(_VList, _Argc);
-	SDL_assert(g_CoId < COSCH_MAX);
+	//SDL_assert(g_CoId < COSCH_MAX);
 	g_Coroutines[g_CoId].Stack[0] = 0;
 	g_Coroutines[g_CoId].StackSz = 0;
 	g_Coroutines[g_CoId].Routine = _Routine;
@@ -113,9 +118,9 @@ int CoSpawn(Coroutine _Routine, int _Argc, ... ) {
 	g_Coroutines[g_CoId].Routine = _Routine;
 	g_Coroutines[g_CoId].Id = g_CoId;
 	if(g_CoId == 0)
-		g_Coroutines[0].From = NULL;
+		g_Coroutines[0].From = -1;
 	else
-		g_Coroutines[g_CoId].From = &g_Coroutines[g_CoRun];
+		g_Coroutines[g_CoId].From = g_CoRun;
 
 	g_Coroutines[g_CoId].ArgCt = _Argc;
 	if(g_Coroutines[g_CoId].Args == NULL)
@@ -129,10 +134,10 @@ int CoSpawn(Coroutine _Routine, int _Argc, ... ) {
 
 void CoResume(int _Coroutine) {
 	void* _Rbp = __builtin_frame_address(0);
-	void* _OffRbp = (char*) _Rbp - 0x100; //-0x100 for local variables and stack usage.
+	void* _OffRbp = (char*) _Rbp - CO_OFFSET; //-0x100 for local variables and stack usage.
 	int _StackSz = (char*)g_ScheduleStack - (char*)_OffRbp;
 
-	SDL_assert(_StackSz < CO_STACKSZ);
+	Assert(_StackSz < CO_STACKSZ);
 	g_Coroutines[g_CoRun].StackSz = _StackSz;
 	g_Coroutines[g_CoRun].Status = CO_SUSPENDED;
 	if(g_Coroutines[_Coroutine].LState == NULL) {
@@ -152,12 +157,15 @@ void CoResume(int _Coroutine) {
 	longjmp(g_CoScheduleJmp, _Coroutine + 1);
 }
 
+uint8_t CoStatus(int _Coroutine) {return g_Coroutines[_Coroutine].Status;}
+
 void CoYield() {
-	struct Coroutine* _From = g_Coroutines[g_CoRun].From;
+	struct Coroutine* _From = &g_Coroutines[g_Coroutines[g_CoRun].From];
 	void* _Rbp = __builtin_frame_address(0);
-	void* _OffRbp = (char*) _Rbp - 0x100; //-0x100 for local variables and stack usage.
+	void* _OffRbp = (char*) _Rbp - CO_OFFSET; //-0x100 for local variables and stack usage.
 	int _StackSz = (char*)g_ScheduleStack - (char*)_OffRbp;
 
+	Assert(_StackSz < CO_STACKSZ);
 	_From->Status = CO_NORMAL;
 	g_Coroutines[g_CoRun].StackSz = _StackSz;
 	g_Coroutines[g_CoRun].Status = CO_SUSPENDED;
@@ -167,7 +175,7 @@ void CoYield() {
 	longjmp(g_CoScheduleJmp, _From->Id + 1);	
 }
 
-int CoStackRem() {
+uint32_t CoStackRem() {
 	return CO_STACKSZ - (__builtin_frame_address(0) - g_ScheduleStack);
 }
 

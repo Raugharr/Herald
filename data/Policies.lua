@@ -1,4 +1,4 @@
-Policy.Load {
+--[[World.LoadPolicy {
 	Name = "Irregular Infantry",
 	Desc = "How your irregular infantry are armed",
 	Category = Policy.Military,
@@ -23,7 +23,7 @@ Policy.Load {
 		}
 }
 
-Policy.Load {
+World.LoadPolicy {
 	Name = "Regular Infantry",
 	Desc = "How well your regular infantry are armed",
 	Category = Policy.Military,
@@ -41,52 +41,100 @@ Policy.Load {
 			{"Buckler", Warrior = Policy.Dislike, Memory = Policy.Forever}, 
 			{"Round shield", Warrior = Policy.Love, Memory = Policy.Forever}}
 		}
-}
+}--]]
 
-Policy.Load {
-	Name = "Property Tax",
-	Desc = "",
-	Category = Policy.Economy,
+World.LoadPolicy {
+	Name = "Warrior organization",
+	Desc = "Determines the power that retinues have.",
+	Category = Policy.Military,
 	Options = {
-		{"Low", Policy.Like, Memory = Policy.Forever},
-		{"Medium", Policy.Unfavored, Memory = Policy.Forever},
-		{"High", Policy.Dislike, Memory = Policy.Forever}
+		{
+			Name = "Professional Army",
+			Desc = "With the retinue disbanded we can now focus on the creation of a professional force."
+		},
+		{
+			Name = "Outlaw Retinues",
+			Desc = "Retinues have proved to give a single person to much power and must be put to an end."
+		},
+		{
+			Name = "Warriors Privledged",
+			Desc = "Warriors are lead by the warlord who is expected to give warrios gifts in return for their service."
+		},
+		{
+			Name = "Landed Retinue",
+			Desc = "Warriors in the retinue have expanded privledges and now expect to be given estates."
+		}
 	}
 }
 
-Policy.Load {
-	Name = "Crop Tax",
-	Desc "How much of each harvest must be given as tax.",
-	Category = Policy.Economy,
+World.LoadPolicy {
+	Name = "Fyrd organization",
+	Desc = "The structure of the states militia.",
+	Category = Policy.Military,
 	Options = {
-		{"Low", Peasant = Policy.Unfavored, Memory = Policy.Forever},
-		{"Medium", Peasant = Policy.Dislike, Memory = Policy.Forever}, 
-		{"High", Peasant = Policy.Hate, Memory = Policy.Forever}
+		{
+			Name = "No fyrd",
+			Desc = "The warriors are powerful enough without the need of a fyrd."
+		},
+		{
+			Name = "Fyrd",
+			Desc = "Every able man is required to serve in the fyrd."
+		},
+		{
+			Name = "Select fyrd",
+			Desc = "Allow only wealthy freemen to serve in the fyrd."
+		}
 	}
 }
 
-Policy.Load {
-	Name = "Weregeld",
-	Desc = "",
-	Category = Policy.Law,
-	Options = {"None", "Low", "Medium", "High"}
+World.LoadPolicy {
+	Name = "Warlord power",
+	Desc = "How much power the warlord has in everyday affairs.",
+	Category = Policy.Military,
+	Options = {
+		{
+			Name = "Powerless warlord",
+			Desc = "The warlord should only serve to control the army and have no power in the state's politics."
+		},
+		{
+			Name = "Respected warlord",
+			Desc = "The warlord now has expanded powers and has extra power in the government"
+		},
+	}
 }
 
-Policy.Load {
-	Name = "Judge Authority",
-	Desc = "",
-	Category = Policy.Law,
-	Options = {"Advice only", "Double vote", "Makes descision"}
-}
-
-Policy.Load {
-	Name = "Marshall Authority",
-	Desc = "Determines the amount of control the marshall has over the army.",
+World.LoadPolicy {
+	Name = "Chief power",
+	Desc = "How much power the chief can exert.",
 	Category = Policy.Law,
 	Options = {
-		{Name = "Raising Army", 
-			{"Anyone", Warrior = Policy.Like, Memory = Policy.Medium},
-			{"Permission requested", Warrior = Policy.Dislike, Memory = Policy.Medium},
-			{"Marshall only", Warrior = Policy.Dislike, Memory = Policy.Long},
+		{
+			Name = "Minimal Power",
+			Desc = "The chief is mearly a figurehead that controls no real power.",
+		},
+		{
+			Name = "Expanded powers",
+			Desc = "The chief is allowed to collect taxes in wartime."
+		},
+	}
+}
+
+World.LoadPolicy {
+	Name = "Centralization",
+	Desc = "How much power the chief of the village can extert.",
+	Category = Policy.Law,
+	Options = {
+		{
+			Name = "No Moot",
+			Desc = "The ruler of the state has no need for the Moot."
+		},
+		{
+			Name = "Moot",
+			Desc = "Every freeman has the right to attend the Moot."
+		},
+		{
+			Name = "Select Moot",
+			Desc = "Only certain landowners should be allowed to participate in the Moot."
+		}
 	}
 }

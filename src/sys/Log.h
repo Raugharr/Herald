@@ -12,12 +12,33 @@
 #define LOG_LUAMSG "Function %s contains error (%s) on line %i"
 
 #ifdef DEBUG
-	#define Assert(_Bool)	\
-		if((_Bool) == 0) {	\
-			Log(ELOG_DEBUG, (#_Bool));	\
+	#define LogStr(A) #A
+	#define Assert(Bool)	\
+		if((Bool) == 0) {	\
+			Log(ELOG_DEBUG, "Assert failed %s:%s:%i, (%s).", __FILE__, __func__, __LINE__, (#Bool));	\
 		}
+
+	#define AssertIntEq(_Left, _Right)				\
+		if(_Left != _Right) {						\
+			Log(ELOG_DEBUG, (#_Left##!=##_Right));	\
+		}
+	#define AssertIntLt(_Left, _Right)				\
+		if(_Left >= _Right) {						\
+			Log(ELOG_DEBUG, (#_Left##>=##_Right));	\
+		}
+	#define AssertIntGt(_Left, _Right)				\
+		if(_Left <= _Right) {						\
+			Log(ELOG_DEBUG, (#_Left));	\
+		}
+	#define AssertPtrNeq(_Left, _Right)				\
+		if(_Left == _Right) {						\
+			Log(ELOG_DEBUG, (#_Left));\
+		}
+
 #else
 #define Assert(_Bool)
+#define AssertIntEq(_Left, _Right)
+#define AssertIntLt(_Left, _Right)
 #endif
 
 typedef struct lua_State lua_State;

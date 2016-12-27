@@ -23,17 +23,18 @@ struct Sprite* CreateSprite(struct Resource* _Image, int _Layer, const SDL_Point
 struct Sprite* ConstructSprite(struct Sprite* _Sprite, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
 	SDL_Texture* _Texture = ResourceGetData(_Image);
 
-	if(_Texture == NULL) {
-		free(_Sprite);
-		return NULL;
-	}
-	_Sprite->Image = _Image;
 	_Sprite->TilePos = *_TilePos;
 	_Sprite->Rect.x = 0;
 	_Sprite->Rect.y = 0;
-	SDL_QueryTexture(_Texture, NULL, NULL, &_Sprite->Rect.w, &_Sprite->Rect.h);
 	_Sprite->SpritePos.w = _Sprite->Rect.w;
 	_Sprite->SpritePos.h = _Sprite->Rect.h;
+	if(_Texture == NULL) {
+	//	free(_Sprite);
+		Log(ELOG_ERROR, "Error: Sprite cannot load texture.");
+		return NULL;
+	}
+	_Sprite->Image = _Image;
+	SDL_QueryTexture(_Texture, NULL, NULL, &_Sprite->Rect.w, &_Sprite->Rect.h);
 	return _Sprite;
 }
 

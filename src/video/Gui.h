@@ -7,7 +7,10 @@
 
 #include "Video.h"
 
-//#define GUITHEME_NAMESZ (64)
+#include "../sys/HashTable.h"
+
+#include <inttypes.h>
+#include <stdbool.h>
 
 typedef struct SDL_Color SDL_Color;
 typedef struct SDL_Surface SDL_Surface;
@@ -22,95 +25,82 @@ typedef void(*GuiOnKey) (struct Widget*, unsigned int, unsigned int);
 /*
  * TODO: Remove LuaOnClickFunc and and put function into the Lua table and use WEvents to handle click events.
  */
-#define DECLARE_WIDGET														\
-	int Id;																	\
-	struct Container* Parent;												\
-	SDL_Rect Rect;															\
-	int IsDraggable;														\
-	int LuaRef;																\
-	int CanFocus;															\
-	int IsVisible;															\
-	int LuaOnClickFunc;														\
-	int (*OnDraw)(struct Widget*);											\
-	int Clickable;															\
-	struct Widget* (*OnClick)(struct Widget*, const SDL_Point*);			\
-	struct Widget* (*OnFocus)(struct Widget*, const SDL_Point*);			\
-	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);					\
-	void (*SetPosition)(struct Widget*, const SDL_Point*);					\
-	int (*OnUnfocus)(struct Widget*);										\
-	void (*OnDebug)(const struct Widget*);									\
-	void (*OnDestroy)(struct Widget*, lua_State*);							\
-	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*);		\
-	GuiOnKey OnKey	
-
-#define DECLARE_CONTAINER											\
-	DECLARE_WIDGET;													\
-	void (*NewChild)(struct Container*, struct Widget*);			\
-	void (*RemChild)(struct Container*, struct Widget*);			\
-	int(*HorzFocChange)(const struct Container*);					\
-	struct Widget** Children;										\
-	int ChildrenSz;													\
-	int ChildCt;													\
-	int Spacing;													\
-	SDL_Color Background;											\
-	int VertFocChange;												\
-	struct Margin Margins
-
 struct GUIFocus {
 	const struct Container* Parent;
-	int Index;
-	int Id;
+	uint32_t Index;
+	uint32_t Id;
 	struct GUIFocus* Prev;
 };
 
-struct GUIEvents {
-	/* TODO: Events based on clicking a widget are not possible as the hooking widget is not stored. */
-	struct WEvent* Events;
-	int TblSz;
-	int Size;
+struct Margin {
+	int32_t Top;
+	int32_t Left;
+	int32_t Right;
+	int32_t Bottom;
 };
 
-struct GUIDef {
+struct GuiStyle {
+	uint32_t Name;
 	struct Font* Font;
 	SDL_Color FontFocus;
 	SDL_Color FontUnfocus;
 	SDL_Color Background;
+	struct Margin Margins;
 };
 
-/*struct GuiTheme {
-	char Name[GUITHEME_NAMESZ];
-	SDL_Color FocusColor;
-	SDL_Color UnfocusColor;
-	SDL_Color FocusBack;
-	SDL_Color UnfocusBack;
-};*/
+struct GuiSkin {
+	const char* Name;
+	struct GuiStyle* Label;
+	struct GuiStyle* Button;
+	struct GuiStyle* Table;
+	struct GuiStyle* Container;
+};
 
-extern int g_GUIId;
+extern uint32_t g_GUIId;
 extern int g_GUIMenuChange;
+extern struct HashTable g_GuiSkins;
+extern struct GuiSkin* g_GuiSkinDefault;
+extern struct GuiSkin* g_GuiSkinCurr;
 extern struct GUIFocus* g_Focus;
 extern struct GUIEvents* g_GUIEvents;
-extern struct GUIDef g_GUIDefs;
-extern struct Font* g_GUIFonts;
 extern struct Stack g_GUIStack;
 
-struct Margin {
-	int Top;
-	int Left;
-	int Right;
-	int Bottom;
-};
-
 struct Area {
-	int w;
-	int h;
+	int32_t w;
+	int32_t h;
 };
 
 struct Widget {
-	DECLARE_WIDGET;
+	uint32_t Id;
+	struct Container* Parent;
+	SDL_Rect Rect;
+	int (*OnDraw)(struct Widget*);
+	struct Widget* (*OnClick)(struct Widget*, const SDL_Point*);
+	struct Widget* (*OnFocus)(struct Widget*, const SDL_Point*);
+	void (*OnKeyUp)(struct Widget*, SDL_KeyboardEvent*);
+	void (*SetPosition)(struct Widget*, const SDL_Point*);
+	int (*OnUnfocus)(struct Widget*);
+	void (*OnDebug)(const struct Widget*);
+	void (*OnDestroy)(struct Widget*, lua_State*);
+	struct Widget* (*OnDrag)(struct Widget*, const struct SDL_Point*);
+	GuiOnKey OnKey;
+	uint32_t LuaRef;
+	bool Clickable;
+	bool IsVisible;
+	bool CanFocus;
+	bool IsDraggable;
+	const struct GuiStyle* Style;
 };
 
 struct Container {
-	DECLARE_CONTAINER;
+	struct Widget Widget;
+	void (*NewChild)(struct Container*, struct Widget*);
+	void (*RemChild)(struct Container*, struct Widget*);
+	int(*HorzFocChange)(const struct Container*);
+	struct Widget** Children;
+	uint16_t ChildrenSz;
+	uint16_t ChildCt;
+	const struct GuiSkin* Skin;
 };
 
 struct Container* CreateContainer(void);
@@ -125,7 +115,7 @@ void GuiEmpty();
  * Constructors
  */
 void ConstructWidget(struct Widget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
-void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, int _Spacing, const struct Margin* _Margin);
+void ConstructContainer(struct Container* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
 struct Font* CreateFont(const char* _Name, int _Size);
 
 void ContainerPosChild(struct Container* _Parent, struct Widget* _Child, SDL_Point* _Pos);
@@ -175,12 +165,8 @@ void StaticRemChild(struct Container* _Parent, struct Widget* _Child);
  */
 void DynamicRemChild(struct Container* _Parent, struct Widget* _Child);
 
-/*
- * Base for LuaOnKey.
- * Creates the SDL_Event and the WEvent but does not add the event function to
- * GUI.EventIds which is needed in order for the callback to function.
- */
-void WidgetOnEvent(struct Widget* _Widget, int _RefId, int _Key, int _KeyState, int _KeyMod);
+bool WidgetSetWidth(struct Widget* _Widget, int _Width);
+bool WidgetSetHeight(struct Widget* _Widget, int _Height);
 void WidgetSetPosition(struct Widget* _Widget, const SDL_Point* _Pos);
 struct Widget* WidgetOnClick(struct Widget* _Widget, const SDL_Point* _Point);
 void WidgetOnDebug(const struct Widget* _Widget);

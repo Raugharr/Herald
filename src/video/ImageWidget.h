@@ -10,12 +10,12 @@
 #include <SDL2/SDL.h>
 
 struct ImageWidget {
-	DECLARE_WIDGET;
+	struct Widget Widget;
 	struct Sprite* Sprite;
 };
 
 struct ImageWidget* CreateImageWidget();
-void ConstructImageWidget(struct ImageWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct Sprite* _Sprite);
+void ConstructImageWidget(struct ImageWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct Sprite* _Sprite, const struct GuiStyle* _Style);
 void DestroyImageWidget(struct ImageWidget* _Widget, lua_State* _State);
 int ImageOnDraw(struct Widget* _Widget);
 struct Widget* ImageOnFocus(struct Widget* _Widget, const SDL_Point* _Point);

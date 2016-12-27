@@ -22,7 +22,12 @@
 #include <SDL2/SDL_image.h>
 
 static struct Widget* g_HoverWidget = NULL;
-static struct Widget* g_FocusWidget = NULL;
+struct HoverWidget {
+	struct Widget* Widget;
+	uint32_t StartTime;
+	bool Fired;
+};
+
 static struct {
 	struct Widget* Widget;
 	SDL_Point Offset;
@@ -33,6 +38,7 @@ SDL_Renderer* g_Renderer = NULL;
 int g_VideoOk = 1;
 SDL_Texture* g_WindowTexture = NULL;
 int g_VideoTimer = 0;
+static struct HoverWidget g_LHWidget = {0x0, 0, false};
 
 int VideoInit(void) {
 	Log(ELOG_INFO, "Setting up video.");
@@ -68,8 +74,6 @@ void VideoQuit(void) {
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
 	SDL_Quit();
-	if(g_GUIEvents != NULL)
-		DestroyGUIEvents(g_GUIEvents);
 	while(g_Focus != NULL) {
 		_Focus = g_Focus;
 		g_Focus = g_Focus->Prev;
@@ -88,7 +92,7 @@ void Draw(void) {
 	LuaMenuThink(g_LuaState);
 	GuiDraw();
 	SDL_SetRenderDrawColor(g_Renderer, 0x7F, 0x7F, 0x7F, SDL_ALPHA_OPAQUE);
-	GuiDrawDebug();
+	//GuiDrawDebug();
 	SDL_SetRenderDrawColor(g_Renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderPresent(g_Renderer);
 	if(SDL_GetTicks() <= g_VideoTimer + 16)
@@ -99,11 +103,25 @@ void Draw(void) {
 int VideoEvents(const struct KeyMouseState* _State) {
 	struct Widget* _Widget = NULL;
 	struct Container* _Container = NULL;
+	lua_State* _LuaState = g_LuaState;
 
+	if(g_LHWidget.Widget == g_HoverWidget && g_LHWidget.Fired == false && SDL_TICKS_PASSED(SDL_GetTicks(), g_LHWidget.StartTime + 1000) != 0) {
+		g_LHWidget.Fired = true;
+		if(g_LHWidget.Widget != NULL)
+			LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVER);
+	}
 	if(_State->MouseMove != 0) {
 		if(g_HoverWidget != NULL)
 			g_HoverWidget->OnUnfocus(g_HoverWidget);
 		g_HoverWidget = GuiFind(offsetof(struct Widget, OnFocus), &_State->MousePos);	
+		if(g_LHWidget.Widget != g_HoverWidget) {
+			if(g_LHWidget.Fired == true && g_LHWidget.Widget != NULL) {
+				LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVERLOSS);
+				g_LHWidget.Fired = false;	
+			}
+			g_LHWidget.Widget = g_HoverWidget;
+			g_LHWidget.StartTime = SDL_GetTicks();
+		} 
 		if(g_DraggableWidget.Widget != NULL) {
 			SDL_Point _Pos = {_State->MousePos.x - g_DraggableWidget.Offset.x, _State->MousePos.y - g_DraggableWidget.Offset.y};
 			g_DraggableWidget.Widget->SetPosition(g_DraggableWidget.Widget, &_Pos);
@@ -122,12 +140,15 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		if(g_HoverWidget == NULL || g_HoverWidget->Clickable == 0) {
 			return 0;
 		}
-			GuiZToTop(_Container);
-			if(g_HoverWidget->LuaOnClickFunc >= 0) {
-				LuaGuiGetRef(g_LuaState);
-				lua_rawgeti(g_LuaState, -1, g_HoverWidget->LuaOnClickFunc);
-				LuaCallFunc(g_LuaState, 0, 0, 0);
+			if(g_HoverWidget->Parent == NULL) {
+				_Container = (struct Container*) g_HoverWidget;
+			} else {
+				_Container = g_HoverWidget->Parent;
+				while(_Container->Widget.Parent != NULL)
+					_Container = _Container->Widget.Parent;
 			}
+			GuiZToTop(_Container);
+			LuaGuiCallFunc(_LuaState, g_HoverWidget, GUIL_ONCLICK); 
 			g_DraggableWidget.Widget = NULL;
 			return 1;
 	}
@@ -150,31 +171,15 @@ struct Font* CreateFont(const char* _Name, int _Size) {
 	_Ret->Prev = NULL;
 	_Ret->Next = NULL;
 	_Ret->RefCt = 0;
-	if(g_GUIFonts != NULL) {
-		g_GUIFonts->Prev = _Ret;
-		_Ret->Next = g_GUIFonts;
-	}
-	g_GUIFonts = _Ret;
 	return _Ret;
 }
 
 void DestroyFont(struct Font* _Font) {
-	if(--_Font->RefCt > 0 || (_Font == g_GUIDefs.Font && _Font->RefCt != -1))
+	if(--_Font->RefCt > 0)
 		return;
-	if(_Font == g_GUIFonts) {
-		g_GUIFonts = _Font->Next;
-	} else {
-		_Font->Prev->Next = _Font->Next;
-		_Font->Next->Prev = _Font->Prev;
-	}
 	TTF_CloseFont(_Font->Font);
 	free(_Font->Name);
 	free(_Font);
-}
-
-void DestroyGUIEvents(struct GUIEvents* _Events) {
-	free(_Events->Events);
-	free(_Events);
 }
 
 void DestroyFocus(struct GUIFocus* _Focus) {
@@ -235,6 +240,7 @@ SDL_Texture* SurfaceToTexture(SDL_Surface* _Surface) {
 
 void FocusableWidgetNull(void) {
 	g_HoverWidget = NULL;
+	g_LHWidget.Widget = NULL;
 }
 
 const struct Widget* GetFocusableWidget(void) {

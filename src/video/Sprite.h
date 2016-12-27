@@ -15,8 +15,9 @@ struct Resource;
 #define TILE_WIDTH (42)
 #define TILE_WIDTH_THIRD (TILE_WIDTH * 0.75)
 #define TILE_HEIGHT (48)
-#define TILE_HEIGHT_THIRD (TILE_HEIGHT * 0.75)
-#define TILE_GRADIENT ((TILE_HEIGHT / 4) / (TILE_WIDTH / 2))
+#define TILE_DIST (21) //cos(30) * (TILE_HEIGHT / 2)
+#define TILE_HEIGHT_THIRD ((int)(TILE_HEIGHT * 0.75))
+#define TILE_GRADIENT (0.57735026919) //(TILE_HEIGHT / 4) / (cos(30) * (TILE_HEIGHT / 2))
 #define DestroyGameObject(_Object) DestroySprite(_Object)
 
 struct MapRenderer;

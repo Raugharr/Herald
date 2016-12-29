@@ -1,18 +1,23 @@
-Menu.__savestate = false;
 Menu.moveable = false;
+Menu.Width = 512
+Menu.Height = 512
 
 function Menu.Init(Menu, Data)
 	Menu.Mission = Data["Mission"]
 	Menu.Data = Data["Data"]
-	
-	Menu.TitleCon = Gui.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu)
+	local Skin = nil	
+
+	Menu.TitleCon = Gui.HorizontalContainer(Menu, Menu:GetWidth(), 30)
+	Skin = Menu.TitleCon:GetSkin()
+	Menu.TitleCon:SetSkin(Gui.GetSkin("Header"))
 	Menu.TitleCon:SetFocus(false)
 	Menu.Title = Menu.TitleCon:CreateLabel(Menu.Mission:GetName())
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
+	Menu:SetSkin(Skin)
 	Menu.Description = Menu:Paragraph(Data["Description"])
 	Menu.Description:Below(Menu.TitleCon)
-	Menu.ButtonCont = Gui.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
+	Menu.ButtonCont = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
 	Menu.ButtonCont:Below(Menu.Description)
 	for k, v in ipairs(Menu.Mission:GetOptions()) do
 		if v:ConditionSatisfied(Menu.Data) == true then

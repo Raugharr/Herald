@@ -43,38 +43,32 @@ function Menu.Init(Menu, Data)
 	local Plot = Data["Plot"] 
 	local Skin = Menu:GetSkin()
 	local Header = Gui.GetSkin("Header")
-	local AttackThreat, DefenderThreat = Plot:GetThreat()
 
 	Menu:OnNewChild(Container.Vertical)
-	Menu:CreateLabel("Plot to " .. "overthrow " .. Plot:Target():GetPerson():GetName())
+	Menu:CreateLabel("Current threat: " .. tostring(Plot:GetThreat()))
 	Menu:CreateLabel("Warscore: " .. tostring(Plot:GetScore()))
 	if Plot:HasStarted() == false then
-		Menu.PlotButton = Menu:CreateButton("Start plot",
+		Menu:CreateButton("Start plot",
 			function(Widget)
 				Plot:Start(true)
-				
 			end)
 	else
-		Menu.PlotButton = Menu:CreateButton("Abandon plot",
+		Menu:CreateButton("Abandon plot",
 			function(Widget)
 			end)	
 	end
 	Menu.People = Gui.HorizontalContainer(Menu, Menu:GetWidth(), 200)
-	Menu.Plotters = DisplayPlotSide(Menu.People, Plot, "Attackers", AttackThreat, true)
-	Menu.Defenders = DisplayPlotSide(Menu.People, Plot, "Defenders", DefenderThreat, false)
-	--Menu.AbilitySelect = Gui.VerticalContainer(Menu, 400, 60)
-	Menu.History = Gui.VerticalContainer(Menu, Menu:GetWidth(), 250)
+	Menu.Plotters = DisplayPlotters(Menu.People, Plot)
+	Menu.Defenders = DisplayPlotDefenders(Menu.People, Plot)
+--[[	Menu.AbilitySelect = Gui.VerticalContainer(Menu, 400, 60)
+	Menu.History = Gui.HorizontalContainer(Menu, 400, Menu:GetHeight())
 	Menu.History:SetSkin(Header)
 	Menu.History:CreateLabel("Plot History")
 	Menu.History:SetSkin(Skin)
 	for i, Action in ipairs(Plot:PrevMonthActions()) do
 		Menu.History:CreateLabel(Action:Describe())	
 	end
-	Menu:CreateButton("Close",
-		function(Widget)
-			Menu:Close()
-		end)
-	--[[Menu.AbilitySelect.Buttons = Gui.HorizontalContainer(Menu.AbilitySelect, Menu.AbilitySelect:GetWidth(), 20)
+	Menu.AbilitySelect.Buttons = Gui.HorizontalContainer(Menu.AbilitySelect, Menu.AbilitySelect:GetWidth(), 20)
 	Menu.AbilitySelect.Buttons:CreateButton("Combat Abilities",
 		function(Widget)
 			Menu.Abilities:Destroy()
@@ -94,7 +88,7 @@ function Menu.Init(Menu, Data)
 	--]]
 end
 
-function DisplayPlotSide(Menu, Plot, Title, Threat, Plotter)
+function DisplayPlotDefenders(Menu, Plot)
 	local List = {}
 	local PersonList = {} 
 	local Skin = Menu:GetSkin()
@@ -104,20 +98,13 @@ function DisplayPlotSide(Menu, Plot, Title, Threat, Plotter)
 	local Table = nil	
 
 	Container:SetSkin(Header)
-	Container:CreateLabel(Title)
-	Container:CreateLabel("Threat " .. Threat)
+	Container:CreateLabel("Defenders")
 	Container:SetSkin(Skin)
 	Table = Container:CreateTable(1, 8)
 	Table:SetCellWidth(Font:Width() * 8)
 	Table:SetCellHeight(Font:Height())
-	if Plotter == true then
-		for v in Plot:Plotters():Front() do
-			Table:CreateLabel(v:GetPerson():GetName())
-		end
-		else 
-		for v in Plot:Defenders():Front() do
-			Table:CreateLabel(v:GetPerson():GetName())
-		end
+	for v in Plot:Defenders():Front() do
+		Table:CreateLabel(v:GetPerson():GetName())
 	end
 	return Container
 end

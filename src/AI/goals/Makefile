@@ -1,4 +1,4 @@
-OBJFLD=../../obj/
+OBJFLD := ../$(OBJFLD)
 DEPS = GoalUsurpRuler.h
 OBJ = $(OBJFLD)GoalUsurpRuler.o
 ODIR=

@@ -1,6 +1,4 @@
-#CC=gcc
-#CFLAGS+=-Wall -std=c99 -pg -ggdb
-OBJFLD=../../obj/
+OBJFLD := ../$(OBJFLD)
 DEPS=ActionRaid.h ActionDuel.h ActionRemovePolicy.h ActionGrowInfluence.h
 OBJ=$(OBJFLD)ActionRaid.o $(OBJFLD)ActionDuel.o $(OBJFLD)ActionRemovePolicy.o $(OBJFLD)ActionGrowInfluence.o
 ODIR=

@@ -12,8 +12,7 @@ $(OBJFLD)%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 herald-test: main.c $(OBJ)
-	$(CC) -o ../$(NAME) main.c $(CFLAGS) $(LIB) $(OBJ)
-
+	$(CC) -o ../$(NAME) main.c $(CFLAGS) $(OBJ) $(LIB)
 all: herald-test
 
 .PHONY: all clean

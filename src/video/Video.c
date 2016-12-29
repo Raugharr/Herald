@@ -43,12 +43,18 @@ static struct HoverWidget g_LHWidget = {0x0, 0, false};
 int VideoInit(void) {
 	Log(ELOG_INFO, "Setting up video.");
 	++g_Log.Indents;
-	if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
+	if(SDL_Init(SDL_INIT_EVERYTHING) == -1) {
+		Log(ELOG_ERROR, "%s", SDL_GetError());
 		goto error;
-	if((g_Window = SDL_CreateWindow(SDL_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SDL_WIDTH, SDL_HEIGHT, SDL_WINDOW_SHOWN)) == NULL)
+	}
+	if((g_Window = SDL_CreateWindow(SDL_CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SDL_WIDTH, SDL_HEIGHT, SDL_WINDOW_SHOWN)) == NULL) {
+		Log(ELOG_ERROR, "%s", SDL_GetError());
 		goto error;
-	if((g_Renderer = SDL_CreateRenderer(g_Window, -1, 0)) == NULL)
+	}
+	if((g_Renderer = SDL_CreateRenderer(g_Window, -1, 0)) == NULL) {
+		Log(ELOG_ERROR, "%s", SDL_GetError());
 		goto error;
+	}
 	if(TTF_Init() == -1)
 		goto error;
 	g_WindowTexture = SDL_CreateTexture(g_Renderer, SDL_GetWindowPixelFormat(g_Window), SDL_TEXTUREACCESS_STREAMING, SDL_WIDTH, SDL_HEIGHT);

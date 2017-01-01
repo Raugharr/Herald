@@ -51,8 +51,8 @@ void ITreeAddData(struct IntervalTree* _Tree, int  _NodeIdx, int _Min, int _Max,
 
 	if(ITreeSpan(_Min, _Max, _DMin, _DMax) != 0) {
 		if(_Node->Table == NULL) {
-			_Node->Table = calloc(_Node->TableSz, sizeof(void*));
 			_Node->TableSz = 1;
+			_Node->Table = calloc(_Node->TableSz, sizeof(struct ITreeNode*));
 			_Node->Table[0] = _Data;
 		} else {
 			/*for(int i = 0; i < _Node->TableSz; ++i) {
@@ -62,7 +62,7 @@ void ITreeAddData(struct IntervalTree* _Tree, int  _NodeIdx, int _Min, int _Max,
 				}
 			}*/
 			_Node->TableSz += 1;
-			_Node->Table = realloc(_Node->Table, _Node->TableSz);
+			_Node->Table = realloc(_Node->Table, _Node->TableSz * sizeof(struct ITreeNode*));
 			_Node->Table[_Node->TableSz - 1] = _Data;
 		}
 		return;

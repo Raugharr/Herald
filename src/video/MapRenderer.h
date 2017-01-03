@@ -8,6 +8,7 @@
 #include "QuadTree.h"
 #include "AABB.h"
 #include "Tile.h"
+#include "Sprite.h"
 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
@@ -65,7 +66,12 @@ void TilesInRange(struct MapRenderer* Renderer, const SDL_Point* Pos, int Range,
  * Inserts into Rect the position and area of a game object at position TilePos.
  */
 void MapTileRenderRect(const struct MapRenderer* Renderer, const SDL_Point* TilePos, SDL_Rect* Rect);
-void MapRender(SDL_Renderer* Renderer, struct MapRenderer* Map);
+static inline void MapHexOffset(uint16_t ScreenX, uint16_t ScreenY, uint16_t Y, uint16_t* Out) {
+	*(Out) += (~(ScreenY) & 1) * (Y & 1) * (TILE_WIDTH / 2); //If map screen is even then add (TILE_WIDTH / 2) if tile y pos is odd.
+	*(Out) += (ScreenY & 1) * (~(Y & 1) & 1) * (TILE_WIDTH / 2);//If map screen is odd then add (TILE_WIDTH / 2) if tile y pos is even.
+}
+void MapRender(SDL_Renderer* Renderer, SDL_Texture* Texture, uint16_t SrcX, uint16_t SrcY, uint16_t DestX, uint16_t DestY);
+void MapRenderAll(SDL_Renderer* Renderer, struct MapRenderer* Map);
 void MapObjectsInRect(struct MapRenderer* Renderer, int Layer, const SDL_Rect* Rect, struct LinkedList* Data);
 const struct Tile* MapGetTileConst(const struct MapRenderer* const Renderer, const SDL_Point* Point);
 //FIXME: Move to Tile.h

@@ -42,7 +42,7 @@ struct Sprite* CreateGameObject(struct MapRenderer* _Renderer, struct Resource* 
 struct Sprite* ConstructGameObject(struct Sprite* _Sprite, struct MapRenderer* _Renderer, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos);
 void DestroySprite(struct Sprite* _Sprite);
 
-int SpriteOnDraw(const struct Sprite* _Sprite);
+void SpriteOnDraw(SDL_Renderer* _Renderer, const struct Sprite* _Sprite, uint16_t ScreenX, uint16_t ScreenY);
 void SpriteSetTilePos(struct Sprite* _Sprite, const struct MapRenderer* _Renderer, const SDL_Point* _TilePos);
 void GameObjectSetTile(struct Sprite* _Sprite, const SDL_Point* _Pos);
 

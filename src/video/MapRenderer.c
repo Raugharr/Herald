@@ -25,27 +25,15 @@
 #include <stdlib.h>
 
 void CreateBumpMap(struct MapRenderer* Map, uint16_t MapLength, float* HeightMap) {
-	int Radius = 6;
-	int TileSize = NumTileRadius(Radius);
-	struct Tile* Tiles[TileSize];
-	SDL_Point Center = {10, 10};
-	double val = cos(0.314);
 
-	memset(Tiles, 0, sizeof(Tiles));
-//	WhiteNoiseGen(MapLength, MapLength, HeightMap);
-	//CreateHeightMap(MapLength, MapLength, HeightMap, 0.05f, 0.01f, 100);
+	//size_t TileSize = TILE_SIZE;//NumTileRadius(3); 
+	//struct Tile* TileList[TileSize];
+	//SDL_Point TilePos = {4, 6};
 
+	//memset(TileList, 0, sizeof(TileList));
+	//TileRing(Map, &TilePos, 2, TileList); 
+	CreatePerlinNoise(MapLength, MapLength, HeightMap);
 	HeightMapTexture("HeightMap.bmp", MapLength, MapLength, HeightMap);
-//	BrownNoise(MapLength, MapLength, HeightMap);
-	HeightMapTexture("HeightMapBrown.bmp", MapLength, MapLength, HeightMap);
-	TileSpiral(Map, &Center, Radius, Tiles);
-	HeightMap[TileToIndex(Map, Tiles[0])] = 0.99f;
-	for(int i = 1; i < TileSize; ++i) {
-		HeightMap[TileToIndex(Map, Tiles[i])] = 0.8f;
-	}
-
-	//CreateHeightMap(MapLength, MapLength, RainFall, 0.2f, 0.05f, 40);
-	//HeightMapTexture("RainFall.bmp", MapLength, MapLength, RainFall);
 }
 
 struct MapRenderer* CreateMapRenderer(int MapLength, SDL_Point* RenderSize) {
@@ -75,6 +63,11 @@ struct MapRenderer* CreateMapRenderer(int MapLength, SDL_Point* RenderSize) {
 	Map->TileSheets[3].VarPos[0].x = 0;
 	Map->TileSheets[3].VarPos[0].y = 0;
 
+	Map->TileSheets[4].TileFile = ResourceGet("water.png");
+	Map->TileSheets[4].Tiles = ResourceGetData(Map->TileSheets[4].TileFile);
+	Map->TileSheets[4].VarPos[0].x = 0;
+	Map->TileSheets[4].VarPos[0].y = 0;
+
 	Map->TileArea = MapLength * MapLength;
 	Map->TileLength = MapLength;
 	Map->Tiles = calloc(Map->TileArea, sizeof(struct Tile));
@@ -99,15 +92,26 @@ struct MapRenderer* CreateMapRenderer(int MapLength, SDL_Point* RenderSize) {
 		for(int y = 0; y < Map->TileLength; ++y) {
 			Tile = &Map->Tiles[y * Map->TileLength + x];
 			Tile->Temperature = 0;
-			if(HeightMap[y * MapLength + x] >= 0.85f)
+			if(HeightMap[y * MapLength + x] >= 0.50f) {
 				Tile->TileSheet = 2;
-			else if(HeightMap[y * MapLength + x] >= 0.65)
+				HeightMap[y * MapLength + x] = 0.75f;
+			}
+			else if(HeightMap[y * MapLength + x] >= 0.30f) {
 				Tile->TileSheet = 1;
-			else
+				HeightMap[y * MapLength + x] = 0.65f;
+			}
+			else if(HeightMap[y * MapLength + x] <= -0.60f) {
+				Tile->TileSheet = 4;
+				HeightMap[y * MapLength + x] = 0.20f;
+			}
+			else {
 				Tile->TileSheet = 0;
+				HeightMap[y * MapLength + x] = 0.40f;
+			}
 			Tile->TileVar = 0;
 		}
 	}
+	HeightMapTexture("HeightMapFinal.bmp", MapLength, MapLength, HeightMap);
 	/*for(int x = 0; x < Map->TileLength; ++x) {
 		for(int y = 0; y < Map->TileLength; ++y) {
 			Tile = &Map->Tiles[y * Map->TileLength + x];
@@ -208,10 +212,12 @@ void TileRing(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t Ra
 	SDL_Point Tile = {Center->x, Center->y};
 	struct Tile* Temp = NULL;
 	uint32_t Count = 0;
+	static uint8_t Neighbors[TILE_SIZE] = {TILE_NORTHEAST, TILE_EAST, TILE_SOUTHEAST, TILE_SOUTHWEST, TILE_WEST, TILE_NORTHWEST};
 
+	TileNeighbor(TILE_WEST, &Tile, &Tile);
 	for(int i = 0; i < TILE_SIZE; ++i) {
 		for(int j = 1; j < Radius; ++j) {
-			TileNeighbor(i, &Tile, &Tile);
+			TileNeighbor(Neighbors[i], &Tile, &Tile);
 			Temp = MapGetTile(Renderer, &Tile);
 			if(Temp != NULL)
 				Out[Count++] = Temp;
@@ -250,7 +256,7 @@ void MapTileRenderRect(const struct MapRenderer* Renderer, const SDL_Point* Tile
 	Rect->h = TILE_HEIGHT;
 }
 
-void MapRender(SDL_Renderer* Renderer, struct MapRenderer* Map) {
+void MapRenderAll(SDL_Renderer* Renderer, struct MapRenderer* Map) {
 	struct LinkedList QuadList = {0, NULL, NULL};
 	struct LnkLst_Node* Itr = NULL;
 	struct Tile* Tile = NULL;
@@ -266,16 +272,8 @@ void MapRender(SDL_Renderer* Renderer, struct MapRenderer* Map) {
 			const struct TileSheet* TileSheet = &Map->TileSheets[Tile->TileSheet]; 
 			SDL_Rect Rect = {TileSheet->VarPos[Tile->TileVar].x, TileSheet->VarPos[Tile->TileVar].x, TILE_WIDTH, TILE_HEIGHT};
 			SDL_Rect SpritePos = {x * TILE_WIDTH, y * TILE_HEIGHT_THIRD, TILE_WIDTH, TILE_HEIGHT};
-			if((Map->Screen.y & 1) == 0) {
-				if((y & 1) == 1) {
-					SpritePos.x += (TILE_WIDTH / 2);
-				}
-			} else {
-				if((y & 1) == 0) {
-					SpritePos.x += (TILE_WIDTH / 2);
-				}
-			}
 
+			MapHexOffset(Map->Screen.x, Map->Screen.y, y, (uint16_t*)&SpritePos.x);
 			if(SDL_RenderCopy(g_Renderer, TileSheet->Tiles, &Rect, &SpritePos) < 0) {
 				Log(ELOG_ERROR, "%s", SDL_GetError());
 			}
@@ -288,7 +286,7 @@ void MapRender(SDL_Renderer* Renderer, struct MapRenderer* Map) {
 		Itr = QuadList.Front;
 		while(Itr != NULL) {
 			Sprite = (struct Sprite*)Itr->Data;
-			SpriteOnDraw(Sprite);
+			SpriteOnDraw(Renderer, Sprite, Map->Screen.x * TILE_WIDTH, Map->Screen.y * TILE_HEIGHT_THIRD);
 			Itr = Itr->Next;
 		}
 		LnkLstClear(&QuadList);
@@ -349,4 +347,34 @@ int MapMoveUnit(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point
 		return 1;
 	}
 	return 0;
+}
+
+void ShapeMountains(uint16_t Width, uint16_t Length, uint8_t* Map) {
+	for(int x = 0; x < Width; ++x) {
+		for(int y = 0; y < Length; ++y) {
+			uint8_t* Pixel = &Map[y * Width + x];
+			uint32_t Min = 0;
+
+			if(*Pixel == 1) {
+				*Pixel = 0;
+			} else {
+				*Pixel = 0xFF;
+				if(x > 0) Min = min(*Pixel, *(Pixel - 1) + 1); //*(Pixel - 1) is Map[x - 1][y].
+				if(y > 0) Min = min(*Pixel, *(Pixel - Width) + 1); //*(Pixel - Width) is Map[x][y - 1].
+				if(Min > 0xFF) Min = 0xFF;
+				*Pixel = Min;
+			}
+		}
+	}
+	for(int x = Width - 1; x >= 0; --x) {
+		for(int y = Length - 1; y >= 0; --y) {
+			uint8_t* Pixel = &Map[y * Width + x];
+			uint32_t Min = 0;
+
+			if(x + 1 < Width) Min = min(*Pixel, *(Pixel + 1) + 1); //*(Pixel + 1) is Map[x + 1][y].
+			if(y + 1 < Length) Min = min(*Pixel, *(Pixel + Width) + 1); //*(Pixel + Width) is Map[x][y + 1].
+			if(Min > 0xFF) Min = 0xFF;
+			*Pixel = Min;
+		}
+	}
 }

@@ -35,8 +35,7 @@ void DestroyImageWidget(struct ImageWidget* _Widget, lua_State* _State) {
 int ImageOnDraw(struct Widget* _Widget) {
 	if(_Widget->IsVisible == 0)
 		return 1;
-	if(SpriteOnDraw(((struct ImageWidget*)_Widget)->Sprite) != 0)
-		return 0;
+	SpriteOnDraw(g_Renderer, ((struct ImageWidget*)_Widget)->Sprite, 0, 0);
 	return 1;
 }
 

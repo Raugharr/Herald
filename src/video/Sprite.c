@@ -57,8 +57,12 @@ struct Sprite* ConstructGameObject(struct Sprite* _Sprite, struct MapRenderer* _
 	return _Sprite;
 }
 
-int SpriteOnDraw(const struct Sprite* _Sprite) {
-	return SDL_RenderCopy(g_Renderer, ResourceGetData(_Sprite->Image), &_Sprite->Rect, &_Sprite->SpritePos);
+void SpriteOnDraw(SDL_Renderer* _Renderer, const struct Sprite* _Sprite, uint16_t ScreenX, uint16_t ScreenY) {
+	SDL_Rect _Pos = {_Sprite->SpritePos.x - ScreenX, _Sprite->SpritePos.y - ScreenY, _Sprite->SpritePos.w, _Sprite->SpritePos.h};
+
+	if(SDL_RenderCopy(_Renderer, ResourceGetData(_Sprite->Image), &_Sprite->Rect, &_Pos) != 0) {
+		Log(ELOG_ERROR, "%s", SDL_GetError());
+	}
 }
 
 void SpriteSetTilePos(struct Sprite* _Sprite, const struct MapRenderer* _Renderer, const SDL_Point* _TilePos) {

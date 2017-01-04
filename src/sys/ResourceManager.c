@@ -254,12 +254,12 @@ void DestroyFileTable(struct FileTableEntry* _FileTable) {
  */
 struct FileTableEntry* NextFile(DIR* _Dir) {
 	struct stat _Stat;
-	struct dirent* _Dirent = readdir(_Dir);
+	struct dirent* _Dirent = NULL;
 
 	errno = 0;
-	if(_Dirent != NULL) {
+	while((_Dirent = readdir(_Dir)) != NULL) {
 		if(!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
-				return NULL;
+				continue;
 		if(stat(_Dirent->d_name, &_Stat) == -1) {
 			Log(ELOG_ERROR, "Bad file %s", _Dirent->d_name);
 			goto fail;

@@ -107,7 +107,7 @@ void EventHook(int EventType, EventCallback Callback, void* Owner, void* Data1, 
 void EventHookRemove(int EventType, void* Owner, void* Data1, void* Data);
 void EventHookUpdate(const SDL_Event* Event);
 
-void PushEvent(int Type, void* Data1, void* Data2);
+void PushEvent(uint32_t Type, void* Data1, void* Data2);
 struct EventObserver* CreateEventObserver(int EventType, EventCallback Callback, void* Owner, void* One, void* Two);
 void DestroyEventObserver(struct EventObserver* EventObs);
 void Events();

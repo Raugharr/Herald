@@ -88,6 +88,9 @@ struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int 
 	_NodeScore->f = _g + _h;
 	_NodeScore->Direction = _Direction;
 	_NodeScore->Parent = _Parent;
+	if(_NodeScore->Parent != NULL && _NodeScore->Parent->Parent == _NodeScore){
+		int a = 0;
+	}
 	return _NodeScore;
 }
 
@@ -192,13 +195,13 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 	while(_OpenList.Size > 0 && _OpenList.Size <= _OpenList.TblSz) {
 		_Current = BinaryHeapTop(&_OpenList);
 		LnkLstPushBack(&_ClosedList, BinaryHeapPop(&_OpenList));
-		if(BinaryHeapTop(&_OpenList) == _Goal)
+		if(_Current->Node == _Goal)
 			break;
 		/*
 		 * Fill the open list with _Tile's neighbors.
 		 */
 		TileToPos(g_GameWorld.MapRenderer, _Current->Node, &_Pos);
-		TileSpiral(g_GameWorld.MapRenderer, &_Pos, 1, _Neighbors);
+		TileRing(g_GameWorld.MapRenderer, &_Pos, 2, _Neighbors);
 		for(int i = 0; i < TILE_SIZE; ++i) {
 			if(_Neighbors[i] != NULL) {
 				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
@@ -215,9 +218,10 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 				for(int j = 0; j < _OpenList.Size; ++j)  {
 					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
 					if(_OpenTemp->Node == _Neighbors[i]) {
-						int _gCost = _Current->g + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
+						int _gCost = _Current->g + 1;// + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
 						if(_gCost < _OpenTemp->g) {
 							_OpenTemp->g = _gCost;
+							_OpenTemp->f = _OpenTemp->g + _OpenTemp->h;
 							BinaryHeapIncrease(&_OpenList, j);
 						}
 						goto loop_end;
@@ -263,5 +267,6 @@ void Pathfind(int _StartX, int _StartY, int _EndX, int _EndY, struct Path* _Path
 	_PData->Heuristic = _Heuristic;
 	_PData->Callback = _Callback;
 	_PData->Data = _Data;
-	TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (int(*)(void*, void*))PathfindNext, _PData, NULL);
+	PathfindNext(_PData, NULL);
+//	TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (int(*)(void*, void*))PathfindNext, _PData, NULL);
 }

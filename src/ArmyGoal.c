@@ -26,8 +26,10 @@ void ArmyGoalDisbandThink(struct Army* _Army) {
 		ArmyClearPath(_Army);
 		return;
 	}
-	if(_Army->Path.Path.Next == NULL)
+	if(_Army->Path.Path.Next == NULL && _Army->CalcPath == false) {
+//		_Army->CalcPath = true;
 		ArmyAddPath(_Army, _Settlement->Pos.x, _Settlement->Pos.y);
+	}
 }
 
 void ArmyGoalRaidThink(struct Army* _Army) {
@@ -41,8 +43,10 @@ void ArmyGoalRaidThink(struct Army* _Army) {
 	}
 	if(PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0)
 		return;
-	if(_Army->Path.Path.Next == NULL)
+	if(_Army->Path.Path.Next == NULL && _Army->CalcPath == false) {
+//		_Army->CalcPath = true;
 		ArmyAddPath(_Army, _Settlement->Pos.x, _Settlement->Pos.y);
+	}
 }
 
 void ArmyGoalDefendThink(struct Army* _Army) {

@@ -168,7 +168,8 @@ void DisbandWarband(struct Warband* Warband) {
 		ILL_CREATE(Warband->Settlement->People, Warrior->Person);
 	}
 	end:
-	DestroyWarband(Warband);
+	;
+	//DestroyWarband(Warband);
 }
 
 int CountWarbandUnits(struct LinkedList* Warbands) {
@@ -234,6 +235,7 @@ struct Army* CreateArmy(struct Settlement* Settlement, struct BigGuy* Leader, co
 	Army->LootedAnimals.Size = 0;
 	Army->LootedAnimals.Front = NULL;
 	Army->LootedAnimals.Back = NULL;
+	Army->CalcPath = false;
 	CreateWarband(Settlement, Leader, Army);
 	ArmyUpdateStats(Army);
 	return Army;
@@ -253,12 +255,24 @@ void DestroyArmy(struct Army* Army) {
 }
 
 int ArmyPathHeuristic(struct Tile* One, struct Tile* Two) {
+	/*
 	SDL_Point PosOne;
 	SDL_Point PosTwo;
 
 	TileToPos(g_GameWorld.MapRenderer, One, &PosOne);
 	TileToPos(g_GameWorld.MapRenderer, Two, &PosTwo);
 	return TileGetDistance(&PosOne, &PosTwo);
+	*/
+	struct CubeCoord CubeOne;
+	struct CubeCoord CubeTwo;
+	SDL_Point PosOne;
+	SDL_Point PosTwo;
+
+	TileToPos(g_GameWorld.MapRenderer, One, &PosOne);
+	TileToPos(g_GameWorld.MapRenderer, Two, &PosTwo);
+	OffsetToCubeCoord(PosOne.x, PosOne.y, &CubeOne.q, &CubeOne.r, &CubeOne.s);
+	OffsetToCubeCoord(PosTwo.x, PosTwo.y, &CubeTwo.q, &CubeTwo.r, &CubeTwo.s);
+	return CubeDistance(&CubeOne, &CubeTwo);
 }
 
 void ArmyThink(struct Army* Army) {
@@ -338,6 +352,8 @@ int ArmyMoveDir(struct Army* Army, int Direction) {
 				}
 			}
 		}
+	} else {
+		return 0;
 	}
 	return 1;
 }

@@ -33,7 +33,7 @@ void BinaryHeapInsert(struct BinaryHeap* _Heap, void* _Data) {
 	}
 	_Heap->Table[_Heap->Size] = _Data;
 	while(_Parent != _Index) {
-		if(_Heap->Compare(_Data, _Heap->Table[_Parent]) > 0) {
+		if(_Heap->Compare(_Data, _Heap->Table[_Parent]) >= 0) {
 			void* _Temp = _Heap->Table[_Parent];
 
 			_Heap->Table[_Parent] = _Data;

@@ -26,13 +26,15 @@
 
 void CreateBumpMap(struct MapRenderer* Map, uint16_t MapLength, float* HeightMap) {
 
-	//size_t TileSize = TILE_SIZE;//NumTileRadius(3); 
-	//struct Tile* TileList[TileSize];
-	//SDL_Point TilePos = {4, 6};
+	size_t TileSize = TILE_SIZE;//NumTileRadius(3); 
+	struct Tile* TileList[TileSize];
+	SDL_Point TilePos = {4, 6};
 
 	//memset(TileList, 0, sizeof(TileList));
-	//TileRing(Map, &TilePos, 2, TileList); 
-	CreatePerlinNoise(MapLength, MapLength, HeightMap);
+	TileRing(Map, &TilePos, 2, TileList); 
+	//CreatePerlinNoise(MapLength, MapLength, HeightMap);
+	for(int i = 0; i < TileSize; ++i)
+		HeightMap[TileToIndex(Map, TileList[i])] = 1.0;
 	HeightMapTexture("HeightMap.bmp", MapLength, MapLength, HeightMap);
 }
 
@@ -231,7 +233,7 @@ void TileSpiral(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t 
 
 	Out[Count++] = MapGetTile(Renderer, Center);
 	for(int i = 2; i <= Radius; ++i, Count += (i - 2) * TILE_SIZE) {
-		TileNeighbor(TILE_SOUTHWEST, &Tile, &Tile);
+	//	TileNeighbor(TILE_SOUTHWEST, &Tile, &Tile);
 		TileRing(Renderer, &Tile, i, &Out[Count]);
 	}
 }

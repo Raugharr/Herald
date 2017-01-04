@@ -84,6 +84,7 @@ struct Army {
 	struct LinkedList LootedAnimals;
 	uint16_t WarbandCt;
 	bool InBattle;
+	bool CalcPath;
 };
 
 void InitUnitStats(uint8_t (*Stats)[WARSTAT_SIZE]);

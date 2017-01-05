@@ -18,6 +18,7 @@ endif
 VIDEO=video
 SYS=sys
 AI=AI
+FILE=herald
 
 $(OBJFLD)%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

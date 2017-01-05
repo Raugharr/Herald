@@ -5,6 +5,8 @@
 #ifndef __TILE_H
 #define __TILE_H
 
+#include "../sys/Log.h"
+
 #include <SDL2/SDL.h>
 
 typedef struct SDL_Texture SDL_Texture;
@@ -41,6 +43,12 @@ struct Tile {
 	uint8_t Terrain;
 };
 
+struct CubeCoord {
+	int32_t q;
+	int32_t r;
+	int32_t s;
+};
+
 struct Tile* CreateTile(struct MapRenderer* _Renderer, uint8_t _TileSheet, uint8_t _TileVar, int _X, int _Y);
 void DestroyTile(struct Tile* _Tile);
 /**
@@ -48,5 +56,13 @@ void DestroyTile(struct Tile* _Tile);
  */
 void TileAdjTileOffset(const struct SDL_Point* _Tile, int _Direction, SDL_Point* _Offset);
 int TileGetDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End);
-
+static inline int CubeDistance(const struct CubeCoord* One, const struct CubeCoord* Two) {
+	return (abs(One->q - Two->q) + abs(One->r - Two->r) + abs(One->s - Two->s)) / 2;
+}
+static inline void OffsetToCubeCoord(uint32_t x, uint32_t y, int32_t* q, int32_t* r, int32_t* s) {
+	(*q) = y - (x - (x & 1)) / 2;
+	(*r) = x;
+	(*s) = -(*q) -(*r);
+	Assert((*q) + (*r) + (*s) == 0);
+}
 #endif

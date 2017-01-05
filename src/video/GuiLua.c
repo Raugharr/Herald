@@ -1072,6 +1072,7 @@ int LuaContainerParagraph(lua_State* _State) {
 	_PRect.w = _Parent->Widget.Rect.w;
 	_PRect.h = _Parent->Widget.Rect.h;
 	_NewContainer = CreateContainer();
+	lua_createtable(_State, 2, 2);
 	ConstructContainer(_NewContainer, _Parent, &_PRect, _State);
 	_NewContainer->NewChild = VertConNewChild;
 	_NewContainer->Widget.CanFocus = 0;
@@ -1357,8 +1358,6 @@ void MessageBox(const char* _Text) {
 	lua_pushstring(g_LuaState, "Text");
 	lua_pushstring(g_LuaState, _Text);
 	lua_rawset(g_LuaState, -3);
-	lua_pushinteger(g_LuaState, 400);
-	lua_pushinteger(g_LuaState, 300);
 	LuaCreateWindow(g_LuaState);
 }
 

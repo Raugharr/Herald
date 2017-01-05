@@ -142,7 +142,7 @@ void EventHookUpdate(const SDL_Event* Event) {
 	}
 }
 
-void PushEvent(int Type, void* Data1, void* Data2) {
+void PushEvent(uint32_t Type, void* Data1, void* Data2) {
 	SDL_Event Event;
 
 	Assert(Type < EVENT_SIZE);

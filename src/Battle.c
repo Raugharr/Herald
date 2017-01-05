@@ -85,6 +85,8 @@ struct Battle* CreateBattle(struct Army* Attacker, struct Army* Defender) {
 		ArmyUpdateStats(Battle->Side[BATTLE_DEFENDER].Army);
 		FrontStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Side[BATTLE_DEFENDER].Stats[WARSTAT_SIZE * i], &Battle->Side[BATTLE_DEFENDER].FrontWarbands[i]);
 	}
+	Battle->Stats.AttkCas = 0;
+	Battle->Stats.DefCas = 0;
 	ILL_CREATE(*List, Battle);
 	return Battle;
 }
@@ -144,13 +146,16 @@ void BattleDistPrestige(struct BattleSide* Side, int TotalPrestige) {
 }
 
 void BattleEnd(int Victor, struct Battle* Battle) {
-	int AttkSize = ArmyGetSize(Battle->Side[BATTLE_ATTACKER].Army);
-	int DefSize = ArmyGetSize(Battle->Side[BATTLE_DEFENDER].Army);
-	int DefPrestige = (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize) / (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize);
-	int AttkPrestige = (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize) / (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize);
+	//int AttkSize = ArmyGetSize(Battle->Side[BATTLE_ATTACKER].Army);
+	//int DefSize = ArmyGetSize(Battle->Side[BATTLE_DEFENDER].Army);
 
-	BattleDistPrestige(&Battle->Side[BATTLE_ATTACKER], AttkPrestige);
-	BattleDistPrestige(&Battle->Side[BATTLE_DEFENDER], DefPrestige);
+	//int DefPrestige = (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize) / (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize);
+	//int AttkPrestige = (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize) / (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize);
+
+	Battle->Side[BATTLE_ATTACKER].Army->InBattle = false;
+	Battle->Side[BATTLE_DEFENDER].Army->InBattle = false;
+	//BattleDistPrestige(&Battle->Side[BATTLE_ATTACKER], AttkPrestige);
+	//BattleDistPrestige(&Battle->Side[BATTLE_DEFENDER], DefPrestige);
 	PushEvent(EVENT_BATTLE, Battle, NULL);
 }
 
@@ -241,8 +246,11 @@ void BattleThink(struct Battle* Battle) {
 				Battle->Side[BATTLE_DEFENDER].FrontSize[i] = 0;
 			else
 			Battle->Side[BATTLE_DEFENDER].FrontSize[i] -= DefCas;
+			Battle->Stats.AttkCas += AttkCas;
+			Battle->Stats.DefCas += DefCas;
 		}
 	}
+	BattleEnd((Battle->Stats.AttkCas < Battle->Stats.DefCas) ? (BATTLE_ATTACKER) : (BATTLE_DEFENDER), Battle);
 }
 
 void* BattleNext(void* Battle) {

@@ -52,6 +52,21 @@ static const luaL_Reg g_LuaFuncsFaction[] = {
 	{NULL, NULL}
 };
 
+const struct LuaEnum g_LuaFactionGoalEnum[] = {
+	{"None", FACTION_GNONE},
+	{"LowerTaxes", FACTION_GLTAXES},
+	{"RaiseTaxes", FACTION_GRTAXES},
+	{"SupportCaste", FACTION_CHCASTE},
+	{"AddPolicy", FACTION_GLPOLICY},
+	{"RemovePolicy", FACTION_GRPOLICY},
+	{NULL, 0}
+};
+
+const struct LuaEnumReg g_LuaGovernmentEnums[] = {
+	{"Faction", NULL,  g_LuaFactionGoalEnum},
+	{NULL, NULL}
+};
+
 const struct LuaObjectReg g_LuaGovernmentObjects[] = {
 	{LOBJ_GOVERNMENT, "Government", LUA_REFNIL, g_LuaFuncsGovernment},
 	{LOBJ_FACTION, "Faction", LUA_REFNIL, g_LuaFuncsFaction},
@@ -211,7 +226,7 @@ int LuaFactionSetGoal(lua_State* State) {
 	struct Faction* Faction = LuaCheckClass(State, 1, LOBJ_FACTION);
 	int8_t Ideology = LuaFactionGetIdeology(State, 1);
 
-	FactionSetGoal(Faction, Ideology, luaL_checkinteger(State, 2));
+	FactionSetGoal(Faction, Ideology, luaL_checkinteger(State, 2), luaL_checkinteger(State, 3), luaL_optint(State, 4, 0));
 	return 0;
 }
 

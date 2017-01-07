@@ -9,6 +9,7 @@
 #include "sys/LuaCore.h"
 
 extern const struct LuaObjectReg g_LuaGovernmentObjects[];
+extern const struct LuaEnumReg g_LuaGovernmentEnums[];
 
 typedef struct lua_State lua_State;
 typedef struct luaL_Reg luaL_Reg;

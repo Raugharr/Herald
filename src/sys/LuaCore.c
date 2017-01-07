@@ -197,6 +197,7 @@ int InitLuaSystem() {
 	InitLuaFamily(g_LuaState);
 	RegisterLuaObjects(g_LuaState, g_LuaSettlementObjects);
 	RegisterLuaObjects(g_LuaState, g_LuaGovernmentObjects);
+	RegisterLuaEnums(g_LuaState, g_LuaGovernmentEnums);
 	RegisterLuaEnums(g_LuaState, g_LuaSettlementEnums);
 	RegisterLuaEnums(g_LuaState, g_LuaGuiEnums);
 	lua_getglobal(g_LuaState, "Plot");

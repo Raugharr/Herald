@@ -22,8 +22,7 @@ enum EFactionGoal {
 	FACTION_GNONE = 0,
 	FACTION_GLTAXES, //Lower taxes. 
 	FACTION_GRTAXES, //Raise taxes. 
-	FACTION_GLCASTE, //Decrease power of a certain caste.
-	FACTION_GRCASTE, //Increase power of a certain caste.
+	FACTION_CHCASTE, //Change power of a certain caste.
 	FACTION_GLPOLICY,
 	FACTION_GRPOLICY,
 	//FACTION_GPOWER, //Weaken the other faction.
@@ -51,6 +50,7 @@ struct FactionOpCode {
 	union {
 		struct {
 			uint8_t Caste; //Which caste this will effect.
+			uint8_t FromCaste;// Caste the power will be taken from.
 		} Caste;
 
 		struct {
@@ -58,7 +58,7 @@ struct FactionOpCode {
 		} Taxes;
 
 		struct {
-			struct Policy* Policy;
+			uint8_t PolicyId;
 			uint8_t Row;
 		} Policy;
 	};
@@ -97,7 +97,7 @@ bool FactionBet(struct Faction* Faction, uint8_t Ideology, uint16_t Bet);
 static inline void FactionPickSide(struct Faction* Faction, uint8_t Ideology, bool Against) {
 	Faction->DidOppose[Ideology] = Against;
 }
-void FactionSetGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal);
+void FactionSetGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal, uint8_t Data1, uint8_t Data2);
 //True if it is Goal is valid.
 bool FactionValGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal);
 void FactionPassGoal(struct Faction* Faction, uint8_t Ideology, struct FactionOpCode* Goal);

@@ -51,8 +51,9 @@ local function DisplayGoals(Menu, Faction)
 			for k, v in pairs(Faction:ListGoals()) do
 					Container:CreateButton(v,
 						function(Widget)
-							Faction:SetGoal(k)
-							Gui.CreateWindow("FactionBet", {Faction = Faction})
+							--Faction:SetGoal(k)
+							--Gui.CreateWindow("FactionBet", {Faction = Faction})
+							Gui.CreateWindow("FactionGoalSelect", {Faction = Faction, Goal = k - 1})
 						end)	
 
 					end

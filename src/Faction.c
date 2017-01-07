@@ -31,12 +31,11 @@ static uint8_t g_FactionWeights[FACTION_IDSIZE * CASTE_SIZE] = {
 
 const char* g_FactionGoalNames[FACTION_GSIZE] = {
 	"None",
-	"Lower Taxes",
-	"Raise Taxes",	
-	"Supress Caste",
-	"Promote Caste",
-	"Introduce Policy",
-	"Remove Policy"
+	"LowerTaxes",
+	"RaiseTaxes",	
+	"ChangeCaste",
+	"IntroducePolicy",
+	"RemovePolicy"
 };
 
 const char* g_FactionNames[FACTION_GSIZE] = {
@@ -110,7 +109,16 @@ void FactionRemovePerson(struct Faction* Faction, uint8_t Ideology, struct Perso
 	Faction->PowerGain[Ideology] -= Faction->CastePower[Person->Family->Caste];
 }
 
-void FactionGoalCoro(struct Faction* Faction, int Ideology, int Goal) {
+void FactionGoalCoro(struct Faction* Faction, int Ideology, int Goal, int Data1, int Data2) {
+	struct FactionOpCode GoalOp;
+	
+	GoalOp.Type = Goal; 
+	switch(Goal) {
+		case FACTION_CHCASTE:
+			GoalOp.Caste.Caste = Data1;
+			GoalOp.Caste.FromCaste = Data2;
+		break;
+	}
 	for(int i = 0; i < FACTION_IDSIZE; ++i) {
 		if(FactionIsActive(Faction, i) == true && Faction->Leader[i] != g_GameWorld.Player) {
 			FactionPickSide(Faction, i, true);
@@ -126,6 +134,7 @@ void FactionGoalCoro(struct Faction* Faction, int Ideology, int Goal) {
 	Faction->Coro = -1;
 	EventFactionGoalEnd(Faction, Goal, g_LuaState);
 	Faction->LastGoal[Ideology] = g_GameWorld.Date;
+	FactionPassGoal(Faction, Ideology, &GoalOp);
 }
 
 bool FactionBet(struct Faction* Faction, uint8_t Ideology, uint16_t Bet) {
@@ -139,7 +148,7 @@ bool FactionBet(struct Faction* Faction, uint8_t Ideology, uint16_t Bet) {
 	return true;
 }
 
-void FactionSetGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal) {
+void FactionSetGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal, uint8_t Data1, uint8_t Data2) {
 	if(Faction->Goal != FACTION_GNONE)
 		return;
 	Faction->Goal = Goal;
@@ -147,7 +156,7 @@ void FactionSetGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal) {
 		Faction->FactionBet[i] = -1;
 	}
 	if(Faction->Coro == -1) {
-		Faction->Coro = CoSpawn(FactionGoalCoro, 3, Faction, ((int)Ideology), ((int)Goal));
+		Faction->Coro = CoSpawn(FactionGoalCoro, 5, Faction, ((int)Ideology), ((int)Goal), (int)Data1, (int)Data2);
 		CoResume(Faction->Coro);
 	}
 }
@@ -158,8 +167,7 @@ bool FactionValGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal) {
 			return (Faction->Settlement->Government->TaxRate == TAX_MIN);
 		case FACTION_GRTAXES:
 			return (Faction->Settlement->Government->TaxRate >= TAX_MAX);
-		case FACTION_GLCASTE:
-		case FACTION_GRCASTE:
+		case FACTION_CHCASTE:
 		case FACTION_GLPOLICY:
 		case FACTION_GRPOLICY:
 			return true;
@@ -169,11 +177,9 @@ bool FactionValGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal) {
 
 void FactionPassGoal(struct Faction* Faction, uint8_t Ideology, struct FactionOpCode* Goal) {
 	switch(Goal->Type) {
-		case FACTION_GRCASTE:
+		case FACTION_CHCASTE:
 			Faction->CastePower[Goal->Caste.Caste] += 1;
-			break;
-		case FACTION_GLCASTE:
-			Faction->CastePower[Goal->Caste.Caste] -= 1;
+			Faction->CastePower[Goal->Caste.FromCaste] -= 1;
 			break;
 		case FACTION_GRTAXES:
 			Faction->Settlement->Government->TaxRate++;

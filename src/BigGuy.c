@@ -110,9 +110,10 @@ void BGOnDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
 
 	EventHookRemove(_Data->EventType, _Guy, _Person, NULL);
 	RBDelete(&g_GameWorld.Agents, _Guy);
-	DestroyBigGuy(_Guy);
+	if(_Guy->Agent != NULL)
+		DestroyAgent(_Guy->Agent);
 	DestroyPerson(_Person);
-	DestroyAgent(_Guy->Agent);
+	DestroyBigGuy(_Guy);
 }
 
 void BGOnTargetDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {

@@ -108,8 +108,8 @@ struct FoodBase** LoadHumanFood(lua_State* State, struct FoodBase** FoodArray, c
 void WorldInit(int Area);
 void WorldQuit();
 
-int GameDefaultClick(const struct Object* One, const struct Object* Two);
-int GameFyrdClick(const struct Object* One, const struct Object* Two);
+uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two);
+uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two);
 void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World);
 void GameWorldDraw(const struct GameWorld* World);
 void CreateTempMap(int Length);

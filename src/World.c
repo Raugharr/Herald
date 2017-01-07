@@ -69,12 +69,12 @@ static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
 };
 
 struct GameOnClick {
-	int(*OnClick)(const struct Object*, const struct Object*);
-	int State;
+	uint32_t (*OnClick)(const struct Object*, const struct Object*);
+	uint32_t State;
 	const void* Data;
 };
 
-static int(*g_GameOnClickFuncs[])(const struct Object*, const struct Object*) = {
+static uint32_t (*g_GameOnClickFuncs[])(const struct Object*, const struct Object*) = {
 		GameDefaultClick,
 		GameFyrdClick
 };
@@ -371,6 +371,7 @@ struct BigGuy* PickPlayer() {
 	Agent = RBSearch(&g_GameWorld.Agents, Player);
 	RBDelete(&g_GameWorld.Agents, Player);
 	DestroyAgent(Agent);
+	Player->Agent = NULL;
 	EventHook(EVENT_FARMING, PlayerOnHarvest, Player->Person->Family, NULL, NULL);
 	return Player;
 }
@@ -709,7 +710,7 @@ void WorldQuit() {
 	DestroyConstrntBnds(g_GameWorld.BabyAvg);
 }
 
-int GameDefaultClick(const struct Object* One, const struct Object* Two) {
+uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two) {
 	lua_settop(g_LuaState, 0);
 	lua_pushstring(g_LuaState, "ViewSettlementMenu");
 	lua_createtable(g_LuaState, 0, 1);
@@ -720,7 +721,7 @@ int GameDefaultClick(const struct Object* One, const struct Object* Two) {
 	return MOUSESTATE_DEFAULT;
 }
 
-int GameFyrdClick(const struct Object* One, const struct Object* Two) {
+uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two) {
 	const struct Settlement* Settlement = (const struct Settlement*) One;
 
 	if(Two->Type == OBJECT_LOCATION) {
@@ -777,7 +778,7 @@ void GameWorldDraw(const struct GameWorld* World) {
 	ScreenToHex(&Pos, &TilePos);
 	Tile = &World->MapRenderer->Tiles[TilePos.y * World->MapRenderer->TileLength + TilePos.x];
 	Settlement = g_GameWorld.Settlements.Front;
-	MapRender(g_Renderer, g_GameWorld.MapRenderer);
+	MapRenderAll(g_Renderer, g_GameWorld.MapRenderer);
 	if(Tile != NULL) {
 		SDL_Rect SpritePos = {TilePos.x * TILE_WIDTH, TilePos.y * TILE_HEIGHT_THIRD, TILE_WIDTH, TILE_HEIGHT};
 		

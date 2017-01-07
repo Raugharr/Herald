@@ -32,9 +32,7 @@ void CreateBumpMap(struct MapRenderer* Map, uint16_t MapLength, float* HeightMap
 
 	//memset(TileList, 0, sizeof(TileList));
 	TileRing(Map, &TilePos, 2, TileList); 
-	//CreatePerlinNoise(MapLength, MapLength, HeightMap);
-	for(int i = 0; i < TileSize; ++i)
-		HeightMap[TileToIndex(Map, TileList[i])] = 1.0;
+	CreatePerlinNoise(MapLength, MapLength, HeightMap);
 	HeightMapTexture("HeightMap.bmp", MapLength, MapLength, HeightMap);
 }
 

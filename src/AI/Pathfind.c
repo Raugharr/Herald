@@ -79,6 +79,7 @@ int PathNodeScoreCmp(const void* _One, const void* _Two) {
 	return ((struct PathNodeScore*)_Two)->f - ((struct PathNodeScore*)_One)->f;
 }
 
+
 struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int _h, int _Direction, struct PathNodeScore* _Parent) {
 	struct PathNodeScore* _NodeScore = (struct PathNodeScore*) MemPoolAlloc(g_PathScorePool);
 
@@ -88,9 +89,6 @@ struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int 
 	_NodeScore->f = _g + _h;
 	_NodeScore->Direction = _Direction;
 	_NodeScore->Parent = _Parent;
-	if(_NodeScore->Parent != NULL && _NodeScore->Parent->Parent == _NodeScore){
-		int a = 0;
-	}
 	return _NodeScore;
 }
 
@@ -204,6 +202,24 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 		TileRing(g_GameWorld.MapRenderer, &_Pos, 2, _Neighbors);
 		for(int i = 0; i < TILE_SIZE; ++i) {
 			if(_Neighbors[i] != NULL) {
+				/*
+				 * Check if neighbors are already in open list.
+				 */
+			for(int j = 0; j < _OpenList.Size; ++j)  {
+					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
+					if(_OpenTemp->Node == _Neighbors[i]) {
+						int _gCost = _Current->g + 1;// + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
+						if(_gCost < _OpenTemp->g) {
+							BinaryHeapRemove(&_OpenList, j);
+						//	_OpenTemp->g = _gCost;
+						//	_OpenTemp->f = _OpenTemp->g + _OpenTemp->h;
+						//	BinaryHeapIncrease(&_OpenList, j);
+						goto better_gcost;
+						}
+						goto loop_end;
+					}
+				}
+				better_gcost:;
 				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
 				while(CloseItr != NULL) {
 					const struct PathNodeScore* _Node = (struct PathNodeScore*)CloseItr->Data;
@@ -211,21 +227,6 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 						goto loop_end;
 					}
 					CloseItr = CloseItr->Next;
-				}
-				/*
-				 * Check if neighbors are already in open list.
-				 */
-				for(int j = 0; j < _OpenList.Size; ++j)  {
-					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
-					if(_OpenTemp->Node == _Neighbors[i]) {
-						int _gCost = _Current->g + 1;// + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
-						if(_gCost < _OpenTemp->g) {
-							_OpenTemp->g = _gCost;
-							_OpenTemp->f = _OpenTemp->g + _OpenTemp->h;
-							BinaryHeapIncrease(&_OpenList, j);
-						}
-						goto loop_end;
-					}
 				}
 				BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
 				loop_end:

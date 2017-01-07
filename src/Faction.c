@@ -31,11 +31,11 @@ static uint8_t g_FactionWeights[FACTION_IDSIZE * CASTE_SIZE] = {
 
 const char* g_FactionGoalNames[FACTION_GSIZE] = {
 	"None",
-	"LowerTaxes",
-	"RaiseTaxes",	
-	"ChangeCaste",
-	"IntroducePolicy",
-	"RemovePolicy"
+	"Lower Taxes",
+	"Raise Taxes",	
+	"Change Caste",
+	"Introduce Policy",
+	"Remove Policy"
 };
 
 const char* g_FactionNames[FACTION_GSIZE] = {

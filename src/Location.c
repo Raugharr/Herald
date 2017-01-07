@@ -335,18 +335,18 @@ void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CAST
 		Itr = Itr->Next;
 	}
 	SettlementSetBGOpinions(&Settlement->BigGuys);
-	if(CasteCount[CASTE_NOBLE] == 0) {
+	/*if(CasteCount[CASTE_NOBLE] == 0) {
 		LeaderCaste = CASTE_WARRIOR;
 	}
 	for(Itr = Settlement->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
 		Leader = Itr->Data;
 		if(PERSON_CASTE(Leader->Person) == LeaderCaste)
 			break;
-	}
-	GovernmentSetLeader(Settlement->Government, Leader);
+	}*/
+	//GovernmentSetLeader(Settlement->Government, Leader);
 	LnkLstClear(&UniqueFamilies);
 	Assert(Settlement->BigGuys.Size > 0);
-	Assert(PERSON_CASTE(Leader->Person) == LeaderCaste);
+	//Assert(PERSON_CASTE(Leader->Person) == LeaderCaste);
 }
 
 int SettlementBigGuyCt(const struct Settlement* Settlement) {

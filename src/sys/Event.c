@@ -259,6 +259,25 @@ void Events() {
 				sprintf(Buffer, "You have recruited %s.", ((struct Person*)Event.user.data1)->Name);
 				MessageBox(Buffer);
 			}
+		} else if(Event.type == g_EventTypes[EVENT_WARBNDHOME]) {
+			struct Warband* Warband = Event.user.data1;
+			struct Animal* Animal = NULL;
+			float  SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
+			uint16_t Spoils = Warband->Parent->LootedAnimals.Size * SpoilsRatio;
+			char Buffer[256];
+
+			if(Warband->Warriors.Size == 0)
+				goto end;
+			sprintf(Buffer, "You have looted %i animals.", Spoils);
+			while(Spoils > 0) {
+				Animal = Warband->Parent->LootedAnimals.Front->Data;
+				LnkLstPopFront(&Warband->Parent->LootedAnimals);
+				FamilyAddAnimal(Warband->Leader->Person->Family, Animal);
+				--Spoils;
+			}
+			MessageBox(Buffer);
+			end:
+			DestroyWarband(Warband);	
 		}
 	}
 	if(/*(g_KeyMouseState.KeyboardMod & KMOD_LCTRL) == KMOD_LCTRL && */g_KeyMouseState.KeyboardButton == SDLK_r && g_KeyMouseState.KeyboardState == SDL_RELEASED) {

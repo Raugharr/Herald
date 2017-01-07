@@ -168,7 +168,7 @@ void DisbandWarband(struct Warband* Warband) {
 		ILL_CREATE(Warband->Settlement->People, Warrior->Person);
 	}
 	end:
-	;
+	PushEvent(EVENT_WARBNDHOME, Warband, NULL);
 	//DestroyWarband(Warband);
 }
 

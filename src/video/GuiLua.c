@@ -930,10 +930,10 @@ int LuaContainerGetChildren(lua_State* _State) {
 	lua_newtable(_State);
 	for(int i = 0; i < _Container->ChildCt; ++i) {
 		lua_rawgeti(_State, -2, _Container->Children[i]->LuaRef);
-		lua_rawseti(_State, -2, i);
+		lua_rawseti(_State, -2, i + 1);
 	}
 	lua_insert(_State, -2);
-	lua_pop(_State, 2);
+	lua_pop(_State, 1);
 	return 1;
 }
 

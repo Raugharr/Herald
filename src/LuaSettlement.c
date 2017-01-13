@@ -84,7 +84,7 @@ static const luaL_Reg g_LuaFuncsBigGuyRelation[] = {
 static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{"GetLeader", LuaSettlementGetLeader},
 	{"GetGovernment", LuaSettlementGetGovernment},
-	{"RaiseArmy", LuaSettlementRaiseArmy},
+	//{"RaiseArmy", LuaSettlementRaiseArmy},
 	{"GetPopulation", LuaSettlementGetPopulation},
 	{"CountWarriors", LuaSettlementCountWarriors},
 	{"GetBigGuys", LuaSettlementGetBigGuys},
@@ -742,7 +742,7 @@ int LuaSettlementGetGovernment(lua_State* _State) {
 }
 
 //Used for the function below as a placeholder to decide which settlement to raid.
-#include "World.h"
+/*#include "World.h"
 
 int LuaSettlementRaiseArmy(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);
@@ -757,7 +757,7 @@ int LuaSettlementRaiseArmy(lua_State* _State) {
 	_Army = CreateArmy(_Settlement, _Settlement->Government->Leader, ArmyGoalRaid(&_Goal, _Raid));
 	LuaCtor(_State, _Army, LOBJ_ARMY);
 	return 1;
-}
+}*/
 
 int LuaSettlementGetPopulation(lua_State* _State) {
 	struct Settlement* _Settlement = LuaCheckClass(_State, 1, LOBJ_SETTLEMENT);

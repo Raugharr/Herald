@@ -5,6 +5,8 @@
 
 #include "Array.h"
 
+#include "Math.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <alloca.h>
@@ -69,15 +71,15 @@ void ArrayRemove(struct Array* _Array, int _Index) {
 	--_Array->Size;
 }
 
-void ArrayResize(struct Array* _Array) {
+void ArrayGrow(struct Array* _Array, uint32_t Size) {
 	int _Size = 0;
 	void* _Temp = NULL;
 	
 	if(_Array->Table == NULL) {
-		_Size = 4;	
+		_Size = 16;	
 		_Temp = calloc(_Size, sizeof(void*));
 	} else {
-		_Size = _Array->TblSize * 2;
+		_Size = _Array->TblSize + Size;
 		_Temp = realloc(_Array->Table, _Size * sizeof(void*));
 	}
 
@@ -86,6 +88,19 @@ void ArrayResize(struct Array* _Array) {
 	//free(_Array->Table);
 	_Array->Table = _Temp;
 	_Array->TblSize = _Size;
+}
+
+void CArrayRandom(void* Table, uint32_t Size) {
+	void* Temp = NULL;
+	uint32_t Rand = 0;
+	void** VTable = (void**)Table;
+
+	for(int i = Size; i > 1; --i) {
+		Rand = Random(0, i - 1);
+		Temp = VTable[Rand];
+		VTable[Rand] = VTable[i - 1];
+		VTable[i - 1] = Temp;
+	}
 }
 
 /*void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {

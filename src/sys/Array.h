@@ -12,13 +12,15 @@
 #define ArrayInsertSort(_Array, _Data, _Callback) ArrayInsert((_Array), (_Data)); InsertionSortPtr((_Array)->Table, (_Array)->Size, _Callback)
 #define ArrayInsertSort_S(_Array, _Data, _Callback) ArrayInsert_S((_Array), (_Data)); InsertionSortPtr((_Array)->Table, (_Array)->Size, _Callback)
 #define QuickSort(_Table, _Count, _Callback) QuickSort_Aux((_Table), (_Callback), ((_Count) - 1))
+#define ArrayResize(_Array) ArrayGrow(_Array, _Array->TblSize * 2)
+#define ArrayRandom(_Array) CArrayRandom(_Array->Table, _Array->Size)
 
 typedef int(*CompCallback)(const void*, const void*);
 
 struct Array {
 	void** Table;
-	int Size;
-	int TblSize;
+	uint32_t Size;
+	uint32_t TblSize;
 };
 
 struct Array* CreateArray(int _Size);
@@ -37,7 +39,8 @@ static inline int ArrayInsert(struct Array* _Array, void* _Data) {
 void ArrayInsert_S(struct Array* _Array, void* _Data);
 void ArraySet_S(struct Array* _Array, void* _Data, uint32_t _Idx);
 void ArrayRemove(struct Array* _Array, int _Index);
-void ArrayResize(struct Array* _Array);
+void ArrayGrow(struct Array* _Array, uint32_t Size);
+void CArrayRandom(void* Table, uint32_t Size);
 
 void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf);
 void InsertionSortPtr(void* _Table[], size_t _Count, CompCallback _Callback);

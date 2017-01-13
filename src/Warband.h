@@ -37,6 +37,13 @@ enum {
 	WARSTAT_SIZE
 };
 
+enum {
+	ARMYGOAL_NONE,
+	ARMYGOAL_SLAVES,
+	ARMYGOAL_PILLAAGE,
+	ARMYGOAL_SLAUGHTER
+};
+
 struct ArmyPath {
 	struct Path Path;
 	struct ArmyPath* Next;
@@ -81,7 +88,9 @@ struct Army {
 	struct ArmyPath Path; //TODO: might no longer be a needed parameter should be removed.
 	uint8_t Stats[WARSTAT_SIZE];
 	struct Government* Government;
-	struct LinkedList LootedAnimals;
+	//struct Array LootedAnimals;
+	struct Array Captives;
+	struct Array Loot;
 	uint16_t WarbandCt;
 	bool InBattle;
 	bool CalcPath;
@@ -117,5 +126,15 @@ void ArmyClearPath(struct Army* _Army);
 void* ArmyPathNext(void* _Army);
 void* ArmyPathPrev(void* _Army);
 
-void ArmyRaidSettlement(struct Army* _Army, struct Settlement* _Settlement);
+/**
+ * Should only be called if an army is at the location of a settlement.
+ * Families should be a linked list of a settlement's families.
+ * Takes as many capitives that are not of the warrior caste as possible and then kills the remaining people.
+ * All captives taken are then placed in the Captives variable.
+ */
+void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t MaxCaptives);
+/**
+ * Takes as much food weapon and armor as possible from the families in Families and places the look in Loot.
+ */
+void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxGoods);
 #endif

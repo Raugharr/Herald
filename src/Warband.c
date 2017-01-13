@@ -118,14 +118,14 @@ void CreateWarband(struct Settlement* Settlement, struct BigGuy* Leader, struct 
 			Good = (struct Good*) Family->Goods.Table[i];
 			if(Good->Base->Category == GOOD_WEAPON) {
 				if(((struct WeaponBase*)Good->Base)->Range == MELEE_RANGE)
-					MeleeWeapon = FamilyTakeGood(Family, i, 1);
+					MeleeWeapon = ArrayRemoveGood(&Family->Goods, i, 1);
 				else
-					RangeWeapon = FamilyTakeGood(Family, i, 1);
+					RangeWeapon = ArrayRemoveGood(&Family->Goods, i, 1);
 			} else if(Good->Base->Category == GOOD_ARMOR) {
 				if(((struct ArmorBase*)Good->Base)->ArmorType == EARMOR_BODY)
-					Armor = FamilyTakeGood(Family, i, 1);
+					Armor = ArrayRemoveGood(&Family->Goods, i, 1);
 				else
-					Shield = FamilyTakeGood(Family, i, 1);
+					Shield = ArrayRemoveGood(&Family->Goods, i, 1);
 			}
 		}
 		ILL_DESTROY(Settlement->People, Person);
@@ -148,28 +148,42 @@ void DestroyWarband(struct Warband* Warband) {
 	free(Warband);
 }
 
+void DivideSpoils(struct Warband* Warband) {
+	float SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
+	uint16_t CaptiveCt = Warband->Parent->Captives.Size * SpoilsRatio;
+	uint32_t Loot = 0;
+	struct Person* Captive = NULL;
+	struct Good* Good = NULL;
+	struct Person* WarriorList[Warband->Warriors.Size];
+	uint32_t WarIdx = 0;
+
+	if(Warband->Warriors.Size == 0)
+		return;	
+	for(int i = 0; i < Warband->Warriors.Size; ++i)
+		WarriorList[i] = Warband->Warriors.Table[i];
+	CArrayRandom(WarriorList, Warband->Warriors.Size);
+	while(CaptiveCt > 0) {
+		Captive = Warband->Parent->Captives.Table[CaptiveCt];
+		ArrayRemove(&Warband->Parent->Captives, CaptiveCt);
+		if(FamilyAddPerson(WarriorList[WarIdx]->Family, Captive) == false)
+			PersonDeath(Captive);
+
+		Good = Warband->Parent->Loot.Table[Loot];
+		ArrayAddGood(&WarriorList[WarIdx]->Family->Goods, Good, Loot);
+		--CaptiveCt;
+		--Loot;
+		++WarIdx;
+	}
+}
 
 void DisbandWarband(struct Warband* Warband) {
 	struct Warrior* Warrior = NULL;
-	float SpoilsRatio = 0;
-	uint16_t Spoils = Warband->Parent->LootedAnimals.Size * SpoilsRatio;
-	struct Animal* Animal = NULL;
-	if(Warband->Warriors.Size == 0)
-		goto end;
-	SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
-	while(Spoils > 0) {
-		Animal = Warband->Parent->LootedAnimals.Front->Data;
-		LnkLstPopFront(&Warband->Parent->LootedAnimals);
-		FamilyAddAnimal(Warband->Leader->Person->Family, Animal);
-		--Spoils;
-	}
+
 	for(int i = 0; i < Warband->Warriors.Size; ++i) {
 		Warrior = Warband->Warriors.Table[i];
 		ILL_CREATE(Warband->Settlement->People, Warrior->Person);
 	}
-	end:
 	PushEvent(EVENT_WARBNDHOME, Warband, NULL);
-	//DestroyWarband(Warband);
 }
 
 int CountWarbandUnits(struct LinkedList* Warbands) {
@@ -232,9 +246,8 @@ struct Army* CreateArmy(struct Settlement* Settlement, struct BigGuy* Leader, co
 	Army->InBattle = 0;
 	Army->Government = Settlement->Government;
 
-	Army->LootedAnimals.Size = 0;
-	Army->LootedAnimals.Front = NULL;
-	Army->LootedAnimals.Back = NULL;
+	CtorArray(&Army->Captives, 0);
+	CtorArray(&Army->Loot, 0);
 	Army->CalcPath = false;
 	CreateWarband(Settlement, Leader, Army);
 	ArmyUpdateStats(Army);
@@ -245,11 +258,15 @@ void DestroyArmy(struct Army* Army) {
 	for(struct Warband* Warband = Army->Warbands; Warband != NULL; Warband = Warband->Next) {
 		DestroyWarband(Army->Warbands);
 	}
-	for(struct LnkLst_Node* Itr = Army->LootedAnimals.Front; Itr != NULL; Itr = Itr->Next) {
-		DestroyAnimal((struct Animal*)Itr->Data);
+	for(int i = 0; i < Army->Captives.Size; ++i) {
+		DestroyPerson((struct Person*)Army->Captives.Table[i]);
+	}
+	for(int i = 0; i < Army->Loot.Size; ++i) {
+		DestroyGood((struct Good*)Army->Loot.Table[i]);
 	}
 	DestroyObject((struct Object*) Army);
-	LnkLstClear(&Army->LootedAnimals);
+	DtorArray(&Army->Captives);
+	DtorArray(&Army->Loot);
 	free(Army->Warbands);
 	free(Army);
 }
@@ -339,16 +356,18 @@ int ArmyMoveDir(struct Army* Army, int Direction) {
 	if(MapMoveUnit(g_GameWorld.MapRenderer, Army, &Pos) != 0) {
 		if((Settlement = WorldGetSettlement(&g_GameWorld, &Army->Sprite.TilePos)) != NULL) {
 			if(SettlementIsFriendly(Settlement, Army) == 0) {
-				if(Army->Goal.IsRaid != 0) {
-					struct Army* Enemy = NULL;
-					struct ArmyGoal Goal;
+				struct Army* Enemy = NULL;
+				struct ArmyGoal Goal;
 
-					Enemy = CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalDefend(&Goal, Settlement));
-					if(Enemy != NULL) {
-						CreateBattle(Army, Enemy);
-					}
-				} else {
-					ArmyRaidSettlement(Army, Settlement);
+				if(Army->Goal.IsRaid == 0) {
+					//ArmyRaidSettlement(Army, Settlement);
+					return 1;
+				}
+				Enemy = CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalDefend(&Goal, Settlement));
+				if(Enemy != NULL) {
+					struct Battle* Battle = CreateBattle(Army, Enemy);
+
+					Battle->BattleSite = Settlement;
 				}
 			}
 		}
@@ -402,14 +421,78 @@ void* ArmyPathPrev(void* Path) {
 /*
  * FIXME: Take a random amount of goods from a random amount of families.
  */
-void ArmyRaidSettlement(struct Army* Army, struct Settlement* Settlement) {
-	int AnimalsTaken = ArmyGetSize(Army) / 2 * (Army->Leader->Stats[BGSKILL_AGILITY] / 100.0f);
-	struct Family* Family = NULL;
+void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t MaxCaptives) {
+	//uint32_t ArmySize = ArmyGetSize(Army);
+	//uint16_t MaxCaptives = ArmySize / 2; 
+	int32_t SettlementSz = 61;
+	struct Array DeathList;
 
-	Assert(Army->Sprite.TilePos.x == Settlement->Pos.y && Army->Sprite.TilePos.y == Settlement->Pos.y);
-	while(AnimalsTaken > 0) {
-		Family = (struct Family*) LnkLstRandom(&Settlement->Families);
-		LnkLstPushBack(&Army->LootedAnimals, FamilyTakeAnimal(Family, Random(0, Family->Animals.Size - 1)));
-		--AnimalsTaken;
+	CtorArray(&DeathList, 128);
+	for(struct LnkLst_Node* Itr = Families->Front; Itr != NULL; Itr = Itr->Next) {
+		struct Family* Family = Itr->Data;
+		uint32_t StartSize = FamilySize(Family);
+
+			//for(int i = 0; i < Family->NumChildren + CHILDREN; i = (i >= CHILDREN) ? (i) : (i + 1)) {
+			for(int i = 0; i < Family->NumChildren + CHILDREN; ++i) {
+				struct Person* Person = Family->People[i];
+
+				if(Family->People[i] == NULL)
+					continue;
+				if(Family->Caste == CASTE_WARRIOR || PersonIsWarrior(Person)) {
+					ArrayInsert_S(&DeathList, Person);
+				} else if(Captives->Size < MaxCaptives) {
+					SettlementRemovePerson(Family->HomeLoc, Person);
+					FamilyRemovePerson(Family, Person);
+					ArrayInsert_S(Captives, Person);
+				} else {
+					ArrayInsert_S(&DeathList, Person);
+				}
+			--SettlementSz;
+		}
+	}
+	for(int i = 0; i < DeathList.Size; ++i)
+		PersonDeathArr((struct Person**) DeathList.Table, DeathList.Size);
+}
+
+void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxGoods) {
+	enum {
+		ARMYLOOT_GOODSZ = 16,
+	};
+
+	//uint32_t ArmySize = ArmyGetSize(Army);
+	//uint32_t MaxGoods = ArmySize * 2;
+	struct Good* TakenGoods[ARMYLOOT_GOODSZ];
+	uint8_t TakenGoodsSz = 0;
+	uint16_t TakenQuantity[ARMYLOOT_GOODSZ];
+	double Percent = 0;
+
+	for(struct LnkLst_Node* Itr = Families->Front; Itr != NULL; Itr = Itr->Next) {
+		struct Family* Family = Itr->Data;
+		for(int i = 0; i < Family->Goods.Size; ++i) {
+			struct Good* Good = Family->Goods.Table[i];
+
+			
+			//Only add goods that can be valuable.
+			if(Good->Base->Category == GOOD_FOOD || Good->Base->Category == GOOD_WEAPON || Good->Base->Category == GOOD_ARMOR) {
+				for(int i = 0; i < TakenGoodsSz; ++i) {
+					if(GoodBaseCmp(TakenGoods[i], Good->Base) == 0) {
+						TakenQuantity[i] += Good->Quantity;
+						goto no_insert;
+					}
+				}
+				if(TakenGoodsSz < ARMYLOOT_GOODSZ) {
+					TakenGoods[TakenGoodsSz++] = Good;
+				}
+				no_insert:;
+			}
+		}
+	}
+	Percent = TakenGoodsSz / MaxGoods;
+		Percent = (Percent > 1.0) ? (1.0) : (Percent);
+	for(int i = 0; i < TakenGoodsSz; ++i) {
+		if(TakenGoods[i]->Base->Category == GOOD_FOOD)
+			ArrayAddGood(Loot, TakenGoods[i], TakenGoods[i]->Quantity * Percent * 100);
+		else
+			ArrayAddGood(Loot, TakenGoods[i], TakenGoods[i]->Quantity * Percent);
 	}
 }

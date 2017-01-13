@@ -69,6 +69,11 @@ void PersonThink(struct Object* Obj);
 void PersonMarry(struct Person* Father, struct Person* Mother, struct Family* Family);
 double PersonEat(struct Person* Person, struct Food* Food);
 void PersonDeath(struct Person* Person);
+/**
+ *\precondition Every Person in List must be from the same settlement.
+ */
+void PersonDeathArr(struct Person** List, uint32_t Size);
+
 struct Retinue* PersonRetinue(const struct Person* Person);
 static inline struct Settlement* PersonHome(const struct Person* Person) {
 return Person->Family->HomeLoc;

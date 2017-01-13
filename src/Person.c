@@ -89,7 +89,6 @@ void DestroyPerson(struct Person* Person) {
 	//struct Family* Family = Person->Family;
 
 	DestroyObject(&Person->Object);
-	SettlementRemovePerson(Person->Family->HomeLoc, Person);
 	if(FamilySize(Person->Family) == 0)
 		Person->Family->IsAlive = false;
 	//	DestroyFamily(Family);
@@ -140,29 +139,31 @@ void PersonDeath(struct Person* Person) {
 
 	if(Person->Pregnancy != NULL)
 		DestroyPregnancy(Person->Pregnancy);
-	for(int i = 0; i < Family->NumChildren + CHILDREN; ++i) {
-		if(Family->People[i] == Person) {
-			Family->People[i] = NULL;
-			if(i >= CHILDREN) {
-				--Family->NumChildren;
-				Family->People[i] = Family->People[CHILDREN + Family->NumChildren];
-				Family->People[CHILDREN + Family->NumChildren] = NULL;
-			}
-			break;
-		}
-	}
-	PushEvent(EVENT_DEATH, Person, NULL);
 	++Family->HomeLoc->YearDeaths;
-	if(PersonMature(Person) == 1) {
-		if(Person->Gender == EMALE)
-			--Family->HomeLoc->AdultMen;
-		else
-			--Family->HomeLoc->AdultWomen;
+	SettlementRemovePerson(Person->Family->HomeLoc, Person);
+	FamilyRemovePerson(Family, Person);
+	PushEvent(EVENT_DEATH, Person, NULL);
+}
+
+/**
+ *\precondition Every Person in List must be from the same settlement.
+ */
+void PersonDeathArr(struct Person** List, uint32_t Size) {
+	Assert(Size > 0);
+	Assert(List != NULL);
+
+	struct Settlement* Settlement = List[0]->Family->HomeLoc;
+
+	for(int i = 0; i < Size; ++i) {
+		SettlementRemovePerson(Settlement, List[i]);
+		FamilyRemovePerson(List[i]->Family, List[i]);
+		PushEvent(EVENT_DEATH, List[i], NULL);
 	}
+	Settlement->YearDeaths += Size;
 }
 
 int PersonIsWarrior(const struct Person* Person) {
-	if(Person->Gender != EMALE || YEAR(Person->Age) < 15)
+	if(Person->Gender != EMALE || !PersonMature(Person))
 		return 0;
 	return 1;
 }

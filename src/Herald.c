@@ -105,9 +105,9 @@ void SigSev(int _Sig) {
 
 	_Size = backtrace(_Array, 16);
 	_Symbols = backtrace_symbols(_Array, _Size);
-	for(int i = 0; i < _Size; ++i) {
+	for(int i = 2; i < _Size; ++i) {
 		Log(ELOG_ERROR, _Symbols[i]);
-		free(_Symbols[i]);
+		//free(_Symbols[i]);
 	}
 	free(_Symbols);
 }

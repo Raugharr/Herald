@@ -57,34 +57,35 @@ struct Battle* CreateBattle(struct Army* Attacker, struct Army* Defender) {
 	Battle = (struct Battle*) malloc(sizeof(struct Battle));
 	Attacker->InBattle = true;
 	Defender->InBattle = true;
-	Battle->Side[BATTLE_ATTACKER].Army = Attacker;
-	Battle->Side[BATTLE_ATTACKER].StartingSize = ArmyGetSize(Battle->Side[BATTLE_ATTACKER].Army);
+	Battle->Attacker.Army = Attacker;
+	Battle->Attacker.StartingSize = ArmyGetSize(Battle->Attacker.Army);
 
-	Battle->Side[BATTLE_DEFENDER].Army = Defender;
-	Battle->Side[BATTLE_DEFENDER].StartingSize = ArmyGetSize(Battle->Side[BATTLE_DEFENDER].Army);
+	Battle->Defender.Army = Defender;
+	Battle->Defender.StartingSize = ArmyGetSize(Battle->Defender.Army);
 	for(int i = 0; i < BATTLE_MAXFRONTS; ++i) {
-		CtorArray(&Battle->Side[BATTLE_ATTACKER].FrontWarbands[i], Attacker->WarbandCt);
-		CtorArray(&Battle->Side[BATTLE_DEFENDER].FrontWarbands[i], Defender->WarbandCt);
-		Battle->Side[BATTLE_ATTACKER].FrontSize[i] = 0;
-		Battle->Side[BATTLE_DEFENDER].FrontSize[i] = 0;
+		CtorArray(&Battle->Attacker.FrontWarbands[i], Attacker->WarbandCt);
+		CtorArray(&Battle->Defender.FrontWarbands[i], Defender->WarbandCt);
+		Battle->Attacker.FrontSize[i] = 0;
+		Battle->Defender.FrontSize[i] = 0;
 	}
 	for(struct Warband* Warband = Attacker->Warbands; Warband != NULL; Warband = Warband->Next) {
-		ArrayInsert(&Battle->Side[BATTLE_ATTACKER].FrontWarbands[BATFLANK_MID], Warband);
-		Battle->Side[BATTLE_ATTACKER].FrontSize[BATFLANK_MID] += Warband->Warriors.Size;
+		ArrayInsert(&Battle->Attacker.FrontWarbands[BATFLANK_MID], Warband);
+		Battle->Attacker.FrontSize[BATFLANK_MID] += Warband->Warriors.Size;
 	}
 	for(struct Warband* Warband = Defender->Warbands; Warband != NULL; Warband = Warband->Next) {
-		ArrayInsert(&Battle->Side[BATTLE_DEFENDER].FrontWarbands[BATFLANK_MID], Warband);
-		Battle->Side[BATTLE_DEFENDER].FrontSize[BATFLANK_MID] += Warband->Warriors.Size;
+		ArrayInsert(&Battle->Defender.FrontWarbands[BATFLANK_MID], Warband);
+		Battle->Defender.FrontSize[BATFLANK_MID] += Warband->Warriors.Size;
 	}
 	for(int i = 0; i < BATTLE_SIDES; ++i) {
-		InitUnitStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Side[BATTLE_ATTACKER].Stats[WARSTAT_SIZE * i]);
-		ArmyUpdateStats(Battle->Side[BATTLE_ATTACKER].Army);
-		FrontStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Side[BATTLE_ATTACKER].Stats[WARSTAT_SIZE * i], &Battle->Side[BATTLE_ATTACKER].FrontWarbands[i]);
+		InitUnitStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Attacker.Stats[WARSTAT_SIZE * i]);
+		ArmyUpdateStats(Battle->Attacker.Army);
+		FrontStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Attacker.Stats[WARSTAT_SIZE * i], &Battle->Attacker.FrontWarbands[i]);
 
-		InitUnitStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Side[BATTLE_DEFENDER].Stats[i]);
-		ArmyUpdateStats(Battle->Side[BATTLE_DEFENDER].Army);
-		FrontStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Side[BATTLE_DEFENDER].Stats[WARSTAT_SIZE * i], &Battle->Side[BATTLE_DEFENDER].FrontWarbands[i]);
+		InitUnitStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Defender.Stats[i]);
+		ArmyUpdateStats(Battle->Defender.Army);
+		FrontStats((uint8_t(*)[WARSTAT_SIZE])&Battle->Defender.Stats[WARSTAT_SIZE * i], &Battle->Defender.FrontWarbands[i]);
 	}
+	Battle->BattleSite = NULL;
 	Battle->Stats.AttkCas = 0;
 	Battle->Stats.DefCas = 0;
 	ILL_CREATE(*List, Battle);
@@ -96,8 +97,8 @@ void DestroyBattle(struct Battle* Battle) {
 	struct Battle** List = (struct Battle**) SubTimeGetList(SUBTIME_BATTLE);
 
 	ILL_DESTROY(*List, Battle);
-	Battle->Side[BATTLE_ATTACKER].Army->InBattle = false;
-	Battle->Side[BATTLE_DEFENDER].Army->InBattle = false;
+	Battle->Attacker.Army->InBattle = false;
+	Battle->Defender.Army->InBattle = false;
 	free(Battle);
 }
 
@@ -146,16 +147,18 @@ void BattleDistPrestige(struct BattleSide* Side, int TotalPrestige) {
 }
 
 void BattleEnd(int Victor, struct Battle* Battle) {
-	//int AttkSize = ArmyGetSize(Battle->Side[BATTLE_ATTACKER].Army);
-	//int DefSize = ArmyGetSize(Battle->Side[BATTLE_DEFENDER].Army);
+	//int AttkSize = ArmyGetSize(Battle->Attacker.Army);
+	//int DefSize = ArmyGetSize(Battle->Defender.Army);
 
-	//int DefPrestige = (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize) / (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize);
-	//int AttkPrestige = (((float)AttkSize) / Battle->Side[BATTLE_ATTACKER].StartingSize) / (((float)DefSize) / Battle->Side[BATTLE_DEFENDER].StartingSize);
+	//int DefPrestige = (((float)DefSize) / Battle->Defender.StartingSize) / (((float)AttkSize) / Battle->Attacker.StartingSize);
+	//int AttkPrestige = (((float)AttkSize) / Battle->Attacker.StartingSize) / (((float)DefSize) / Battle->Defender.StartingSize);
 
-	Battle->Side[BATTLE_ATTACKER].Army->InBattle = false;
-	Battle->Side[BATTLE_DEFENDER].Army->InBattle = false;
-	//BattleDistPrestige(&Battle->Side[BATTLE_ATTACKER], AttkPrestige);
-	//BattleDistPrestige(&Battle->Side[BATTLE_DEFENDER], DefPrestige);
+	Battle->Attacker.Army->InBattle = false;
+	Battle->Defender.Army->InBattle = false;
+	//BattleDistPrestige(&Battle->Attacker, AttkPrestige);
+	//BattleDistPrestige(&Battle->Defender, DefPrestige);
+	if(Victor == BATTLE_ATTACKER && Battle->BattleSite != NULL)
+		RaidFamilies(&Battle->Attacker.Army->Captives, &Battle->BattleSite->Families, ArmyGetSize(Battle->Attacker.Army));
 	PushEvent(EVENT_BATTLE, Battle, NULL);
 }
 
@@ -183,8 +186,6 @@ void RemoveCasualties(struct Array* Front, uint16_t Amount, uint16_t ArmySize) {
 	struct Warband* Warband = NULL;
 	uint16_t Rand = 0;
 	struct Warband* RandList[Front->Size];
-	void* Temp = NULL;
-	uint16_t Size = Front->Size;
 	int* WarbandDeaths = alloca(sizeof(int) * Front->Size);
 	double DeathPercent[Front->Size];
 	
@@ -194,13 +195,7 @@ void RemoveCasualties(struct Array* Front, uint16_t Amount, uint16_t ArmySize) {
 		RandList[i] = Front->Table[i];
 		DeathPercent[i] = ((struct Warband*)Front->Table[i])->Warriors.Size / ArmySize;
 	}
-	while(Size > 1) {
-		Rand = Random(0, Size - 1);
-		Temp = Front->Table[Rand];
-		Front->Table[Rand] = Front->Table[Size - 1];
-		Front->Table[Size - 1] = Temp;
-		--Size;
-	}
+	CArrayRandom(RandList, Front->Size);
 	RandTable(DeathPercent, &WarbandDeaths, Front->Size, Amount);
 	//For every warband.
 	for(int i = 0; i < Front->Size; ++i) {
@@ -230,22 +225,22 @@ void BattleThink(struct Battle* Battle) {
 	for(int Tick = 0; Tick < BATTLE_TICKS; ++Tick) {
 		for(int i = 0; i < BATFLANK_SIZE; ++i) {
 			uint8_t StatOff = i * WARSTAT_SIZE;
-			DefCas = BattleDamage(Battle->Side[BATTLE_ATTACKER].Stats[StatOff + WARSTAT_COMBAT], Battle->Side[BATTLE_ATTACKER].Stats[StatOff + WARSTAT_COMBAT],
-				Battle->Side[BATTLE_DEFENDER].Stats[StatOff +  WARSTAT_DEFENSE], CountFrontSize(&Battle->Side[BATTLE_ATTACKER].FrontWarbands[i]));
+			DefCas = BattleDamage(Battle->Attacker.Stats[StatOff + WARSTAT_COMBAT], Battle->Attacker.Stats[StatOff + WARSTAT_COMBAT],
+				Battle->Defender.Stats[StatOff +  WARSTAT_DEFENSE], CountFrontSize(&Battle->Attacker.FrontWarbands[i]));
 
-			AttkCas = BattleDamage(Battle->Side[BATTLE_DEFENDER].Stats[StatOff + WARSTAT_COMBAT], Battle->Side[BATTLE_DEFENDER].Stats[StatOff + WARSTAT_COMBAT],
-				Battle->Side[BATTLE_ATTACKER].Stats[StatOff + WARSTAT_DEFENSE], CountFrontSize(&Battle->Side[BATTLE_DEFENDER].FrontWarbands[i]));
-			RemoveCasualties(&Battle->Side[BATTLE_ATTACKER].FrontWarbands[i], AttkCas, Battle->Side[BATTLE_ATTACKER].FrontSize[i]);
-			RemoveCasualties(&Battle->Side[BATTLE_DEFENDER].FrontWarbands[i], DefCas, Battle->Side[BATTLE_DEFENDER].FrontSize[i]);
-			if(Battle->Side[BATTLE_ATTACKER].FrontSize[i] - AttkCas < 0)
-				Battle->Side[BATTLE_ATTACKER].FrontSize[i] = 0;
+			AttkCas = BattleDamage(Battle->Defender.Stats[StatOff + WARSTAT_COMBAT], Battle->Defender.Stats[StatOff + WARSTAT_COMBAT],
+				Battle->Attacker.Stats[StatOff + WARSTAT_DEFENSE], CountFrontSize(&Battle->Defender.FrontWarbands[i]));
+			RemoveCasualties(&Battle->Attacker.FrontWarbands[i], AttkCas, Battle->Attacker.FrontSize[i]);
+			RemoveCasualties(&Battle->Defender.FrontWarbands[i], DefCas, Battle->Defender.FrontSize[i]);
+			if(Battle->Attacker.FrontSize[i] - AttkCas < 0)
+				Battle->Attacker.FrontSize[i] = 0;
 			else
-				Battle->Side[BATTLE_ATTACKER].FrontSize[i] -= AttkCas;
+				Battle->Attacker.FrontSize[i] -= AttkCas;
 
-			if(Battle->Side[BATTLE_DEFENDER].FrontSize[i] - DefCas < 0)
-				Battle->Side[BATTLE_DEFENDER].FrontSize[i] = 0;
+			if(Battle->Defender.FrontSize[i] - DefCas < 0)
+				Battle->Defender.FrontSize[i] = 0;
 			else
-			Battle->Side[BATTLE_DEFENDER].FrontSize[i] -= DefCas;
+			Battle->Defender.FrontSize[i] -= DefCas;
 			Battle->Stats.AttkCas += AttkCas;
 			Battle->Stats.DefCas += DefCas;
 		}

@@ -14,6 +14,8 @@
 #define BATTLE_MAXFRONTS (3)
 #define BattleFrontStats(Stat, Front) ((Stat) + WARSTAT_SIZE * (Front))
 
+struct Settlement;
+
 enum {
 	PHASE_SKIRMISH,
 	PHASE_MELEE,
@@ -45,13 +47,16 @@ struct BattleSide {
 };
 
 struct Battle {
-	struct BattleSide Side[BATTLE_SIDES];
+//	struct BattleSide Side[BATTLE_SIDES];
+	struct BattleSide Attacker;
+	struct BattleSide Defender;
 	struct {
 		uint32_t AttkCas;
 		uint32_t DefCas;
 	} Stats;
 	struct Battle* Next;
 	struct Battle* Prev;
+	struct Settlement* BattleSite;
 	uint8_t Range;
 };
 

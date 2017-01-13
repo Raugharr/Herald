@@ -123,18 +123,6 @@ void Marry(struct Person* Male, struct Person* Female);
  * NOTE: Family is not fully created yet and has no people in it, thus FamilySize is needed
  */
 void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, struct FamilyType** FamilyTypes, struct Settlement* Location);
-/*
- * Takes Quantity amount from Good and inserts it into Family's Good array, creating a new good if Family's
- * good array does not contain the good. If Quantity is equal to Good->Quantity Good is destroyed.
- */
-void FamilyGetGood(struct Family* Family, struct Good* Good, int Quantity);
-/*
- * Takes Quantity from Index in Family's good array.
- */
-struct Good* FamilyTakeGood(struct Family* Family, int Index, int Quantity);
-/**
- * Returns the yearly requirement of nutrition needed to feed the people in the family Family.
- */
 int FamilyNutReq(const struct Family* Family);
 /**
  * Returns the amount of nutrition the family currently has.
@@ -167,6 +155,9 @@ static inline int StoredFoodSufficient(const struct Family* Family) {
 		return 1;
 	return 0;
 }
+
+void FamilyRemovePerson(struct Family* Family, struct Person* Person);
+bool FamilyAddPerson(struct Family* Family, struct Person* Person);
 
 void CreateFarmerFamilies(struct GameWorld* World, struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
 void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);

@@ -555,36 +555,6 @@ void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, str
 	}
 }
 
-void FamilyGetGood(struct Family* Family, struct Good* Good, int Quantity) {
-	SDL_assert(Quantity <= Good->Quantity);
-	for(int i = 0; i < Family->Goods.Size; ++i)
-		if(Good->Base == ((struct Good*)Family->Goods.Table[i])->Base) {
-			((struct Good*)Family->Goods.Table[i])->Quantity += Quantity;
-			if(Quantity >= Good->Quantity) {
-				DestroyGood(Good);
-			} else {
-				Good->Quantity = Good->Quantity - Quantity;
-			}
-			return;
-		}
-	ArrayInsert(&Family->Goods, Good);
-}
-
-struct Good* FamilyTakeGood(struct Family* Family, int Index, int Quantity) {
-	struct Good* Good = NULL;
-
-	if(Index < 0 || Index >= Family->Goods.Size)
-		return NULL;
-	Good = Family->Goods.Table[Index];
-	if(Good->Quantity > Quantity) {
-		Good->Quantity = Good->Quantity - Quantity;;
-		Good = g_GoodCopy[Good->Base->Category](Good);
-	} else {
-		ArrayRemove(&Family->Goods, Index);
-	}
-	return Good;
-}
-
 int FamilyNutReq(const struct Family* Family) {
 	int Nutrition = 0;
 
@@ -761,6 +731,36 @@ int FamilyGetWealth(const struct Family* Family) {
 		Wealth += ((struct Animal*)Family->Animals.Table[i])->PopType->Wealth;
 	}
 	return Wealth / 100;
+}
+
+void FamilyRemovePerson(struct Family* Family, struct Person* Person) {
+	if(Family->People[HUSBAND] == Person) {
+		Family->People[HUSBAND] = NULL;
+		Person->Family = NULL;
+		return;
+	}
+	if(Family->People[WIFE] == Person) {
+		Family->People[WIFE] = NULL;
+		Person->Family = NULL;
+		return;
+	}
+	for(int i = CHILDREN; i < Family->NumChildren + CHILDREN; ++i) {
+		if(Family->People[i] == Person) {
+			--Family->NumChildren;
+			Family->People[i] = Family->People[CHILDREN + Family->NumChildren];
+			Family->People[CHILDREN + Family->NumChildren] = NULL;
+			return;
+		}
+	}
+}
+
+bool FamilyAddPerson(struct Family* Family, struct Person* Person) {
+	if(Family->NumChildren + 2 >= FAMILY_PEOPLESZ)
+		return false;
+	Family->People[Family->NumChildren + 2] = Person;
+	FamilyRemovePerson(Person->Family, Person);
+	Person->Family = Family;
+	return true;
 }
 
 void CreateFarmerFamilies(struct GameWorld* World, struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg) {

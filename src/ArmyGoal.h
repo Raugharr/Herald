@@ -5,6 +5,8 @@
 #ifndef __ARMYGOAL_H
 #define __ARMYGOAL_H
 
+#include <inttypes.h>
+
 struct Army;
 struct Settlement;
 
@@ -17,13 +19,14 @@ enum {
 };
 
 struct ArmyGoal {
-	int Type;
 	const void* Data;
 	void (*Think)(struct Army*);
-	int IsRaid;
+	uint8_t Type;
+	uint8_t IsRaid;
+	uint8_t RaidType;
 };
 
-struct ArmyGoal* ArmyGoalRaid(struct ArmyGoal* _Goal, const struct Settlement* _Settlement);
-struct ArmyGoal* ArmyGoalDefend(struct ArmyGoal* _Goal, const struct Settlement* _Settlement);
+struct ArmyGoal* ArmyGoalRaid(struct ArmyGoal* Goal, const struct Settlement* Settlement, uint8_t RaidType);
+struct ArmyGoal* ArmyGoalDefend(struct ArmyGoal* Goal, const struct Settlement* Settlement);
 
 #endif

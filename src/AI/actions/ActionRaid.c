@@ -29,7 +29,7 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	WorldSettlementsInRadius(&g_GameWorld, &_Settlement->Pos, 20, &_List);
 	if(_List.Size <= 0)
 		goto end;
-	ArmyGoalRaid(&_Goal, (struct Settlement*)&_List.Back->Data);
+	ArmyGoalRaid(&_Goal, (struct Settlement*)&_List.Back->Data, ARMYGOAL_SLAUGHTER);
 	SettlementRaiseFyrd(_Settlement, &_Goal);
 	end:
 	LnkLstClear(&_List);
@@ -39,7 +39,7 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
-	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 4; //HOw much nutrition we need for 3 months.
+	int _MaxNutrition = _Settlement->NumPeople * NUTRITION_REQ / 4; //How much nutrition we need for 3 months.
 	int _Nutrition = SettlementGetNutrition(_Settlement);
 
 	if(_Nutrition >= _MaxNutrition)

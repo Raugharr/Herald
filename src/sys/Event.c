@@ -244,7 +244,7 @@ void Events() {
 			char Buffer[256];
 
 			sprintf(Buffer, "The attacker has lost %i men out of %i. The defender has lost %i men out of %i.",
-					Battle->Stats.AttkCas, Battle->Side[BATTLE_ATTACKER].StartingSize, Battle->Stats.DefCas, Battle->Side[BATTLE_DEFENDER].StartingSize);
+					Battle->Stats.AttkCas, Battle->Attacker.StartingSize, Battle->Stats.DefCas, Battle->Defender.StartingSize);
 			MessageBox(Buffer);
 			DestroyBattle(Battle);
 		} else if(Event.type == g_EventTypes[EVENT_NEWLEADER]) {
@@ -263,18 +263,12 @@ void Events() {
 			struct Warband* Warband = Event.user.data1;
 			struct Animal* Animal = NULL;
 			float  SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
-			uint16_t Spoils = Warband->Parent->LootedAnimals.Size * SpoilsRatio;
+			uint16_t Spoils = Warband->Parent->Captives.Size * SpoilsRatio;
 			char Buffer[256];
 
 			if(Warband->Warriors.Size == 0)
 				goto end;
-			sprintf(Buffer, "You have looted %i animals.", Spoils);
-			while(Spoils > 0) {
-				Animal = Warband->Parent->LootedAnimals.Front->Data;
-				LnkLstPopFront(&Warband->Parent->LootedAnimals);
-				FamilyAddAnimal(Warband->Leader->Person->Family, Animal);
-				--Spoils;
-			}
+			sprintf(Buffer, "You have taken %i captives.", Spoils);
 			MessageBox(Buffer);
 			end:
 			DestroyWarband(Warband);	

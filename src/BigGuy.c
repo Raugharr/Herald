@@ -75,9 +75,9 @@ void BigGuyActionGift(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
 
 	for(int i = 0; i < _Family->Goods.Size; ++i)
 		if(_Base == ((struct Good*)_Family->Goods.Table[i])->Base) {
-			struct Good* _Taken = FamilyTakeGood(_Family, i, _Action->Modifier);
+			struct Good* _Taken = ArrayRemoveGood(&_Family->Goods, i, _Action->Modifier);
 
-			FamilyGetGood(_Guy->Person->Family, _Taken, _Taken->Quantity);
+			ArrayAddGood(&_Guy->Person->Family->Goods, _Taken, _Taken->Quantity);
 		}
 }
 

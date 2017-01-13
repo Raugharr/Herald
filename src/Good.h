@@ -261,6 +261,18 @@ void SellItem(struct Family* Buyer, const struct SellRequest* SellReq);
 int GoodGetValue(const struct GoodBase* Base);
 struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs, int X, int Y);
 const struct LinkedList* GoodGetCategory(const char* Category);
+/*
+ * Takes Quantity amount from Good and inserts it into Family's Good array, creating a new good if Family's
+ * good array does not contain the good. If Quantity is equal to Good->Quantity Good is destroyed.
+ */
+void ArrayAddGood(struct Array* GoodList, struct Good* Good, uint32_t Quantity);
+/*
+ * Takes Quantity from Index in Family's good array.
+ */
+struct Good* ArrayRemoveGood(struct Array* GoodList, uint32_t Index, uint32_t Quantity);
+/**
+ * Returns the yearly requirement of nutrition needed to feed the people in the family Family.
+ */
 
 static inline struct Good* CheckGoodTbl(struct Array* Array, const char* GoodName, const struct HashTable* Search, int X, int Y) {
 	const struct GoodBase* GoodBase = HashSearch(Search, GoodName);

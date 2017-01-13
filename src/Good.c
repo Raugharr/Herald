@@ -828,3 +828,35 @@ const struct LinkedList* GoodGetCategory(const char* Category) {
 	}
 	return NULL;
 }
+
+void ArrayAddGood(struct Array* GoodList, struct Good* Good, uint32_t Quantity) {
+	Assert(Quantity <= Good->Quantity);
+	
+	for(int i = 0; i < GoodList->Size; ++i)
+		if(Good->Base == ((struct Good*)GoodList->Table[i])->Base) {
+			((struct Good*)GoodList->Table[i])->Quantity += Quantity;
+			if(Quantity >= Good->Quantity) {
+				DestroyGood(Good);
+			} else {
+				Good->Quantity = Good->Quantity - Quantity;
+			}
+			return;
+		}
+	ArrayInsert(GoodList, Good);
+}
+
+struct Good* ArrayRemoveGood(struct Array* GoodList, uint32_t Index, uint32_t  Quantity) {
+	struct Good* Good = NULL;
+
+	if(Index < 0 || Index >= GoodList->Size)
+		return NULL;
+	Good = GoodList->Table[Index];
+	if(Good->Quantity > Quantity) {
+		Good->Quantity = Good->Quantity - Quantity;
+		Good = g_GoodCopy[Good->Base->Category](Good);
+	} else {
+		ArrayRemove(GoodList, Index);
+	}
+	return Good;
+}
+

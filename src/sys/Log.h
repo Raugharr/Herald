@@ -6,7 +6,8 @@
 #ifndef __LOG_H
 #define __LOG_H
 
-#include "stdarg.h"
+#include <stdarg.h>
+#include <signal.h>
 
 #define LOG_MAXSIZE (512)
 #define LOG_LUAMSG "Function %s contains error (%s) on line %i"
@@ -16,6 +17,7 @@
 	#define Assert(Bool)	\
 		if((Bool) == 0) {	\
 			Log(ELOG_DEBUG, "Assert failed %s:%s:%i, (%s).", __FILE__, __func__, __LINE__, (#Bool));	\
+			raise(SIGINT);																				\
 		}
 
 	#define AssertIntEq(_Left, _Right)				\

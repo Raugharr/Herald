@@ -13,6 +13,7 @@
 #include "BigGuy.h"
 #include "Herald.h"
 #include "Policy.h"
+#include "Warband.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -36,6 +37,27 @@ static const luaL_Reg g_LuaWorldFuncs[] = {
 		{NULL, NULL}
 };
 
+const struct LuaEnum g_LuaWorldActionEnum[] = {
+	{"Default", WORLDACT_DEFAULT},
+	{"RaiseArmy", WORLDACT_RAISEARMY},
+	{NULL, 0}
+};
+
+const struct LuaEnum g_LuaArmyGoalEnum[] = {
+	{"None", ARMYGOAL_NONE},
+	{"Slaves", ARMYGOAL_SLAVES},
+	{"Pillage", ARMYGOAL_PILLAAGE},
+	{"Slaughter", ARMYGOAL_SLAUGHTER},
+	{NULL, 0}
+};
+
+const struct LuaEnumReg g_LuaWorldEnums[] = {
+	{"World", "Action",  g_LuaWorldActionEnum},
+	{"Army", "Goal", g_LuaArmyGoalEnum},
+	{NULL, NULL}
+};
+
+
 void LuaWorldInit(lua_State* State) {
 	luaL_newlib(State, g_LuaWorldFuncs);
 	lua_pushstring(State, "Castes"); 
@@ -50,89 +72,90 @@ void LuaWorldInit(lua_State* State) {
 	lua_pushinteger(State, CASTE_SIZE);
 	lua_rawset(State, -3);
 	lua_setglobal(State, "World");
+	RegisterLuaEnums(State, g_LuaWorldEnums);
 }
 
-int LuaWorldGetPlayer(lua_State* _State) {
-	LuaCtor(_State, g_GameWorld.Player, LOBJ_BIGGUY);
+int LuaWorldGetPlayer(lua_State* State) {
+	LuaCtor(State, g_GameWorld.Player, LOBJ_BIGGUY);
 	return 1;
 }
 
-int LuaWorldGetSettlement(lua_State* _State) {
-	LuaCtor(_State, FamilyGetSettlement(g_GameWorld.Player->Person->Family)->Government,LOBJ_GOVERNMENT); 
+int LuaWorldGetSettlement(lua_State* State) {
+	LuaCtor(State, FamilyGetSettlement(g_GameWorld.Player->Person->Family)->Government,LOBJ_GOVERNMENT); 
 	return 1;
 }
 
-int LuaWorldGetDate(lua_State* _State) {
-	lua_pushinteger(_State, g_GameWorld.Date);
+int LuaWorldGetDate(lua_State* State) {
+	lua_pushinteger(State, g_GameWorld.Date);
 	return 1;
 }
 
-int LuaWorldPause(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TBOOLEAN);
+int LuaWorldPause(lua_State* State) {
+	luaL_checktype(State, 1, LUA_TBOOLEAN);
 
-	g_GameWorld.IsPaused = lua_toboolean(_State, 1);
+	g_GameWorld.IsPaused = lua_toboolean(State, 1);
 	return 0;
 }
 
-int LuaWorldIsPaused(lua_State* _State) {
-	lua_pushboolean(_State, g_GameWorld.IsPaused);
+int LuaWorldIsPaused(lua_State* State) {
+	lua_pushboolean(State, g_GameWorld.IsPaused);
 	return 1;
 }
 
-int LuaWorldRenderMap(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TBOOLEAN);
+int LuaWorldRenderMap(lua_State* State) {
+	luaL_checktype(State, 1, LUA_TBOOLEAN);
 
-	g_GameWorld.MapRenderer->IsRendering = lua_toboolean(_State, 1);
+	g_GameWorld.MapRenderer->IsRendering = lua_toboolean(State, 1);
 	return 0;
 }
 
-int LuaWorldIsRendering(lua_State* _State) {
-	lua_pushboolean(_State, g_GameWorld.MapRenderer->IsRendering);
+int LuaWorldIsRendering(lua_State* State) {
+	lua_pushboolean(State, g_GameWorld.MapRenderer->IsRendering);
 	return 1;
 }
 
-int LuaWorldSetOnClick(lua_State* _State) {
-	luaL_checktype(_State, 1, LUA_TNUMBER);
-	luaL_checktype(_State, 2, LUA_TLIGHTUSERDATA);
+int LuaWorldSetOnClick(lua_State* State) {
+	luaL_checktype(State, 1, LUA_TNUMBER);
+	luaL_checktype(State, 2, LUA_TLIGHTUSERDATA);
 
-	int _ClickState = lua_tointeger(_State, 1);
+	int ClickState = lua_tointeger(State, 1);
 	//FIXME: Create a Lua binding for Objects.
-	struct Object* _Obj = lua_touserdata(_State, 2);
+	struct Object* Obj = lua_touserdata(State, 2);
 
-	SetClickState(_Obj, _ClickState);
+	SetClickState(Obj, ClickState, luaL_optint(State, 3, 0));
 	return 0;
 }
 
-int LuaWorldGetBigGuy(lua_State* _State) {
-	struct Person* _Person = LuaCheckClass(_State, 1, LOBJ_PERSON);
-	struct BigGuy* _Guy = NULL;
+int LuaWorldGetBigGuy(lua_State* State) {
+	struct Person* Person = LuaCheckClass(State, 1, LOBJ_PERSON);
+	struct BigGuy* Guy = NULL;
 
-	if((_Guy = RBSearch(&g_GameWorld.BigGuys, _Person)) == NULL) {
-		lua_pushnil(_State);
+	if((Guy = RBSearch(&g_GameWorld.BigGuys, Person)) == NULL) {
+		lua_pushnil(State);
 		return 1;
 	}
-	LuaCtor(_State, _Guy, LOBJ_BIGGUY);
+	LuaCtor(State, Guy, LOBJ_BIGGUY);
 	return 1;
 }
 
-int LuaWorldGetPlot(lua_State* _State) {
-	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
-	struct Plot* _Plot = RBSearch(&g_GameWorld.PlotList, _Guy);
+int LuaWorldGetPlot(lua_State* State) {
+	struct BigGuy* Guy = LuaCheckClass(State, 1, LOBJ_BIGGUY);
+	struct Plot* Plot = RBSearch(&g_GameWorld.PlotList, Guy);
 
-	if(_Plot == NULL) {
-		lua_pushnil(_State);
+	if(Plot == NULL) {
+		lua_pushnil(State);
 		return 1;
 	}
-	LuaCtor(_State, _Plot, LOBJ_PLOT);
+	LuaCtor(State, Plot, LOBJ_PLOT);
 	return 1;					
 }
 
 //FIXME: Should use a static Lua table constructed at program beginning instead.
-int LuaWorldPolicies(lua_State* _State) {
-	lua_createtable(_State, g_GameWorld.Policies.Size, 0);
+int LuaWorldPolicies(lua_State* State) {
+	lua_createtable(State, g_GameWorld.Policies.Size, 0);
 	for(int i = 0; i < g_GameWorld.Policies.Size; ++i) {
-		LuaCtor(_State, g_GameWorld.Policies.Table[i], LOBJ_POLICY);
-		lua_rawseti(_State, -2, i + 1);
+		LuaCtor(State, g_GameWorld.Policies.Table[i], LOBJ_POLICY);
+		lua_rawseti(State, -2, i + 1);
 	}
 	return 1;
 }

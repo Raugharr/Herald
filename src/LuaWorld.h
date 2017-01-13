@@ -8,16 +8,16 @@
 typedef struct lua_State lua_State;
 
 void LuaWorldInit(lua_State* State);
-int LuaWorldGetPlayer(lua_State* _State);
-int LuaWorldGetSettlement(lua_State* _State);;
-int LuaWorldGetDate(lua_State* _State);
-int LuaWorldPause(lua_State* _State);
-int LuaWorldIsPaused(lua_State* _State);
-int LuaWorldRenderMap(lua_State* _State);
-int LuaWorldIsRendering(lua_State* _State);
-int LuaWorldSetOnClick(lua_State* _State);
-int LuaWorldGetBigGuy(lua_State* _State);
-int LuaWorldGetPlot(lua_State* _State);
-int LuaWorldPolicies(lua_State* _State);
+int LuaWorldGetPlayer(lua_State* State);
+int LuaWorldGetSettlement(lua_State* State);;
+int LuaWorldGetDate(lua_State* State);
+int LuaWorldPause(lua_State* State);
+int LuaWorldIsPaused(lua_State* State);
+int LuaWorldRenderMap(lua_State* State);
+int LuaWorldIsRendering(lua_State* State);
+int LuaWorldSetOnClick(lua_State* State);
+int LuaWorldGetBigGuy(lua_State* State);
+int LuaWorldGetPlot(lua_State* State);
+int LuaWorldPolicies(lua_State* State);
 
 #endif

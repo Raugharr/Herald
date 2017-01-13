@@ -52,9 +52,9 @@ enum {
 };
 
 enum {
-	MOUSESTATE_DEFAULT,
-	MOUSESTATE_RAISEARMY,
-	MOUSESTATE_SIZE
+	WORLDACT_DEFAULT,
+	WORLDACT_RAISEARMY,
+	WORLDACT_SIZE
 };
 
 struct SubTimeObject {
@@ -108,8 +108,8 @@ struct FoodBase** LoadHumanFood(lua_State* State, struct FoodBase** FoodArray, c
 void WorldInit(int Area);
 void WorldQuit();
 
-uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two);
-uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two);
+uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two, uint32_t Context);
+uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two, uint32_t Context);
 void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World);
 void GameWorldDraw(const struct GameWorld* World);
 void CreateTempMap(int Length);
@@ -118,7 +118,7 @@ int World_Tick();
 void WorldPathCallback(struct Army* Army, struct Path* Path);
 
 void** SubTimeGetList(int Type);
-void SetClickState(struct Object* Data, int State);
+void SetClickState(struct Object* Data, uint32_t State, uint32_t Context);
 struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos);
 
 #endif

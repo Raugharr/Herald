@@ -69,21 +69,18 @@ static struct SubTimeObject g_SubTimeObject[SUBTIME_SIZE] = {
 };
 
 struct GameOnClick {
-	uint32_t (*OnClick)(const struct Object*, const struct Object*);
+	uint32_t (*OnClick)(const struct Object*, const struct Object*, uint32_t);
 	uint32_t State;
+	uint32_t Context;
 	const void* Data;
 };
 
-static uint32_t (*g_GameOnClickFuncs[])(const struct Object*, const struct Object*) = {
+static uint32_t (*g_GameOnClickFuncs[])(const struct Object*, const struct Object*, uint32_t) = {
 		GameDefaultClick,
 		GameFyrdClick
 };
 
-static struct GameOnClick g_GameOnClick = {
-	NULL,
-	0,
-	NULL
-};
+static struct GameOnClick g_GameOnClick = {0};
 
 const char* g_CasteNames[CASTE_SIZE] = {
 	"Thrall",
@@ -101,9 +98,9 @@ int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
 
 void GameOnClick(struct Object* Obj) {
-	int State = g_GameOnClick.OnClick(g_GameOnClick.Data, Obj);
+	uint32_t State = g_GameOnClick.OnClick(g_GameOnClick.Data, Obj, g_GameOnClick.Context);
 
-	SetClickState(NULL, State);
+	SetClickState(NULL, State, 0);
 }
 
 int FamilyICallback(const struct Family* One, const struct Family* Two) {
@@ -259,6 +256,16 @@ void PopulateManor(struct GameWorld* World, struct FamilyType** FamilyTypes,
 	Settlement->Factions.Leader[FACTION_IDPEASANT] = Chief;
 	AssertPtrNeq(Warlord, NULL);
 	AssertPtrNeq(Chief, NULL);
+#ifdef DEBUG
+	uint32_t SettlementSz = 0;
+
+	for(struct LnkLst_Node* Itr = Settlement->Families.Front; Itr != NULL; Itr = Itr->Next) {
+		struct Family* Family = Itr->Data;
+
+		SettlementSz += FamilySize(Family);
+	}
+	Assert(Settlement->NumPeople == SettlementSz);
+#endif
 }
 /*
  * TODO: This function is currently useless as instead of calling RandomsizeManorPop,
@@ -710,7 +717,7 @@ void WorldQuit() {
 	DestroyConstrntBnds(g_GameWorld.BabyAvg);
 }
 
-uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two) {
+uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two, uint32_t Context) {
 	lua_settop(g_LuaState, 0);
 	lua_pushstring(g_LuaState, "ViewSettlementMenu");
 	lua_createtable(g_LuaState, 0, 1);
@@ -718,22 +725,22 @@ uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two) {
 	LuaCtor(g_LuaState, ((struct Settlement*)Two), LOBJ_SETTLEMENT);
 	lua_rawset(g_LuaState, -3);
 	LuaCreateWindow(g_LuaState);
-	return MOUSESTATE_DEFAULT;
+	return WORLDACT_DEFAULT;
 }
 
-uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two) {
+uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two, uint32_t Context) {
 	const struct Settlement* Settlement = (const struct Settlement*) One;
 
 	if(Two->Type == OBJECT_LOCATION) {
 		if(GovernmentTop(Settlement->Government) != GovernmentTop(((const struct Settlement*) Two)->Government) && IsPlayerGovernment(&g_GameWorld, (struct Settlement*) Two) == 0) {
 			struct ArmyGoal Goal;
 
-			CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalRaid(&Goal, ((struct Settlement*)Two)));
-			return MOUSESTATE_DEFAULT;
+			CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalRaid(&Goal, ((struct Settlement*)Two), Context));
+			return WORLDACT_DEFAULT;
 		}
 	}
 	((struct Settlement*) Settlement)->LastRaid = g_GameWorld.Date;
-	return MOUSESTATE_RAISEARMY;
+	return WORLDACT_RAISEARMY;
 }
 
 void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World) {
@@ -843,8 +850,8 @@ void** SubTimeGetList(int Type) {
 	return  &g_SubTimeObject[Type].List;
 }
 
-void SetClickState(struct Object* Data, int State) {
-	if(State >= MOUSESTATE_SIZE)
+void SetClickState(struct Object* Data, uint32_t State, uint32_t Context) {
+	if(State >= WORLDACT_SIZE)
 		State = 0;
 	if(State != g_GameOnClick.State) {
 		g_GameOnClick.State = State;

@@ -264,8 +264,16 @@ void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
 }
 
 void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person) {
+	Assert(Settlement->NumPeople > 0);
+
 	ILL_DESTROY(Person->Family->HomeLoc->People, Person);
 	--Settlement->NumPeople;
+	if(PersonMature(Person) == 1) {
+		if(Person->Gender == EMALE)
+			--Settlement->AdultMen;
+		else
+			--Settlement->AdultWomen;
+	}
 	if(PersonMature(Person) != 0 && PERSON_CASTE(Person) == CASTE_NOBLE) {
 		for(struct LnkLst_Node* Itr = Settlement->FreeWarriors.Front; Itr != NULL; Itr = Itr->Next) {
 			if(Itr->Data == Person) {

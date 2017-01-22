@@ -808,6 +808,11 @@ int World_Tick() {
 	struct RBItrStack Stack[g_GameWorld.Agents.Size];
 
 	do {
+		MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuys);
+		RBDepthFirst(g_GameWorld.Agents.Table, Stack);
+		for(int i = 0; i < g_GameWorld.Agents.Size; ++i) {
+			AgentThink((struct Agent*)Stack[i].Node->Data);
+		}
 		for(int i = 0; i < SUBTIME_SIZE; ++i) {
 			SubObj = g_SubTimeObject[i].List;
 			while(SubObj != NULL) {
@@ -816,20 +821,15 @@ int World_Tick() {
 				SubObj = NextSubObj;
 			}
 		}
-	RBDepthFirst(g_GameWorld.Agents.Table, Stack);
-	for(int i = 0; i < g_GameWorld.Agents.Size; ++i) {
-		AgentThink((struct Agent*)Stack[i].Node->Data);
-	}
-	ObjectsThink();
-	MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuys);
-	NextDay(&g_GameWorld.Date);
-	++g_GameWorld.Tick;
-	if(MONTH(g_GameWorld.Date) != OldMonth) {
-		for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
-			g_GameWorld.MapRenderer->Tiles[i].Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
+		ObjectsThink();
+		NextDay(&g_GameWorld.Date);
+		++g_GameWorld.Tick;
+		if(MONTH(g_GameWorld.Date) != OldMonth) {
+			for(int i = 0; i < g_GameWorld.MapRenderer->TileArea; ++i) {
+				g_GameWorld.MapRenderer->Tiles[i].Temperature = g_TemperatureList[MONTH(g_GameWorld.Date)];
+			}
 		}
-	}
-	--Ticks;
+		--Ticks;
 	} while(Ticks > 0);
 	LnkLstClear(&QueuedPeople);
 	return 1;

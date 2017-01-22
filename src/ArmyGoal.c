@@ -50,7 +50,8 @@ void ArmyGoalRaidThink(struct Army* Army) {
 }
 
 void ArmyGoalDefendThink(struct Army* Army) {
-
+	//QTAABBInRectangle
+	DestroyArmy(Army);
 }
 
 struct ArmyGoal* ArmyGoalRaid(struct ArmyGoal* Goal, const struct Settlement* Settlement, uint8_t RaidType) {

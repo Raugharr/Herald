@@ -171,7 +171,7 @@ int LuaPersonGetY(lua_State* State) {
 int LuaPersonGetGender(lua_State* State) {
 	struct Person* Person = (struct Person*) LuaToObject(State, 1, LOBJ_PERSON);
 
-	lua_pushinteger(State, Person->Gender);
+	lua_pushinteger(State, Person->Flags & PERSON_MALE);
 	return 1;
 }
 

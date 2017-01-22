@@ -426,7 +426,7 @@ int FamilySize(const struct Family* Family) {
 }
 
 void Marry(struct Person* Male, struct Person* Female) {
-	assert(Male->Gender == EMALE && Female->Gender == EFEMALE);
+	assert(Gender(Male) == EMALE && Gender(Female) == EFEMALE);
 	struct Family* Family = CreateFamily(Male->Family->Name, FamilyGetSettlement(Male->Family), Male->Family);
 
 	Family->People[HUSBAND] = Male;
@@ -695,7 +695,7 @@ int FamilyWorkModifier(const struct Family* Family) {
 	int WorkMod = 0;
 
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
-		if(Family->People[i] == NULL || Family->People[i]->Gender == EFEMALE)
+		if(Family->People[i] == NULL || Gender(Family->People[i]) == EFEMALE)
 			continue;
 		WorkMod = WorkMod + PersonWorkMult(Family->People[i]);
 	}

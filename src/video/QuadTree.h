@@ -24,6 +24,7 @@ void QTSubdivide(struct QuadTree* _Node);
 void QTRemoveAABB(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetRect)(const void*, struct SDL_Rect*));
 int QTInsertAABB(struct QuadTree* _Node, void* _Data, SDL_Rect* _AABB);
 void QTRemovePoint(struct QuadTree* _Node, const SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Point*));
+void QTRemoveNode(struct QuadTree* _Node, const struct SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Point*), void* _Data);
 int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point);
 void QTPointInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Point*), struct LinkedList* _DataList);
 

@@ -29,7 +29,7 @@ struct Agent;
 #define BG_MAXGENSTATS (BGSKILL_SIZE * 55)
 #define SKILLCHECK_DEFAULT (100)
 
-#define BigGuyHasPlot(_Guy) (BigGuyGetPlot(_Guy) != NULL)
+#define BigGuyHasPlot(Guy) (BigGuyGetPlot(Guy) != NULL)
 
 //These actions should be removed and only GOAP acions should be used instead.
 enum {
@@ -103,72 +103,73 @@ struct BigGuy {
 	struct BigGuy* ActionTarget;
 };
 
-struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action);
-void DestroyBGActionHist(struct BigGuyActionHist* _Hist);
-int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two);
+void BigGuyDeath(struct BigGuy* Guy);
+struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* Owner, int Action);
+void DestroyBGActionHist(struct BigGuyActionHist* Hist);
+int BigGuyActionHistIS(const struct BigGuyActionHist* One, const struct BigGuyActionHist* Two);
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation);
-void DestroyBigGuy(struct BigGuy* _BigGuy);
+struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE], int Motivation);
+void DestroyBigGuy(struct BigGuy* BigGuy);
 
-void BigGuyThink(struct BigGuy* _Guy);
+void BigGuyThink(struct BigGuy* Guy);
 
-int BigGuyIdInsert(const struct BigGuy* _One, const struct BigGuy* _Two);
-int BigGuyIdCmp(const int* _Two, const struct BigGuy* _BigGuy);
-int BigGuyMissionCmp(const struct BigGuy* _BigGuy, const struct Mission* _Mission);
-void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value);
+int BigGuyIdInsert(const struct BigGuy* One, const struct BigGuy* Two);
+int BigGuyIdCmp(const int* Two, const struct BigGuy* BigGuy);
+int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission);
+void BigGuySetState(struct BigGuy* Guy, int State, int Value);
 
-struct BigGuy* BigGuyLeaderType(struct Person* _Person);
+struct BigGuy* BigGuyLeaderType(struct Person* Person);
 
 
 /**
  * Randomly distributes points to the stats that are provided in the variable argument.
- * _StatCt pointers to integers should be supplied to the variable argument followed by
- * _StatCt floats whose cumulative sum is 1. The float numbers represent the percentage of _Points
+ * StatCt pointers to integers should be supplied to the variable argument followed by
+ * StatCt floats whose cumulative sum is 1. The float numbers represent the percentage of Points
  * a random integer will receive.
  */
-void BGStatsRandom(int _Points, int _StatCt, ...);
-int BGRandRes(const struct BigGuy* _Guy, int _Stat);
+void BGStatsRandom(int Points, int StatCt, ...);
+int BGRandRes(const struct BigGuy* Guy, int Stat);
 /*
  * Creates a big guy with a stat emphasis on warfare.
  */
-void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points);
+void BGStatsWarlord(uint8_t (*Stats)[BGSKILL_SIZE], int Points);
 
 struct Trait** BGRandTraits();
-int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait);
+int HasTrait(const struct BigGuy* BigGuy, const struct Trait* Trait);
 
-void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
-struct Settlement* BigGuyHome(struct BigGuy* _Guy);
+void BigGuySetAction(struct BigGuy* Guy, int Action, struct BigGuy* Target, void* Data);
+struct Settlement* BigGuyHome(struct BigGuy* Guy);
 
 /**
  * \brief
- * Compares  the  _Stat of _One and _Two and returns how sucessful the winner was.
- * If _One has a lower score than _Two a negative value will be returned.
+ * Compares  the  Stat of One and Two and returns how sucessful the winner was.
+ * If One has a lower score than Two a negative value will be returned.
  * If they are equal 0 will be returned.
- * If _Two is greater than _One in the check a positive value will be returned.
+ * If Two is greater than One in the check a positive value will be returned.
  * The value returned will be the diference of the two rolls divided by 10.
  */
-int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill); 
+int BigGuyOpposedCheck(const struct BigGuy* One, const struct BigGuy* Two, int Skill); 
 /**
  * \return A positive integer on sucess and zero on failure.
  */
-int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq);
+int BigGuySkillCheck(const struct BigGuy* Guy, int Skill, int PassReq);
 /**
- * Similar to BigGuySkillCheck, returns how by how many multiples of 10 _Guy passes or
+ * Similar to BigGuySkillCheck, returns how by how many multiples of 10 Guy passes or
  * fails the skill check by.
  */
-int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq);
+int BigGuySuccessMargin(const struct BigGuy* Guy, int Skill, int PassReq);
 /**
- * \return How many people in _Guy's settlement that currently like him.
+ * \return How many people in Guy's settlement that currently like him.
  */
-int BigGuyPopularity(const struct BigGuy* _Guy);
-void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot);
-int BigGuyPlotPower(const struct BigGuy* _Guy);
+int BigGuyPopularity(const struct BigGuy* Guy);
+void BigGuyPlotTarget(struct BigGuy* Guy, struct Plot* Plot);
+int BigGuyPlotPower(const struct BigGuy* Guy);
 /*
- * Returns the retinue _Leader controls or NULL if _Leader does not control a retinue.
+ * Returns the retinue Leader controls or NULL if Leader does not control a retinue.
  */ 
-struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader);
+struct Retinue* BigGuyRetinue(const struct BigGuy* Leader);
 
-inline static struct Plot* BigGuyGetPlot(struct BigGuy* _Guy) {
-	return RBSearch(&g_GameWorld.PlotList, _Guy);
+inline static struct Plot* BigGuyGetPlot(struct BigGuy* Guy) {
+	return RBSearch(&g_GameWorld.PlotList, Guy);
 }
 #endif

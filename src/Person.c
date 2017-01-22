@@ -76,7 +76,7 @@ struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition
 	CreateObject(&Person->Object, OBJECT_PERSON, PersonThink);
 	Person->Name = Name;
 	Person->Age = Age;
-	Person->Gender = Gender;
+	Person->Flags = (PERSON_MALE & Gender);
 	Person->Nutrition = Nutrition;
 	Person->Family = Family;
 	Person->Pregnancy = NULL;
@@ -91,6 +91,7 @@ void DestroyPerson(struct Person* Person) {
 	DestroyObject(&Person->Object);
 	if(FamilySize(Person->Family) == 0)
 		Person->Family->IsAlive = false;
+	FamilyRemovePerson(Person->Family, Person);
 	//	DestroyFamily(Family);
 	MemPoolFree(g_PersonPool, Person);
 }
@@ -107,7 +108,7 @@ struct Person* CreateChild(struct Family* Family) {
 void PersonThink(struct Object* Obj) {
 	struct Person* Person = (struct Person*) Obj;
 
-	if(Person->Gender == EFEMALE) {
+	if(Gender(Person) == EFEMALE) {
 		if(Person->Family != NULL
 				&& Person->Pregnancy == NULL
 				&& Person == Person->Family->People[WIFE]
@@ -136,12 +137,15 @@ void PersonMarry(struct Person* Father, struct Person* Mother, struct Family* Fa
 
 void PersonDeath(struct Person* Person) {
 	struct Family* Family = Person->Family;
+	struct BigGuy* Guy = NULL;
 
 	if(Person->Pregnancy != NULL)
 		DestroyPregnancy(Person->Pregnancy);
 	++Family->HomeLoc->YearDeaths;
 	SettlementRemovePerson(Person->Family->HomeLoc, Person);
-	FamilyRemovePerson(Family, Person);
+	if((Guy = RBSearch(&g_GameWorld.BigGuys, Person)) != NULL)
+		BigGuyDeath(Guy);
+	DestroyPerson(Person);
 	PushEvent(EVENT_DEATH, Person, NULL);
 }
 
@@ -163,7 +167,7 @@ void PersonDeathArr(struct Person** List, uint32_t Size) {
 }
 
 int PersonIsWarrior(const struct Person* Person) {
-	if(Person->Gender != EMALE || !PersonMature(Person))
+	if(Gender(Person) != EMALE || !PersonMature(Person))
 		return 0;
 	return 1;
 }

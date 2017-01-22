@@ -442,16 +442,17 @@ void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t 
 					ArrayInsert_S(&DeathList, Person);
 				} else if(Captives->Size < MaxCaptives) {
 					SettlementRemovePerson(Family->HomeLoc, Person);
-					FamilyRemovePerson(Family, Person);
+					//FIXME: Remove from family when they are being transfered to a new city.
+					//FamilyRemovePerson(Family, Person);
 					ArrayInsert_S(Captives, Person);
+					Prisoner(Person, true);
 				} else {
 					ArrayInsert_S(&DeathList, Person);
 				}
 			--SettlementSz;
 		}
 	}
-	for(int i = 0; i < DeathList.Size; ++i)
-		PersonDeathArr((struct Person**) DeathList.Table, DeathList.Size);
+	PersonDeathArr((struct Person**) DeathList.Table, DeathList.Size);
 }
 
 void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxGoods) {

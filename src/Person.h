@@ -15,8 +15,8 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#define EMALE (1)
-#define EFEMALE (2)
+#define EMALE (0)
+#define EFEMALE (1)
 #define IsMarried(_Person) (_Person->Family->Wife != NULL)
 #define PersonDead(_Person) (_Person->Nutrition == 0)
 #define MAX_NUTRITION (250)
@@ -37,18 +37,23 @@ struct Food;
 
 extern struct MemoryPool* g_PersonPool;
 
+enum PersonFlags {
+	PERSON_MALE = (1 << 0),
+	PERSON_PRISONER = (1 << 1)
+};
+
 struct Person {
-struct Object Object;
-SDL_Point Pos;
-DATE Age;
-const char* Name;
-struct Family* Family;
-struct Person* Next;
-struct Person* Prev;
-//FIXME: Should be placed in a different spot most people will no be pregnant.
-struct Pregnancy* Pregnancy;
-int16_t Nutrition;
-uint8_t Gender;
+	struct Object Object;
+	SDL_Point Pos;
+	DATE Age;
+	const char* Name;
+	struct Family* Family;
+	struct Person* Next;
+	struct Person* Prev;
+	//FIXME: Should be placed in a different spot most people will no be pregnant.
+	struct Pregnancy* Pregnancy;
+	int16_t Nutrition;
+	uint8_t Flags;
 };
 
 struct Pregnancy {
@@ -85,13 +90,11 @@ return Person->Family->HomeLoc;
  */
 int PersonIsWarrior(const struct Person* Person);
 struct Person* GetFather(struct Person* Person);
-static inline bool IsChild(const struct Person* Person) {
-return (YEAR(Person->Age) < ADULT_AGE);
-}
-
-static inline bool PersonMature(const struct Person* Person) {
-return YEAR(Person->Age) >= ADULT_AGE;
-}
+static inline bool IsChild(const struct Person* Person) {return (YEAR(Person->Age) < ADULT_AGE);}
+static inline bool PersonMature(const struct Person* Person) {return YEAR(Person->Age) >= ADULT_AGE;}
+static inline uint8_t Gender(const struct Person* Person) {return Person->Flags & PERSON_MALE;}
+static inline void Prisoner(struct Person* Person, bool Prisoner) {Person->Flags = (Person->Flags | (Prisoner << 1));}
+static inline bool IsPrisoner(struct Person* Person) {return (Person->Flags & PERSON_PRISONER);}
 uint16_t PersonWorkMult(const struct Person* Person);
 #endif
 

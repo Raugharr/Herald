@@ -87,6 +87,25 @@ void QTRemovePoint(struct QuadTree* _Node, const SDL_Point* _Point, void (*_GetP
 	QTMoveUp(_Node);
 }
 
+
+void QTRemoveNode(struct QuadTree* _Node, const struct SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Point*), void* _Data) {
+	SDL_Point _Pos;
+
+	if(_Node->Data == NULL || PointInAABB(_Point, &_Node->BoundingBox) == 0)
+		return;
+	_GetPos(_Node->Data, &_Pos);
+	if(_Pos.x != _Point->x || _Pos.y != _Point->y) {
+		QTRemovePoint(_Node->NorthEast, _Point, _GetPos);
+		QTRemovePoint(_Node->NorthWest, _Point, _GetPos);
+		QTRemovePoint(_Node->SouthWest, _Point, _GetPos);
+		QTRemovePoint(_Node->SouthEast, _Point, _GetPos);
+	}
+	if(_Node->Data == _Data) {
+		_Node->Data = NULL;
+		QTMoveUp(_Node);
+	}
+}
+
 int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point) {
 	if(PointInAABB(_Point, &_Node->BoundingBox) == 0)
 		return 0;

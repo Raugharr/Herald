@@ -201,7 +201,7 @@ struct BigGuy* MonarchyNewLeader(const struct Government* Gov) {
 	struct BigGuy* Guy = NULL;
 
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i)
-		if(Family->People[i]->Gender == EMALE && Family->People[i]->Age >= ADULT_AGE) {
+		if(Gender(Family->People[i]) == EMALE && Family->People[i]->Age >= ADULT_AGE) {
 			if((Guy = RBSearch(&g_GameWorld.BigGuys, Family->People[i])) == NULL) {
 				uint8_t BGStats[BGSKILL_SIZE];
 
@@ -225,7 +225,7 @@ struct BigGuy* ElectiveNewLeader(const struct Government* Gov) {
 		Guy = ((struct BigGuy*)Itr->Data);
 		Person = Guy->Person;
 		if(Gov->Leader->Person != Person 
-			&& (Person->Gender &Gov->RulerGender) != 0 
+			&& (Gender(Person) &Gov->RulerGender) != 0 
 			&& Person->Age >= ADULT_AGE
 			&& (Popularity = BigGuyPopularity(Guy)) > BestPopularity) {
 			BestCanidate = Guy;
@@ -244,7 +244,7 @@ struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* Gov) {
 
 	while(Itr != NULL) {
 		Person = ((struct BigGuy*)Itr->Data)->Person;
-		if(Person->Family->Object.Id == Person->Family->Object.Id && Person->Gender == EMALE && Person->Age >= ADULT_AGE) {
+		if(Person->Family->Object.Id == Person->Family->Object.Id && Gender(Person) == EMALE && Person->Age >= ADULT_AGE) {
 			return (struct BigGuy*)Itr->Data;
 		}
 		Itr = Itr->Next;

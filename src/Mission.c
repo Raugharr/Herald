@@ -637,7 +637,7 @@ void LuaPersonSelector(lua_State* _State, struct PersonSelector* _Selector) {
 }
 
 static inline uint8_t LuaPersonSelect(const struct Person* _Person, const struct MissionFrame* _Frame, const struct PersonSelector* _Selector) {
-	if((_Selector->Male != -1 && _Person->Gender != _Selector->Male)
+	if((_Selector->Male != -1 && Gender(_Person) != _Selector->Male)
 		|| (_Selector->Adult != -1 && PersonMature(_Person) != _Selector->Adult)) {
 			return true;
 	}

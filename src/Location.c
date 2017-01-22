@@ -224,7 +224,7 @@ void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family) {
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(Family->People[i] == NULL || PersonMature(Family->People[i]) == 0)
 			continue;
-		if(Family->People[i]->Gender == EMALE)
+		if(Gender(Family->People[i]) == EMALE)
 			++Location->AdultMen;
 		else
 			++Location->AdultWomen;
@@ -269,7 +269,7 @@ void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person
 	ILL_DESTROY(Person->Family->HomeLoc->People, Person);
 	--Settlement->NumPeople;
 	if(PersonMature(Person) == 1) {
-		if(Person->Gender == EMALE)
+		if(Gender(Person) == EMALE)
 			--Settlement->AdultMen;
 		else
 			--Settlement->AdultWomen;
@@ -302,9 +302,9 @@ void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CAST
 	struct LnkLst_Node* FamilyItr = NULL;
 	struct LnkLst_Node* Itr = NULL;
 	struct Family* Family = NULL;
-	struct BigGuy* Leader = NULL;
+	//struct BigGuy* Leader = NULL;
 	uint8_t BGStats[BGSKILL_SIZE];
-	uint8_t LeaderCaste = CASTE_NOBLE;
+	//uint8_t LeaderCaste = CASTE_NOBLE;
 	int Motivations[BGMOT_SIZE] = {2, 4};
 	int MotCt = 0;
 	int Count = 0;//_Settlement->Families.Size * 0.1f; //How many big guys to make.

@@ -341,7 +341,8 @@ int MapUnitCanMove(struct MapRenderer* Renderer, struct Army* Army, const SDL_Po
 
 int MapMoveUnit(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point) {
 	if(MapUnitCanMove(Renderer, Army, Point)) {
-		QTRemovePoint(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite.TilePos, MapGetUnitPos);
+		//Causes crash.
+		QTRemoveNode(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite.TilePos, MapGetUnitPos, &Army->Sprite);
 		QTInsertPoint(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite, Point);
 		SpriteSetTilePos(&Army->Sprite, g_GameWorld.MapRenderer, Point);
 		return 1;

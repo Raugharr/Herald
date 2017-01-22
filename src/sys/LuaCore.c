@@ -290,6 +290,7 @@ int LuaRegisterObject(lua_State* _State, const char* _Name, int _Class, int _Bas
 	//lua_setmetatable(_State, -2);
 	//lua_pop(_State, 1);
 	g_LuaClassTable[_Class] = _Ref;
+	lua_pop(_State, 1);
 	return 1;
 }
 

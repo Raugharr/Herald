@@ -170,6 +170,8 @@ int LuaTableGetRows(lua_State* _State);
 int LuaTableGetColumns(lua_State* _State);
 int LuaTableSetCellWidth(lua_State* _State);
 int LuaTableSetCellHeight(lua_State* _State);
+int LuaTableGetCellWidth(lua_State* _State);
+int LuaTableGetCellHeight(lua_State* _State);
 
 /**
  * Font functions

@@ -446,8 +446,10 @@ bool WidgetSetWidth(struct Widget* _Widget, int _Width) {
 	const struct Container* _Parent = _Widget->Parent;
 	//const struct SDL_Rect* _Rect = NULL;
 
-	if(_Widget->Rect.x + _Width > _Parent->Widget.Rect.x + _Parent->Widget.Rect.w)
+	if(_Widget->Rect.x + _Width > _Parent->Widget.Rect.x + _Parent->Widget.Rect.w) {
+		Log(ELOG_WARNING, "Widget %d's width cannot be set to %d cannot fit into parent.", _Widget->Id, _Widget->Rect.y);
 		return false;
+	}
 	_Widget->Rect.w = _Width;
 /*	for(int i = 0; i < _Parent->ChildCt; ++i) {
 		if(_Parent->Children[i] == _Widget)
@@ -464,8 +466,10 @@ bool WidgetSetHeight(struct Widget* _Widget, int _Height) {
 	const struct Container* _Parent = _Widget->Parent;
 //	const struct SDL_Rect* _Rect = NULL;
 
-	if(_Widget->Rect.y + _Height > _Parent->Widget.Rect.y + _Parent->Widget.Rect.h)
+	if(_Widget->Rect.y + _Height > _Parent->Widget.Rect.y + _Parent->Widget.Rect.h) {
+		Log(ELOG_WARNING, "Widget %d's height cannot be set to %d cannot fit into parent.", _Widget->Id, _Widget->Rect.y);
 		return false;
+	}
 	_Widget->Rect.h = _Height;
 /*	for(int i = 0; i < _Parent->ChildCt; ++i) {
 		if(_Parent->Children[i] == _Widget)

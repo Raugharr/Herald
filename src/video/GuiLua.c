@@ -135,6 +135,8 @@ static const luaL_Reg g_LuaFuncsTable[] = {
 		{"GetColumns", LuaTableGetColumns},
 		{"SetCellWidth", LuaTableSetCellWidth},
 		{"SetCellHeight", LuaTableSetCellHeight},
+		{"GetCellWidth", LuaTableGetCellWidth},
+		{"GetCellHeight", LuaTableGetCellHeight},
 		{NULL, NULL}
 };
 
@@ -1189,6 +1191,20 @@ int LuaTableSetCellHeight(lua_State* _State) {
 	if(WidgetSetHeight(&_Table->Container.Widget, _CellMax * _Table->Columns) == true)
 		_Table->CellMax.h = _CellMax;
 	lua_pushvalue(_State, 1);
+	return 1;
+}
+
+int LuaTableGetCellWidth(lua_State* _State) {
+	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+
+	lua_pushinteger(_State, _Table->CellMax.w);
+	return 1;
+}
+
+int LuaTableGetCellHeight(lua_State* _State) {
+	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+
+	lua_pushinteger(_State, _Table->CellMax.h);
 	return 1;
 }
 

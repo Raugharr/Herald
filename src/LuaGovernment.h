@@ -43,5 +43,6 @@ int LuaFactionSetPolicyInfluence(lua_State* State);
 int LuaFactionInfluenceCost(lua_State* State);
 int LuaFactionGetCastePower(lua_State* State);
 int LuaFactionGetCasteWeight(lua_State* State);
+int LuaFactionGetSettlement(lua_State* State);
 
 #endif

@@ -18,13 +18,21 @@
 
 struct Government;
 
+struct PolicyFunc {
+	const char* Name;
+	uint8_t Val;
+};
+
 typedef void (*PolicyOptFunc)(struct Government*);
 typedef int (*PolicyOptUtility)(struct Government*, int*, int*);//First int* is the min utility, second int* is the max utility. Return is the expected utility.
+extern struct PolicyFunc g_PolicyFuncs[];
+extern uint8_t g_PolicyFuncSz;
 
 enum {
 	POLCAT_MILITARY,
 	POLCAT_ECONOMY,
 	POLCAT_LAW,
+	POLCAT_SLAVERY
 };
 
 enum {
@@ -43,6 +51,11 @@ enum {
 	POLPREF_LOVE
 };
 
+struct PolicyKV {
+	uint16_t Key;
+	int16_t Val;
+};
+
 /**
  * \brief A single law for a policy that can be selected.
  * Conains the name of the policy, what governments can pass it, which castes like
@@ -53,9 +66,10 @@ struct PolicyOption {
 	const char* Desc;
 	uint32_t GovsAllowed;
 	int8_t CastePreference[CASTE_SIZE];
-	PolicyOptFunc OnPass;
-	PolicyOptFunc OnRemove;
+	uint8_t Id;
+	uint8_t ActionSz;
 	PolicyOptUtility Utility;
+	struct PolicyKV Actions[];
 };
 
 /**
@@ -65,11 +79,7 @@ struct PolicyOption {
 struct Policy {
 	const char* Name;
 	const char* Description;
-	struct {
-		char* Name[POLICY_SUBSZ];
-		int8_t Size[POLICY_SUBSZ];
-		struct PolicyOption Options[POLICY_MAXOPTIONS];
-	} Options;
+	struct PolicyOption Options[POLICY_MAXOPTIONS];
 	uint16_t Id;
 	uint32_t GovsAllowed;
 	uint8_t OptionsSz;
@@ -78,7 +88,7 @@ struct Policy {
 
 struct ActivePolicy {
 	const struct Policy* Policy;
-	int8_t OptionSel[POLICY_SUBSZ];
+	int8_t OptionSel;
 };
 
 void CtorPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category);
@@ -90,7 +100,7 @@ void PolicyAddCategory(struct Policy* _Policy, const char* _Name);
  * \brief Returns a pointer to the first element in _Row.
  * \return The index that contains the first policy of row _Row.
  */
-const struct PolicyOption* PolicyRow(const struct Policy* _Policy, int _Row, int _Col);
+const struct PolicyOption* PolicyRow(const struct Policy* _Policy, int _Col);
 void DestroyPolicyOption(struct PolicyOption* _Opt);
 /**
  * \brief Returns a pointer to the policy option being changed by the active policy or
@@ -98,5 +108,5 @@ void DestroyPolicyOption(struct PolicyOption* _Opt);
  */
 const struct PolicyOption* PolicyChange(const struct ActivePolicy* _Policy);
 int LuaPolicyLoad(lua_State* State);
-
+int PolicyFuncCmp(const void* One, const void* Two);
 #endif

@@ -1178,9 +1178,8 @@ int LuaPlotCreate(lua_State* _State) {
 			if(ValidPolicyCategory(_PolicyCat) == 0)
 				return luaL_error(_State, "Invalid policy category %d.", _PolicyCat);
 			lua_rawgeti(_State, 4, 3);
-			for(int i = 0; i < POLICY_SUBSZ; ++i)
-				_PolAct->OptionSel[i] = POLICYACT_IGNORE;
-			_PolAct->OptionSel[_PolicyCat] = lua_tointeger(_State, -1) - 1;
+			_PolAct->OptionSel = POLICYACT_IGNORE;
+			_PolAct->OptionSel = lua_tointeger(_State, -1) - 1;
 			_Data = _PolAct;
 		break;
 
@@ -1294,14 +1293,10 @@ int LuaPolicyOptions(lua_State* _State) {
 	int _Idx = 0;
 
 	lua_createtable(_State, POLICY_SUBSZ, 0);
-	lua_createtable(_State, _Policy->Options.Size[0], 1);
-	lua_pushstring(_State, "Name");
-	lua_pushstring(_State, _Policy->Options.Name[0]);
-	lua_rawset(_State, -3);
 	for(int i = 0; i < _Policy->OptionsSz; ++i, ++_Ct) {
-		LuaCtor(_State, (void*)&_Policy->Options.Options[i], LOBJ_POLICYOPTION);
+		LuaCtor(_State, (void*)&_Policy->Options[i], LOBJ_POLICYOPTION);
 		lua_rawseti(_State, -2, _Ct);
-		if(i >= (_Policy->Options.Size[_Idx] + _Last) - 1) {
+		/*if(i >= (_Policy->Options.Size[_Idx] + _Last) - 1) {
 			_Last += _Policy->Options.Size[_Idx];
 			++_Idx;
 			lua_rawseti(_State, -2, _Idx);
@@ -1312,9 +1307,8 @@ int LuaPolicyOptions(lua_State* _State) {
 				lua_rawset(_State, -3);
 			}
 			_Ct = 0;
-		}
+		}*/
 	}
-	//lua_rawseti(_State, -2, _Idx + 1);
 	return 1;	
 }
 

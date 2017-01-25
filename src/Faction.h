@@ -23,8 +23,7 @@ enum EFactionGoal {
 	FACTION_GLTAXES, //Lower taxes. 
 	FACTION_GRTAXES, //Raise taxes. 
 	FACTION_CHCASTE, //Change power of a certain caste.
-	FACTION_GLPOLICY,
-	FACTION_GRPOLICY,
+	FACTION_CHPOLICY,
 	//FACTION_GPOWER, //Weaken the other faction.
 	//FACTION_GOVERTHROW, //Overthrow the ruler of the government.
 	//FACTION_GWAR, //Demands to expand territory/raid.

@@ -157,8 +157,8 @@ void BattleEnd(int Victor, struct Battle* Battle) {
 	Battle->Defender.Army->InBattle = false;
 	//BattleDistPrestige(&Battle->Attacker, AttkPrestige);
 	//BattleDistPrestige(&Battle->Defender, DefPrestige);
-	if(Victor == BATTLE_ATTACKER && Battle->BattleSite != NULL)
-		RaidFamilies(&Battle->Attacker.Army->Captives, &Battle->BattleSite->Families, ArmyGetSize(Battle->Attacker.Army));
+//	if(Victor == BATTLE_ATTACKER && Battle->BattleSite != NULL)
+//		RaidFamilies(&Battle->Attacker.Army->Captives, &Battle->BattleSite->Families, ArmyGetSize(Battle->Attacker.Army));
 	PushEvent(EVENT_BATTLE, Battle, NULL);
 }
 

@@ -296,6 +296,9 @@ int PopulateWorld(struct GameWorld* World) {
 	if(LuaLoadFile(g_LuaState, "std.lua", NULL) != LUA_OK) {
 		goto end;
 	}
+
+	g_PolicyFuncSz = CountPolicyFuncs(g_PolicyFuncs);
+	InsertionSortPtr((void**)g_PolicyFuncs, g_PolicyFuncSz, PolicyFuncCmp);
 	if(LuaLoadFile(g_LuaState, "policies.lua", NULL) != LUA_OK) {
 		goto end;
 	}
@@ -862,4 +865,12 @@ void SetClickState(struct Object* Data, uint32_t State, uint32_t Context) {
 
 struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos) {
 		return (struct Settlement*) QTGetPoint(&World->SettlementMap, Pos, (void (*)(const void *, struct SDL_Point *))LocationGetPoint);
+}
+
+uint8_t WorldGetPolicyId(const struct Policy* Policy) {
+	for(int i = 0; i < g_GameWorld.Policies.Size; ++i) {
+		if(g_GameWorld.Policies.Table[i] == Policy)
+			return i;
+	}
+	return 0;
 }

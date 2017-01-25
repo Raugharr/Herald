@@ -49,6 +49,7 @@ static const luaL_Reg g_LuaFuncsFaction[] = {
 	{"InfluenceCost", LuaFactionInfluenceCost},
 	{"GetCastePower", LuaFactionGetCastePower},
 	{"GetCasteWeight", LuaFactionGetCasteWeight},
+	{"GetSettlement", LuaFactionGetSettlement},
 	{NULL, NULL}
 };
 
@@ -57,8 +58,7 @@ const struct LuaEnum g_LuaFactionGoalEnum[] = {
 	{"LowerTaxes", FACTION_GLTAXES},
 	{"RaiseTaxes", FACTION_GRTAXES},
 	{"SupportCaste", FACTION_CHCASTE},
-	{"AddPolicy", FACTION_GLPOLICY},
-	{"RemovePolicy", FACTION_GRPOLICY},
+	{"ChangePolicy", FACTION_CHPOLICY},
 	{NULL, 0}
 };
 
@@ -134,18 +134,15 @@ int LuaGovernmentGetPolicyCategory(lua_State* State) {
 	struct Government* Government = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
 	struct Policy* Policy = LuaCheckClass(State, 2, LOBJ_POLICY);
 	struct ActivePolicy* ActPol = NULL;
-	int Category = luaL_checkinteger(State, 3) - 1;
 
-	if(Category < 0 || Category >= POLICY_SUBSZ) 
-		return luaL_error(State, "Invalid input %d for category.", Category);
 	for(struct LnkLst_Node* Itr = Government->PolicyList.Front; Itr != NULL; Itr = Itr->Next) {
 		ActPol = Itr->Data;
 		if(ActPol->Policy != Policy)
 			continue;
-		lua_pushinteger(State, ActPol->OptionSel[Category] + 1);
+		lua_pushinteger(State, ActPol->OptionSel + 1);
 		return 1;	
 	}
-	lua_pushinteger(State, -1);
+	lua_pushnil(State);
 	return 1;
 }
 
@@ -225,8 +222,17 @@ int LuaFactionListGoals(lua_State* State) {
 int LuaFactionSetGoal(lua_State* State) {
 	struct Faction* Faction = LuaCheckClass(State, 1, LOBJ_FACTION);
 	int8_t Ideology = LuaFactionGetIdeology(State, 1);
+	int8_t Goal = luaL_checkinteger(State, 2);
+	int Data1 = 0;
 
-	FactionSetGoal(Faction, Ideology, luaL_checkinteger(State, 2), luaL_checkinteger(State, 3), luaL_optint(State, 4, 0));
+	if(Goal == FACTION_CHPOLICY) {
+		struct Policy* Policy = LuaCheckClass(State, 3, LOBJ_POLICY);
+
+		Data1 = WorldGetPolicyId(Policy); 
+	} else {
+		Data1 = luaL_checkinteger(State, 3);
+	}
+	FactionSetGoal(Faction, Ideology, Goal, Data1, luaL_optint(State, 4, 0));
 	return 0;
 }
 
@@ -338,5 +344,12 @@ int LuaFactionGetCasteWeight(lua_State* State) {
 		lua_pushinteger(State, CastePercent[i] * 100 / CasteMax[i]);
 		lua_rawseti(State, 2, i + 1);
 	}
+	return 1;
+}
+
+int LuaFactionGetSettlement(lua_State* State) {
+	struct Faction* Faction = LuaCheckClass(State, 1, LOBJ_FACTION);
+
+	LuaCtor(State, Faction->Settlement, LOBJ_SETTLEMENT);
 	return 1;
 }

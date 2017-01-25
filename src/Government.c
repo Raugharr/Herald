@@ -139,6 +139,9 @@ struct Government* CreateGovernment(int GovType, int GovRank, struct Settlement*
 
 	Gov->Location = Settlement;
 	NewZoneColor(&Gov->ZoneColor);
+	for(int i = 0; i < g_GameWorld.Policies.Size; ++i) {
+		GovernmentAddPolicy(Gov, g_GameWorld.Policies.Table[i]);
+	}
 	EventHook(EVENT_NEWPOLICY, GovOnNewPolicy, Gov, NULL, NULL);
 	EventHook(EVENT_CHANGEPOLICY, GovOnChangePolicy, Gov, NULL, NULL);
 	return Gov;
@@ -274,17 +277,9 @@ void GovernmentSetLeader(struct Government* Gov, struct BigGuy* Guy) {
 
 void GovernmentAddPolicy(struct Government* Gov, const struct Policy* Policy) {
 	struct ActivePolicy* ActPol = malloc(sizeof(struct ActivePolicy));
-	int Idx = 0;
 
-	Assert(Policy->OptionsSz < POLICY_SUBSZ);
 	ActPol->Policy = Policy;
-	for(int i = 0; Policy->Options.Size[i] > 0 && i < POLICY_SUBSZ; ++i) {
-//		for(int j = 0; j < CASTE_SIZE; ++j) {
-			//_Gov->CastePreference[j] += Policy->Options.Options[Idx].CastePreference[j];
-//		}
-		ActPol->OptionSel[i] = 0;
-		Idx += Policy->Options.Size[i];
-	}
+	ActPol->OptionSel = 0;
 	LnkLstPushBack(&Gov->PolicyList, ActPol);
 }
 
@@ -298,30 +293,7 @@ void GovernmentRemovePolicy(struct Government* Gov, const struct Policy* Policy)
 }
 
 void GovernmentUpdatePolicy(struct Government* Gov, struct ActivePolicy* OldPolicy, const struct ActivePolicy* Policy) {
-	//struct BigGuy* Guy = NULL;
-	//struct BigGuy* Leader = Gov->Leader;
-	//const struct PolicyOption* Option = NULL;
-
-	for(int i = 0; i < OldPolicy->Policy->OptionsSz; ++i) {
-		if(OldPolicy->OptionSel[i] == Policy->OptionSel[i] || Policy->OptionSel[i] == POLICYACT_IGNORE)
-			continue;
-		//_Option = PolicyRow(Policy->Policy, i, Policy->OptionSel[i]);
-		/*for(struct LnkLst_Node* Itr = Gov->Location->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
-			Guy = Itr->Data;
-			if(Guy == Leader)
-				continue;
-			BigGuyAddOpinion(
-				Guy,
-				Leader,
-				ACTTYPE_POLICY,
-				Option->CastePreference[PERSON_CASTE(Guy->Person)],
-				OPNLEN_MEDIUM,
-				OPINION_AVERAGE	
-				);
-		}*/
-		OldPolicy->OptionSel[i] = Policy->OptionSel[i];
-		break;
-	}
+		OldPolicy->OptionSel = Policy->OptionSel;
 }
 
 int GovernmentHasPolicy(const struct Government* Gov, const struct Policy* Policy) {

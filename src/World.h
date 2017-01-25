@@ -120,5 +120,6 @@ void WorldPathCallback(struct Army* Army, struct Path* Path);
 void** SubTimeGetList(int Type);
 void SetClickState(struct Object* Data, uint32_t State, uint32_t Context);
 struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos);
+uint8_t WorldGetPolicyId(const struct Policy* Policy);
 
 #endif

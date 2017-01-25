@@ -10,6 +10,7 @@
 #include "BigGuy.h"
 #include "Government.h"
 #include "World.h"
+#include "Policy.h"
 
 #include "sys/LuaCore.h"
 
@@ -34,8 +35,7 @@ const char* g_FactionGoalNames[FACTION_GSIZE] = {
 	"Lower Taxes",
 	"Raise Taxes",	
 	"Change Caste",
-	"Introduce Policy",
-	"Remove Policy"
+	"Change Policy",
 };
 
 const char* g_FactionNames[FACTION_GSIZE] = {
@@ -117,7 +117,12 @@ void FactionGoalCoro(struct Faction* Faction, int Ideology, int Goal, int Data1,
 		case FACTION_CHCASTE:
 			GoalOp.Caste.Caste = Data1;
 			GoalOp.Caste.FromCaste = Data2;
-		break;
+			break;
+		case FACTION_CHPOLICY:
+			GoalOp.Policy.PolicyId = Data1;
+			GoalOp.Policy.Row = Data2 - 1;	 
+			break;
+	
 	}
 	for(int i = 0; i < FACTION_IDSIZE; ++i) {
 		if(FactionIsActive(Faction, i) == true && Faction->Leader[i] != g_GameWorld.Player) {
@@ -168,8 +173,7 @@ bool FactionValGoal(struct Faction* Faction, uint8_t Ideology, uint8_t Goal) {
 		case FACTION_GRTAXES:
 			return (Faction->Settlement->Government->TaxRate >= TAX_MAX);
 		case FACTION_CHCASTE:
-		case FACTION_GLPOLICY:
-		case FACTION_GRPOLICY:
+		case FACTION_CHPOLICY:
 			return true;
 	}
 	return false;
@@ -186,6 +190,15 @@ void FactionPassGoal(struct Faction* Faction, uint8_t Ideology, struct FactionOp
 			break;
 		case FACTION_GLTAXES:
 			Faction->Settlement->Government->TaxRate--;
+			break;
+		case FACTION_CHPOLICY:
+			for(struct LnkLst_Node* Itr = Faction->Settlement->Government->PolicyList.Front; Itr != NULL; Itr = Itr->Next) {
+				struct ActivePolicy* Policy = Itr->Data;
+
+				if(Policy->Policy->Id == Goal->Policy.PolicyId) {
+					Policy->OptionSel = Goal->Policy.Row;
+				}
+			}
 			break;
 	}
 	Faction->Goal = FACTION_GNONE;

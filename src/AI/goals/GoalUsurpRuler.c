@@ -34,12 +34,15 @@ void GoalChallangeLeaderSetPlot(struct Agent* _Agent) {
 
 int GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _Max) {
 	const struct BigGuy* _Owner = _Agent->Agent;
-	const struct BigGuy* _Leader = FamilyGetSettlement(_Owner->Person->Family)->Government->Leader;
+	const struct BigGuy* _Leader = NULL;
 	const struct BigGuyRelation* _Relation = NULL;
 	int _Cost = 0;
 
 	*_Min = 25;
 	*_Max = 100;
+	if(IsPrisoner(_Agent->Agent->Person) == true)
+		return 0;
+	_Leader = FamilyGetSettlement(_Owner->Person->Family)->Government->Leader;
 	if(_Owner == _Leader)
 		return 0;
 	_Relation = BigGuyGetRelation(_Owner, _Leader);

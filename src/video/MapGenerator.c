@@ -63,7 +63,7 @@ void WhiteNoiseGen(uint16_t Width, uint16_t Height, float* Array) {
 }
 
 void SmoothNoise(uint16_t Width, uint16_t Height, float* Array, uint8_t Octave) {
-	uint32_t Area = Width * Height;
+	//uint32_t Area = Width * Height;
 	uint32_t SamplePeriod = (1 << Octave);
 	uint32_t x0 = 0;
 	uint32_t x1 = 0;
@@ -149,7 +149,7 @@ void Fault(uint16_t Width, uint16_t Length, float* Array, float Disp) {
 	double r = (double)Rand();
 	double c = ((r / ((uint64_t)~(0LL)))) * d - (d / 2);
 	double Dist = 0;
-	double Freq = Width * Length / 360;
+	//double Freq = Width * Length / 360;
 
 	for(int x = 0; x < Width; ++x) {
 		for(int y = 0; y < Length; ++y) {

@@ -67,10 +67,8 @@ void PregnancyThink(struct Pregnancy* Pregnancy) {
 
 struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition, int X, int Y, struct Family* Family) {
 	struct Person* Person = NULL;
-	if(Name == NULL || Age < 0 || (Gender != EMALE && Gender != EFEMALE) || Family == NULL || X < 0 || Y < 0) {
-		Log(ELOG_WARNING, "Cannot create person, invalid attributes.");
-		return NULL;
-	}
+
+	Assert(Name != NULL && Age >= 0 && (Gender == EMALE || Gender == EFEMALE) && Family != NULL && X >= 0 && Y >= 0);
 
 	Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CreateObject(&Person->Object, OBJECT_PERSON, PersonThink);

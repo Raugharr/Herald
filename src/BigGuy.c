@@ -14,7 +14,7 @@
 #include "Trait.h"
 #include "Mission.h"
 #include "Plot.h"
-#include "BigGuyRelation.h"
+#include "Relation.h"
 #include "Retinue.h"
 
 #include "AI/Agent.h"
@@ -55,12 +55,12 @@ int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission)
 }
 
 void BigGuyActionImproveRel(struct BigGuy* Guy, const struct BigGuyAction* Action) {
-	struct BigGuyRelation* Relation = NULL;
+	struct Relation* Relation = NULL;
 	int Mod = Action->Modifier;
 
 	if(Mod > 0 && Random(STAT_MIN, STAT_MAX) > Guy->Stats[BGSKILL_CHARISMA])
 		--Mod;
-	if((Relation = BigGuyGetRelation(Action->Target, Guy)) == NULL) {
+	if((Relation = GetRelation(Action->Target->Relations, Guy)) == NULL) {
 		//_Relation = CreateBigGuyRelation(Action->Target, Guy);
 		//CreateBigGuyOpinion(Relation, OPINION_SMALL, Mod);
 		//BigGuyRelationUpdate(Relation);
@@ -196,8 +196,8 @@ void DestroyBigGuy(struct BigGuy* BigGuy) {
 void BigGuyThink(struct BigGuy* Guy) {
 	Guy->Popularity -= g_GameWorld.DecayRate[(int)Guy->Popularity] / YEAR_DAYS;
 	//_Guy->Glory -= g_GameWorld.DecayRate[(int)Guy->Glory] / YEAR_DAYS;
-	for(struct BigGuyRelation* Relation = Guy->Relations; Relation != NULL; Relation = Relation->Next) {
-		BigGuyRelationUpdate(Relation);
+	for(struct Relation* Relation = Guy->Relations; Relation != NULL; Relation = Relation->Next) {
+		RelUpdate(Relation);
 	}
 }
 
@@ -439,4 +439,18 @@ struct Retinue* BigGuyRetinue(const struct BigGuy* Leader) {
 
 void BigGuyPlotTarget(struct BigGuy* Guy, struct Plot* Plot) {
 	LnkLstPushBack(&Guy->PlotsAgainst, Plot);
+}
+
+void CreateBigGuyRelation(struct BigGuy* Owner, struct BigGuy* Target) {
+	struct Relation* Relation = CreateRelation(Owner, Target, &Owner->Relations);
+
+	for(uint8_t i = 0; i < Owner->TraitCt; ++i) {
+		for(uint8_t j = 0; j < Target->TraitCt; ++j) {
+			if(TraitDislikes(Owner->Traits[i], Target->Traits[j]) != 0) {
+				ChangeRelation(Relation, ACTTYPE_TRAIT, -(REL_TRAIT), OPNLEN_FOREVER, OPINION_STATIC);
+			} else if(TraitLikes(Owner->Traits[i], Target->Traits[j])) {
+				ChangeRelation(Relation, ACTTYPE_TRAIT, REL_TRAIT, OPNLEN_FOREVER, OPINION_STATIC);
+			}
+		}
+	}
 }

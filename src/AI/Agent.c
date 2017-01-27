@@ -79,7 +79,7 @@ void DestroyAgent(struct Agent* _Agent) {
 }
 
 uint16_t ScorePlotLeader(const struct BigGuy* const _From, const struct BigGuy* const _Leader) {
-	struct BigGuyRelation* _Rel = BigGuyGetRelation(_From, _Leader); 
+	const struct Relation* _Rel = GetRelation(_From->Relations, _Leader); 
 	uint16_t _Score = 100;
 
 	if(_Rel == NULL)

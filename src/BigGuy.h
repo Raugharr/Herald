@@ -8,7 +8,7 @@
 #include "Herald.h"
 #include "WorldState.h"
 #include "World.h"
-#include "BigGuyRelation.h"
+#include "Relation.h"
 #include "Retinue.h"
 
 #include "sys/LinkedList.h"
@@ -88,7 +88,7 @@ struct BigGuy {
 	struct Object Object;
 	struct Person* Person;
 	struct Agent* Agent;
-	struct BigGuyRelation* Relations;
+	struct Relation* Relations;
 	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	uint8_t Motivation;
 	float Popularity; 
@@ -172,4 +172,5 @@ struct Retinue* BigGuyRetinue(const struct BigGuy* Leader);
 inline static struct Plot* BigGuyGetPlot(struct BigGuy* Guy) {
 	return RBSearch(&g_GameWorld.PlotList, Guy);
 }
+void CreateBigGuyRelation(struct BigGuy* Owner, struct BigGuy* Target);
 #endif

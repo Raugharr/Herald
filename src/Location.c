@@ -46,7 +46,7 @@ void SettlementOnPolicyChange(const struct EventData* Data, void* Extra) {
 		Guy = Itr->Data;
 		if(Guy == Owner)
 			continue;
-		BigGuyAddOpinion(Guy, Owner, ACTTYPE_POLICY, Amount * 10, OPNLEN_MEDIUM, OPINION_AVERAGE);
+		AddOpinion(Guy, Owner, ACTTYPE_POLICY, Amount * 10, OPNLEN_MEDIUM, OPINION_AVERAGE, &Guy->Relations);
 	}
 }
 
@@ -158,7 +158,7 @@ void SettlementThink(struct Settlement* Settlement) {
 					Itr = Itr->Next;
 					continue;
 				}
-				BigGuyAddOpinion((struct BigGuy*)Itr->Data, Settlement->Government->Leader, ACTTYPE_WARLACK, -10, OPNLEN_SMALL, OPINION_AVERAGE); 
+				AddOpinion((struct BigGuy*)Itr->Data, Settlement->Government->Leader, ACTTYPE_WARLACK, -10, OPNLEN_SMALL, OPINION_AVERAGE, &((struct BigGuy*)Itr->Data)->Relations); 
 				Itr = Itr->Next;
 			}
 		}

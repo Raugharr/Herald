@@ -31,7 +31,7 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	const struct BigGuy* _Guy = _Agent->Agent;
 	struct BigGuy* _Leader =  _Agent->Blackboard.Target;
-	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Leader);
+	struct Relation* _Relation = GetRelation(_Guy->Relations, _Leader);
 	int _Utility = 0;
 
 	*_Min = 0;

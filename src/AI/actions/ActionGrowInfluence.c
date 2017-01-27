@@ -14,7 +14,7 @@
 #include "../../Retinue.h"
 #include "../../Person.h"
 #include "../../BigGuy.h"
-#include "../../BigGuyRelation.h"
+#include "../../Relation.h"
 #include "../../Location.h"
 
 enum {
@@ -56,7 +56,7 @@ static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struc
 	for(struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
 		struct BigGuy* _Guy = _Itr->Data;
 
-		if(BigGuyRelAtLeast(BigGuyGetRelation(_Actor, _Guy), BGREL_LIKE) == 0)
+		if(RelAtLeast(GetRelation(_Actor->Relations, _Guy), BGREL_LIKE) == 0)
 			++_TotalBG;
 	}
 	_Retinue = BigGuyRetinue(_Actor);

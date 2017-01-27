@@ -19,6 +19,7 @@
 #include "Plot.h"
 #include "Policy.h"
 #include "Trait.h"
+#include "Relation.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -68,13 +69,13 @@ static const luaL_Reg g_LuaFuncsBigGuy[] = {
 	{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaFuncsBigGuyOpinion[] = {
+static const luaL_Reg g_LuaFuncsOpinion[] = {
 	{"Action", LuaBGOpinionAction},
 	{"Relation", LuaBGOpinionRelation},
 	{NULL, NULL}
 };
 
-static const luaL_Reg g_LuaFuncsBigGuyRelation[] = {
+static const luaL_Reg g_LuaFuncsRelation[] = {
 	{"GetOpinion", LuaBGRelationGetOpinion},
 	{"GetRelationList", LuaBGRelationGetRelationList},
 	{"BigGuy", LuaBGRelationBigGuy},
@@ -178,7 +179,7 @@ static luaL_Reg g_LuaFuncsBigGuyTrait[] = {
 const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{LOBJ_ARMY, "Army", LUA_REFNIL, g_LuaFuncsArmy},
 	{LOBJ_BIGGUY, "BigGuy", LUA_REFNIL, g_LuaFuncsBigGuy},
-	{LOBJ_BIGGUYRELATION, "BigGuyRelation", LUA_REFNIL, g_LuaFuncsBigGuyRelation},
+	{LOBJ_BIGGUYRELATION, "Relation", LUA_REFNIL, g_LuaFuncsRelation},
 	{LOBJ_SETTLEMENT, "Settlement", LUA_REFNIL, g_LuaFuncsSettlement},
 	{LOBJ_BUILDMAT, "BuildMat", LUA_REFNIL, NULL},
 	{LOBJ_BULLETIN, "Bulletin", LUA_REFNIL, g_LuaFuncsBulletin},
@@ -186,7 +187,7 @@ const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{LOBJ_PLOT, "Plot", LUA_REFNIL, g_LuaFuncsPlot},
 	{LOBJ_POLICY, "Policy", LUA_REFNIL, g_LuaFuncsPolicy},
 	{LOBJ_POLICYOPTION, "PolicyOption", LUA_REFNIL, g_LuaFuncsPolicyOption},
-	{LOBJ_BIGGUYOPINION, "BigGuyOpinion", LUA_REFNIL, g_LuaFuncsBigGuyOpinion},
+	{LOBJ_BIGGUYOPINION, "Opinion", LUA_REFNIL, g_LuaFuncsOpinion},
 	{LOBJ_RETINUE, "Retinue", LUA_REFNIL, g_LuaFuncsRetinue},
 	{LOBJ_BIGGUYTRAIT, "Trait", LUA_REFNIL, g_LuaFuncsBigGuyTrait},
 	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
@@ -377,7 +378,7 @@ int LuaBGGetAgent(lua_State* _State) {
 int LuaBGGetRelation(lua_State* _State) {
 	struct BigGuy* _Guy = LuaCheckClass(_State, 1, LOBJ_BIGGUY);
 	struct BigGuy* _Target = LuaCheckClass(_State, 2, LOBJ_BIGGUY);
-	struct BigGuyRelation* _Relation = BigGuyGetRelation(_Guy, _Target);
+	struct Relation* _Relation = GetRelation(_Guy->Relations, _Target);
 
 	if(_Relation == NULL) {
 		lua_pushnil(_State);
@@ -388,7 +389,7 @@ int LuaBGGetRelation(lua_State* _State) {
 }
 
 int LuaBGRelItrNext(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_BIGGUYRELATION);
+	struct Relation* _Relation = LuaCheckClass(_State, lua_upvalueindex(1), LOBJ_BIGGUYRELATION);
 
 	if(_Relation->Next == NULL) {
 		lua_pushnil(_State);
@@ -422,7 +423,7 @@ int LuaBGSetOpinion(lua_State* _State) {
 	int _Length = luaL_checkinteger(_State, 5);
 	int _Strength = luaL_checkinteger(_State, 6);
 
-	BigGuyAddOpinion(_Guy, _Target, _Action, _Mod, _Length, _Strength);
+	AddOpinion(_Guy, _Target, _Action, _Mod, _Length, _Strength, &_Guy->Relations);
 	return 0;
 }
 
@@ -683,14 +684,14 @@ int LuaBGRetinueSize(lua_State* _State) {
 } */
 
 int LuaBGOpinionAction(lua_State* _State) {
-	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
+	struct Opinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
 
-	lua_pushstring(_State, g_BigGuyOpinionActions[_Opinion->Action]);
+	lua_pushstring(_State, g_OpinionActions[_Opinion->Action]);
 	return 1;
 }
 
 int LuaBGOpinionRelation(lua_State* _State) {
-	struct BigGuyOpinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
+	struct Opinion* _Opinion = LuaCheckClass(_State, 1, LOBJ_BIGGUYOPINION);
 
 	lua_pushinteger(_State, _Opinion->RelMod);
 	return 1;
@@ -698,7 +699,7 @@ int LuaBGOpinionRelation(lua_State* _State) {
 }
 
 int LuaBGRelationGetOpinion(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
+	struct Relation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 
 	if(_Relation == NULL)
 		return LuaClassError(_State, 1, LOBJ_BIGGUYRELATION);
@@ -707,11 +708,11 @@ int LuaBGRelationGetOpinion(lua_State* _State) {
 }
 
 int LuaBGRelationGetRelationList(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
+	struct Relation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 	int _Idx = 1;
 
 	lua_createtable(_State, 6, 0);	
-	for(struct BigGuyOpinion* _Opinion = _Relation->Opinions; _Opinion != NULL; _Opinion = _Opinion->Next, ++_Idx) {
+	for(struct Opinion* _Opinion = _Relation->Opinions; _Opinion != NULL; _Opinion = _Opinion->Next, ++_Idx) {
 		LuaCtor(_State, _Opinion, LOBJ_BIGGUYOPINION);
 		lua_rawseti(_State, -2, _Idx);
 	}
@@ -719,11 +720,11 @@ int LuaBGRelationGetRelationList(lua_State* _State) {
 }
 
 int LuaBGRelationBigGuy(lua_State* _State) {
-	struct BigGuyRelation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
+	struct Relation* _Relation = LuaCheckClass(_State, 1, LOBJ_BIGGUYRELATION);
 
 	if(_Relation == NULL)
 		return LuaClassError(_State, 1, LOBJ_BIGGUYRELATION);
-	LuaCtor(_State, _Relation->Person, LOBJ_BIGGUY);
+	LuaCtor(_State, _Relation->Target, LOBJ_BIGGUY);
 	return 1;
 }
 
@@ -1288,9 +1289,7 @@ int LuaPolicyCategory(lua_State* _State) {
 //FIXME: This should be done on initialization for each Policy.
 int LuaPolicyOptions(lua_State* _State) {
 	struct Policy* _Policy = LuaCheckClass(_State, 1, LOBJ_POLICY);
-	int _Last = 0;
 	int _Ct = 1;
-	int _Idx = 0;
 
 	lua_createtable(_State, POLICY_SUBSZ, 0);
 	for(int i = 0; i < _Policy->OptionsSz; ++i, ++_Ct) {

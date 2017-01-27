@@ -96,7 +96,7 @@ struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Paren
 		while(Size-- > 0) {
 			int Child = CHILDREN + Family->NumChildren;
 
-			Family->People[Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size - 1)], Random(0, (Wife->Age - AgeGroups[TEENAGER]->Min)), Random(1, 2), 1500, X, Y, Family);
+			Family->People[Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size - 1)], Random(0, (Wife->Age - AgeGroups[TEENAGER]->Min)), Random(0, 1), 1500, X, Y, Family);
 			++Family->NumChildren;
 		}
 	}
@@ -236,7 +236,7 @@ void FamilyObjThink(struct Object* Obj) {
 					break;
 				Retinue = IntSearch(&g_GameWorld.PersonRetinue, Family->People[0]->Object.Id);
 				if(Guy != NULL && Retinue->Leader->Person != Family->People[0]) {
-					struct BigGuyRelation* Rel = BigGuyGetRelation(Guy, Retinue->Leader);
+					struct Relation* Rel = GetRelation(Guy->Relations, Retinue->Leader);
 
 					//Find a different settlement to live in.
 					if(Random(-5, 5) + Rel->Modifier + ((int)Retinue->Leader->Glory) - Guy->Glory <= 0) {

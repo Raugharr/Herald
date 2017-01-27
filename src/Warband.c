@@ -430,7 +430,6 @@ void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t 
 	CtorArray(&DeathList, 128);
 	for(struct LnkLst_Node* Itr = Families->Front; Itr != NULL; Itr = Itr->Next) {
 		struct Family* Family = Itr->Data;
-		uint32_t StartSize = FamilySize(Family);
 
 			//for(int i = 0; i < Family->NumChildren + CHILDREN; i = (i >= CHILDREN) ? (i) : (i + 1)) {
 			for(int i = 0; i < Family->NumChildren + CHILDREN; ++i) {

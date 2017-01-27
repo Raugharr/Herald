@@ -298,7 +298,7 @@ int PopulateWorld(struct GameWorld* World) {
 	}
 
 	g_PolicyFuncSz = CountPolicyFuncs(g_PolicyFuncs);
-	InsertionSortPtr((void**)g_PolicyFuncs, g_PolicyFuncSz, PolicyFuncCmp);
+	InsertionSort((void**)g_PolicyFuncs, g_PolicyFuncSz, PolicyFuncCmp, sizeof(struct PolicyFunc));
 	if(LuaLoadFile(g_LuaState, "policies.lua", NULL) != LUA_OK) {
 		goto end;
 	}

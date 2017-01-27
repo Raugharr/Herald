@@ -13,6 +13,7 @@
 #define POLICY_MAXOPTIONS (POLICY_SUBSZ * POLICY_OPTIONS)
 #define POLICYACT_IGNORE (-1)
 #define POLICYCAT_UNUSED (-1)
+#define POL_MAXACT (8)
 
 #define ValidPolicyCategory(_Cat) ((_Cat) >= 0 && (_Cat) < POLICY_SUBSZ)
 
@@ -69,7 +70,7 @@ struct PolicyOption {
 	uint8_t Id;
 	uint8_t ActionSz;
 	PolicyOptUtility Utility;
-	struct PolicyKV Actions[];
+	struct PolicyKV Actions[POL_MAXACT];
 };
 
 /**

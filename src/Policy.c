@@ -109,7 +109,7 @@ int LuaPolicyLoad(lua_State* State) {
 	int Category = 0;
 	int OptCt = 0;
 	int KeyValSz = 0;
-	struct PolicyKV KeyVal[16];
+	struct PolicyKV KeyVal[POL_MAXACT];
 
 #ifndef DEBUG
 	int _LuaTop = lua_gettop(State);
@@ -178,13 +178,13 @@ int LuaPolicyLoad(lua_State* State) {
 				return luaL_error(State, "Policy %s, action table contains non-string key.", PolicyName);
 			}
 			//TODO: Remove this and replace with a function that will do a binary search on g_PolicyFuncs and return the index of the string contained in Key .
-			while(Low < High) {
+			while(Low <= High) {
 				Index = (Low + High) / 2;
 				Result = strcmp(Key, g_PolicyFuncs[Index].Name);
 				if(Result < 0) {
-					Low = Index + 1;
-				} else if(Result > 0) {
 					High = Index - 1;
+				} else if(Result > 0) {
+					Low = Index + 1;
 				} else {
 					goto found_index;
 				}
@@ -196,15 +196,19 @@ int LuaPolicyLoad(lua_State* State) {
 				free(Policy);
 				return luaL_error(State, "Policy %s, action table contains non-integer value for key %s", PolicyName, Key);
 			}
-			//TODO: Turn KeyVal into an array.
 			//TODO: Add check here to make sure KeyVal doesnt overflow
 			KeyVal[KeyValSz].Key = Index;
 			KeyVal[KeyValSz].Val = Val;
+
 			++KeyValSz;
 			lua_pop(State, 1);
 		}
-		lua_pop(State, 3);
+		lua_pop(State, 2);
 		PolicyAddOption(Policy, 0, Name, Desc, NULL, NULL);
+		for(int i = 0; i < KeyValSz; ++i) {
+			Policy->Options[Policy->OptionsSz].Actions[i] = KeyVal[i];
+		}
+		KeyValSz = 0;
 		//TODO: add KeyVals to PolicyOption.
 		//TODO: Reset KeyValSz to 0 here
 		++OptCt;

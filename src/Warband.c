@@ -226,7 +226,7 @@ struct Army* CreateArmy(struct Settlement* Settlement, struct BigGuy* Leader, co
 	SDL_Point Pos;
 
 	SettlementGetCenter(Settlement, &Pos);
-	CreateObject((struct Object*) Army, OBJECT_ARMY, (void(*)(struct Object*))ArmyThink);
+	CreateObject((struct Object*) Army, OBJECT_ARMY);
 	ConstructGameObject(&Army->Sprite, g_GameWorld.MapRenderer, ResourceGet("Warrior.png"), MAPRENDER_UNIT, &Pos);
 	Army->Sprite.Rect.x = 0;
 	Army->Sprite.Rect.y = 0;
@@ -512,9 +512,8 @@ void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32
 	uint32_t SupportCt = 0;
 	uint32_t CalvaryCt = 0;
 	struct Good* Gear[GEAR_SIZE];
-	struct Weapon* Weapon = NULL;
-	struct ARmor* Armor = NULL;
-	uint8_t GearSz = 0;
+	struct WeaponBase* Weapon = NULL;
+	struct ArmorBase* Armor = NULL;
 
 	for(int i = 0; i < PeopleCt; ++i) {
 		struct Family* Family = People[i]->Family;
@@ -522,27 +521,27 @@ void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32
 		for(int j = 0; j < Family->Goods.Size; ++j) {
 			struct Good* Good = Family->Goods.Table[i];
 
-			if(Good->Base->Type == GOOD_WEAPON) {
+			if(Good->Base->Category == GOOD_WEAPON) {
 				if(((struct WeaponBase*)Good->Base)->Range == MELEE_RANGE && Gear[GEAR_WEPMELEE] != NULL) {
 					Gear[GEAR_WEPMELEE] = Good;
 				} else if(((struct WeaponBase*)Good->Base)->Range != MELEE_RANGE && Gear[GEAR_WEPRANGE] != NULL){
 					Gear[GEAR_WEPRANGE] = Good;
 				}
-			} else if(Good->Base->Type == GOOD_ARMOR) {
-				if(((struct ArmorBase)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_ARMOR] != NULL) {
+			} else if(Good->Base->Category == GOOD_ARMOR) {
+				if(((struct ArmorBase*)Good->Base)->ArmorType== EARMOR_BODY && Gear[GEAR_ARMOR] != NULL) {
 					Gear[GEAR_ARMOR] = Good;
-				} else if(((struct ArmorBase)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_SHIELD] != NULL) {
+				} else if(((struct ArmorBase*)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_SHIELD] != NULL) {
 					Gear[GEAR_SHIELD] = Good;
 				}
 			}
 		}
-		Weapon = Gear[GEAR_WEPMELEE];
-		Armor = Gear[GEAR_SHIELD]
-		if((Weapon->Base->WeaponType == EWEAPON_SPEAR || Weapon->Base->WeaponType == EWEAPON_SPEAR) && Gear[GEAR_SHIELD] != NULL) {
+		Weapon = (struct WeaponBase*) Gear[GEAR_WEPMELEE]->Base;
+		Armor = (struct ArmorBase*) Gear[GEAR_SHIELD]->Base;
+		if((Weapon->WeaponType == EWEAPON_SPEAR || Weapon->WeaponType == EWEAPON_SPEAR) && Gear[GEAR_SHIELD] != NULL) {
 			++MeleeCt;
-		} else if(((struct Weapon*)Gear[GEAR_WEPRANGE])->Base->WeaponType == EWEAPON_JAVELIN && Weapon->Base->WeaponType == EWEAPON_SEAX) {
+		} else if(((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_JAVELIN && Weapon->WeaponType == EWEAPON_SEAX) {
 			++SkirmishersCt;
-		} else if(((struct Weapon*)Gear[GEAR_WEPRANGE])->Base->WeaponType == EWEAPON_BOW) {
+		} else if(((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_BOW) {
 			++SupportCt;
 		}
 		for(int j = 0; j < GEAR_SIZE; ++j) {

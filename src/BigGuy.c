@@ -149,7 +149,7 @@ void BGOnNewPlot(const struct EventData* Data, void* Extra1) {
 struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE], int Motivation) {
 	struct BigGuy* BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
-	CreateObject((struct Object*)BigGuy, OBJECT_BIGGUY, (ObjectThink) BigGuyThink);
+	CreateObject((struct Object*)BigGuy, OBJECT_BIGGUY);
 	BigGuy->Person = Person;
 	BigGuy->IsDirty = 1;
 	BigGuy->Relations = NULL;

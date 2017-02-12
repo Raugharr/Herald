@@ -37,7 +37,7 @@ struct MemoryPool* g_PersonPool = NULL;
 struct Pregnancy* CreatePregnancy(struct Person* Person) {
 	struct Pregnancy* Pregancy = (struct Pregnancy*) malloc(sizeof(struct Pregnancy));
 
-	CreateObject(&Pregancy->Object, OBJECT_PREGANCY, (void(*)(struct Object*))PregnancyThink);
+	//CreateObject(&Pregancy->Object, OBJECT_PREGANCY);
 	Pregancy->TTP = TO_DAYS(BIRTH_TIME) - 15 + Random(0, 29) + 1;
 	Pregancy->Mother = Person;
 	return Pregancy;
@@ -71,7 +71,7 @@ struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition
 	Assert(Name != NULL && Age >= 0 && (Gender == MALE || Gender == FEMALE) && Family != NULL && X >= 0 && Y >= 0);
 
 	Person = (struct Person*) MemPoolAlloc(g_PersonPool);
-	CreateObject(&Person->Object, OBJECT_PERSON, PersonThink);
+	CreateObject(&Person->Object, OBJECT_PERSON);
 	Person->Name = Name;
 	Person->Age = Age;
 	Person->Flags = (MALE & Gender);

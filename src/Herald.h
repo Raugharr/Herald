@@ -63,7 +63,6 @@ enum {
 	OBJECT_LOCATION,
 	OBJECT_BIGGUY,
 	OBJECT_FAMILY,
-	OBJECT_PLOT,
 	OBJECT_SIZE
 };
 
@@ -86,7 +85,6 @@ typedef void (*ObjectThink)(struct Object*);
 struct Object {
 	const uint32_t Id;
 	IMPLICIT_LINKEDLIST(struct Object);
-	ObjectThink Think;
 	uint8_t Type;
 };
 
@@ -121,7 +119,7 @@ struct Array* FileLoad(const char* _File, char _Delimiter);
 struct Array* ListToArray(const struct LinkedList* _List);
 void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack);
 
-void CreateObject(struct Object* _Obj, uint8_t _Type, ObjectThink _Think);
+void CreateObject(struct Object* _Obj, uint8_t _Type);
 void DestroyObject(struct Object* _Obj);
 void ObjectsThink();
 int NextId();

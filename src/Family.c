@@ -93,7 +93,7 @@ struct Family* CreateFamily(const char* Name, struct Settlement* Location, struc
 	Family->Food.AnimalFood = 0;
 	Family->IsAlive = true;
 	memset(&Family->Spec, 0, sizeof(Family->Spec));
-	CreateObject(&Family->Object, OBJECT_FAMILY, FamilyThink);
+	CreateObject(&Family->Object, OBJECT_FAMILY);
 	return Family;
 }
 

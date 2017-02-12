@@ -124,7 +124,7 @@ struct Field* CreateField(const struct Crop* Crop, int Acres, struct Family* Own
 	struct Field* Field = NULL;
 
 	Field = (struct Field*) malloc(sizeof(struct Field));
-	CreateObject((struct Object*)Field, OBJECT_CROP, (void(*)(struct Object*))FieldUpdate);
+	CreateObject((struct Object*)Field, OBJECT_CROP);
 	Field->Pos.x = Owner->HomeLoc->Pos.x;
 	Field->Pos.y = Owner->HomeLoc->Pos.y;
 	Field->Crop = Crop;

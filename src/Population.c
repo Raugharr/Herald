@@ -347,7 +347,7 @@ struct Animal* CreateAnimal(const struct Population* Pop, int Age, int Nutrition
 		Gender = MALE;
 	} else
 		Gender = FEMALE;
-	CreateObject(&Animal->Object, OBJECT_ANIMAL, AnimalThink);
+	CreateObject(&Animal->Object, OBJECT_ANIMAL);
 	Animal->Age = Age;
 	Animal->Pos.x = X;
 	Animal->Pos.y = Y;

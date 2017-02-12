@@ -67,7 +67,7 @@ void SettlementSetBGOpinions(struct LinkedList* List) {
 struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType) {
 	struct Settlement* Loc = (struct Settlement*) malloc(sizeof(struct Settlement));
 
-	CreateObject((struct Object*)Loc, OBJECT_LOCATION, (void(*)(struct Object*))SettlementThink);
+	CreateObject((struct Object*)Loc, OBJECT_LOCATION);
 	Loc->Pos.x = X;
 	Loc->Pos.y = Y;
 	Loc->Name = calloc(strlen(Name) + 1, sizeof(char));

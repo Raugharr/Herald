@@ -14,6 +14,7 @@
 #include "Good.h"
 #include "Population.h"
 #include "Mission.h"
+#include "Warband.h"
 
 #include "AI/BehaviorTree.h"
 #include "AI/Pathfind.h"
@@ -81,12 +82,20 @@ static struct ObjectList g_Objects = {
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
-	{NULL, NULL},
-	{NULL, NULL},
-	{NULL, NULL},
-	{NULL, NULL},
-	{NULL, FamilyObjThink},
-	{NULL, NULL}}
+	{NULL, FamilyObjThink}
+	}
+};
+
+static ObjectThink g_ObjectThinks[OBJECT_SIZE] = {
+	PersonThink,
+	AnimalThink,
+	(ObjectThink)FieldUpdate,
+	(ObjectThink)ArmyThink, 
+	NULL,
+	NULL,
+	(ObjectThink)SettlementThink,
+	(ObjectThink)BigGuyThink,
+	FamilyThink,
 };
 
 static uint32_t g_Id = 0;
@@ -327,22 +336,17 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 	}
 }*/
 
-void CreateObject(struct Object* _Obj, uint8_t _Type, ObjectThink _Think) {
+void CreateObject(struct Object* _Obj, uint8_t _Type) {
 	*(uint32_t*)&_Obj->Id = NextId();
 	_Obj->Type = _Type;
-	_Obj->Think = _Think;
 	RBInsert(&g_Objects.SearchTree, _Obj);
 	Assert(RBSearch(&g_Objects.SearchTree, _Obj));
-	if(_Think != NULL) {
-		ILL_CREATE(g_Objects.ObjectList[_Type].Front, _Obj);
-	}
+	ILL_CREATE(g_Objects.ObjectList[_Type].Front, _Obj);
 }
 
 void DestroyObject(struct Object* _Obj) {
 	RBDelete(&g_Objects.SearchTree, _Obj);
-	if(_Obj->Think != NULL) {
-		ILL_DESTROY(g_Objects.ObjectList[_Obj->Type].Front, _Obj);
-	}
+	ILL_DESTROY(g_Objects.ObjectList[_Obj->Type].Front, _Obj);
 }
 
 void ObjectsThink() {
@@ -355,7 +359,7 @@ void ObjectsThink() {
 
 			while(_Obj != NULL) {
 				_Next = _Obj->Next;
-				_Obj->Think(_Obj);
+				g_ObjectThinks[i](_Obj);
 				_Obj = _Next;
 			}
 		}

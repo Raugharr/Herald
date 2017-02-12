@@ -110,7 +110,7 @@ struct Plot* CreatePlot(int _Type, void* _Data, struct BigGuy* _Owner, struct Bi
 			_Plot->StatMods[i][j] = 0;
 		}
 	}
-	CreateObject(&_Plot->Object, OBJECT_PLOT, PlotThink);
+//	CreateObject(&_Plot->Object, OBJECT_PLOT);
 	PushEvent(EVENT_NEWPLOT, BigGuyHome(_Owner), _Plot);
 	if(_Target != NULL)
 		BigGuyPlotTarget(_Target, _Plot);

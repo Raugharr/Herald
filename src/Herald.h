@@ -11,6 +11,7 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 #include "sys/LinkedList.h"
+#include "sys/StackAllocator.h"
 
 #include <math.h>
 
@@ -38,6 +39,8 @@ struct Behavior;
 
 extern const char* g_ShortMonths[];
 extern struct Constraint** g_OpinionMods;
+//Use SAlloc and SFree instead of using this directly.
+extern struct LifoAllocator g_StackAllocator;
 /*
  * TODO: Object should be given its own file as well as DATE.
  */
@@ -51,16 +54,12 @@ enum {
 };
 
 enum {
-	OBJECT_GOOD,
 	OBJECT_PERSON,
 	OBJECT_ANIMAL,
-	OBJECT_BUILDING,
 	OBJECT_CROP,
-	OBJECT_ACTOR,
 	OBJECT_ARMY,
 	OBJECT_BATTLE,
 	OBJECT_PREGANCY,
-	OBJECT_CONSTRUCT,
 	OBJECT_LOCATION,
 	OBJECT_BIGGUY,
 	OBJECT_FAMILY,
@@ -85,7 +84,7 @@ typedef void (*ObjectThink)(struct Object*);
  * TODO: Have objects think in order of their type.
  */
 struct Object {
-	uint32_t Id;
+	const uint32_t Id;
 	IMPLICIT_LINKEDLIST(struct Object);
 	ObjectThink Think;
 	uint8_t Type;
@@ -111,6 +110,7 @@ int IdISCallback(const int* _One, const int* _Two);
 
 int HeraldInit(void);
 void HeraldDestroy(void);
+void ClearObjects();
 struct InputReq* CreateInputReq();
 void DestroyInputReq(struct InputReq* _Mat);
 int InputReqQtyCmp(const void* _One, const void* _Two);
@@ -127,6 +127,11 @@ void ObjectsThink();
 int NextId();
 
 void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family); 
-void* SAlloc(size_t _SizeOf);
-void SFree(void* _Ptr);
+static inline void* SAlloc(size_t _SizeOf) {
+	return LifoAlloc(&g_StackAllocator, _SizeOf);
+}
+
+static inline void SFree(void* _Ptr) {
+	LifoFree(&g_StackAllocator, 1);
+}
 #endif

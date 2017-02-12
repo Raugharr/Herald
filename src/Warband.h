@@ -38,10 +38,25 @@ enum {
 };
 
 enum {
+	WARROLE_MELEE = (1 << 0),
+	WARROLE_SKIRMISH = (1 << 1),
+	WARROLE_SUPPORT = (1 << 2),
+	WARROLE_CALVARY = (1 << 3)
+};
+
+enum {
 	ARMYGOAL_NONE,
 	ARMYGOAL_SLAVES,
 	ARMYGOAL_PILLAAGE,
 	ARMYGOAL_SLAUGHTER
+};
+
+enum {
+	GEAR_WEPMELEE,
+	GEAR_WEPRANGE,
+	GEAR_ARMOR,
+	GEAR_SHIELD,
+	GEAR_SIZE
 };
 
 struct ArmyPath {
@@ -74,9 +89,11 @@ struct Warband {
 	struct Settlement* Settlement;
 	struct Army* Parent;
 	struct BigGuy* Leader;
-	uint8_t Stats[WARSTAT_SIZE];
+	//FIXME: Why is this an implict linked list? Each army wont be adding/removing warbands at a fast pace at all and is just wasting memory.
 	struct Warband* Next; /* Implicit linked list containing the next and previous warbands in the army that contains this warband.*/
 	struct Warband* Prev;
+	uint8_t Stats[WARSTAT_SIZE];
+	uint8_t Role;
 };
 
 struct Army {
@@ -84,6 +101,7 @@ struct Army {
 	struct Sprite Sprite;
 	struct Warband* Warbands; //Implicit linked list.
 	struct BigGuy* Leader;
+	uint32_t Food;
 	struct ArmyGoal Goal;
 	struct ArmyPath Path; //TODO: might no longer be a needed parameter should be removed.
 	uint8_t Stats[WARSTAT_SIZE];
@@ -137,4 +155,5 @@ void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t 
  * Takes as much food weapon and armor as possible from the families in Families and places the look in Loot.
  */
 void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxGoods);
+void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32_t* Skirmishers, uint32_t* Support, uint32_t* Calvary);
 #endif

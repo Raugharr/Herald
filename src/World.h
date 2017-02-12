@@ -85,6 +85,7 @@ struct GameWorld {
 	struct Array Policies;
 	struct Constraint** BabyAvg;
 	struct Constraint** AgeGroups;
+	struct HashTable* AIHash;
 	struct Queue FreeWarriors;
 	float DecayRate[WORLD_DECAY];
 	uint8_t PolicySz;

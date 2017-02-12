@@ -25,7 +25,7 @@ struct Policy;
 
 struct Government;
 
-typedef struct BigGuy*(*GovernmentSuccession)(const struct Government*);
+typedef struct BigGuy*(*GovernmentSuccession)(const struct BigGuy*, uint8_t Gender);
 
 enum {
 	GOVREL_NONE,
@@ -76,18 +76,14 @@ enum {
 };
 
 
-struct GovRelation {
-	struct Government* Government;
-	int Relation;
-};
-
 struct Government {
 	uint16_t GovType;
 	uint16_t  GovRank;
 	struct Settlement* Location;
 	struct BigGuy* Leader;
 	struct BigGuy* NextLeader;
-	struct GovRelation Owner;
+	struct Government* Owner;
+	struct Relation* Relations;
 	struct LinkedList SubGovernments;
 	struct LinkedList Advisors;
 	struct LinkedList PolicyList;
@@ -132,9 +128,12 @@ void GovernmentLowerRank(struct Government* Gov, int NewRank, struct LinkedList*
  */
 void GovernmentLesserJoin(struct Government* Parent, struct Government* Subject, int Relation);
 
-struct BigGuy* MonarchyNewLeader(const struct Government* Gov);
-struct BigGuy* ElectiveNewLeader(const struct Government* Gov);
-struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* Gov);
+/**
+ * Find the first adult male that is a child of Guy to replace him creating a Big Guy if necessary.
+ */
+struct BigGuy* MonarchyNewLeader(const struct BigGuy* Guy, uint8_t Gender);
+struct BigGuy* ElectiveNewLeader(const struct BigGuy* Guy, uint8_t Gender);
+struct BigGuy* ElectiveMonarchyNewLeader(const struct BigGuy* Guy, uint8_t Gender);
 /*
  * Returns the top most parent of Gov.
  */

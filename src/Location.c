@@ -224,7 +224,7 @@ void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family) {
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(Family->People[i] == NULL || PersonMature(Family->People[i]) == 0)
 			continue;
-		if(Gender(Family->People[i]) == EMALE)
+		if(Gender(Family->People[i]) == MALE)
 			++Location->AdultMen;
 		else
 			++Location->AdultWomen;
@@ -263,13 +263,18 @@ void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
 	}
 }
 
+/*
+ * NOTE: Three branches are done here which could be removed if a list of sorted people were given to this function.
+ * The three are if the person is a warrior, adult, and gender. If the settlement's people were sorted in this way then
+ * These checks might become redundant.
+ */
 void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person) {
 	Assert(Settlement->NumPeople > 0);
 
 	ILL_DESTROY(Person->Family->HomeLoc->People, Person);
 	--Settlement->NumPeople;
 	if(PersonMature(Person) == 1) {
-		if(Gender(Person) == EMALE)
+		if(Gender(Person) == MALE)
 			--Settlement->AdultMen;
 		else
 			--Settlement->AdultWomen;
@@ -342,16 +347,7 @@ void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CAST
 		skip_bigguy:
 		Itr = Itr->Next;
 	}
-	SettlementSetBGOpinions(&Settlement->BigGuys);
-	/*if(CasteCount[CASTE_NOBLE] == 0) {
-		LeaderCaste = CASTE_WARRIOR;
-	}
-	for(Itr = Settlement->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
-		Leader = Itr->Data;
-		if(PERSON_CASTE(Leader->Person) == LeaderCaste)
-			break;
-	}*/
-	//GovernmentSetLeader(Settlement->Government, Leader);
+	//SettlementSetBGOpinions(&Settlement->BigGuys);
 	LnkLstClear(&UniqueFamilies);
 	Assert(Settlement->BigGuys.Size > 0);
 	//Assert(PERSON_CASTE(Leader->Person) == LeaderCaste);
@@ -383,9 +379,12 @@ int SettlementYearlyNutrition(const struct Settlement* Settlement) {
 
 	while(Itr != NULL) {
 		Family = ((struct Family*)Itr->Data);
-		for(int i = 0; i < Family->FieldCt; ++i) {
-			Nutrition = Nutrition + (Family->Fields[i]->Acres * 400);
+		if(Family->Caste != CASTE_FARMER)
+			goto end;
+		for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
+			Nutrition = Nutrition + (Family->Spec.Farmer.Fields[i]->Acres * 400);
 		}
+		end:
 		Itr = Itr->Next;
 	}
 	return Nutrition;

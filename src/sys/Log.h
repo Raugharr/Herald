@@ -7,6 +7,7 @@
 #define __LOG_H
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <signal.h>
 
 #define LOG_MAXSIZE (512)
@@ -14,7 +15,7 @@
 
 #ifdef DEBUG
 	#define LogStr(A) #A
-	#define Assert(Bool)	\
+	#define _Assert(Bool)	\
 		if((Bool) == 0) {	\
 			Log(ELOG_DEBUG, "Assert failed %s:%s:%i, (%s).", __FILE__, __func__, __LINE__, (#Bool));	\
 			raise(SIGINT);																				\
@@ -43,6 +44,8 @@
 #define AssertIntLt(_Left, _Right)
 #endif
 
+#define LogNoMem() Log(ELOG_ERROR, "Cannot allocate memory %s:%s:%i.", __FILE__, __func__, __LINE__)
+
 typedef struct lua_State lua_State;
 
 struct LogFile {
@@ -68,5 +71,8 @@ void LogCloseFile();
 
 void Log(int _Category, const char* _Text, ...);
 int LogLua(lua_State* _State);
+static inline void Assert(bool Cond) {
+	_Assert(Cond);
+}
 #endif
 

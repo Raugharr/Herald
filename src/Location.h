@@ -38,6 +38,7 @@ struct Settlement {
 	struct Object Object;
 	SDL_Point Pos;
 	char* Name;
+	//Look into replacing this with an array as People should not be frequently leaving/joining a settlement.
 	struct Person* People;
 	struct Sprite* Sprite;
 	struct Government* Government;
@@ -52,6 +53,7 @@ struct Settlement {
 	struct Field Meadow; //Common area that anyone can use to feed their animals.
 	DATE LastRaid;
 	uint16_t NumPeople;
+	//Migrants are not accounted for.
 	uint16_t YearDeaths; //Record of deaths in this settlement this year.
 	uint16_t YearBirths;
 	uint16_t AdultMen;

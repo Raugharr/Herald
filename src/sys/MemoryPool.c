@@ -5,13 +5,12 @@
 
 #include "MemoryPool.h"
 
+#include "Log.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL2/SDL.h>
-#ifdef DEBUG
-#include <assert.h>
-#endif
 
 #define MEMPOOL_BLOCKSZ(_SizeOf) ((_SizeOf) * (sizeof(char) * 8))
 
@@ -49,7 +48,7 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 void DestroyMemoryPool(struct MemoryPool* _MemPool) {
 #ifdef DEBUG
 	if(_MemPool != NULL)
-		assert(_MemPool->MaxSize == _MemPool->Size);
+		Assert(_MemPool->MaxSize == _MemPool->Size);
 #endif
 	free(_MemPool->BlockPool);
 	SDL_DestroyMutex(_MemPool->Lock);

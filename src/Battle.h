@@ -39,10 +39,10 @@ struct BattleSide {
 	struct Army* Army;
 	struct Array FrontWarbands[BATTLE_MAXFRONTS];
 	int32_t FrontSize[BATTLE_MAXFRONTS];
+	int32_t FrontStartSize[BATTLE_MAXFRONTS];
+	bool FrontRout[BATTLE_MAXFRONTS];
+	//int8_t FrontRange[BATTLE_MAXFRONTS];
 	uint8_t Stats[WARSTAT_SIZE * BATTLE_MAXFRONTS];
-	uint8_t LeftRout : 1;
-	uint8_t RightRout : 1;
-	uint8_t MidRout : 1;
 	uint16_t StartingSize; //How many soldiers are in the army before the battle starts.
 };
 
@@ -57,7 +57,7 @@ struct Battle {
 	struct Battle* Next;
 	struct Battle* Prev;
 	struct Settlement* BattleSite;
-	uint8_t Range;
+	int8_t Range;
 };
 
 int ArmyBattleDecision(const struct Army* Army,  struct BattleSide* Side, int Range);

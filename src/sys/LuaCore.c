@@ -155,7 +155,8 @@ int LuaCallFuncError(lua_State* _State) {
 
 	if(lua_isstring(_State, -1) == 0)
 		return 0;
-	lua_getstack(_State, 0, &_Debug);
+	if(lua_getstack(_State, 0, &_Debug) == 0)
+		return 1;
 	lua_getinfo(_State, "S", &_Debug);
 	lua_getglobal(_State, "debug");
 	lua_getfield(_State, -1, "traceback");

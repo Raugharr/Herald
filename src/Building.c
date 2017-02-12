@@ -25,7 +25,7 @@ struct Construction* CreateConstruct(struct Building* _Building, struct Person* 
 	int _BuildTime = ConstructionTime(_Building->Walls, _Building->Floor, _Building->Roof, BuildingArea(_Building));
 	int _Percent = _BuildTime / 10;
 
-	CreateObject((struct Object*)_Construct, OBJECT_CONSTRUCT, (void(*)(struct Object*))ConstructThink);
+	//CreateObject((struct Object*)_Construct, OBJECT_CONSTRUCT, (void(*)(struct Object*))ConstructThink);
 	_Construct->DaysLeft = _BuildTime - _Percent + Random(0, _Percent * 2);
 	_Construct->Building = _Building;
 	_Construct->Worker = _Person;
@@ -49,7 +49,7 @@ int ConstructionTime(const struct BuildMat* _Walls, const struct BuildMat* _Floo
 struct Building* CreateBuilding(int _ResType, const struct BuildMat* _Walls, const struct BuildMat* _Floor, const struct BuildMat* _Roof, int _SquareFeet) {
 	struct Building* _Building = (struct Building*) malloc(sizeof(struct Building));
 
-	CreateObject((struct Object*)_Building, OBJECT_BUILDING, NULL);
+	//CreateObject((struct Object*)_Building, OBJECT_BUILDING, NULL);
 	_Building->Pos.x = 0;
 	_Building->Pos.y = 0;
 	_Building->SquareFeet = _SquareFeet;

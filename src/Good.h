@@ -57,6 +57,7 @@ enum {
 };
 
 enum {
+	EWEAPON_SEAX,
 	EWEAPON_SPEAR,
 	EWEAPON_SWORD,
 	EWEAPON_JAVELIN,
@@ -116,7 +117,7 @@ struct Good {
 
 struct WeaponBase {
 	struct GoodBase Base;
-	uint16_t WeaponType;
+	int8_t WeaponType;
 	int8_t  MeleeAttack;
 	int8_t RangeAttack;
 	int8_t Range;

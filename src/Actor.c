@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 void CtorActor(struct Actor* _Actor, int _Type, int _X, int _Y, ObjectThink _Think, int _Gender, int _Nutrition, int _Age) {
-	CreateObject((struct Object*) _Actor, OBJECT_ACTOR, _Think);
+//	CreateObject((struct Object*) _Actor, OBJECT_ACTOR, _Think);
 	_Actor->Pos.x = _X;
 	_Actor->Pos.y = _Y;
 	_Actor->Age = _Age;

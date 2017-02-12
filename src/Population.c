@@ -344,9 +344,9 @@ struct Animal* CreateAnimal(const struct Population* Pop, int Age, int Nutrition
 	int Gender = 0;
 
 	if(Random(0, 999) < (int)(Pop->MaleRatio * 1000 - 1)) {
-		Gender = EMALE;
+		Gender = MALE;
 	} else
-		Gender = EFEMALE;
+		Gender = FEMALE;
 	CreateObject(&Animal->Object, OBJECT_ANIMAL, AnimalThink);
 	Animal->Age = Age;
 	Animal->Pos.x = X;

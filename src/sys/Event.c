@@ -6,12 +6,14 @@
 #include "Event.h"
 
 #include "MemoryPool.h"
+#include "StackAllocator.h"
 #include "LinkedList.h"
 #include "Queue.h"
 #include "RBTree.h"
 #include "LuaCore.h"
 #include "Log.h"
 
+#include "../Government.h"
 #include "../video/Gui.h"
 #include "../video/Video.h"
 #include "../video/GuiLua.h"
@@ -209,7 +211,6 @@ void Events() {
 				MessageBox("A crisis has occured.");
 		} else if(Event.type == g_EventTypes[EVENT_DEATH]) {
 			if(Event.user.data1 == g_GameWorld.Player->Person) {
-				MessageBox("You have died.");
 			}
 		} else if(Event.type == g_EventTypes[EVENT_ENDPLOT]) {
 			struct Plot* Plot = Event.user.data1;
@@ -262,12 +263,40 @@ void Events() {
 		} else if(Event.type == g_EventTypes[EVENT_WARBNDHOME]) {
 			struct Warband* Warband = Event.user.data1;
 			struct Animal* Animal = NULL;
-			float  SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
-			uint16_t Spoils = Warband->Parent->Captives.Size * SpoilsRatio;
+			struct Person* Warrior = NULL;
+			struct Array* CaptiveList = &Warband->Parent->Captives;
+			float  SpoilsRatio = 0;
+			uint16_t Spoils = 0;
+			uint32_t CaptiveCt = 0;
 			char Buffer[256];
+			uint16_t WarriorCt = 0;
 
+			if(Warband->Warriors.Size < 1)
+				break;
+			SpoilsRatio = Warband->Warriors.Size / ArmyGetSize(Warband->Parent);
+			Spoils = CaptiveList->Size * SpoilsRatio;
+			CaptiveCt = CaptiveList->Size / Warband->Parent->WarbandCt;
 			if(Warband->Warriors.Size == 0)
 				goto end;
+			for(int i = 0; i < CaptiveCt; ++i) {
+				for(int j = i + 1; j < CaptiveList->Size; ++j) {
+					if(((struct Person*)CaptiveList->Table[j])->Family == ((struct Person*)CaptiveList->Table[i])->Family) {
+						SettlementAddPerson(Warband->Settlement, CaptiveList->Table[CaptiveList->Size - 1]);	
+						//Slaves need owners.
+						((struct Person*)CaptiveList->Table[CaptiveList->Size - 1])->Family->Caste = CASTE_THRALL;
+						--CaptiveList->Size;
+					} else {
+						i = j;
+						break;
+					}
+				}
+				while(WarriorCt < Warband->Warriors.Size) {
+					Assert(WarriorCt < Warband->Warriors.Size);//If true should mean a slave cannot be paired with a warrior.
+					Warrior = Warband->Warriors.Table[WarriorCt++];
+					if(Warrior->Family->Slave == NULL)
+						Warrior->Family->Slave = ((struct Person*)CaptiveList->Table[i - 1])->Family;
+				}
+			}
 			sprintf(Buffer, "You have taken %i captives.", Spoils);
 			MessageBox(Buffer);
 			end:

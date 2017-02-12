@@ -35,15 +35,6 @@
 #endif
 
 #define LUA_EVENTIDSIZE (16)
-//FIXME: Delete me.
-#define MENU_CHECKARG(_Arg, _Name) 			\
-	if(lua_gettop(_State) == 1)	\
-		lua_pushnil(_State);	\
-	else						\
-		luaL_checktype(_State, (_Arg), LUA_TTABLE);	\
-	lua_getglobal(_State, (_Name));				\
-	if(lua_type(_State, -1) == LUA_TNIL)		\
-		luaL_error(_State, "Menu %s not not exist", (_Name))
 
 struct Container* g_GuiParentHook = NULL;
 
@@ -200,315 +191,321 @@ const struct LuaEnumReg g_LuaGuiEnums[] = {
 };
 
 //FIXME: Font should become a Lua class.
-TTF_Font* LuaCreateFont(lua_State* _State, const char* _Name, int _Size) {
-	TTF_Font* _Font = NULL;
+TTF_Font* LuaCreateFont(lua_State* State, const char* Name, int Size) {
+	TTF_Font* Font = NULL;
 
 	chdir("Fonts");
-	_Font = lua_newuserdata(_State, sizeof(TTF_Font*));
-	_Font = TTF_OpenFont(_Name, _Size);
+	Font = lua_newuserdata(State, sizeof(TTF_Font*));
+	Font = TTF_OpenFont(Name, Size);
 	chdir("..");
-	return _Font;
-	/*luaL_getmetatable(_State, LOBJ_FONT);
-	lua_setmetatable(_State, -2);
+	return Font;
+	/*luaL_getmetatable(State, LOBJ_FONT);
+	lua_setmetatable(State, -2);
 
-	lua_pushstring(_State, "Name");
-	lua_pushstring(_State, _Name);
-	lua_rawset(_State, -3);
-	lua_pushstring(_State, "Size");
-	lua_pushinteger(_State, _Size);
-	lua_rawset(_State, -3);
+	lua_pushstring(State, "Name");
+	lua_pushstring(State, Name);
+	lua_rawset(State, -3);
+	lua_pushstring(State, "Size");
+	lua_pushinteger(State, Size);
+	lua_rawset(State, -3);
 	chdir("..");
-	return _Font;*/
+	return Font;*/
 }
 
-void LuaGuiCallFunc(lua_State* _State, struct Widget* _Widget, uint32_t _Func) {
-	LuaGuiGetRef(_State);
-	lua_rawgeti(_State, -1, _Widget->LuaRef);
-	lua_rawgeti(_State, -1, _Func);
-	if(lua_type(_State, -1) == LUA_TFUNCTION) {
-		lua_pushvalue(_State, -2);
-		LuaCallFunc(_State, 1, 0, 0);
+void LuaGuiCallFunc(lua_State* State, struct Widget* Widget, uint32_t Func) {
+	LuaGuiGetRef(State);
+	lua_rawgeti(State, -1, Widget->LuaRef);
+	lua_rawgeti(State, -1, Func);
+	if(lua_type(State, -1) == LUA_TFUNCTION) {
+		lua_pushvalue(State, -2);
+		LuaCallFunc(State, 1, 0, 0);
 	} else {
-		lua_pop(_State, 1);
+		lua_pop(State, 1);
 	}
-	lua_pop(_State, 1);
+	lua_pop(State, 1);
 }
 
-int LuaCreateLabel(lua_State* _State) {
-	struct Label* _Label = NULL;
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	const char* _Text = luaL_checkstring(_State, 2);
-	SDL_Rect _Rect;
-	SDL_Surface* _Surface = NULL;
-	struct Font* _Font = _Parent->Skin->Label->Font;
-	SDL_Color _White = {255, 255, 255};
+int LuaCreateLabel(lua_State* State) {
+	struct Label* Label = NULL;
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	const char* Text = luaL_checkstring(State, 2);
+	SDL_Rect Rect;
+	SDL_Surface* Surface = NULL;
+	struct Font* Font = Parent->Skin->Label->Font;
+	SDL_Color White = {255, 255, 255};
 
-	if((_Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _White))) == NULL) {
-		_Rect.w = 32;
-		_Rect.h = 32;
+	if((Surface = ConvertSurface(TTF_RenderText_Solid(Font->Font, Text, White))) == NULL) {
+		Rect.w = 32;
+		Rect.h = 32;
 	} else {
-		_Rect.w = _Surface->w;
-		_Rect.h = _Surface->h;
+		Rect.w = Surface->w;
+		Rect.h = Surface->h;
 	}
-	_Rect.x = _Parent->Widget.Rect.x;
-	_Rect.y = _Parent->Widget.Rect.y;
-	lua_newtable(_State);
-	_Label = CreateLabel();
-	ConstructLabel(_Label, _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Parent->Skin->Label);
-	LuaInitClass(_State, _Label, LOBJ_LABEL);
+	Rect.x = Parent->Widget.Rect.x;
+	Rect.y = Parent->Widget.Rect.y;
+	lua_newtable(State);
+	Label = CreateLabel();
+	ConstructLabel(Label, Parent, &Rect, State, SurfaceToTexture(Surface), Parent->Skin->Label);
+	LuaInitClass(State, Label, LOBJ_LABEL);
 	return 1;
 }
 
-int LuaCreateButton(lua_State* _State) {
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	const char* _Text = luaL_checkstring(_State, 2);
-	SDL_Color _Color = {255, 255, 255, 255};
-	luaL_argcheck(_State, 3, lua_isfunction(_State, 3), "Third argument for CreateButton is not a functon");
+int LuaCreateButton(lua_State* State) {
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	const char* Text = luaL_checkstring(State, 2);
+	SDL_Color Color = {255, 255, 255, 255};
+	luaL_argcheck(State, 3, lua_isfunction(State, 3), "Third argument for CreateButton is not a functon");
 
-	struct Font* _Font = _Parent->Skin->Button->Font;
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Font->Font, _Text, _Color));
-	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, _Surface->w * 1.25f, _Surface->h * 1.25f};
-	struct Button* _Button = NULL;
+	struct Font* Font = Parent->Skin->Button->Font;
+	SDL_Surface* Surface = ConvertSurface(TTF_RenderText_Solid(Font->Font, Text, Color));
+	SDL_Rect Rect = {Parent->Widget.Rect.x, Parent->Widget.Rect.y, Surface->w * 1.25f, Surface->h * 1.25f};
+	struct Button* Button = NULL;
 
-	lua_createtable(_State, 2, 2);
-	_Button = ConstructButton(CreateButton(), _Parent, &_Rect, _State, SurfaceToTexture(_Surface), _Font);
-	LuaInitClass(_State, _Button, LOBJ_BUTTON);
-	lua_pushvalue(_State, 3);
-	lua_rawseti(_State, -2, GUIL_ONCLICK);
+	lua_createtable(State, 2, 2);
+	Button = ConstructButton(CreateButton(), Parent, &Rect, State, SurfaceToTexture(Surface), Font);
+	LuaInitClass(State, Button, LOBJ_BUTTON);
+	lua_pushvalue(State, 3);
+	lua_rawseti(State, -2, GUIL_ONCLICK);
 	return 1;
 }
 
-int LuaCreateTable(lua_State* _State) {
+int LuaCreateTable(lua_State* State) {
 	//int i = 0;
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	int _Rows = luaL_checkinteger(_State, 2);
-	int _Columns = luaL_checkinteger(_State, 3);
-	struct Table* _Table = NULL;
-	struct Font* _Font = _Parent->Skin->Table->Font;
-	SDL_Rect _Rect = {0, 0, 0, 0};
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	int Rows = luaL_checkinteger(State, 2);
+	int Columns = luaL_checkinteger(State, 3);
+	struct Table* Table = NULL;
+	struct Font* Font = Parent->Skin->Table->Font;
+	SDL_Rect Rect = {0, 0, 0, 0};
 
-	if(lua_gettop(_State) == 4)
-		_Font = LuaCheckClass(_State, 1, LOBJ_FONT);
-	_Table = CreateTable();
-	lua_newtable(_State);
-	if(_Font == NULL)
-		luaL_error(_State, "No default font or font passed as argument.");
-	lua_createtable(_State, 2, 2);
-	ConstructTable(_Table, _Parent, &_Rect,_State, _Columns, _Rows, _Font);
-	LuaInitClass(_State, _Table, LOBJ_TABLE);
+	if(lua_gettop(State) == 4)
+		Font = LuaCheckClass(State, 1, LOBJ_FONT);
+	Table = CreateTable();
+	lua_newtable(State);
+	if(Font == NULL)
+		luaL_error(State, "No default font or font passed as argument.");
+	lua_createtable(State, 2, 2);
+	ConstructTable(Table, Parent, &Rect, State, Columns, Rows, Font);
+	LuaInitClass(State, Table, LOBJ_TABLE);
 	return 1;
 }
 
-int LuaCreateTextBox(lua_State* _State) {
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	struct TextBox* _TextBox = NULL;
-	struct Font* _Font = _Parent->Skin->Label->Font;
+int LuaCreateTextBox(lua_State* State) {
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	struct TextBox* TextBox = NULL;
+	struct Font* Font = Parent->Skin->Label->Font;
 
-	if(_Parent == NULL)
-		LuaClassError(_State, 1, LOBJ_CONTAINER);
-	_TextBox = CreateTextBox();
-	lua_createtable(_State, 2, 2);
-	ConstructTextBox(_TextBox, _Parent, 1, 16, _State, _Font, _Parent->Skin->Label);
-	LuaInitClass(_State, _TextBox, LOBJ_TEXTBOX);
+	if(Parent == NULL)
+		LuaClassError(State, 1, LOBJ_CONTAINER);
+	TextBox = CreateTextBox();
+	lua_createtable(State, 2, 2);
+	ConstructTextBox(TextBox, Parent, 1, 16, State, Font, Parent->Skin->Label);
+	LuaInitClass(State, TextBox, LOBJ_TEXTBOX);
 	return 1;
 }
 
-struct Container* LuaContainer(lua_State* _State) {
+struct Container* LuaContainer(lua_State* State) {
 	enum {
 		LARG_PARENT = 1,
 		LARG_WIDTH,
 		LARG_HEIGHT,
 	};
-	struct Container* _Container = NULL;
-	struct Container* _Parent = NULL;
-	SDL_Rect _Rect = {0, 0, 0, 0};
+	struct Container* Container = NULL;
+	struct Container* Parent = NULL;
+	SDL_Rect Rect = {0, 0, 0, 0};
 
-	_Rect.x = 0;
-	_Rect.y = 0;
-	_Rect.w = luaL_checkinteger(_State, LARG_WIDTH);
-	_Rect.h = luaL_checkinteger(_State, LARG_HEIGHT);
-	if(lua_type(_State, LARG_PARENT) == LUA_TTABLE)
-		_Parent = LuaCheckClass(_State, LARG_PARENT, LOBJ_CONTAINER);
-	_Container = CreateContainer();
-	lua_createtable(_State, 2, 2);
-	ConstructContainer(_Container, _Parent, &_Rect, _State);
-	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
-	return _Container;
+	Rect.x = 0;
+	Rect.y = 0;
+	Rect.w = luaL_checkinteger(State, LARG_WIDTH);
+	Rect.h = luaL_checkinteger(State, LARG_HEIGHT);
+	if(lua_type(State, LARG_PARENT) == LUA_TTABLE)
+		Parent = LuaCheckClass(State, LARG_PARENT, LOBJ_CONTAINER);
+	Container = CreateContainer();
+	lua_createtable(State, 2, 2);
+	ConstructContainer(Container, Parent, &Rect, State);
+	LuaInitClass(State, Container, LOBJ_CONTAINER);
+	return Container;
 }
 
-int LuaHorizontalContainer(lua_State* _State) {
-	struct Container* _Container = LuaContainer(_State);
+int LuaHorizontalContainer(lua_State* State) {
+	struct Container* Container = LuaContainer(State);
 
-	_Container->NewChild = HorzConNewChild;
+	Container->NewChild = HorzConNewChild;
 	return 1;
 }
 
-int LuaVerticalContainer(lua_State* _State) {
-	struct Container* _Container = LuaContainer(_State);
+int LuaVerticalContainer(lua_State* State) {
+	struct Container* Container = LuaContainer(State);
 
-	_Container->NewChild = VertConNewChild;
+	Container->NewChild = VertConNewChild;
 	return 1;
 }
 
-int LuaFixedContainer(lua_State* _State) {
-	struct Container* _Container = LuaContainer(_State);
+int LuaFixedContainer(lua_State* State) {
+	struct Container* Container = LuaContainer(State);
 
-	_Container->NewChild = FixedConNewChild;
+	Container->NewChild = FixedConNewChild;
 	return 1;
 }
 
-int LuaContextItem(lua_State* _State) {
-	struct ContextItem* _Container = NULL;
-	SDL_Rect _Rect = {luaL_checkint(_State, 1), luaL_checkint(_State, 2), luaL_checkint(_State, 3), luaL_checkint(_State, 4)};
-	struct Container* _Parent = LuaCheckClass(_State, 7, LOBJ_CONTAINER);
+int LuaContextItem(lua_State* State) {
+	struct ContextItem* Container = NULL;
+	SDL_Rect Rect = {luaL_checkint(State, 1), luaL_checkint(State, 2), luaL_checkint(State, 3), luaL_checkint(State, 4)};
+	struct Container* Parent = LuaCheckClass(State, 7, LOBJ_CONTAINER);
 	int i = 0;
 
-	luaL_checktype(_State, 6, LUA_TTABLE);
-	lua_pushnil(_State);
-	while(lua_next(_State, 6) != 0 && i <= 4) {
-		lua_pop(_State, 1);
+	luaL_checktype(State, 6, LUA_TTABLE);
+	lua_pushnil(State);
+	while(lua_next(State, 6) != 0 && i <= 4) {
+		lua_pop(State, 1);
 		++i;
 	}
-	lua_newtable(_State);
-	_Container = CreateContextItem();
-	ConstructContextItem(_Container, _Parent, &_Rect, _State);
-	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
+	lua_newtable(State);
+	Container = CreateContextItem();
+	ConstructContextItem(Container, Parent, &Rect, State);
+	LuaInitClass(State, Container, LOBJ_CONTAINER);
 	return 1;
 }
 
 /*
-int LuaCreateWorldRender(lua_State* _State) {
-	struct GameWorldWidget* _Widget = NULL;
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+int LuaCreateWorldRender(lua_State* State) {
+	struct GameWorldWidget* Widget = NULL;
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 	 
-	lua_newtable(_State);
-	_Widget = CreateGWWidget();
-	ConstructGWWidget(_Widget, _Parent, &_Parent->Widget.Rect, _State, &g_GameWorld);
-	LuaCtor(_State, _Widget, LOBJ_WIDGET);
+	lua_newtable(State);
+	Widget = CreateGWWidget();
+	ConstructGWWidget(Widget, Parent, &Parent->Widget.Rect, State, &g_GameWorld);
+	LuaCtor(State, Widget, LOBJ_WIDGET);
 	return 1;	
 }
 */
 
-int LuaGetFont(lua_State* _State) {
-	const char* _Name = luaL_checkstring(_State, 1);
-	int _Size = luaL_checkint(_State, 2);
-	struct Font* _Font = NULL;
+int LuaGetFont(lua_State* State) {
+	const char* Name = luaL_checkstring(State, 1);
+	int Size = luaL_checkint(State, 2);
+	struct Font* Font = NULL;
 
 	chdir("fonts");
-	_Font = CreateFont(_Name, _Size);
-	LuaCtor(_State, _Font, LOBJ_FONT);
+	Font = CreateFont(Name, Size);
+	LuaCtor(State, Font, LOBJ_FONT);
 	chdir("..");
 	return 1;
 }
 
-int LuaCreateWindow(lua_State* _State) {
+int LuaCreateWindow(lua_State* State) {
 	enum {
 		LARG_NAME = 1,
 		LARG_DATA,
 		LARG_TABLE,
 	};
-	const char* _Name = luaL_checkstring(_State, LARG_NAME);
-	struct Container* _Container = NULL;
-	SDL_Rect _Rect = {0};
+	const char* Name = luaL_checkstring(State, LARG_NAME);
+	struct Container* Container = NULL;
+	SDL_Rect Rect = {0};
 
-	MENU_CHECKARG(LARG_DATA, _Name);
+	if(lua_gettop(State) == 1)	
+		lua_pushnil(State);	
+	else						
+		luaL_checktype(State, LARG_DATA, LUA_TTABLE);
+	lua_getglobal(State, Name);
+	if(lua_type(State, -1) == LUA_TNIL)
+		luaL_error(State, "Menu %s not not exist", Name);
 
-	lua_pushstring(_State, "Width");
-	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TNUMBER)
-		return luaL_error(_State, "%s's Width parameter is not a number.", _Name);
-	_Rect.w = lua_tointeger(_State, -1);
-	lua_pop(_State, 1);
+	lua_pushstring(State, "Width");
+	lua_rawget(State, -2);
+	if(lua_type(State, -1) != LUA_TNUMBER)
+		return luaL_error(State, "%s's Width parameter is not a number.", Name);
+	Rect.w = lua_tointeger(State, -1);
+	lua_pop(State, 1);
 
-	lua_pushstring(_State, "Height");
-	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) != LUA_TNUMBER)
-		return luaL_error(_State, "%s's Height parameter is not a number.", _Name);
-	_Rect.h = lua_tointeger(_State, -1);
-	lua_pop(_State, 1);
+	lua_pushstring(State, "Height");
+	lua_rawget(State, -2);
+	if(lua_type(State, -1) != LUA_TNUMBER)
+		return luaL_error(State, "%s's Height parameter is not a number.", Name);
+	Rect.h = lua_tointeger(State, -1);
+	lua_pop(State, 1);
 
-	lua_newtable(_State);
-	LuaCopyTable(_State, -2);
-	_Container = CreateContainer();
-	ConstructContainer(_Container, NULL, &_Rect, _State);
-	_Container->NewChild = FixedConNewChild;
-	_Container->Widget.Parent = NULL;
+	lua_newtable(State);
+	LuaCopyTable(State, -2);
+	Container = CreateContainer();
+	ConstructContainer(Container, NULL, &Rect, State);
+	Container->NewChild = FixedConNewChild;
+	Container->Widget.Parent = NULL;
 
-	LuaInitClass(_State, _Container, LOBJ_CONTAINER);
+	LuaInitClass(State, Container, LOBJ_CONTAINER);
 	
-	lua_pushstring(_State, "Init");
-	lua_rawget(_State, LARG_TABLE);
+	lua_pushstring(State, "Init");
+	lua_rawget(State, LARG_TABLE);
 
-	lua_pushvalue(_State, LARG_TABLE);
-	lua_pushvalue(_State, LARG_DATA);
-	GuiSetParentHook(_Container);
-	if(LuaCallFunc(_State, 2, 0, 0) == 0)
-		return luaL_error(_State, "%s.Init function call failed", _Name);
+	lua_pushvalue(State, LARG_TABLE);
+	lua_pushvalue(State, LARG_DATA);
+	GuiSetParentHook(Container);
+	if(LuaCallFunc(State, 2, 0, 0) == 0)
+		return luaL_error(State, "%s.Init function call failed", Name);
 	GuiSetParentHook(NULL);
-	//WidgetSetParent(NULL, (struct Widget*) _Container);
-	_Container->Widget.IsDraggable = 1;
-	GuiZBuffAdd(_Container);
+	//WidgetSetParent(NULL, (struct Widget*) Container);
+	Container->Widget.IsDraggable = 1;
+	GuiZBuffAdd(Container);
 	return 1;
 }
 
-int LuaCreateImage(lua_State* _State) {
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	struct Sprite* _Sprite = LuaCheckClass(_State, 2, LOBJ_SPRITE);
-	SDL_Rect _Rect = {_Parent->Widget.Rect.x, _Parent->Widget.Rect.y, 0, 0};
-	struct ImageWidget* _Widget = CreateImageWidget();
+int LuaCreateImage(lua_State* State) {
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	struct Sprite* Sprite = LuaCheckClass(State, 2, LOBJ_SPRITE);
+	SDL_Rect Rect = {Parent->Widget.Rect.x, Parent->Widget.Rect.y, 0, 0};
+	struct ImageWidget* Widget = CreateImageWidget();
 
-	if(_Sprite == NULL) {
-		lua_pushnil(_State);
+	if(Sprite == NULL) {
+		lua_pushnil(State);
 		return 1;
 	}
-	_Rect.w = _Sprite->Rect.w;
-	_Rect.h = _Sprite->Rect.h;
-	ConstructImageWidget(_Widget, _Parent, &_Rect, _State, _Sprite, _Parent->Skin->Label);
-	_Sprite->SpritePos.x = _Widget->Widget.Rect.x;
-	_Sprite->SpritePos.y = _Widget->Widget.Rect.y;
-	_Sprite->SpritePos.w = _Widget->Widget.Rect.w;
-	_Sprite->SpritePos.h = _Widget->Widget.Rect.h;
-	LuaCtor(_State, _Widget, LOBJ_IMAGEWIDGET);
+	Rect.w = Sprite->Rect.w;
+	Rect.h = Sprite->Rect.h;
+	ConstructImageWidget(Widget, Parent, &Rect, State, Sprite, Parent->Skin->Label);
+	Sprite->SpritePos.x = Widget->Widget.Rect.x;
+	Sprite->SpritePos.y = Widget->Widget.Rect.y;
+	Sprite->SpritePos.w = Widget->Widget.Rect.w;
+	Sprite->SpritePos.h = Widget->Widget.Rect.h;
+	LuaCtor(State, Widget, LOBJ_IMAGEWIDGET);
 	return 1;
 }
 
-int LuaMenuAsContainer(lua_State* _State) {
-	struct Container* _Container = CreateContainer();
-	struct SDL_Rect _Rect = {0, 0, 0, 0};
+int LuaMenuAsContainer(lua_State* State) {
+	struct Container* Container = CreateContainer();
+	struct SDL_Rect Rect = {0, 0, 0, 0};
 
-	lua_newtable(_State);
-	ConstructContainer(_Container, NULL, &_Rect, _State);
-	GuiSetParentHook(_Container);
-	LuaCreateWindow(_State);
-	//LuaSetMenu_Aux(_State);
+	lua_newtable(State);
+	ConstructContainer(Container, NULL, &Rect, State);
+	GuiSetParentHook(Container);
+	LuaCreateWindow(State);
+	//LuaSetMenu_Aux(State);
 	GuiSetParentHook(NULL);
 	return 1;
 }
 
-void GuiSetMenu(lua_State* _State, const char* _Menu) {
-	char* _NameCopy = NULL;
+void GuiSetMenu(lua_State* State, const char* Menu) {
+	char* NameCopy = NULL;
 
-	lua_settop(_State, 0);
-	lua_pushstring(_State, _Menu);
-	LuaSetMenu_Aux(_State);
-	_NameCopy = calloc(strlen(_Menu) + 1, sizeof(char));
-	strcpy(_NameCopy, _Menu);
-	StackPush(&g_GUIStack, _NameCopy);
+	lua_settop(State, 0);
+	lua_pushstring(State, Menu);
+	LuaSetMenu_Aux(State);
+	NameCopy = calloc(strlen(Menu) + 1, sizeof(char));
+	strcpy(NameCopy, Menu);
+	StackPush(&g_GUIStack, NameCopy);
 }
 
-int LuaSetMenu(lua_State* _State) {
-	const char* _Name = luaL_checkstring(_State, 1);
-	char* _NameCopy = NULL;
-	int _Ret = 0;
+int LuaSetMenu(lua_State* State) {
+	const char* Name = luaL_checkstring(State, 1);
+	char* NameCopy = NULL;
+	int Ret = 0;
 
-	_Ret = LuaSetMenu_Aux(_State);
-	_NameCopy = calloc(strlen(_Name) + 1, sizeof(char));
-	strcpy(_NameCopy, _Name);
-	StackPush(&g_GUIStack, _NameCopy);
-	return _Ret;
+	Ret = LuaSetMenu_Aux(State);
+	NameCopy = calloc(strlen(Name) + 1, sizeof(char));
+	strcpy(NameCopy, Name);
+	StackPush(&g_GUIStack, NameCopy);
+	return Ret;
 }
 
-int LuaSetMenu_Aux(lua_State* _State) {
+int LuaSetMenu_Aux(lua_State* State) {
 	enum SETMENU_LUAARGS {
 		SETMENU_NAME = 1,
 		SETMENU_DATA,
@@ -516,426 +513,426 @@ int LuaSetMenu_Aux(lua_State* _State) {
 		SETMENU_HEIGHT,
 		SETMENU_TABLE
 	};
-	const char* _Name = luaL_checkstring(_State, 1);
-	SDL_Rect _MenuRect = {0};
-	struct Container* _MenuContainer = NULL;
-	int _Width = SDL_WIDTH;
-	int _Height = SDL_HEIGHT;
-	//struct Font* _Font = NULL;
-	//struct Font* _Prev = NULL;
+	const char* Name = luaL_checkstring(State, 1);
+	SDL_Rect MenuRect = {0};
+	struct Container* MenuContainer = NULL;
+	int Width = SDL_WIDTH;
+	int Height = SDL_HEIGHT;
+	//struct Font* Font = NULL;
+	//struct Font* Prev = NULL;
 
-	switch(lua_gettop(_State)) {
+	switch(lua_gettop(State)) {
 		case 4:
-			_Height = luaL_checkinteger(_State, SETMENU_HEIGHT);
-			_Width = luaL_checkinteger(_State, SETMENU_WIDTH);
+			Height = luaL_checkinteger(State, SETMENU_HEIGHT);
+			Width = luaL_checkinteger(State, SETMENU_WIDTH);
 			break;
 		case 3:
-			_Width = luaL_checkinteger(_State, SETMENU_WIDTH);
-			lua_pushnil(_State);
+			Width = luaL_checkinteger(State, SETMENU_WIDTH);
+			lua_pushnil(State);
 			break;
 		case 1: 
-			lua_pushnil(_State);
+			lua_pushnil(State);
 		case 2:
-			lua_pushnil(_State);
-			lua_pushnil(_State);		
+			lua_pushnil(State);
+			lua_pushnil(State);		
 			break;
 		default:
 			SDL_assert(0 == 1 && "Incorrect amount of args.");
 	}
 	if(g_GUIStack.Size > 0) {
 		GuiEmpty();
-		LuaCloseMenu(_State);
+		LuaCloseMenu(State);
 	}
-	//Check if the global _Name exists if it doesn't close the menu.
-	lua_getglobal(_State, _Name);
-	if(lua_type(_State, -1) == LUA_TNIL)
-		luaL_error(_State, "Menu %s not not exist", _Name);
+	//Check if the global Name exists if it doesn't close the menu.
+	lua_getglobal(State, Name);
+	if(lua_type(State, -1) == LUA_TNIL)
+		luaL_error(State, "Menu %s not not exist", Name);
 
-	lua_newtable(_State);
-	LuaCopyTable(_State, -2); //Copy Menu prototype into a new table.
+	lua_newtable(State);
+	LuaCopyTable(State, -2); //Copy Menu prototype into a new table.
 	//This should be in its own function that also StackPush to g_GUIStack.
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "Menu");
-	lua_pushvalue(_State, SETMENU_TABLE); //Get the new table.
-	_MenuRect.w = _Width;
-	_MenuRect.h = _Height;
-	lua_newtable(_State);
-	_MenuContainer = CreateContainer();
-	ConstructContainer(_MenuContainer, NULL, &_MenuRect, _State);
-	_MenuContainer->Widget.OnDraw = (int(*)(struct Widget*))MenuOnDraw;
-	_MenuContainer->Widget.OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))MenuOnClick;
-	_MenuContainer->NewChild = FixedConNewChild;
-	lua_pushvalue(_State, SETMENU_TABLE);
-	LuaInitClass(_State, _MenuContainer, LOBJ_CONTAINER);
-	lua_pop(_State, 2);
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "Menu");
+	lua_pushvalue(State, SETMENU_TABLE); //Get the new table.
+	MenuRect.w = Width;
+	MenuRect.h = Height;
+	lua_newtable(State);
+	MenuContainer = CreateContainer();
+	ConstructContainer(MenuContainer, NULL, &MenuRect, State);
+	MenuContainer->Widget.OnDraw = (int(*)(struct Widget*))MenuOnDraw;
+	MenuContainer->Widget.OnClick = (struct Widget*(*)(struct Widget*, const SDL_Point*))MenuOnClick;
+	MenuContainer->NewChild = FixedConNewChild;
+	lua_pushvalue(State, SETMENU_TABLE);
+	LuaInitClass(State, MenuContainer, LOBJ_CONTAINER);
+	lua_pop(State, 2);
 
-	lua_rawset(_State, -3);//Set GUI.Menu equal to the global _Name.
-	lua_pop(_State, 1);// Pop global GUI.
+	lua_rawset(State, -3);//Set GUI.Menu equal to the global Name.
+	lua_pop(State, 1);// Pop global GUI.
 
-	lua_pushstring(_State, "__name");
-	lua_pushstring(_State, _Name);
-	lua_rawset(_State, SETMENU_TABLE);
+	lua_pushstring(State, "__name");
+	lua_pushstring(State, Name);
+	lua_rawset(State, SETMENU_TABLE);
 
 	g_Focus = CreateGUIFocus();
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		RestoreScreen(_State);
-		return luaL_error(_State, "%s is not a table.", _Name);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		RestoreScreen(State);
+		return luaL_error(State, "%s is not a table.", Name);
 	}
-	lua_pushstring(_State, "Init");
-	lua_rawget(_State, SETMENU_TABLE);
-	if(lua_type(_State, -1) != LUA_TFUNCTION || lua_iscfunction(_State, -1) != 0) {
+	lua_pushstring(State, "Init");
+	lua_rawget(State, SETMENU_TABLE);
+	if(lua_type(State, -1) != LUA_TFUNCTION || lua_iscfunction(State, -1) != 0) {
 		if(g_GUIStack.Top != NULL) {
-			RestoreScreen(_State);
+			RestoreScreen(State);
 		}
-		return luaL_error(_State, "Init is not a function in menu %s.", _Name);
+		return luaL_error(State, "Init is not a function in menu %s.", Name);
 	}
-	lua_pushvalue(_State, SETMENU_TABLE);
-	lua_pushvalue(_State, SETMENU_DATA);
-	if(LuaCallFunc(_State, 2, 0, 0) == 0) {
+	lua_pushvalue(State, SETMENU_TABLE);
+	lua_pushvalue(State, SETMENU_DATA);
+	if(LuaCallFunc(State, 2, 0, 0) == 0) {
 		if(g_GUIStack.Size > 0) {
-			RestoreScreen(_State);
+			RestoreScreen(State);
 		}
-		return luaL_error(_State, "%s.Init function call failed", _Name);
+		return luaL_error(State, "%s.Init function call failed", Name);
 	}
-	lua_getglobal(_State, _Name);
-	lua_pushstring(_State, "__input");
-	lua_pushvalue(_State, SETMENU_DATA);
-	lua_rawset(_State, -3);
-	lua_pop(_State, 3);
+	lua_getglobal(State, Name);
+	lua_pushstring(State, "__input");
+	lua_pushvalue(State, SETMENU_DATA);
+	lua_rawset(State, -3);
+	lua_pop(State, 3);
 	g_VideoOk = 1;
-	GuiZBuffAdd(_MenuContainer);
+	GuiZBuffAdd(MenuContainer);
 	return 0;
 }
 
-int LuaCloseMenu(lua_State* _State) {
-	int _Len = 0;
+int LuaCloseMenu(lua_State* State) {
+	int Len = 0;
 
 	g_GUIMenuChange = 1;
 	//Get the current menu.
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "Menu");
-	lua_rawget(_State, -2);
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "Menu");
+	lua_rawget(State, -2);
 
 	//Call its Quit function.
-	lua_pushstring(_State, "Quit");
-	lua_rawget(_State, -2);
-	lua_pushvalue(_State, -2);
-	LuaCallFunc(_State, 1, 0, 0);
+	lua_pushstring(State, "Quit");
+	lua_rawget(State, -2);
+	lua_pushvalue(State, -2);
+	LuaCallFunc(State, 1, 0, 0);
 
-	lua_pushstring(_State, "__name");
-	lua_rawget(_State, -2);
-	lua_getglobal(_State, lua_tostring(_State, -1));
-	lua_pop(_State, 3);
+	lua_pushstring(State, "__name");
+	lua_rawget(State, -2);
+	lua_getglobal(State, lua_tostring(State, -1));
+	lua_pop(State, 3);
 
-	lua_pushstring(_State, "ScreenStack");
-	lua_rawget(_State, -2);
-	_Len = lua_rawlen(_State, -1);
-	if(_Len > 0) {
-		lua_rawgeti(_State, -1, _Len);
-		lua_pushstring(_State, "__ehooks");
-		lua_newtable(_State);
+	lua_pushstring(State, "ScreenStack");
+	lua_rawget(State, -2);
+	Len = lua_rawlen(State, -1);
+	if(Len > 0) {
+		lua_rawgeti(State, -1, Len);
+		lua_pushstring(State, "__ehooks");
+		lua_newtable(State);
 
-		lua_pushstring(_State, "__focus");
-		lua_pushlightuserdata(_State, g_Focus);
-		lua_rawset(_State, -3);
-		lua_pop(_State, 3);
-		if(_Len == 0)
+		lua_pushstring(State, "__focus");
+		lua_pushlightuserdata(State, g_Focus);
+		lua_rawset(State, -3);
+		lua_pop(State, 3);
+		if(Len == 0)
 			g_VideoOk = 0;
 		goto no_destroy;
 	} else {
 		g_VideoOk = 0;
-		lua_pop(_State, 1);
+		lua_pop(State, 1);
 	}
 	//destroy:
-	/*lua_pushstring(_State, "EventIds");
-	lua_rawget(_State, -2);
+	/*lua_pushstring(State, "EventIds");
+	lua_rawget(State, -2);
 	for(i = 0; i < g_GUIEvents->Size; ++i) {
-		luaL_unref(_State, -1, g_GUIEvents->Events[i].RefId);
+		luaL_unref(State, -1, g_GUIEvents->Events[i].RefId);
 	}
-	lua_pop(_State, 1);
-	GuiClear(_State);
+	lua_pop(State, 1);
+	GuiClear(State);
 	DestroyFocus(g_Focus);
 	DestroyGUIEvents(g_GUIEvents);
 	free(StackPop(&g_GUIStack));*/
 	no_destroy:
 	g_Focus = NULL;
-	lua_pop(_State, 1);
+	lua_pop(State, 1);
 	return 0;
 }
 
-void LuaSetColor(lua_State* _State, unsigned char* _RedPtr, unsigned char* _GreenPtr, unsigned char* _BluePtr) {
-	int _Red = luaL_checkint(_State, 1);
-	int _Green = luaL_checkint(_State, 2);
-	int _Blue = luaL_checkint(_State, 3);
+void LuaSetColor(lua_State* State, unsigned char* RedPtr, unsigned char* GreenPtr, unsigned char* BluePtr) {
+	int Red = luaL_checkint(State, 1);
+	int Green = luaL_checkint(State, 2);
+	int Blue = luaL_checkint(State, 3);
 
-	if(_Red < 0 || _Red > 255)
-		luaL_error(_State, "Red is not between 0 and 255");
-	if(_Green < 0 || _Green > 255)
-		luaL_error(_State, "Green is not between 0 and 255");
-	if(_Blue < 0 || _Red > 255)
-		luaL_error(_State, "Blue is not between 0 and 255");
-	*_RedPtr = _Red;
-	*_GreenPtr = _Green;
-	*_BluePtr = _Blue;
+	if(Red < 0 || Red > 255)
+		luaL_error(State, "Red is not between 0 and 255");
+	if(Green < 0 || Green > 255)
+		luaL_error(State, "Green is not between 0 and 255");
+	if(Blue < 0 || Red > 255)
+		luaL_error(State, "Blue is not between 0 and 255");
+	*RedPtr = Red;
+	*GreenPtr = Green;
+	*BluePtr = Blue;
 }
-int LuaWidgetOnEvent(lua_State* _State, void(*_Callback)(struct Widget*)) {
-	int _RefId = 0;
+int LuaWidgetOnEvent(lua_State* State, void(*Callback)(struct Widget*)) {
+	int RefId = 0;
 
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "EventIds");
-	lua_rawget(_State, -2);
-	lua_pushlightuserdata(_State, _Callback);
-	_RefId = luaL_ref(_State, -2);
-	lua_pop(_State, 2);
-	return _RefId;
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "EventIds");
+	lua_rawget(State, -2);
+	lua_pushlightuserdata(State, Callback);
+	RefId = luaL_ref(State, -2);
+	lua_pop(State, 2);
+	return RefId;
 }
 
-int LuaOnKey(lua_State* _State) {
-	LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	luaL_argcheck(_State, (lua_isfunction(_State, 2) == 1 || lua_iscfunction(_State, 2) == 1), 2, "Is not a function");
-	lua_pushvalue(_State, 2);
-	lua_rawseti(_State, 1, GUIL_ONKEY);
+int LuaOnKey(lua_State* State) {
+	LuaCheckClass(State, 1, LOBJ_WIDGET);
+	luaL_argcheck(State, (lua_isfunction(State, 2) == 1 || lua_iscfunction(State, 2) == 1), 2, "Is not a function");
+	lua_pushvalue(State, 2);
+	lua_rawseti(State, 1, GUIL_ONKEY);
 	return 0;
 }
 
-int LuaWidgetOnClick(lua_State* _State) {
-	LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	luaL_argcheck(_State, lua_isfunction(_State, 2), 2, "Is not a function.");
-	lua_rawseti(_State, 1, GUIL_ONCLICK);
+int LuaWidgetOnClick(lua_State* State) {
+	LuaCheckClass(State, 1, LOBJ_WIDGET);
+	luaL_argcheck(State, lua_isfunction(State, 2), 2, "Is not a function.");
+	lua_rawseti(State, 1, GUIL_ONCLICK);
 	return 0;
 }
 
-int LuaPopMenu(lua_State* _State) {
-	char* _String = NULL;
+int LuaPopMenu(lua_State* State) {
+	char* String = NULL;
 
 	free(StackPop(&g_GUIStack));
-	if((_String = (char*)StackGet(&g_GUIStack, -1)) == NULL) {
+	if((String = (char*)StackGet(&g_GUIStack, -1)) == NULL) {
 		g_VideoOk = 0;
 		return 0;
 	}
-	lua_pushstring(_State, _String);
-	LuaSetMenu_Aux(_State);
+	lua_pushstring(State, String);
+	LuaSetMenu_Aux(State);
 	return 0;
 }
 
-void LuaMenuThink(lua_State* _State) {
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "Menu");
-	lua_rawget(_State, -2);
+void LuaMenuThink(lua_State* State) {
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "Menu");
+	lua_rawget(State, -2);
 
-	lua_pushstring(_State, "Think");
-	lua_rawget(_State, -2);
-	lua_pushvalue(_State, -2);
-	LuaCallFunc(_State, 1, 0, 0);
-	lua_pop(_State, 2);
+	lua_pushstring(State, "Think");
+	lua_rawget(State, -2);
+	lua_pushvalue(State, -2);
+	LuaCallFunc(State, 1, 0, 0);
+	lua_pop(State, 2);
 }
 
-int LuaScreenWidth(lua_State* _State) {
-	lua_pushinteger(_State, SDL_WIDTH);
+int LuaScreenWidth(lua_State* State) {
+	lua_pushinteger(State, SDL_WIDTH);
 	return 1;
 }
 
-int LuaScreenHeight(lua_State* _State) {
-	lua_pushinteger(_State, SDL_HEIGHT);
+int LuaScreenHeight(lua_State* State) {
+	lua_pushinteger(State, SDL_HEIGHT);
 	return 1;
 }
 
 /*
  * NOTE: Do we need the GUI message code still?
  */
-int LuaSendMessage(lua_State* _State) {
-	luaL_checkstring(_State, 1);
-	if(lua_gettop(_State) != 2) {
-		luaL_error(_State, "SendMessage does not have any data.");
+int LuaSendMessage(lua_State* State) {
+	luaL_checkstring(State, 1);
+	if(lua_gettop(State) != 2) {
+		luaL_error(State, "SendMessage does not have any data.");
 		return 0;
 	}
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "Messages");
-	lua_rawget(_State, -2);
-	lua_pushvalue(_State, 1);
-	lua_pushvalue(_State, 2);
-	lua_rawset(_State, -3);
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "Messages");
+	lua_rawget(State, -2);
+	lua_pushvalue(State, 1);
+	lua_pushvalue(State, 2);
+	lua_rawset(State, -3);
 	return 0;
 }
 
-int LuaWidgetId(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetId(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	lua_pushinteger(_State, _Widget->Id);
+	lua_pushinteger(State, Widget->Id);
 	return 1;
 }
 
-int LuaWidgetSetPos(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	SDL_Point _Pos;
+int LuaWidgetSetPos(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	SDL_Point Pos;
 
-	_Pos.x = luaL_checkinteger(_State, 2);
-	_Pos.y = luaL_checkinteger(_State, 3);
-	_Widget->SetPosition(_Widget, &_Pos);
+	Pos.x = luaL_checkinteger(State, 2);
+	Pos.y = luaL_checkinteger(State, 3);
+	Widget->SetPosition(Widget, &Pos);
 	return 0;
 }
 
-int LuaWidgetSetX(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, _Widget->Rect.y};
+int LuaWidgetSetX(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	SDL_Point Pos = {0, Widget->Rect.y};
 
-	_Pos.x = luaL_checkinteger(_State, 2);
-	_Widget->SetPosition(_Widget, &_Pos);
-	//_Widget->Rect.x = luaL_checkinteger(_State, 2);
+	Pos.x = luaL_checkinteger(State, 2);
+	Widget->SetPosition(Widget, &Pos);
+	//_Widget->Rect.x = luaL_checkinteger(State, 2);
 	return 0;
 }
 
-int LuaWidgetGetX(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	SDL_Point _Pos = {_Widget->Rect.x, 0};
+int LuaWidgetGetX(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	SDL_Point Pos = {Widget->Rect.x, 0};
 
-	_Pos.y = luaL_checkinteger(_State, 2);
-	_Widget->SetPosition(_Widget, &_Pos);
-	//lua_pushinteger(_State, _Widget->Rect.y);
+	Pos.y = luaL_checkinteger(State, 2);
+	Widget->SetPosition(Widget, &Pos);
+	//lua_pushinteger(State, Widget->Rect.y);
 	return 1;
 }
 
-int LuaWidgetSetY(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetSetY(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	_Widget->Rect.y = luaL_checkinteger(_State, 2);
+	Widget->Rect.y = luaL_checkinteger(State, 2);
 	return 0;
 }
 
-int LuaWidgetGetY(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetGetY(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	lua_pushinteger(_State, _Widget->Rect.y);
+	lua_pushinteger(State, Widget->Rect.y);
 	return 1;
 }
 
-int LuaWidgetGetWidth(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetGetWidth(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	lua_pushinteger(_State, _Widget->Rect.w);
+	lua_pushinteger(State, Widget->Rect.w);
 	return 1;
 }
 
-int LuaWidgetSetWidth(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	int _Width = luaL_checkinteger(_State, 2);
+int LuaWidgetSetWidth(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	int Width = luaL_checkinteger(State, 2);
 
-	//_Widget->Rect.w = _Width;
-	WidgetSetWidth(_Widget, _Width);
-	lua_pushvalue(_State, 1);
+	//_Widget->Rect.w = Width;
+	WidgetSetWidth(Widget, Width);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaWidgetGetHeight(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetGetHeight(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	lua_pushinteger(_State, _Widget->Rect.h);
+	lua_pushinteger(State, Widget->Rect.h);
 	return 1;
 }
 
-int LuaWidgetSetHeight(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	int _Height = luaL_checkinteger(_State, 2);
+int LuaWidgetSetHeight(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	int Height = luaL_checkinteger(State, 2);
 
-	WidgetSetHeight(_Widget, _Height);
-	lua_pushvalue(_State, 1);
+	WidgetSetHeight(Widget, Height);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaWidgetGetParent(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetGetParent(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	LuaGuiGetRef(_State);
-	lua_rawgeti(_State, -1, _Widget->Parent->Widget.LuaRef);
+	LuaGuiGetRef(State);
+	lua_rawgeti(State, -1, Widget->Parent->Widget.LuaRef);
 	return 1;
 }
 
-int LuaWidgetGetFocus(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetGetFocus(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	lua_pushboolean(_State, _Widget->CanFocus);
+	lua_pushboolean(State, Widget->CanFocus);
 	return 1;
 }
 
-int LuaWidgetSetFocus(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetSetFocus(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	luaL_checktype(_State, 2, LUA_TBOOLEAN);
-	_Widget->CanFocus = lua_toboolean(_State, 2);
-	lua_pushvalue(_State, 1);
+	luaL_checktype(State, 2, LUA_TBOOLEAN);
+	Widget->CanFocus = lua_toboolean(State, 2);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaWidgetDestroy(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaWidgetDestroy(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	if(_Widget == NULL)
+	if(Widget == NULL)
 		return 0;
-	lua_pushstring(_State, "__self");
-	lua_pushnil(_State);
-	lua_rawset(_State, -3);
-	_Widget->OnDestroy(_Widget, _State);
+	lua_pushstring(State, "__self");
+	lua_pushnil(State);
+	lua_rawset(State, -3);
+	Widget->OnDestroy(Widget, State);
 	return 0;
 }
 
-int LuaWidgetOnHover(lua_State* _State) {
-	LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	luaL_checktype(_State, 2, LUA_TFUNCTION);
-	lua_rawseti(_State, 1, GUIL_ONHOVER);
+int LuaWidgetOnHover(lua_State* State) {
+	LuaCheckClass(State, 1, LOBJ_WIDGET);
+	luaL_checktype(State, 2, LUA_TFUNCTION);
+	lua_rawseti(State, 1, GUIL_ONHOVER);
 	return 0;
 }
 
-int LuaWidgetOnHoverLoss(lua_State* _State) {
-	LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	luaL_checktype(_State, 2, LUA_TFUNCTION);
-	lua_rawseti(_State, 1, GUIL_ONHOVERLOSS);
+int LuaWidgetOnHoverLoss(lua_State* State) {
+	LuaCheckClass(State, 1, LOBJ_WIDGET);
+	luaL_checktype(State, 2, LUA_TFUNCTION);
+	lua_rawseti(State, 1, GUIL_ONHOVERLOSS);
 	return 0;
 }
 
-int LuaContainerGetChild(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	int _Index = luaL_checkinteger(_State, 2);
+int LuaContainerGetChild(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	int Index = luaL_checkinteger(State, 2);
 
-	LuaGuiGetRef(_State);
-	lua_rawgeti(_State, -1, _Container->Children[_Index]->LuaRef);
-	lua_remove(_State, -2);
+	LuaGuiGetRef(State);
+	lua_rawgeti(State, -1, Container->Children[Index]->LuaRef);
+	lua_remove(State, -2);
 	return 1;
 }
 
-int LuaContainerSetChild(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	int _Index = luaL_checkinteger(_State, 2);
-	struct Widget* _Child = LuaCheckClass(_State, 1, LOBJ_WIDGET);
+int LuaContainerSetChild(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	int Index = luaL_checkinteger(State, 2);
+	struct Widget* Child = LuaCheckClass(State, 1, LOBJ_WIDGET);
 
-	luaL_argcheck(_State, (_Index >= 0 && _Index < _Container->ChildrenSz), 2, "Index is out of bounds.");
-	if(_Container->Children[_Index] != NULL) {
-		_Container->Children[_Index]->OnDestroy(_Container->Children[_Index], _State);
-		_Container->Children[_Index] = _Child;
+	luaL_argcheck(State, (Index >= 0 && Index < Container->ChildrenSz), 2, "Index is out of bounds.");
+	if(Container->Children[Index] != NULL) {
+		Container->Children[Index]->OnDestroy(Container->Children[Index], State);
+		Container->Children[Index] = Child;
 	} else {
-		_Container->Children[_Index] = _Child;
-		++_Container->ChildCt;
+		Container->Children[Index] = Child;
+		++Container->ChildCt;
 	}
 	return 0;
 }
 
-int LuaContainerGetChildCt(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+int LuaContainerGetChildCt(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 
-	lua_pushinteger(_State, _Container->ChildCt);
+	lua_pushinteger(State, Container->ChildCt);
 	return 1;
 }
 
-int LuaContainerGetChildren(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+int LuaContainerGetChildren(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 
-	LuaGuiGetRef(_State);
-	lua_newtable(_State);
-	for(int i = 0; i < _Container->ChildCt; ++i) {
-		lua_rawgeti(_State, -2, _Container->Children[i]->LuaRef);
-		lua_rawseti(_State, -2, i + 1);
+	LuaGuiGetRef(State);
+	lua_newtable(State);
+	for(int i = 0; i < Container->ChildCt; ++i) {
+		lua_rawgeti(State, -2, Container->Children[i]->LuaRef);
+		lua_rawseti(State, -2, i + 1);
 	}
-	lua_insert(_State, -2);
-	lua_pop(_State, 1);
+	lua_insert(State, -2);
+	lua_pop(State, 1);
 	return 1;
 }
 
@@ -951,78 +948,78 @@ int LuaContainerDestroyChildren(lua_State* State) {
 	return 0;
 }
 
-int LuaContainerHorizontalCenter(lua_State* _State) {
-	lua_pushinteger(_State, GetHorizontalCenter(LuaCheckClass(_State, 1, LOBJ_CONTAINER), LuaCheckClass(_State, 2, LOBJ_WIDGET)));
+int LuaContainerHorizontalCenter(lua_State* State) {
+	lua_pushinteger(State, GetHorizontalCenter(LuaCheckClass(State, 1, LOBJ_CONTAINER), LuaCheckClass(State, 2, LOBJ_WIDGET)));
 	return 1;
 }
 
-int LuaContainerClear(lua_State* _State) {
-	struct Container* _Container = LuaToObject(_State, 1, LOBJ_CONTAINER);
-	GuiParentFunc _RemChild = _Container->RemChild;
+int LuaContainerClear(lua_State* State) {
+	struct Container* Container = LuaToObject(State, 1, LOBJ_CONTAINER);
+	GuiParentFunc RemChild = Container->RemChild;
 
 
-	_Container->RemChild = StaticRemChild;
-	for(int i = 0; i < _Container->ChildCt; ++i) {
-		if(_Container->Children[i] != NULL) {
-			_Container->Children[i]->OnDestroy(_Container->Children[i], _State);
+	Container->RemChild = StaticRemChild;
+	for(int i = 0; i < Container->ChildCt; ++i) {
+		if(Container->Children[i] != NULL) {
+			Container->Children[i]->OnDestroy(Container->Children[i], State);
 		}
 	}
-	_Container->ChildCt = 0;
-	_Container->RemChild = _RemChild;
+	Container->ChildCt = 0;
+	Container->RemChild = RemChild;
 	return 0;
 }
 
-int LuaContainerClose(lua_State* _State) {
-	struct Container* _Container = LuaToObject(_State, 1, LOBJ_CONTAINER);
+int LuaContainerClose(lua_State* State) {
+	struct Container* Container = LuaToObject(State, 1, LOBJ_CONTAINER);
 
-	_Container->Widget.OnDestroy((struct Widget*)_Container, _State);
+	Container->Widget.OnDestroy((struct Widget*)Container, State);
 	return 0;
 }
 
-int LuaContainerShrink(lua_State* _State) {
-	struct Container* _Container = LuaToObject(_State, 1, LOBJ_CONTAINER);
+int LuaContainerShrink(lua_State* State) {
+	struct Container* Container = LuaToObject(State, 1, LOBJ_CONTAINER);
 
-	ContainerShrink(_Container);
+	ContainerShrink(Container);
 	return 0;
 }
 
-int LuaContainerAddChild(lua_State* _State) {
-	struct Container* _Container = LuaToObject(_State, 1, LOBJ_CONTAINER);
-	struct Widget* _Widget = LuaToObject(_State, 2, LOBJ_WIDGET);
+int LuaContainerAddChild(lua_State* State) {
+	struct Container* Container = LuaToObject(State, 1, LOBJ_CONTAINER);
+	struct Widget* Widget = LuaToObject(State, 2, LOBJ_WIDGET);
 
-	WidgetSetParent(_Container, _Widget);
+	WidgetSetParent(Container, Widget);
 	return 0;
 }
 
-int LuaContainerSetSkin(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 2, LOBJ_GSKIN);
+int LuaContainerSetSkin(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	struct GuiSkin* Skin = LuaCheckClass(State, 2, LOBJ_GSKIN);
 
-	if(_Skin == NULL) return luaL_error(_State, "Skin is NULL.");
-	_Container->Skin = _Skin;
+	if(Skin == NULL) return luaL_error(State, "Skin is NULL.");
+	Container->Skin = Skin;
 	return 0;
 }
 
-int LuaContainerGetSkin(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+int LuaContainerGetSkin(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 
-	LuaConstCtor(_State, _Container->Skin, LOBJ_GSKIN);
+	LuaConstCtor(State, Container->Skin, LOBJ_GSKIN);
 	return 1;
 }
 
-int LuaContainerOnNewChild(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	int _OnChild = luaL_checkinteger(_State, 2);
+int LuaContainerOnNewChild(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	int OnChild = luaL_checkinteger(State, 2);
 	
-	switch(_OnChild) {
+	switch(OnChild) {
 		case GUIL_CNVERT:
-			_Container->NewChild = VertConNewChild;
+			Container->NewChild = VertConNewChild;
 			break;
 		case GUIL_CNHORZ:
-			_Container->NewChild = HorzConNewChild;
+			Container->NewChild = HorzConNewChild;
 			break;
 		case GUIL_CNFIXED:
-			_Container->NewChild = FixedConNewChild;
+			Container->NewChild = FixedConNewChild;
 			break;
 	}
 	return 0;
@@ -1041,438 +1038,447 @@ int LuaContainerCreateContainer(lua_State* State) {
 	return 1;
 }
 
-int LuaContainerOnHoverLoss(lua_State* _State) {
-	LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	luaL_checktype(_State, 2, LUA_TFUNCTION);
-	lua_rawseti(_State, 1, GUIL_ONHOVERLOSS);
+int LuaContainerOnHoverLoss(lua_State* State) {
+	LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	luaL_checktype(State, 2, LUA_TFUNCTION);
+	lua_rawseti(State, 1, GUIL_ONHOVERLOSS);
 	return 0;
 }
 
-int LuaContainerParagraph(lua_State* _State) {
-	struct Container* _Parent = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-	struct Container* _NewContainer = NULL;
-	struct Font* _Font = NULL;
-	const char* _String = luaL_checkstring(_State, 2);
-	const char* _Temp = _String;
-	int _CharWidth = 0;
-	int _WordSz = 0;
-	int _WordWidth = 0;
-	struct Label* _Label = NULL;
-	SDL_Rect _Rect = {0, 0, 0, 0};
-	SDL_Rect _PRect = {0, 0, 0, 0};
-	SDL_Surface* _Surface = NULL;
-	SDL_Color _White = {255, 255, 255};
-	int _Ct = 0;
+int LuaContainerParagraph(lua_State* State) {
+	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+	struct Container* NewContainer = NULL;
+	struct Font* Font = NULL;
+	const char* String = luaL_checkstring(State, 2);
+	const char* Temp = String;
+	int CharWidth = 0;
+	int WordSz = 0;
+	int WordWidth = 0;
+	struct Label* Label = NULL;
+	SDL_Rect Rect = {0, 0, 0, 0};
+	SDL_Rect PRect = {0, 0, 0, 0};
+	SDL_Surface* Surface = NULL;
+	SDL_Color White = {255, 255, 255};
+	int Ct = 0;
 
-	if(lua_gettop(_State) < 3)
-		_Font = _Parent->Skin->Label->Font;
+	if(lua_gettop(State) < 3)
+		Font = Parent->Skin->Label->Font;
 	else
-		_Font = LuaCheckClass(_State, 3, LOBJ_FONT);
-	_Rect.w = TTF_FontFaceIsFixedWidth(_Font->Font);
-	_Rect.x = 0;
-	_Rect.y = 0;
-	_PRect.w = _Parent->Widget.Rect.w;
-	_PRect.h = _Parent->Widget.Rect.h;
-	_NewContainer = CreateContainer();
-	lua_createtable(_State, 2, 2);
-	ConstructContainer(_NewContainer, _Parent, &_PRect, _State);
-	_NewContainer->NewChild = VertConNewChild;
-	_NewContainer->Widget.CanFocus = 0;
-	while(*_Temp != '\0') {
+		Font = LuaCheckClass(State, 3, LOBJ_FONT);
+	Rect.w = TTF_FontFaceIsFixedWidth(Font->Font);
+	Rect.x = 0;
+	Rect.y = 0;
+	PRect.w = Parent->Widget.Rect.w;
+	PRect.h = Parent->Widget.Rect.h;
+	NewContainer = CreateContainer();
+	lua_createtable(State, 2, 2);
+	ConstructContainer(NewContainer, Parent, &PRect, State);
+	NewContainer->NewChild = VertConNewChild;
+	NewContainer->Widget.CanFocus = 0;
+	while(*Temp != '\0') {
 		do {
-			if((*_Temp) == ' ') {
-				_Ct += _WordSz;
-				_Rect.w += _WordWidth;
-				_WordSz = 0;
-				_WordWidth = 0;
+			if((*Temp) == ' ') {
+				Ct += WordSz;
+				Rect.w += WordWidth;
+				WordSz = 0;
+				WordWidth = 0;
 			}
-			TTF_GlyphMetrics(_Font->Font, *_Temp, NULL, NULL, NULL, NULL, &_CharWidth);
-			_WordWidth += _CharWidth;
-			if(_Rect.w + _WordWidth + _CharWidth > _Parent->Widget.Rect.w) {
-				_Temp -= _WordSz;
+			TTF_GlyphMetrics(Font->Font, *Temp, NULL, NULL, NULL, NULL, &CharWidth);
+			WordWidth += CharWidth;
+			if(Rect.w + WordWidth + CharWidth > Parent->Widget.Rect.w) {
+				Temp -= WordSz;
 				//NOTE: Used to stop infinite loop when the parent is to small to hold a single letter.
-				if(_WordSz == 0 && _Temp == _String)
+				if(WordSz == 0 && Temp == String)
 					goto func_end;
-				_WordSz = 0;
-				_WordWidth = 0;
+				WordSz = 0;
+				WordWidth = 0;
 				goto create_buffer;
 				break;
 			}
-			++_WordSz;
-			++_Temp;
-		} while((*_Temp) != '\0');
+			++WordSz;
+			++Temp;
+		} while((*Temp) != '\0');
 		create_buffer:
-		_Ct += _WordSz;
-		_Rect.w += _WordWidth;
-		_WordSz = 0;
-		_WordWidth = 0;
-		if(_Ct > 0) {
-			char _Buffer[_Ct + 1];
-			strncpy(_Buffer, _String, _Ct);
-			_Buffer[_Ct] = '\0';
-			_Label = CreateLabel();
-			_Surface = TTF_RenderText_Solid(_Font->Font, _Buffer, _White);
-			_Rect.w = _Surface->w;
-			_Rect.h = _Surface->h;
-			_PRect.h += _Rect.h;
-			ConstructLabel(_Label, _NewContainer, &_Rect, _State, SurfaceToTexture(ConvertSurface(_Surface)), _Parent->Skin->Label);
-		_String = _Temp + 1;
-		_Label->Widget.CanFocus = 0;
+		Ct += WordSz;
+		Rect.w += WordWidth;
+		WordSz = 0;
+		WordWidth = 0;
+		if(Ct > 0) {
+			char Buffer[Ct + 1];
+			strncpy(Buffer, String, Ct);
+			Buffer[Ct] = '\0';
+			Label = CreateLabel();
+			Surface = TTF_RenderText_Solid(Font->Font, Buffer, White);
+			Rect.w = Surface->w;
+			Rect.h = Surface->h;
+			PRect.h += Rect.h;
+			ConstructLabel(Label, NewContainer, &Rect, State, SurfaceToTexture(ConvertSurface(Surface)), Parent->Skin->Label);
+		String = Temp + 1;
+		Label->Widget.CanFocus = 0;
 		}
-		_Rect.w = 0;
-		_Ct = 0;
+		Rect.w = 0;
+		Ct = 0;
 	}
 	func_end:
-	ContainerShrink(_NewContainer);
-	LuaCtor(_State, _NewContainer, LOBJ_CONTAINER);
+	ContainerShrink(NewContainer);
+	LuaCtor(State, NewContainer, LOBJ_CONTAINER);
 	return 1;
 }
 
-int LuaLabelSetText(lua_State* _State) {
-	struct Label* _Label = LuaCheckClass(_State, 1, LOBJ_LABEL);
-	const char* _Text = luaL_checkstring(_State, 2);
+int LuaLabelSetText(lua_State* State) {
+	struct Label* Label = LuaCheckClass(State, 1, LOBJ_LABEL);
+	const char* Text = luaL_checkstring(State, 2);
 
-	SDL_Surface* _Surface = ConvertSurface(TTF_RenderText_Solid(_Label->Widget.Style->Font->Font, _Text, _Label->Widget.Style->FontUnfocus));
-	_Label->SetText((struct Widget*)_Label, SurfaceToTexture(_Surface));
+	SDL_Surface* Surface = ConvertSurface(TTF_RenderText_Solid(Label->Widget.Style->Font->Font, Text, Label->Widget.Style->FontUnfocus));
+	Label->SetText((struct Widget*)Label, SurfaceToTexture(Surface));
 	return 0;
 }
 
-int LuaButtonClickable(lua_State* _State) {
-	struct Button* _Button = LuaCheckClass(_State, 1, LOBJ_BUTTON);
+int LuaButtonClickable(lua_State* State) {
+	struct Button* Button = LuaCheckClass(State, 1, LOBJ_BUTTON);
 
-	ButtonSetClickable(_Button, 1);
+	ButtonSetClickable(Button, 1);
 	return 0;
 }
 
-int LuaButtonUnclickable(lua_State* _State) {
-	struct Button* _Button = LuaCheckClass(_State, 1, LOBJ_BUTTON);
+int LuaButtonUnclickable(lua_State* State) {
+	struct Button* Button = LuaCheckClass(State, 1, LOBJ_BUTTON);
 
-	ButtonSetClickable(_Button, 0);
+	ButtonSetClickable(Button, 0);
 	return 0;
 }
 
-int LuaTableGetCellIndex(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
-	int _Row = luaL_checkinteger(_State, 2);
-	int _Col = luaL_checkinteger(_State, 3);
+int LuaTableGetCellIndex(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
+	int Row = luaL_checkinteger(State, 2);
+	int Col = luaL_checkinteger(State, 3);
 
-	lua_pushinteger(_State, _Row + _Col * _Table->Rows);
+	lua_pushinteger(State, Row + Col * Table->Rows);
 	return 1;
 }
 
-int LuaTableGetRows(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+int LuaTableGetRows(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
 
-	lua_pushinteger(_State, _Table->Rows);
+	lua_pushinteger(State, Table->Rows);
 	return 1;
 }
 
-int LuaTableGetColumns(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+int LuaTableGetColumns(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
 
-	lua_pushinteger(_State, _Table->Columns);
+	lua_pushinteger(State, Table->Columns);
 	return 1;
 }
 
-int LuaTableSetCellWidth(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
-	int _CellMax = luaL_checkinteger(_State, 2);
+int LuaTableSetCellWidth(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
+	int CellMax = luaL_checkinteger(State, 2);
 
-	if(WidgetSetWidth(&_Table->Container.Widget, _CellMax * _Table->Rows) == true)
-		_Table->CellMax.w = _CellMax;
-	lua_pushvalue(_State, 1);
+	if(WidgetSetWidth(&Table->Container.Widget, CellMax * Table->Rows) == true)
+		Table->CellMax.w = CellMax;
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaTableSetCellHeight(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
-	int _CellMax = luaL_checkinteger(_State, 2);
+int LuaTableSetCellHeight(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
+	int CellMax = luaL_checkinteger(State, 2);
 
-	if(WidgetSetHeight(&_Table->Container.Widget, _CellMax * _Table->Columns) == true)
-		_Table->CellMax.h = _CellMax;
-	lua_pushvalue(_State, 1);
+	if(WidgetSetHeight(&Table->Container.Widget, CellMax * Table->Columns) == true)
+		Table->CellMax.h = CellMax;
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaTableGetCellWidth(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+int LuaTableGetCellWidth(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
 
-	lua_pushinteger(_State, _Table->CellMax.w);
+	lua_pushinteger(State, Table->CellMax.w);
 	return 1;
 }
 
-int LuaTableGetCellHeight(lua_State* _State) {
-	struct Table* _Table = LuaCheckClass(_State, 1, LOBJ_TABLE);
+int LuaTableGetCellHeight(lua_State* State) {
+	struct Table* Table = LuaCheckClass(State, 1, LOBJ_TABLE);
 
-	lua_pushinteger(_State, _Table->CellMax.h);
+	lua_pushinteger(State, Table->CellMax.h);
 	return 1;
 }
 
-int LuaFontWidth(lua_State* _State) {
-	struct Font* _Font = LuaCheckClass(_State, 1, LOBJ_FONT);
-	int _Size = TTF_FontFaceIsFixedWidth(_Font->Font);
+int LuaFontWidth(lua_State* State) {
+	struct Font* Font = LuaCheckClass(State, 1, LOBJ_FONT);
+	int Size = TTF_FontFaceIsFixedWidth(Font->Font);
 
-	if(_Size == 0)
-		TTF_SizeText(_Font->Font, "w", &_Size, NULL);
-	lua_pushinteger(_State, _Size);
+	if(Size == 0)
+		TTF_SizeText(Font->Font, "w", &Size, NULL);
+	lua_pushinteger(State, Size);
 	return 1;
 }
 
-int LuaFontHeight(lua_State* _State) {
-	struct Font* _Font = LuaCheckClass(_State, 1, LOBJ_FONT);
+int LuaFontHeight(lua_State* State) {
+	struct Font* Font = LuaCheckClass(State, 1, LOBJ_FONT);
 
-	lua_pushinteger(_State, TTF_FontHeight(_Font->Font));
+	lua_pushinteger(State, TTF_FontHeight(Font->Font));
 	return 1;
 }
 
-int InitGUILua(lua_State* _State) {
-	DIR* _Dir = NULL;
-	struct dirent* _Dirent = NULL;
-	char* _Temp = NULL;
-	const char* _Ext = NULL;
+int InitGUILua(lua_State* State) {
+	DIR* Dir = NULL;
+	struct dirent* Dirent = NULL;
+	char* Temp = NULL;
+	const char* Ext = NULL;
 
-	RegisterLuaObjects(_State, g_GuiLuaObjects);
-	luaL_newlib(_State, g_LuaFuncsGUI);
-	lua_setglobal(_State, "Gui");
+	RegisterLuaObjects(State, g_GuiLuaObjects);
+	luaL_newlib(State, g_LuaFuncsGUI);
+	lua_setglobal(State, "Gui");
 
-	lua_newtable(_State);
-	lua_pushstring(_State, "Menu");
-	lua_newtable(_State);
-	lua_rawset(_State, -3);
+	lua_newtable(State);
+	lua_pushstring(State, "Menu");
+	lua_newtable(State);
+	lua_rawset(State, -3);
 
-	lua_newtable(_State);
-	lua_pushstring(_State, "__index");
-	lua_pushglobaltable(_State);
-	lua_rawset(_State, -3);
-	lua_setmetatable(_State, -2);
-	LuaSetEnv(_State, "Menu");
-	lua_pop(_State, 1);
-	if(LuaLoadFile(_State, "data/video.lua", NULL) != LUA_OK)
+	lua_newtable(State);
+	lua_pushstring(State, "__index");
+	lua_pushglobaltable(State);
+	lua_rawset(State, -3);
+	lua_setmetatable(State, -2);
+	LuaSetEnv(State, "Menu");
+	lua_pop(State, 1);
+	if(LuaLoadFile(State, "data/video.lua", NULL) != LUA_OK)
 		return 0;
 	chdir("data/gui");
-	_Dir = opendir("./");
-	while((_Dirent = readdir(_Dir)) != NULL) {
-		if(((!strcmp(_Dirent->d_name, ".") || !strcmp(_Dirent->d_name, ".."))
-			|| ((_Ext = strrchr(_Dirent->d_name, '.')) == NULL) || strncmp(_Ext, ".lua", 4) != 0))
+	Dir = opendir("./");
+	while((Dirent = readdir(Dir)) != NULL) {
+		if(((!strcmp(Dirent->d_name, ".") || !strcmp(Dirent->d_name, ".."))
+			|| ((Ext = strrchr(Dirent->d_name, '.')) == NULL) || strncmp(Ext, ".lua", 4) != 0))
 			continue;
-		if(LuaLoadFile(_State, _Dirent->d_name, "Menu") != LUA_OK)
+		if(LuaLoadFile(State, Dirent->d_name, "Menu") != LUA_OK)
 			goto error;
-		_Temp = strrchr(_Dirent->d_name, '.');
-		int _Size = _Temp - _Dirent->d_name;
-		char _MenuName[_Size + 1];
-		strncpy(_MenuName, _Dirent->d_name, _Size);
-		_MenuName[_Size] = '\0';
-		LuaAddMenu(_State, _MenuName);
+		Temp = strrchr(Dirent->d_name, '.');
+		int Size = Temp - Dirent->d_name;
+		char MenuName[Size + 1];
+		strncpy(MenuName, Dirent->d_name, Size);
+		MenuName[Size] = '\0';
+		LuaAddMenu(State, MenuName);
 	}
 	chdir("../..");
-	lua_getglobal(_State, "Gui");
+	lua_getglobal(State, "Gui");
 
-	lua_pushstring(_State, "Widgets");
-	lua_newtable(_State);
-	lua_rawset(_State, -3);
+	lua_pushstring(State, "Widgets");
+	lua_newtable(State);
+	lua_rawset(State, -3);
 
-	lua_pushstring(_State, "ScreenStack");
-	lua_newtable(_State);
-	lua_rawset(_State, -3);
+	lua_pushstring(State, "ScreenStack");
+	lua_newtable(State);
+	lua_rawset(State, -3);
 
-	lua_pushstring(_State, "Messages");
-	lua_newtable(_State);
-	lua_rawset(_State, -3);
+	lua_pushstring(State, "Messages");
+	lua_newtable(State);
+	lua_rawset(State, -3);
 
-	lua_pushstring(_State, "EventIds");
-	lua_createtable(_State, LUA_EVENTIDSIZE, 0);
-	lua_rawset(_State, -3);
+	lua_pushstring(State, "EventIds");
+	lua_createtable(State, LUA_EVENTIDSIZE, 0);
+	lua_rawset(State, -3);
 
-	lua_pushstring(_State, "Init");
-	lua_rawget(_State, -2);
-	if(LuaCallFunc(_State, 0, 0, 0) == 0)
+	lua_pushstring(State, "Init");
+	lua_rawget(State, -2);
+	if(LuaCallFunc(State, 0, 0, 0) == 0)
 		goto error;
-	closedir(_Dir);
-	lua_pop(_State, 1);
+	closedir(Dir);
+	lua_pop(State, 1);
 	return 1;
 	error:
 	chdir("../..");
-	lua_pop(_State, 1);
+	lua_pop(State, 1);
 	return 0;
 }
 
-int QuitGUILua(lua_State* _State) {
-	struct Container* _Container = NULL;
+int QuitGUILua(lua_State* State) {
+	struct Container* Container = NULL;
 
 	/* Free all containers on the ScreenStack. */
-	lua_getglobal(_State, "Gui");
-	lua_pushstring(_State, "ScreenStack");
-	lua_rawget(_State, -2);
-	if(lua_type(_State, -1) == LUA_TNIL) {
-		luaL_error(_State, "QuitGUILua has no ScreenStack.");
+	lua_getglobal(State, "Gui");
+	lua_pushstring(State, "ScreenStack");
+	lua_rawget(State, -2);
+	if(lua_type(State, -1) == LUA_TNIL) {
+		luaL_error(State, "QuitGUILua has no ScreenStack.");
 		return 0;
 	}
-	lua_pushnil(_State);
-	while(lua_next(_State, -2) != 0) {
-		lua_pushstring(_State, "__screen");
-		lua_rawget(_State, -2);
-		_Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
-		_Container->Widget.OnDestroy((struct Widget*)_Container, _State);
-		lua_pop(_State, 2);
+	lua_pushnil(State);
+	while(lua_next(State, -2) != 0) {
+		lua_pushstring(State, "__screen");
+		lua_rawget(State, -2);
+		Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
+		Container->Widget.OnDestroy((struct Widget*)Container, State);
+		lua_pop(State, 2);
 	}
-	lua_pop(_State, 2);
-	GuiClear(_State);
+	lua_pop(State, 2);
+	GuiClear(State);
 	return 1;
 }
 
-int LuaKeyState(lua_State* _State, int _Index) {
-	const char* _Type = NULL;
+int LuaKeyState(lua_State* State, int Index) {
+	const char* Type = NULL;
 
-	if(lua_type(_State, _Index) != LUA_TSTRING)
+	if(lua_type(State, Index) != LUA_TSTRING)
 		return -1;
-	_Type = lua_tostring(_State, _Index);
-	if(strcmp(_Type, "Released") == 0)
+	Type = lua_tostring(State, Index);
+	if(strcmp(Type, "Released") == 0)
 		return SDL_RELEASED;
-	else if(strcmp(_Type, "Pressed") == 0)
+	else if(strcmp(Type, "Pressed") == 0)
 		return SDL_PRESSED;
 	return -1;
 }
 
-void LuaGuiGetRef(lua_State* _State) {
-	lua_pushvalue(_State, LUA_REGISTRYINDEX);
+void LuaGuiGetRef(lua_State* State) {
+	lua_pushvalue(State, LUA_REGISTRYINDEX);
 }
 
-int LuaWidgetRef(lua_State* _State) {
-	int _Ref = 0;
+int LuaWidgetRef(lua_State* State) {
+	int Ref = 0;
 
-	LuaGuiGetRef(_State);
-	lua_pushvalue(_State, -2);
-	_Ref = luaL_ref(_State, -2);
-	lua_pop(_State, 1);
-	return _Ref;
+	LuaGuiGetRef(State);
+	lua_pushvalue(State, -2);
+	Ref = luaL_ref(State, -2);
+	lua_pop(State, 1);
+	return Ref;
 }
 
-void LuaWidgetUnref(lua_State* _State, struct Widget* _Widget) {
-	LuaGuiGetRef(_State);
-	luaL_unref(_State, -1, _Widget->LuaRef);
-	lua_pop(_State, 1);
+void LuaWidgetUnref(lua_State* State, struct Widget* Widget) {
+	LuaGuiGetRef(State);
+	luaL_unref(State, -1, Widget->LuaRef);
+	lua_pop(State, 1);
 }
 
-void LuaAddMenu(lua_State* _State, const char* _Name) {
-	LuaGetEnv(_State, "Menu");
-	lua_pushstring(_State, "Menu");
-	lua_rawget(_State, -2);
+void LuaAddMenu(lua_State* State, const char* Name) {
+	LuaGetEnv(State, "Menu");
+	lua_pushstring(State, "Menu");
+	lua_rawget(State, -2);
 
 	//NOTE: Should this be placed in the registry instead to avoid GC cleanup?
-	lua_setglobal(_State, _Name);
-	lua_pushstring(_State, "Menu");
-	lua_newtable(_State);
-	lua_rawset(_State, -3);
+	lua_setglobal(State, Name);
+	lua_pushstring(State, "Menu");
+	lua_newtable(State);
+	lua_rawset(State, -3);
 
-	lua_pop(_State, 1);
+	lua_pop(State, 1);
 }
 
-void MessageBox(const char* _Text) {
-	lua_settop(g_LuaState, 0);
-	lua_pushstring(g_LuaState, "MessageBox");
-	lua_createtable(g_LuaState, 0, 1);
-	lua_pushstring(g_LuaState, "Text");
-	lua_pushstring(g_LuaState, _Text);
-	lua_rawset(g_LuaState, -3);
-	LuaCreateWindow(g_LuaState);
+void CreateMenu(const char* Menu) {
+//	lua_settop(g_LuaState, 0);
+	lua_pushcfunction(g_LuaState, LuaCreateWindow);
+	//lua_getglobal(g_LuaState, "Gui");
+	//if(lua_isnil(g_LuaState, 1))
+	//	return;
+	//lua_pushstring(g_LuaState, "CreateWindow");
+	//lua_rawget(g_LuaState, -2);
+	//lua_remove(g_LuaState, -2);
+
+	lua_pushstring(g_LuaState, Menu);
+	lua_pushvalue(g_LuaState, -3);
+	//lua_createtable(g_LuaState, 0, 1);
+	//lua_pushstring(g_LuaState, "Text");
+	//lua_pushstring(g_LuaState, Text);
+	//lua_rawset(g_LuaState, -3);
+	LuaCallFunc(g_LuaState, 2, 0, 0);
 }
 
-void GuiSetParentHook(struct Container* _Container) {
-	g_GuiParentHook = _Container;
+void GuiSetParentHook(struct Container* Container) {
+	g_GuiParentHook = Container;
 }
 
 struct Container* GuiGetParentHook(void) {
 	return g_GuiParentHook;
 }
 
-int LuaGuiClose(lua_State* _State) {
-	GuiClear(_State);
+int LuaGuiClose(lua_State* State) {
+	GuiClear(State);
 	while(g_GUIStack.Size > 0)
 		free(StackPop(&g_GUIStack));
 	g_VideoOk = 0;
 	return 0;
 }
 
-int LuaGuiMenuHorCenter(lua_State* _State) {
-	struct Widget* _Widget = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	int _Width = 0;
+int LuaGuiMenuHorCenter(lua_State* State) {
+	struct Widget* Widget = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	int Width = 0;
 
-	if(lua_type(_State, 1) != LUA_TTABLE)
-		return luaL_error(_State, "Arg #1 is not a table.");
-	lua_getfield(_State, 1, "Width");	
-	return ((_Width / 2) - (_Widget->Rect.w / 2));
+	if(lua_type(State, 1) != LUA_TTABLE)
+		return luaL_error(State, "Arg #1 is not a table.");
+	lua_getfield(State, 1, "Width");	
+	return ((Width / 2) - (Widget->Rect.w / 2));
 }
 
-int LuaContainerLeftOf(lua_State* _State) {
-	struct Widget* _Rel = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	struct Widget* _Base = LuaCheckClass(_State, 2, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+int LuaContainerLeftOf(lua_State* State) {
+	struct Widget* Rel = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	struct Widget* Base = LuaCheckClass(State, 2, LOBJ_WIDGET);
+	SDL_Point Pos = {0, 0};
 	
-	if(_Rel->Parent != _Base->Parent)
-		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
-	_Pos.x = _Base->Rect.x - _Base->Rect.w - _Rel->Parent->Widget.Rect.x;
-	_Pos.y = _Base->Rect.y - _Rel->Parent->Widget.Rect.y;
-	_Rel->SetPosition((struct Widget*) _Rel, &_Pos);
-	lua_pushvalue(_State, 1);
+	if(Rel->Parent != Base->Parent)
+		return luaL_error(State, "Arg #1 and Arg #2 do not have the same parent.");
+	Pos.x = Base->Rect.x - Base->Rect.w - Rel->Parent->Widget.Rect.x;
+	Pos.y = Base->Rect.y - Rel->Parent->Widget.Rect.y;
+	Rel->SetPosition((struct Widget*) Rel, &Pos);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaContainerRightOf(lua_State* _State) {
-	struct Widget* _Rel = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	struct Widget* _Base = LuaCheckClass(_State, 2, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+int LuaContainerRightOf(lua_State* State) {
+	struct Widget* Rel = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	struct Widget* Base = LuaCheckClass(State, 2, LOBJ_WIDGET);
+	SDL_Point Pos = {0, 0};
 	
-	if(_Rel->Parent != _Base->Parent)
-		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
-	_Pos.x = _Base->Rect.x + _Base->Rect.w - _Rel->Parent->Widget.Rect.x;
-	_Pos.y = _Base->Rect.y - _Rel->Parent->Widget.Rect.y;
-	_Rel->SetPosition((struct Widget*) _Rel, &_Pos);
-	lua_pushvalue(_State, 1);
+	if(Rel->Parent != Base->Parent)
+		return luaL_error(State, "Arg #1 and Arg #2 do not have the same parent.");
+	Pos.x = Base->Rect.x + Base->Rect.w - Rel->Parent->Widget.Rect.x;
+	Pos.y = Base->Rect.y - Rel->Parent->Widget.Rect.y;
+	Rel->SetPosition((struct Widget*) Rel, &Pos);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaContainerAbove(lua_State* _State) {
-	struct Widget* _Rel = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	struct Widget* _Base = LuaCheckClass(_State, 2, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+int LuaContainerAbove(lua_State* State) {
+	struct Widget* Rel = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	struct Widget* Base = LuaCheckClass(State, 2, LOBJ_WIDGET);
+	SDL_Point Pos = {0, 0};
 	
-	if(_Rel->Parent != _Base->Parent)
-		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
-	_Pos.x = _Base->Rect.x - _Rel->Parent->Widget.Rect.x;
-	_Pos.y = _Base->Rect.y - _Rel->Rect.h - _Rel->Parent->Widget.Rect.y;
-	_Base->SetPosition((struct Widget*) _Rel, &_Pos);
-	lua_pushvalue(_State, 1);
+	if(Rel->Parent != Base->Parent)
+		return luaL_error(State, "Arg #1 and Arg #2 do not have the same parent.");
+	Pos.x = Base->Rect.x - Rel->Parent->Widget.Rect.x;
+	Pos.y = Base->Rect.y - Rel->Rect.h - Rel->Parent->Widget.Rect.y;
+	Base->SetPosition((struct Widget*) Rel, &Pos);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaContainerBelow(lua_State* _State) {
-	struct Widget* _Rel = LuaCheckClass(_State, 1, LOBJ_WIDGET);
-	struct Widget* _Base = LuaCheckClass(_State, 2, LOBJ_WIDGET);
-	SDL_Point _Pos = {0, 0};
+int LuaContainerBelow(lua_State* State) {
+	struct Widget* Rel = LuaCheckClass(State, 1, LOBJ_WIDGET);
+	struct Widget* Base = LuaCheckClass(State, 2, LOBJ_WIDGET);
+	SDL_Point Pos = {0, 0};
 	
-	if(_Rel->Parent != _Base->Parent)
-		return luaL_error(_State, "Arg #1 and Arg #2 do not have the same parent.");
-	_Pos.x = _Base->Rect.x - _Rel->Parent->Widget.Rect.x;
-	_Pos.y = _Base->Rect.y + _Base->Rect.h - _Rel->Parent->Widget.Rect.y;
-	_Rel->SetPosition((struct Widget*)_Rel, &_Pos);
-	lua_pushvalue(_State, 1);
+	if(Rel->Parent != Base->Parent)
+		return luaL_error(State, "Arg #1 and Arg #2 do not have the same parent.");
+	Pos.x = Base->Rect.x - Rel->Parent->Widget.Rect.x;
+	Pos.y = Base->Rect.y + Base->Rect.h - Rel->Parent->Widget.Rect.y;
+	Rel->SetPosition((struct Widget*)Rel, &Pos);
+	lua_pushvalue(State, 1);
 	return 1;
 }
 
-int LuaContainergetSkin(lua_State* _State) {
-	struct Container* _Container = LuaCheckClass(_State, 1, LOBJ_CONTAINER);
+int LuaContainergetSkin(lua_State* State) {
+	struct Container* Container = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 
-	LuaConstCtor(_State, _Container->Skin, LOBJ_GSKIN);
+	LuaConstCtor(State, Container->Skin, LOBJ_GSKIN);
 	return 1;
 }
 
-int LuaGuiSkin(lua_State* _State) {
-	const char* _Name = NULL;
-	struct GuiSkin* _Skin = NULL;
-	struct GuiStyle* _Default = NULL;
-	struct GuiStyle* _Style = NULL;
-	struct GuiStyle** _StylePtr = NULL;
-	static const char* _StyleStr[] = {
+int LuaGuiSkin(lua_State* State) {
+	const char* Name = NULL;
+	struct GuiSkin* Skin = NULL;
+	struct GuiStyle* Default = NULL;
+	struct GuiStyle* Style = NULL;
+	struct GuiStyle** StylePtr = NULL;
+	static const char* StyleStr[] = {
 		"Label",
 		"Button",
 		"Table",
@@ -1480,252 +1486,252 @@ int LuaGuiSkin(lua_State* _State) {
 		NULL
 	};
 
-	luaL_checktype(_State, 1, LUA_TTABLE);
+	luaL_checktype(State, 1, LUA_TTABLE);
 
-	lua_pushstring(_State, "Name");
-	lua_rawget(_State, 1);
-	if(lua_type(_State, -1) != LUA_TSTRING) {
-		return luaL_error(_State, "GuiSkin does not contain a name.");
+	lua_pushstring(State, "Name");
+	lua_rawget(State, 1);
+	if(lua_type(State, -1) != LUA_TSTRING) {
+		return luaL_error(State, "GuiSkin does not contain a name.");
 	}
-	_Name = lua_tostring(_State, 2);
-	lua_pushstring(_State, "Default");
-	lua_rawget(_State, 1);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		return luaL_error(_State, "GuiSkin Default must be a table.");
+	Name = lua_tostring(State, 2);
+	lua_pushstring(State, "Default");
+	lua_rawget(State, 1);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		return luaL_error(State, "GuiSkin Default must be a table.");
 	}
-	_Default = LuaGuiStyle(_State, -1);
-	_Skin = malloc(sizeof(struct GuiSkin));
-	_StylePtr = &_Skin->Label;
-	for(int i = 0; _StyleStr[i] != NULL; ++i) {
-		lua_pushstring(_State, _StyleStr[i]);
-		lua_rawget(_State, 1);
-		if(lua_type(_State, -1) != LUA_TTABLE) {
-			_Style = NULL;
+	Default = LuaGuiStyle(State, -1);
+	Skin = malloc(sizeof(struct GuiSkin));
+	StylePtr = &Skin->Label;
+	for(int i = 0; StyleStr[i] != NULL; ++i) {
+		lua_pushstring(State, StyleStr[i]);
+		lua_rawget(State, 1);
+		if(lua_type(State, -1) != LUA_TTABLE) {
+			Style = NULL;
 		} else {
-			_Style = LuaGuiStyle(_State, -1);
+			Style = LuaGuiStyle(State, -1);
 		}
-		*_StylePtr = (_Style != NULL) ? (_Style) : (_Default); 
-		++_StylePtr;
+		*StylePtr = (Style != NULL) ? (Style) : (Default); 
+		++StylePtr;
 	}
 
-	_Skin->Name = calloc(strlen(_Name) + 1, sizeof(char));
-	strcpy((char*)_Skin->Name, _Name);
+	Skin->Name = calloc(strlen(Name) + 1, sizeof(char));
+	strcpy((char*)Skin->Name, Name);
 	if(g_GuiSkinDefault == NULL) {
-		g_GuiSkinDefault = _Skin;
+		g_GuiSkinDefault = Skin;
 		g_GuiSkinCurr = g_GuiSkinDefault;
 	}
 	if(g_GuiSkins.TblSize <= g_GuiSkins.Size)
 		HashResize(&g_GuiSkins);
-	HashInsert(&g_GuiSkins, _Skin->Name, _Skin);
-	lua_pop(_State, 1);
+	HashInsert(&g_GuiSkins, Skin->Name, Skin);
+	lua_pop(State, 1);
 	return 0;
 }
 
-void LuaColorToSDL(lua_State* _State, int _Index, SDL_Color* _Color) {
-	_Index = lua_absindex(_State, _Index);
-	//LuaTestClass(_State, _Index, LOBJ_COLOR);
-	lua_rawgeti(_State, _Index, 1);
-	_Color->r = lua_tointeger(_State, -1);
-	lua_rawgeti(_State, _Index, 2);
-	_Color->g = lua_tointeger(_State, -1);
-	lua_rawgeti(_State, _Index, 3);
-	_Color->b = lua_tointeger(_State, -1);
-	_Color->a = 0xFF;
-	lua_pop(_State, 3);
+void LuaColorToSDL(lua_State* State, int Index, SDL_Color* Color) {
+	Index = lua_absindex(State, Index);
+	//LuaTestClass(State, Index, LOBJ_COLOR);
+	lua_rawgeti(State, Index, 1);
+	Color->r = lua_tointeger(State, -1);
+	lua_rawgeti(State, Index, 2);
+	Color->g = lua_tointeger(State, -1);
+	lua_rawgeti(State, Index, 3);
+	Color->b = lua_tointeger(State, -1);
+	Color->a = 0xFF;
+	lua_pop(State, 3);
 }
 
-void LuaSDLToColor(lua_State* _State, SDL_Color* _Color) {
-	lua_createtable(_State, 4, 0);
-	lua_pushinteger(_State, _Color->r);
-	lua_rawseti(_State, 2, 1);
-	lua_pushinteger(_State, _Color->b);
-	lua_rawseti(_State, 2, 2);
-	lua_pushinteger(_State, _Color->g);
-	lua_rawseti(_State, 2, 3);
-	lua_pushinteger(_State, _Color->a);
-	lua_rawseti(_State, 2, 4);
+void LuaSDLToColor(lua_State* State, SDL_Color* Color) {
+	lua_createtable(State, 4, 0);
+	lua_pushinteger(State, Color->r);
+	lua_rawseti(State, 2, 1);
+	lua_pushinteger(State, Color->b);
+	lua_rawseti(State, 2, 2);
+	lua_pushinteger(State, Color->g);
+	lua_rawseti(State, 2, 3);
+	lua_pushinteger(State, Color->a);
+	lua_rawseti(State, 2, 4);
 }
 
-struct GuiStyle* LuaGuiStyle(lua_State* _State, int _Index) {
-	struct GuiStyle* _Style = malloc(sizeof(struct GuiStyle));
+struct GuiStyle* LuaGuiStyle(lua_State* State, int Index) {
+	struct GuiStyle* Style = malloc(sizeof(struct GuiStyle));
 
-	_Index = lua_absindex(_State, _Index);
-	lua_pushstring(_State, "Font");
-	lua_rawget(_State, _Index);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		free(_Style);
-		return (void*)luaL_error(_State, "GuiStyle Font must be a Font.");
+	Index = lua_absindex(State, Index);
+	lua_pushstring(State, "Font");
+	lua_rawget(State, Index);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		free(Style);
+		return (void*)luaL_error(State, "GuiStyle Font must be a Font.");
 	}
-	_Style->Font = LuaCheckClass(_State, -1, LOBJ_FONT);
+	Style->Font = LuaCheckClass(State, -1, LOBJ_FONT);
 
-	lua_pushstring(_State, "FocusColor");
-	lua_rawget(_State, _Index);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		free(_Style);
-		return (void*)luaL_error(_State, "GuiStyle FocusColor must be a color.");
+	lua_pushstring(State, "FocusColor");
+	lua_rawget(State, Index);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		free(Style);
+		return (void*)luaL_error(State, "GuiStyle FocusColor must be a color.");
 	}
-	LuaColorToSDL(_State, -1, &_Style->FontFocus);
-	lua_pop(_State, 1);
-	lua_pushstring(_State, "UnfocusColor");
-	lua_rawget(_State, _Index);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		free(_Style);
-		return (void*)luaL_error(_State, "GuiStyle UnfocusColor must be a color.");
+	LuaColorToSDL(State, -1, &Style->FontFocus);
+	lua_pop(State, 1);
+	lua_pushstring(State, "UnfocusColor");
+	lua_rawget(State, Index);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		free(Style);
+		return (void*)luaL_error(State, "GuiStyle UnfocusColor must be a color.");
 	}
-	LuaColorToSDL(_State, -1, &_Style->FontUnfocus);
-	lua_pop(_State, 1);
-	lua_pushstring(_State, "Background");
-	lua_rawget(_State, _Index);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		free(_Style);
-		return (void*)luaL_error(_State, "GuiStyle Background must be a color.");
+	LuaColorToSDL(State, -1, &Style->FontUnfocus);
+	lua_pop(State, 1);
+	lua_pushstring(State, "Background");
+	lua_rawget(State, Index);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		free(Style);
+		return (void*)luaL_error(State, "GuiStyle Background must be a color.");
 	}
-	LuaColorToSDL(_State, -1, &_Style->Background);
-	lua_pop(_State, 1);
+	LuaColorToSDL(State, -1, &Style->Background);
+	lua_pop(State, 1);
 	
-	lua_pushstring(_State, "Margins");
-	lua_rawget(_State, _Index);
-	if(lua_type(_State, -1) != LUA_TTABLE) {
-		if(lua_type(_State, -1) == LUA_TNIL) {
+	lua_pushstring(State, "Margins");
+	lua_rawget(State, Index);
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		if(lua_type(State, -1) == LUA_TNIL) {
 			for(int i = 0; i < 4; ++i) {
-				((int32_t*)&_Style->Margins)[i] = 0;
+				((int32_t*)&Style->Margins)[i] = 0;
 			}
 			goto end;
 		}
-		free(_Style);
-		return (void*)luaL_error(_State, "GuiStyle Margins must be a table.");
+		free(Style);
+		return (void*)luaL_error(State, "GuiStyle Margins must be a table.");
 	}
 	for(int i = 1; i <= 4; ++i) {
-		lua_rawgeti(_State, -1, i);	
-		if(lua_type(_State, -1) != LUA_TNUMBER) {
-			free(_Style);
-			return (void*)luaL_error(_State, "GuiStyle Margins index #%d must be an integer.", i);
+		lua_rawgeti(State, -1, i);	
+		if(lua_type(State, -1) != LUA_TNUMBER) {
+			free(Style);
+			return (void*)luaL_error(State, "GuiStyle Margins index #%d must be an integer.", i);
 		}
-		((int32_t*)&_Style->Margins)[i - 1] = lua_tointeger(_State, -1);
-		lua_pop(_State, 1);
+		((int32_t*)&Style->Margins)[i - 1] = lua_tointeger(State, -1);
+		lua_pop(State, 1);
 	}
-	lua_pop(_State, 1);
+	lua_pop(State, 1);
 	end:
-	return _Style;
+	return Style;
 }
 
-int LuaColor(lua_State* _State) {
-	int _Red = luaL_checkint(_State, 1);
-	int _Green = luaL_checkint(_State, 2);
-	int _Blue = luaL_checkint(_State, 3);
+int LuaColor(lua_State* State) {
+	int Red = luaL_checkint(State, 1);
+	int Green = luaL_checkint(State, 2);
+	int Blue = luaL_checkint(State, 3);
 
-	if(_Red < 0 || _Red > 255)
-		return luaL_error(_State, "Red is out of bounds.");
-	if(_Green < 0 || _Green > 255)
-		return luaL_error(_State, "Green is out of bounds.");
-	if(_Blue < 0 || _Blue > 255)
-		return luaL_error(_State, "Blue is out of bounds.");
-	lua_createtable(_State, 3, 0);
-	lua_pushvalue(_State, 1);
-	lua_rawseti(_State, -2, 1);
-	lua_pushvalue(_State, 2);
-	lua_rawseti(_State, -2, 2);
-	lua_pushvalue(_State, 3);
-	lua_rawseti(_State, -2, 3);
+	if(Red < 0 || Red > 255)
+		return luaL_error(State, "Red is out of bounds.");
+	if(Green < 0 || Green > 255)
+		return luaL_error(State, "Green is out of bounds.");
+	if(Blue < 0 || Blue > 255)
+		return luaL_error(State, "Blue is out of bounds.");
+	lua_createtable(State, 3, 0);
+	lua_pushvalue(State, 1);
+	lua_rawseti(State, -2, 1);
+	lua_pushvalue(State, 2);
+	lua_rawseti(State, -2, 2);
+	lua_pushvalue(State, 3);
+	lua_rawseti(State, -2, 3);
 	return 1;
 }
 
-int LuaGuiSetSkin(lua_State* _State) {
-	const char* _SkinStr = luaL_checkstring(_State, 1);
-	struct GuiSkin* _Skin = HashSearch(&g_GuiSkins, _SkinStr);
+int LuaGuiSetSkin(lua_State* State) {
+	const char* SkinStr = luaL_checkstring(State, 1);
+	struct GuiSkin* Skin = HashSearch(&g_GuiSkins, SkinStr);
 
-	if(_Skin == NULL) {
-		return luaL_error(_State, "%s is not a valid Gui skin name.", _SkinStr);
+	if(Skin == NULL) {
+		return luaL_error(State, "%s is not a valid Gui skin name.", SkinStr);
 	}
-	g_GuiSkinCurr = _Skin;
+	g_GuiSkinCurr = Skin;
 	return 0;
 }
 
-int LuaGuiGetSkin(lua_State* _State) {
-	const char* _SkinStr = luaL_checkstring(_State, 1);
-	struct GuiSkin* _Skin = HashSearch(&g_GuiSkins, _SkinStr);
+int LuaGuiGetSkin(lua_State* State) {
+	const char* SkinStr = luaL_checkstring(State, 1);
+	struct GuiSkin* Skin = HashSearch(&g_GuiSkins, SkinStr);
 
-	if(_Skin == NULL) {
-		return luaL_error(_State, "%s is not a valid Gui skin name.", _SkinStr);
+	if(Skin == NULL) {
+		return luaL_error(State, "%s is not a valid Gui skin name.", SkinStr);
 	}
-	LuaCtor(_State, _Skin, LOBJ_GSKIN);
+	LuaCtor(State, Skin, LOBJ_GSKIN);
 	return 1;
 }
 
-int	LuaGuiStyleGetFont(lua_State* _State) {
-	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+int	LuaGuiStyleGetFont(lua_State* State) {
+	struct GuiStyle* Style = LuaCheckClass(State, 1, LOBJ_GSTYLE);
 
-	LuaCtor(_State, _Style->Font, LOBJ_FONT);
+	LuaCtor(State, Style->Font, LOBJ_FONT);
 	return 1;
 }
 
-int	LuaGuiStyleFontFocus(lua_State* _State) {
-	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+int	LuaGuiStyleFontFocus(lua_State* State) {
+	struct GuiStyle* Style = LuaCheckClass(State, 1, LOBJ_GSTYLE);
 
-	LuaSDLToColor(_State, &_Style->FontFocus);
+	LuaSDLToColor(State, &Style->FontFocus);
 	return 1;
 }
 
-int	LuaGuiStyleFontUnfocus(lua_State* _State) {
-	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+int	LuaGuiStyleFontUnfocus(lua_State* State) {
+	struct GuiStyle* Style = LuaCheckClass(State, 1, LOBJ_GSTYLE);
 
-	LuaSDLToColor(_State, &_Style->FontUnfocus);
+	LuaSDLToColor(State, &Style->FontUnfocus);
 	return 1;
 }
 
-int	LuaGuiStyleBackgroundColor(lua_State* _State) {
-	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+int	LuaGuiStyleBackgroundColor(lua_State* State) {
+	struct GuiStyle* Style = LuaCheckClass(State, 1, LOBJ_GSTYLE);
 
-	LuaSDLToColor(_State, &_Style->Background);
+	LuaSDLToColor(State, &Style->Background);
 	return 1;
 }
 
-int	LuaGuiStyleMargins(lua_State* _State) {
-	struct GuiStyle* _Style = LuaCheckClass(_State, 1, LOBJ_GSTYLE);
+int	LuaGuiStyleMargins(lua_State* State) {
+	struct GuiStyle* Style = LuaCheckClass(State, 1, LOBJ_GSTYLE);
 
-	lua_createtable(_State, 4, 0);
-	lua_pushinteger(_State, _Style->Margins.Top);
-	lua_rawseti(_State, -2, 1);
-	lua_pushinteger(_State, _Style->Margins.Left);
-	lua_rawseti(_State, -2, 1);
-	lua_pushinteger(_State, _Style->Margins.Bottom);
-	lua_rawseti(_State, -2, 1);
-	lua_pushinteger(_State, _Style->Margins.Right);
-	lua_rawseti(_State, -2, 1);
+	lua_createtable(State, 4, 0);
+	lua_pushinteger(State, Style->Margins.Top);
+	lua_rawseti(State, -2, 1);
+	lua_pushinteger(State, Style->Margins.Left);
+	lua_rawseti(State, -2, 1);
+	lua_pushinteger(State, Style->Margins.Bottom);
+	lua_rawseti(State, -2, 1);
+	lua_pushinteger(State, Style->Margins.Right);
+	lua_rawseti(State, -2, 1);
 	return 0;
 }
 
-int	LuaGuiSkinGetName(lua_State* _State) {
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 1, LOBJ_GSKIN);
+int	LuaGuiSkinGetName(lua_State* State) {
+	struct GuiSkin* Skin = LuaCheckClass(State, 1, LOBJ_GSKIN);
 
-	lua_pushstring(_State, _Skin->Name);
+	lua_pushstring(State, Skin->Name);
 	return 1;
 }
 
-int	LuaGuiSkinLabel(lua_State* _State) {
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 1, LOBJ_GSKIN);
+int	LuaGuiSkinLabel(lua_State* State) {
+	struct GuiSkin* Skin = LuaCheckClass(State, 1, LOBJ_GSKIN);
 
-	LuaCtor(_State, _Skin->Label, LOBJ_GSTYLE);
+	LuaCtor(State, Skin->Label, LOBJ_GSTYLE);
 	return 1;
 }
 
-int	LuaGuiSkinButton(lua_State* _State) {
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 1, LOBJ_GSKIN);
+int	LuaGuiSkinButton(lua_State* State) {
+	struct GuiSkin* Skin = LuaCheckClass(State, 1, LOBJ_GSKIN);
 
-	LuaCtor(_State, _Skin->Button, LOBJ_GSTYLE);
+	LuaCtor(State, Skin->Button, LOBJ_GSTYLE);
 	return 1;
 }
 
-int	LuaGuiSkinTable(lua_State* _State) {
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 1, LOBJ_GSKIN);
+int	LuaGuiSkinTable(lua_State* State) {
+	struct GuiSkin* Skin = LuaCheckClass(State, 1, LOBJ_GSKIN);
 
-	LuaCtor(_State, _Skin->Table, LOBJ_GSTYLE);
+	LuaCtor(State, Skin->Table, LOBJ_GSTYLE);
 	return 1;
 }
 
-int	LuaGuiSkinContainer(lua_State* _State) {
-	struct GuiSkin* _Skin = LuaCheckClass(_State, 1, LOBJ_GSKIN);
+int	LuaGuiSkinContainer(lua_State* State) {
+	struct GuiSkin* Skin = LuaCheckClass(State, 1, LOBJ_GSKIN);
 
-	LuaCtor(_State, _Skin->Container, LOBJ_GSTYLE);
+	LuaCtor(State, Skin->Container, LOBJ_GSTYLE);
 	return 1;
 }

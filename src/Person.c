@@ -68,13 +68,13 @@ void PregnancyThink(struct Pregnancy* Pregnancy) {
 struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition, int X, int Y, struct Family* Family) {
 	struct Person* Person = NULL;
 
-	Assert(Name != NULL && Age >= 0 && (Gender == EMALE || Gender == EFEMALE) && Family != NULL && X >= 0 && Y >= 0);
+	Assert(Name != NULL && Age >= 0 && (Gender == MALE || Gender == FEMALE) && Family != NULL && X >= 0 && Y >= 0);
 
 	Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CreateObject(&Person->Object, OBJECT_PERSON, PersonThink);
 	Person->Name = Name;
 	Person->Age = Age;
-	Person->Flags = (PERSON_MALE & Gender);
+	Person->Flags = (MALE & Gender);
 	Person->Nutrition = Nutrition;
 	Person->Family = Family;
 	Person->Pregnancy = NULL;
@@ -106,7 +106,7 @@ struct Person* CreateChild(struct Family* Family) {
 void PersonThink(struct Object* Obj) {
 	struct Person* Person = (struct Person*) Obj;
 
-	if(Gender(Person) == EFEMALE) {
+	if(Gender(Person) == FEMALE) {
 		if(Person->Family != NULL
 				&& Person->Pregnancy == NULL
 				&& Person == Person->Family->People[WIFE]
@@ -130,7 +130,8 @@ void PersonMarry(struct Person* Father, struct Person* Mother, struct Family* Fa
 	NewFam->People[WIFE] = Mother;
 	Father->Family = NewFam;
 	Mother->Family = NewFam;
-	NewFam->Fields[NewFam->FieldCt++] = CreateField(NULL, 30, NewFam);
+	//Removed as PersonMarry code hasnt been touched in a year or so and Families are no longer all farmers(2/2/2017).
+	//NewFam->Fields[NewFam->FieldCt++] = CreateField(NULL, 30, NewFam);
 }
 
 void PersonDeath(struct Person* Person) {
@@ -144,6 +145,7 @@ void PersonDeath(struct Person* Person) {
 	if((Guy = RBSearch(&g_GameWorld.BigGuys, Person)) != NULL)
 		BigGuyDeath(Guy);
 	DestroyPerson(Person);
+	FamilyRemovePerson(Family, Person);
 	PushEvent(EVENT_DEATH, Person, NULL);
 }
 
@@ -151,21 +153,30 @@ void PersonDeath(struct Person* Person) {
  *\precondition Every Person in List must be from the same settlement.
  */
 void PersonDeathArr(struct Person** List, uint32_t Size) {
+	struct BigGuy* Guy = NULL;
+
 	Assert(Size > 0);
 	Assert(List != NULL);
 
 	struct Settlement* Settlement = List[0]->Family->HomeLoc;
 
 	for(int i = 0; i < Size; ++i) {
+		struct Family* Family = List[i]->Family;
+
+		if(List[i]->Pregnancy != NULL)
+			DestroyPregnancy(List[i]->Pregnancy);
 		SettlementRemovePerson(Settlement, List[i]);
-		FamilyRemovePerson(List[i]->Family, List[i]);
+		if((Guy = RBSearch(&g_GameWorld.BigGuys, List[i])) != NULL)
+			BigGuyDeath(Guy);
+		DestroyPerson(List[i]);
+		FamilyRemovePerson(Family, List[i]);
 		PushEvent(EVENT_DEATH, List[i], NULL);
 	}
 	Settlement->YearDeaths += Size;
 }
 
 int PersonIsWarrior(const struct Person* Person) {
-	if(Gender(Person) != EMALE || !PersonMature(Person))
+	if(Gender(Person) != MALE || !PersonMature(Person))
 		return 0;
 	return 1;
 }

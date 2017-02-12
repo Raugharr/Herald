@@ -5,574 +5,727 @@
 
 #include "RBTree.h"
 
+#include "Log.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 
-#define RB_STRNULL (4) //size of "NULL".
-#define RB_CONTR (RB_STRPTR + RB_STRCLR + 2)
-#define RB_STRCLR (2)
-#define RB_STRPTR (8) //size of pointer in style of, FFFFFFFF.
-#define RB_STRDELM (1)
-#define RB_DELM " "
-#define RBNodeSwap(_Copy, _Node)			\
-	(_Copy)->Parent = (_Node)->Parent;		\
-	(_Copy)->Left = (_Node)->Left;			\
-	(_Copy)->Right = (_Node)->Right
+#define RBSTRNULL (4) //size of "NULL".
+#define RBCONTR (RBSTRPTR + RBSTRCLR + 2)
+#define RBSTRCLR (2)
+#define RBSTRPTR (8) //size of pointer in style of, FFFFFFFF.
+#define RBSTRDELM (1)
+#define RBDELM " "
+#define RBNodeSwap(Copy, Node)			\
+	(Copy)->Parent = (Node)->Parent;		\
+	(Copy)->Left = (Node)->Left;			\
+	(Copy)->Right = (Node)->Right
 
-struct RBNode* __RBMax(struct RBNode* _Node) {
-	if(_Node == NULL)
+struct RBNode* _RBMax(struct RBNode* Node) {
+	if(Node == NULL)
 		return NULL;
-	//if(_Node->Left == NULL)
-	//	return _Node;
-	//_Node = _Node->Left;
-	while(_Node->Right != NULL) {
-		_Node = _Node->Right;
+	//if(Node->Left == NULL)
+	//	return Node;
+	//Node = Node->Left;
+	while(Node->Right != NULL) {
+		Node = Node->Right;
 	}
-	return _Node;
+	return Node;
 }
 
-struct RBNode* __RBMin(struct RBNode* _Node) {
-	if(_Node == NULL)
+struct RBNode* _RBMin(struct RBNode* Node) {
+	if(Node == NULL)
 		return NULL;
-	while(_Node->Left != NULL) {
-		_Node = _Node->Left;
+	while(Node->Left != NULL) {
+		Node = Node->Left;
 	}
-	return _Node;
+	return Node;
 }
 
-static inline void RBReplace(struct RBNode* _Node, struct RBNode* _Rep) {
-	_Rep->Parent = _Node->Parent;
-	_Rep->Left = _Node->Left;
-	_Rep->Right = _Node->Right;
+static inline void RBReplace(struct RBNode* Node, struct RBNode* Rep) {
+	Rep->Parent = Node->Parent;
+	Rep->Left = Node->Left;
+	Rep->Right = Node->Right;
 }
 
-void RBRotateLeft(struct RBNode** _Tree, struct RBNode* _Root) {
-	struct RBNode* _Parent = _Root->Parent;
-	struct RBNode* _Pivot = _Root->Right;
+void RBRotateLeft(struct RBNode** Tree, struct RBNode* Root) {
+	struct RBNode* Parent = Root->Parent;
+	struct RBNode* Pivot = Root->Right;
 
-	if(_Pivot == NULL)
+	if(Pivot == NULL)
 			return;
-	_Root->Right = _Pivot->Left;
-	if(_Pivot->Left != NULL)
-		_Pivot->Left->Parent = _Root;
-	_Pivot->Parent = _Root->Parent;
-	if(_Root->Parent == NULL)
-		(*_Tree) = _Pivot;
+	Root->Right = Pivot->Left;
+	if(Pivot->Left != NULL)
+		Pivot->Left->Parent = Root;
+	Pivot->Parent = Root->Parent;
+	if(Root->Parent == NULL)
+		(*Tree) = Pivot;
 	else
-		if(_Root == _Parent->Left)
-			_Parent->Left = _Pivot;
+		if(Root == Parent->Left)
+			Parent->Left = Pivot;
 		else
-			_Parent->Right = _Pivot;
-	_Pivot->Left = _Root;
-	_Root->Parent = _Pivot;
+			Parent->Right = Pivot;
+	Pivot->Left = Root;
+	Root->Parent = Pivot;
 }
 
-void RBRotateRight(struct RBNode** _Tree, struct RBNode* _Root) {
-	struct RBNode* _Parent = _Root->Parent;
-	struct RBNode* _Pivot = _Root->Left;
+void RBRotateRight(struct RBNode** Tree, struct RBNode* Root) {
+	struct RBNode* Parent = Root->Parent;
+	struct RBNode* Pivot = Root->Left;
 
-	if(_Pivot == NULL)
+	if(Pivot == NULL)
 		return;
-	_Root->Left = _Pivot->Right;
-	if(_Pivot->Right != NULL)
-		_Pivot->Right->Parent = _Root;
-	_Pivot->Parent = _Root->Parent;
-	if(_Root->Parent == NULL)
-		(*_Tree) = _Pivot;
+	Root->Left = Pivot->Right;
+	if(Pivot->Right != NULL)
+		Pivot->Right->Parent = Root;
+	Pivot->Parent = Root->Parent;
+	if(Root->Parent == NULL)
+		(*Tree) = Pivot;
 	else
-		if(_Root == _Parent->Right)
-			_Parent->Right = _Pivot;
+		if(Root == Parent->Right)
+			Parent->Right = Pivot;
 		else
-			_Parent->Left = _Pivot;
-	_Pivot->Right = _Root;
-	_Root->Parent = _Pivot;
+			Parent->Left = Pivot;
+	Pivot->Right = Root;
+	Root->Parent = Pivot;
 }
 
-struct RBNode* RBGrandparent(struct RBNode* _Node) {
-	if(_Node != NULL && _Node->Parent != NULL)
-		return _Node->Parent->Parent;
+struct RBNode* RBGrandparent(struct RBNode* Node) {
+	if(Node != NULL && Node->Parent != NULL)
+		return Node->Parent->Parent;
 	return NULL;
 }
 
-struct RBNode* RBUncle(struct RBNode* _Node) {
-	struct RBNode* _Grand = RBGrandparent(_Node);
+struct RBNode* RBUncle(struct RBNode* Node) {
+	struct RBNode* Grand = RBGrandparent(Node);
 
-	if(_Grand == NULL)
-		return _Grand;
-	if(_Node->Parent == _Grand->Left)
-		return _Grand->Right;
-	return _Grand->Left;
+	if(Grand == NULL)
+		return Grand;
+	if(Node->Parent == Grand->Left)
+		return Grand->Right;
+	return Grand->Left;
 }
 
-struct RBNode* CreateRBNode(struct RBNode* _Parent, void* _Data, int _Color) {
-	struct RBNode* _Node = (struct RBNode*) malloc(sizeof(struct RBNode));
+struct RBNode* CreateRBNode(struct RBNode* Parent, void* Data, int Color) {
+	struct RBNode* Node = (struct RBNode*) malloc(sizeof(struct RBNode));
 
-	_Node->Color = _Color;
-	_Node->Data = _Data;
-	_Node->Parent = _Parent;
-	_Node->Left = NULL;
-	_Node->Right = NULL;
-	return _Node;
+	Node->Color = Color;
+	Node->Data = Data;
+	Node->Parent = Parent;
+	Node->Left = NULL;
+	Node->Right = NULL;
+	return Node;
 }
 
-struct RBNode* CopyRBNode(struct RBNode* _Node) {
-	struct RBNode* _NewNode = (struct RBNode*) malloc(sizeof(struct RBNode));
+struct RBNode* CopyRBNode(struct RBNode* Node) {
+	struct RBNode* NewNode = (struct RBNode*) malloc(sizeof(struct RBNode));
 
-	_NewNode->Color = _Node->Color;
-	_NewNode->Data = _Node->Data;
-	_NewNode->Parent = NULL;
-	if(_Node->Left) {
-		_NewNode->Left = CopyRBNode(_Node->Left);
-		_NewNode->Left->Parent = _NewNode;
+	NewNode->Color = Node->Color;
+	NewNode->Data = Node->Data;
+	NewNode->Parent = NULL;
+	if(Node->Left) {
+		NewNode->Left = CopyRBNode(Node->Left);
+		NewNode->Left->Parent = NewNode;
 	} else
-		_NewNode->Left = NULL;
+		NewNode->Left = NULL;
 
-	if(_Node->Right) {
-		_NewNode->Right = CopyRBNode(_Node->Right);
-		_NewNode->Right->Parent = _NewNode;
+	if(Node->Right) {
+		NewNode->Right = CopyRBNode(Node->Right);
+		NewNode->Right->Parent = NewNode;
 	} else
-		_NewNode->Right = NULL;
+		NewNode->Right = NULL;
 
-	return _NewNode;
+	return NewNode;
 }
 
-struct RBTree* CreateRBTree(RBCallback _ICallBack, RBCallback _SCallBack) {
-	struct RBTree* _Tree = (struct RBTree*) malloc(sizeof(struct RBTree));
+struct RBTree* CreateRBTree(RBCallback ICallBack, RBCallback SCallBack) {
+	struct RBTree* Tree = (struct RBTree*) malloc(sizeof(struct RBTree));
 
-	_Tree->Table = NULL;
-	_Tree->Size = 0;
-	_Tree->ICallback = _ICallBack;
-	_Tree->SCallback = _SCallBack;
-	return _Tree;
+	Tree->Table = NULL;
+	Tree->Size = 0;
+	Tree->ICallback = ICallBack;
+	Tree->SCallback = SCallBack;
+	return Tree;
 }
 
-struct RBTree* CopyRBTree(struct RBTree* _Tree) {
-	struct RBTree* _NewTree = (struct RBTree*) malloc(sizeof(struct RBTree));
+struct RBTree* CopyRBTree(struct RBTree* Tree) {
+	struct RBTree* NewTree = (struct RBTree*) malloc(sizeof(struct RBTree));
 
-	if(_Tree->Table != NULL)
-		_NewTree->Table = CopyRBNode(_Tree->Table);
+	if(Tree->Table != NULL)
+		NewTree->Table = CopyRBNode(Tree->Table);
 	else
-		_NewTree->Table = NULL;
-	_NewTree->Size = _Tree->Size;
-	_NewTree->ICallback = _Tree->ICallback;
-	_NewTree->SCallback = _Tree->SCallback;
-	return _NewTree;
+		NewTree->Table = NULL;
+	NewTree->Size = Tree->Size;
+	NewTree->ICallback = Tree->ICallback;
+	NewTree->SCallback = Tree->SCallback;
+	return NewTree;
 }
 
-void DestroyRBTree(struct RBTree* _Tree) {
-	RBClear(_Tree);
-	free(_Tree);
+void DestroyRBTree(struct RBTree* Tree) {
+	RBClear(Tree);
+	free(Tree);
 }
 
-void RBBalance(struct RBTree* _Tree, struct RBNode* _Node) {
-	struct RBNode* _Parent = NULL;
-	struct RBNode* _Uncle = NULL;
+void RBBalance(struct RBTree* Tree, struct RBNode* Node) {
+	struct RBNode* Parent = NULL;
+	struct RBNode* Uncle = NULL;
 
-	while(_Node != _Tree->Table && _Node->Parent->Color == RB_RED) {
-		_Parent = _Node->Parent;
-		if(_Parent->Parent == NULL)
+	while(Node != Tree->Table && Node->Parent->Color == RB_RED) {
+		Parent = Node->Parent;
+		if(Parent->Parent == NULL)
 			break;
-		if(_Parent == _Parent->Parent->Left) {
-			_Uncle = _Parent->Parent->Right;
-			if(_Uncle != NULL && _Uncle->Color == RB_RED) {
-				_Parent->Color = RB_BLACK;
-				_Uncle->Color = RB_BLACK;
-				_Parent->Parent->Color = RB_RED;
-				_Node = _Parent->Parent;
+		if(Parent == Parent->Parent->Left) {
+			Uncle = Parent->Parent->Right;
+			if(Uncle != NULL && Uncle->Color == RB_RED) {
+				Parent->Color = RB_BLACK;
+				Uncle->Color = RB_BLACK;
+				Parent->Parent->Color = RB_RED;
+				Node = Parent->Parent;
 			} else {
-				if(_Node == _Parent->Right) {
-					_Node = _Parent;
-					RBRotateLeft(&_Tree->Table, _Node);
-					_Parent = _Node->Parent;
+				if(Node == Parent->Right) {
+					Node = Parent;
+					RBRotateLeft(&Tree->Table, Node);
+					Parent = Node->Parent;
 				}
-				_Parent->Color = RB_BLACK;
-				_Parent->Parent->Color = RB_RED;
-				RBRotateRight(&_Tree->Table, _Parent->Parent);
+				Parent->Color = RB_BLACK;
+				Parent->Parent->Color = RB_RED;
+				RBRotateRight(&Tree->Table, Parent->Parent);
 			}
-			//FIXME: _Parent can only be _Parent->Parent->Right or _Parent->Parent->Left.
-			//If it is not _Parent->Parent->Left it must be its right.
-		} else if(_Parent == _Parent->Parent->Right) {
-			_Uncle = _Parent->Parent->Left;
-			if(_Uncle != NULL && _Uncle->Color == RB_RED) {
-				_Parent->Color = RB_BLACK;
-				_Uncle->Color = RB_BLACK;
-				_Parent->Parent->Color = RB_RED;
-				_Node = _Parent->Parent;
+			//FIXME: Parent can only be Parent->Parent->Right or Parent->Parent->Left.
+			//If it is not Parent->Parent->Left it must be its right.
+		} else {//if(Parent == Parent->Parent->Right) {
+			Uncle = Parent->Parent->Left;
+			if(Uncle != NULL && Uncle->Color == RB_RED) {
+				Parent->Color = RB_BLACK;
+				Uncle->Color = RB_BLACK;
+				Parent->Parent->Color = RB_RED;
+				Node = Parent->Parent;
 			} else {
-				if(_Node == _Parent->Left) {
-					_Node = _Parent;
-					RBRotateRight(&_Tree->Table, _Node);
-					_Parent = _Node->Parent;
+				if(Node == Parent->Left) {
+					Node = Parent;
+					RBRotateRight(&Tree->Table, Node);
+					Parent = Node->Parent;
 				}
-				_Parent->Color = RB_BLACK;
-				_Parent->Parent->Color = RB_RED;
-				RBRotateLeft(&_Tree->Table, _Parent->Parent);
+				Parent->Color = RB_BLACK;
+				Parent->Parent->Color = RB_RED;
+				RBRotateLeft(&Tree->Table, Parent->Parent);
 			}
 		}
 	}
-	_Tree->Table->Color = RB_BLACK;
+	Tree->Table->Color = RB_BLACK;
 }
 
-void RBInsert(struct RBTree* _Tree, void* _Data) {
-	struct RBNode* _Itr = NULL;
-	struct RBNode* _Node = NULL;
+void RBInsert(struct RBTree* Tree, void* Data) {
+	struct RBNode* Itr = NULL;
+	struct RBNode* Node = NULL;
 
-	if(_Data == NULL)
+	if(Data == NULL)
 		return;
-	if(_Tree->Size == 0) {
-		_Tree->Table = CreateRBNode(NULL, _Data, RB_BLACK);
-		++_Tree->Size;
+	if(Tree->Size == 0) {
+		Tree->Table = CreateRBNode(NULL, Data, RB_BLACK);
+		++Tree->Size;
 		return;
 	}
-	_Itr = _Tree->Table;
-	while(_Itr != NULL) {
-		if(_Tree->ICallback(_Data, _Itr->Data) < 0)
-			if(_Itr->Left == NULL) {
-				_Node = CreateRBNode(_Itr, _Data, RB_RED);
-				_Itr->Left = _Node;
+	Itr = Tree->Table;
+	while(Itr != NULL) {
+		if(Tree->ICallback(Data, Itr->Data) < 0)
+			if(Itr->Left == NULL) {
+				Node = CreateRBNode(Itr, Data, RB_RED);
+				Itr->Left = Node;
 				break;
 			} else
-			_Itr = _Itr->Left;
+			Itr = Itr->Left;
 		else
-			if(_Itr->Right == NULL) {
-				_Node = CreateRBNode(_Itr, _Data, RB_RED);
-				_Itr->Right = _Node;
+			if(Itr->Right == NULL) {
+				Node = CreateRBNode(Itr, Data, RB_RED);
+				Itr->Right = Node;
 				break;
 			} else
-			_Itr = _Itr->Right;
+			Itr = Itr->Right;
 	}
-	RBBalance(_Tree, _Node);
-	++_Tree->Size;
+	RBBalance(Tree, Node);
+	++Tree->Size;
 }
 
-struct RBNode* RBInsertSearch(struct RBTree* _Tree, void* _Search, void* _Insert) {
-	struct RBNode* _Itr = NULL;
-	struct RBNode* _Node = NULL;
-	int _Found;
+struct RBNode* RBInsertSearch(struct RBTree* Tree, void* Search, void* Insert) {
+	struct RBNode* Itr = NULL;
+	struct RBNode* Node = NULL;
+	int Found;
 
-	if(_Search == NULL || _Insert == NULL)
+	if(Search == NULL || Insert == NULL)
 		return 0;
-	if(_Tree->Size == 0) {
-		_Tree->Table = CreateRBNode(NULL, _Insert, RB_BLACK);
-		++_Tree->Size;
+	if(Tree->Size == 0) {
+		Tree->Table = CreateRBNode(NULL, Insert, RB_BLACK);
+		++Tree->Size;
 		return NULL;
 	}
-	_Itr = _Tree->Table;
-	while(_Itr != NULL) {
-		_Found = _Tree->ICallback(_Search, _Itr->Data);
-		if(_Found < 0)
-			if(_Itr->Left == NULL) {
-				_Node = CreateRBNode(_Itr, _Insert, RB_RED);
-				_Itr->Left = _Node;
+	Itr = Tree->Table;
+	while(Itr != NULL) {
+		Found = Tree->ICallback(Search, Itr->Data);
+		if(Found < 0)
+			if(Itr->Left == NULL) {
+				Node = CreateRBNode(Itr, Insert, RB_RED);
+				Itr->Left = Node;
 				break;
 			} else
-			_Itr = _Itr->Left;
-		else if(_Found > 0)
-			if(_Itr->Right == NULL) {
-				_Node = CreateRBNode(_Itr, _Insert, RB_RED);
-				_Itr->Right = _Node;
+			Itr = Itr->Left;
+		else if(Found > 0)
+			if(Itr->Right == NULL) {
+				Node = CreateRBNode(Itr, Insert, RB_RED);
+				Itr->Right = Node;
 				break;
 			} else
-				_Itr = _Itr->Right;
+				Itr = Itr->Right;
 		else
-			return _Itr;
+			return Itr;
 	}
-	RBBalance(_Tree, _Node);
-	++_Tree->Size;
+	RBBalance(Tree, Node);
+	++Tree->Size;
 	return NULL;
 }
 
-void* RBSearch(const struct RBTree* _Tree, const void* _Data) {
-	struct RBNode* _Node = RBSearchNode(_Tree, _Data);
+void* RBSearch(const struct RBTree* Tree, const void* Data) {
+	struct RBNode* Node = RBSearchNode(Tree, Data);
 
-	if(_Node != NULL)
-		return _Node->Data;
+	if(Node != NULL)
+		return Node->Data;
 	return NULL;
 }
 
-struct RBNode* RBSearchNode(const struct RBTree* _Tree, const void* _Data) {
-	struct RBNode* _Node = NULL;
-	int _Cmp = 0;
+struct RBNode* RBSearchNode(const struct RBTree* Tree, const void* Data) {
+	struct RBNode* Node = NULL;
+	int Cmp = 0;
 
-	if(_Data == NULL)
+	if(Data == NULL)
 		return NULL;
-	_Node = _Tree->Table;
-	while(_Node != NULL) {
-		_Cmp = _Tree->SCallback(_Data, _Node->Data);
-		if(_Cmp == 0)
-			return _Node;
-		else if(_Cmp < 0)
-			_Node = _Node->Left;
+	Node = Tree->Table;
+	while(Node != NULL) {
+		Cmp = Tree->SCallback(Data, Node->Data);
+		if(Cmp == 0)
+			return Node;
+		else if(Cmp < 0)
+			Node = Node->Left;
 		else
-			_Node = _Node->Right;
+			Node = Node->Right;
 	}
 		return NULL;
 }
 
-void RBDelete(struct RBTree* _Tree, void* _Data) {
-	RBDeleteNode(_Tree, RBSearchNode(_Tree, _Data));
+void RBDelete(struct RBTree* Tree, void* Data) {
+	void* Node = RBSearchNode(Tree, Data);
+
+	Assert(Node != NULL);
+	RBDeleteNode(Tree, Node);
 }
 
 /**
- * It is possible to just move the data field from _Node to _OldNode
+ * It is possible to just move the data field from Node to OldNode
  * but we want to be able to ensure that pointers to RBNode*s will not
  * be invalidated.
  */
-void RBDeleteNode(struct RBTree* _Tree, struct RBNode* _OldNode) {
-	struct RBNode* _Node = NULL;
-	struct RBNode* _NewNode = NULL;
-	struct RBNode* _Parent = NULL;
-	struct RBNode* _Sibling = NULL;
+/*void RBDeleteNode(struct RBTree* Tree, struct RBNode* OldNode) {
+	struct RBNode* Node = NULL;
+	struct RBNode* NewNode = NULL;
+	struct RBNode* Parent = NULL;
+	struct RBNode* Sibling = NULL;
 
-	if(_OldNode == NULL)
+	if(OldNode == NULL)
 		return;
 
-	if(_Tree->Size == 1) {
+	if(Tree->Size == 1) {
 		#ifdef DEBUG
-				assert(_Tree->Table->Left == NULL && _Tree->Table->Right == NULL);
+				assert(Tree->Table->Left == NULL && Tree->Table->Right == NULL);
 		#endif
-		free(_OldNode);
-		_Tree->Table = NULL;
-		_Tree->Size = 0;
+		free(OldNode);
+		Tree->Table = NULL;
+		Tree->Size = 0;
 		return;
 	}
 
-	if(_OldNode->Left != NULL) {
-		if(_OldNode->Left->Right != NULL) {
-			_NewNode = __RBMax(_OldNode->Left->Right);
+	if(OldNode->Left != NULL) {
+		if(OldNode->Left->Right != NULL) {
+			NewNode = _RBMax(OldNode->Left->Right);
 		} else { 
-			_NewNode = _OldNode->Left;
+			NewNode = OldNode->Left;
 		}
-	} else if(_OldNode->Right != NULL) {
-		if(_OldNode->Right->Left != NULL) {
-			_NewNode = __RBMin(_OldNode->Right->Left);
+	} else if(OldNode->Right != NULL) {
+		if(OldNode->Right->Left != NULL) {
+			NewNode = _RBMin(OldNode->Right->Left);
 		} else {
-			_NewNode = _OldNode->Right;
+			NewNode = OldNode->Right;
 		}
 	} else {
-		_NewNode = _OldNode;
+		NewNode = OldNode;
 		goto skip_loop;	
 	}
 
-	_Node = _NewNode;
-	_Node->Color = ((_Node->Color == RB_RED) ? (RB_BLACK) : (RB_DBLACK));
-	while(_Tree->Table != _Node && _Node->Color == RB_DBLACK) {
-		_Sibling = RBSibling(_Node);
-		_Parent = _Node->Parent;
-		if(_Sibling != NULL && _Sibling->Color == RB_BLACK) {
-			if(_Sibling->Left != NULL && _Sibling->Left->Color == RB_RED) {
-				RBRotateRight(&_Tree->Table, _Sibling);
-				RBRotateLeft(&_Tree->Table, _Sibling->Parent);
-				_Node->Color = RB_BLACK;
-			} else if(_Sibling->Right != NULL && _Sibling->Right->Color == RB_RED) {
-				_Sibling->Right->Color = RB_BLACK;
-				RBRotateLeft(&_Tree->Table, _Sibling);
-				_Node->Color = RB_BLACK;
+	Node = NewNode;
+	Node->Color = ((Node->Color == RB_RED) ? (RB_BLACK) : (RB_DBLACK));
+	while(Tree->Table != Node && Node->Color == RB_DBLACK) {
+		Sibling = RBSibling(Node);
+		Parent = Node->Parent;
+		if(Sibling != NULL && Sibling->Color == RB_BLACK) {
+			if(Sibling->Left != NULL && Sibling->Left->Color == RB_RED) {
+				RBRotateRight(&Tree->Table, Sibling);
+				RBRotateLeft(&Tree->Table, Sibling->Parent);
+				Node->Color = RB_BLACK;
+			} else if(Sibling->Right != NULL && Sibling->Right->Color == RB_RED) {
+				Sibling->Right->Color = RB_BLACK;
+				RBRotateLeft(&Tree->Table, Sibling);
+				Node->Color = RB_BLACK;
 			}
-		} else if(_Sibling != NULL && _Sibling->Color == RB_RED) {
-			_Sibling->Color = RB_BLACK;
-			_Parent->Color = RB_RED;
-			if(_Parent->Right == _Sibling)
-				RBRotateRight(&_Tree->Table, _Sibling);
+		} else if(Sibling != NULL && Sibling->Color == RB_RED) {
+			Sibling->Color = RB_BLACK;
+			Parent->Color = RB_RED;
+			if(Parent->Right == Sibling)
+				RBRotateRight(&Tree->Table, Sibling);
 			else
-				RBRotateLeft(&_Tree->Table, _Sibling);
+				RBRotateLeft(&Tree->Table, Sibling);
 			continue;
 		}
-		if(_Node->Parent != NULL) {
-			if(_Parent->Color == RB_RED) {
-				_Node->Color = RB_BLACK;
-				_Parent->Color = RB_BLACK;
-				if(_Sibling != NULL) {
-					_Sibling->Color = RB_RED;
+		if(Node->Parent != NULL) {
+			if(Parent->Color == RB_RED) {
+				Node->Color = RB_BLACK;
+				Parent->Color = RB_BLACK;
+				if(Sibling != NULL) {
+					Sibling->Color = RB_RED;
 				} else {
-					_Parent->Color = RB_DBLACK;
-					_Node = _Parent;
+					Parent->Color = RB_DBLACK;
+					Node = Parent;
 				}
 			} else {
-				_Node->Color = RB_BLACK;
-				_Parent->Color = RB_DBLACK;
-				if(_Sibling != NULL)
-					_Sibling->Color = RB_RED;
-				_Node = _Parent;
+				Node->Color = RB_BLACK;
+				Parent->Color = RB_DBLACK;
+				if(Sibling != NULL)
+					Sibling->Color = RB_RED;
+				Node = Parent;
 				continue;
 			}
 		}
 	}
 	skip_loop:
-	_Parent = _NewNode->Parent;
-	if(_Parent) {
-		struct RBNode* _Temp = (_NewNode->Left == NULL) ? (_NewNode->Right) : (_NewNode->Left);
+	Parent = NewNode->Parent;
+	if(Parent) {
+		struct RBNode* Temp = (NewNode->Left == NULL) ? (NewNode->Right) : (NewNode->Left);
 
-		if(_Parent->Right == _NewNode)
-			_Parent->Right = _Temp;
+		if(Parent->Right == NewNode)
+			Parent->Right = Temp;
 		else
-			_Parent->Left = _Temp;
-		if(_Temp)
-			_Temp->Parent = _Parent;
+			Parent->Left = Temp;
+		if(Temp)
+			Temp->Parent = Parent;
 	}
-	_Tree->Table->Color = RB_BLACK;
-	--_Tree->Size;
-	_OldNode->Data = _NewNode->Data;
-	free(_NewNode);
+	Tree->Table->Color = RB_BLACK;
+	--Tree->Size;
+	OldNode->Data = NewNode->Data;
+	free(NewNode);
+}*/
+
+struct RBNode* RBSucessor(struct RBNode* Root, struct RBNode* Node) {
+	struct RBNode* Swap = NULL;
+
+	Swap = Node->Right;
+	if(Swap != NULL) {
+		while(Swap->Left != NULL) Swap = Swap->Left;
+		return Swap;
+	} else {
+		Swap = Node->Parent;
+		while(Swap != NULL && Node == Swap->Right) {
+			Node = Swap;
+			Swap = Swap->Parent;
+		}
+	}
+	return (Swap == Root) ? (NULL) : (Swap);
+}
+
+void RBDelBalance(struct RBTree* Tree, struct RBNode* Node) {
+	struct RBNode* Sibling = NULL;
+
+/*	if(Node->Left != NULL && Node->Right == NULL) {
+		struct RBNode* Child = Node->Left;
+
+		Child->Parent = Node->Parent;
+		if(Node->Parent->Left == Node) Node->Parent->Left = Child;
+		else Node->Parent->Right = Child;
+		if(Node->Color == RB_BLACK && Child->Color == RB_RED) {
+			Child->Color = RB_BLACK;
+			return;
+		}
+	} else if(Node->Left == NULL && Node->Right != NULL) {
+		struct RBNode* Child = Node->Right;
+
+		Child->Parent = Node->Parent;
+		if(Node->Parent->Left == Node) Node->Parent->Left = Child;
+		else Node->Parent->Right = Child;
+		if(Node->Color == RB_BLACK && Child->Color == RB_RED) {
+			Child->Color = RB_BLACK;
+			return;
+		}
+	}
+*/			
+	while(Node != Tree->Table && Node->Color == RB_BLACK) {
+		if(Node == Node->Parent->Left) {
+			Sibling = Node->Parent->Right;
+			if(Sibling == NULL) break;
+			if(Sibling->Color == RB_RED) {
+				Node->Parent->Color = RB_RED;
+				Sibling->Color = RB_BLACK;
+				RBRotateLeft(&Tree->Table, Node->Parent);
+				Sibling = Node->Parent->Right;
+				if(Sibling == NULL) break;
+			}
+			if((Sibling->Left == NULL || Sibling->Left->Color == RB_BLACK) && (Sibling->Right == NULL || Sibling->Right->Color == RB_BLACK)) {
+				Sibling->Color = RB_RED;
+				Node = Node->Parent;
+			} else if(Sibling->Right != NULL && Sibling->Right->Color == RB_BLACK) {
+				if(Sibling->Left != NULL) Sibling->Left->Color = RB_BLACK;
+				RBRotateRight(&Tree->Table, Sibling);
+				Sibling = Sibling->Parent;
+				if(Sibling == NULL) break;
+			}
+			if(Node->Parent == NULL) break;
+			Sibling->Color = Node->Parent->Color;
+			Node->Parent->Color = RB_BLACK;
+			if(Sibling->Right != NULL) Sibling->Right->Color = RB_BLACK;
+			RBRotateLeft(&Tree->Table, Node->Parent);
+			break;
+		} else {
+			Sibling = Node->Parent->Left;
+			if(Sibling == NULL) break;
+			if(Sibling->Color == RB_RED) {
+				Node->Parent->Color = RB_RED;
+				Sibling->Color = RB_BLACK;
+				RBRotateRight(&Tree->Table, Node->Parent);
+				Sibling = Node->Parent->Left;
+				if(Sibling == NULL) break;
+			}
+			if((Sibling->Left == NULL || Sibling->Left->Color == RB_BLACK) && (Sibling->Right == NULL || Sibling->Right->Color == RB_BLACK)) {
+				Sibling->Color = RB_RED;
+				Node = Node->Parent;
+			} else if(Sibling->Left != NULL && Sibling->Left->Color == RB_BLACK) {
+				if(Sibling->Right != NULL) Sibling->Right->Color = RB_BLACK;
+				RBRotateLeft(&Tree->Table, Sibling);
+				Sibling = Sibling->Parent;
+				if(Sibling == NULL) break;
+			}
+			if(Node->Parent == NULL) break;
+			Sibling->Color = Node->Parent->Color;
+			Node->Parent->Color = RB_BLACK;
+			if(Sibling->Left != NULL) Sibling->Left->Color = RB_BLACK;
+			RBRotateRight(&Tree->Table, Node->Parent);
+			break;
+		}
+	}
+	Node->Color = RB_BLACK;
+}
+
+void RBDeleteNode(struct RBTree* Tree, struct RBNode* OldNode) {
+	struct RBNode* Node = NULL;
+	struct RBNode* Sibling = NULL;
+
+	Node = ((OldNode->Left == NULL || OldNode->Right == NULL)) ? (OldNode) : (RBSucessor(Tree->Table, OldNode));
+	Sibling = (Node->Left == NULL) ? (Node->Right) : (Node->Left);
+	if(Sibling != NULL) Sibling->Parent = Node->Parent;
+	if(Node->Parent == NULL) {
+		Tree->Table = Sibling;
+	} else {
+		if(Node == Node->Parent->Left)
+			Node->Parent->Left = Sibling;
+		else
+			Node->Parent->Right = Sibling;
+	}
+	if(Node != OldNode)
+		OldNode->Data = Node->Data;
+	if(Node->Color == RB_BLACK && Sibling != NULL)
+		RBDelBalance(Tree, Sibling);
+	free(Node);
+	--Tree->Size;
+	/*if(Tree->Table == Sibling->Parent) {
+		Tree->Table->Left = Sibling;
+	} else {
+		if(Node == Node->Parent->Left)
+			Node->Parent->Left = Sibling;
+		else
+			Node->Parent->Right = Sibling;
+	}*/
+
 }
 /*
  * FIXME: When the RBTree contains thousands of elements it would take to long to iterate through the thousands
  * of elements put them into a stack and then give them to the caller. Instead we should do something like the
  * commented code below where we use assembly to pass a variable amount of arguments to a callback function.
  */
-struct RBItrStack* RBDepthFirst(struct RBNode* const _Node, struct RBItrStack* _Stack) {
-	if(_Node == NULL)
-		return _Stack;
-	(*_Stack).Prev = _Stack;
-	(*_Stack).Node = _Node;
-	++_Stack;
-	_Stack = RBDepthFirst(_Node->Left, _Stack);
-	_Stack = RBDepthFirst(_Node->Right, _Stack);
-	return _Stack;
+struct RBItrStack* RBDepthFirst(struct RBNode* const Node, struct RBItrStack* Stack) {
+	if(Node == NULL)
+		return Stack;
+	(*Stack).Prev = Stack;
+	(*Stack).Node = Node;
+	++Stack;
+	Stack = RBDepthFirst(Node->Left, Stack);
+	Stack = RBDepthFirst(Node->Right, Stack);
+	return Stack;
 }
 
 /*
- * void RBDepthFirst(struct RBNode* const _Node, void(*_Callback)(), void** _Args, int _ArgSize) {
+ * void RBDepthFirst(struct RBNode* const Node, void(*Callback)(), void** Args, int ArgSize) {
  * int i = 0;
-	if(_Node == NULL)
+	if(Node == NULL)
 		return;
-	__asm__("pushl $_Args[i]\n\t
+	_asm__("pushl $_Args[i]\n\t
 			addl $1, $i\n\t
-			call _Callback\n\t
+			call Callback\n\t
 			");
-	_Stack = RBDepthFirst(_Node->Left, _Callback, _Args, _ArgSize);
-	_Stack = RBDepthFirst(_Node->Right _Callback, _Args, _ArgSize);
+	Stack = RBDepthFirst(Node->Left, Callback, Args, ArgSize);
+	Stack = RBDepthFirst(Node->Right Callback, Args, ArgSize);
 }
  */
 
-void RBIterate(struct RBTree* _Tree, int(*_Callback)(void*)) {
+void RBIterate(struct RBTree* Tree, int(*Callback)(void*)) {
 	int i = 0;
 	int j = 0;
-	struct RBItrStack _Stack[_Tree->Size];
-	struct RBItrStack _DeleteStack[_Tree->Size];
+	struct RBItrStack Stack[Tree->Size];
+	struct RBItrStack DeleteStack[Tree->Size];
 
-	if(_Tree->Table == NULL)
+	if(Tree->Table == NULL)
 		return;
-	memset(_Stack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
-	memset(_DeleteStack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
-	RBDepthFirst(_Tree->Table, _Stack);
-	for(i = 0; i < _Tree->Size; ++i) {
-		if(_Callback(_Stack[i].Node->Data) != 0)
-			_DeleteStack[j] = _Stack[i];
+	memset(Stack, 0, sizeof(struct RBItrStack*) * Tree->Size);
+	memset(DeleteStack, 0, sizeof(struct RBItrStack*) * Tree->Size);
+	RBDepthFirst(Tree->Table, Stack);
+	for(i = 0; i < Tree->Size; ++i) {
+		if(Callback(Stack[i].Node->Data) != 0)
+			DeleteStack[j] = Stack[i];
 	}
 	for(i = 0; i < j; ++i)
-		RBDeleteNode(_Tree, _DeleteStack[i].Node);
+		RBDeleteNode(Tree, DeleteStack[i].Node);
 }
 
-void RBRemoveAll(struct RBTree* _Tree, void(*_Callback)(void*)) {
-	struct RBItrStack _ItrStack[_Tree->Size];
+void RBRemoveAll(struct RBTree* Tree, void(*Callback)(void*)) {
+	struct RBItrStack ItrStack[Tree->Size];
 	int i = 0;
 
-	memset(_ItrStack, 0, sizeof(struct RBItrStack*) * _Tree->Size);
-	RBDepthFirst(_Tree->Table, _ItrStack);
-	for(i = 0; i < _Tree->Size; ++i)
-		_Callback(_ItrStack[i].Node->Data);
-	while(_Tree->Size > 0) {
-		RBDeleteNode(_Tree, _Tree->Table);
+	memset(ItrStack, 0, sizeof(struct RBItrStack*) * Tree->Size);
+	RBDepthFirst(Tree->Table, ItrStack);
+	for(i = 0; i < Tree->Size; ++i) {
+		Callback(ItrStack[i].Node->Data);
+		RBDeleteNode(Tree, Tree->Table);
 	}
 }
 
-void RBClear(struct RBTree* _Tree) {
-	while(_Tree->Size > 0) {
-		RBDeleteNode(_Tree, _Tree->Table);
+void RBClear(struct RBTree* Tree) {
+	while(Tree->Size > 0) {
+		RBDeleteNode(Tree, Tree->Table);
 	}
 }
 
-void* RBMax(struct RBNode* _Node) {
-	return __RBMax(_Node)->Data;
+void* RBMax(struct RBNode* Node) {
+	return _RBMax(Node)->Data;
 }
-void* RBMin(struct RBNode* _Node) {
-	return __RBMin(_Node)->Data;
+void* RBMin(struct RBNode* Node) {
+	return _RBMin(Node)->Data;
 }
 
-int RBHeight_Aux(struct RBNode* _Node) {
-	if(_Node == NULL)
+int RBHeight_Aux(struct RBNode* Node) {
+	if(Node == NULL)
 		return 0;
-	return RBHeight_Aux(_Node->Left) + RBHeight_Aux(_Node->Right) + 1;
+	return RBHeight_Aux(Node->Left) + RBHeight_Aux(Node->Right) + 1;
 }
 
-int RBHeight(struct RBNode* _Node) {
-	int _Left = 0;
-	int _Right = 0;
+int RBInvariant(struct RBNode* Node, RBCallback ICallback) {
+	int Correct = 1;
+	if(Node == NULL)
+		return 1;
+	if(Node->Left != NULL) {
+		Correct = Correct && (ICallback(Node->Data, Node->Left->Data) > 0) && RBInvariant(Node->Left, ICallback);
+	}
+	if(Node->Right != NULL) {
+		Correct = Correct && (ICallback(Node->Data, Node->Right->Data) < 0) && RBInvariant(Node->Right, ICallback);
+	}
+	return Correct;
+}
 
-	if(_Node == NULL)
+int RBCount(struct RBNode* Node) {
+	if(Node == NULL)
+		return 0;
+	return RBCount(Node->Left) + RBCount(Node->Right) + 1;
+}
+
+int RBHeight(struct RBNode* Node) {
+	int Left = 0;
+	int Right = 0;
+
+	if(Node == NULL)
 		return 0;
 
-	_Left = RBHeight_Aux(_Node->Left);
-	_Right = RBHeight_Aux(_Node->Right);
-	return (_Left < _Right) ? (_Right) : (_Left);
+	Left = RBHeight_Aux(Node->Left);
+	Right = RBHeight_Aux(Node->Right);
+	return (Left < Right) ? (Right) : (Left);
 }
 
-int RBColorCheck_Aux(struct RBNode* _Node) {
-	if(_Node == NULL)
+int RBColorCheck_Aux(struct RBNode* Node) {
+	if(Node == NULL)
 		return 1;
-	return RBColorCheck_Aux(_Node->Left) == RBColorCheck_Aux(_Node->Right) + _Node->Color;
+	return RBColorCheck_Aux(Node->Left) == RBColorCheck_Aux(Node->Right) + Node->Color;
 }
 
-int RBColorCheck(struct RBNode* _Node) {
-	if(_Node == NULL)
+int RBColorCheck(struct RBNode* Node) {
+	if(Node == NULL)
 		return 1;
-	return RBColorCheck(_Node->Left) == RBColorCheck(_Node->Right);
+	return RBColorCheck(Node->Left) == RBColorCheck(Node->Right);
 }
 
-int RBStrlen(struct RBNode* _Node) {
-	if(_Node == NULL)
-		return RB_STRNULL + RB_STRDELM;
-	return RBStrlen(_Node->Left) + RBStrlen(_Node->Right) + RB_CONTR + RB_STRDELM;
+int RBStrlen(struct RBNode* Node) {
+	if(Node == NULL)
+		return RBSTRNULL + RBSTRDELM;
+	return RBStrlen(Node->Left) + RBStrlen(Node->Right) + RBCONTR + RBSTRDELM;
 }
 
-int RBToString(struct RBNode* _Node, char* _Buffer, int _Size) {
-	if(_Node == NULL) {
-		if(_Size < RB_STRNULL + RB_STRDELM + 1)
+int RBToString(struct RBNode* Node, char* Buffer, int Size) {
+	if(Node == NULL) {
+		if(Size < RBSTRNULL + RBSTRDELM + 1)
 			return 0;
-		strncat(_Buffer, "NULL ", _Size);
-		_Buffer += RB_STRNULL + RB_STRDELM;
-		return RB_STRNULL + RB_STRDELM;
+		strncat(Buffer, "NULL ", Size);
+		Buffer += RBSTRNULL + RBSTRDELM;
+		return RBSTRNULL + RBSTRDELM;
 	}
-	if(_Size < RB_CONTR + 1)
+	if(Size < RBCONTR + 1)
 		return 0;
-	char _Temp[RB_CONTR + 1];
-	sprintf(_Temp, "[%p %d]", _Node, _Node->Color);
-	strncat(_Buffer, _Temp, _Size);
-	strcat(_Buffer, RB_DELM);
-	_Buffer += RB_CONTR + RB_STRDELM;
-	_Size -= RB_CONTR + RB_STRDELM;
-	return RBToString(_Node->Left, _Buffer, _Size) + RBToString(_Node->Right, _Buffer, _Size);
+	char Temp[RBCONTR + 1];
+	sprintf(Temp, "[%p %d]", Node, Node->Color);
+	strncat(Buffer, Temp, Size);
+	strcat(Buffer, RBDELM);
+	Buffer += RBCONTR + RBSTRDELM;
+	Size -= RBCONTR + RBSTRDELM;
+	return RBToString(Node->Left, Buffer, Size) + RBToString(Node->Right, Buffer, Size);
 }
 
-int RBRange(struct RBTree* _Tree, void* _Min, void* _Max, void** _RangeTbl, int _MaxSize) {
-	struct RBNode* _Node = NULL;
-	int _LowCmp = 0;
-	int _HighCmp = 0;
-	struct RBNode* _NodeList[256];
-	int _NodeListSz = 1;
-	int _RangeTblSz = 0;
+int RBRange(struct RBTree* Tree, void* Min, void* Max, void** RangeTbl, int MaxSize) {
+	struct RBNode* Node = NULL;
+	int LowCmp = 0;
+	int HighCmp = 0;
+	struct RBNode* NodeList[256];
+	int NodeListSz = 1;
+	int RangeTblSz = 0;
 
-	_NodeList[0] = _Tree->Table;
-	while(_NodeListSz > 0) {
-		_Node = _NodeList[--_NodeListSz];
-		if((_LowCmp = _Tree->SCallback(_Node->Data, _Min)) >= 0 && (_HighCmp = _Tree->SCallback(_Node->Data, _Max)) <= 0) {
-			if(_RangeTblSz >= _MaxSize)
-				return _RangeTblSz;
-			_RangeTbl[_RangeTblSz++] = _Node->Data;
-			if(_Node->Left != NULL)
-				_NodeList[_NodeListSz++] = _Node->Left;
-			if(_Node->Right !=  NULL)
-				_NodeList[_NodeListSz++] = _Node->Right; 
-		} else if(_LowCmp < 0) {
-			if(_Node->Right != NULL)
-				_NodeList[_NodeListSz++] = _Node->Right;
-		} else if(_HighCmp > 0) {
-			if(_Node->Left != NULL)
-				_NodeList[_NodeListSz++] = _Node->Left;
+	NodeList[0] = Tree->Table;
+	while(NodeListSz > 0) {
+		Node = NodeList[--NodeListSz];
+		if((LowCmp = Tree->SCallback(Node->Data, Min)) >= 0 && (HighCmp = Tree->SCallback(Node->Data, Max)) <= 0) {
+			if(RangeTblSz >= MaxSize)
+				return RangeTblSz;
+			RangeTbl[RangeTblSz++] = Node->Data;
+			if(Node->Left != NULL)
+				NodeList[NodeListSz++] = Node->Left;
+			if(Node->Right !=  NULL)
+				NodeList[NodeListSz++] = Node->Right; 
+		} else if(LowCmp < 0) {
+			if(Node->Right != NULL)
+				NodeList[NodeListSz++] = Node->Right;
+		} else if(HighCmp > 0) {
+			if(Node->Left != NULL)
+				NodeList[NodeListSz++] = Node->Left;
 		}
 	}
-	return _RangeTblSz;
+	return RangeTblSz;
 }

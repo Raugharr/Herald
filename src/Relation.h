@@ -55,6 +55,9 @@ enum {
 	ACTTYPE_GIFT,
 	ACTTYPE_WARLACK,
 	ACTTYPE_POLICY,
+	//Government relations.
+	ACTTYPE_CULTURE,
+	ACTTYPE_WAR,
 	ACTTYPE_SIZE
 };
 
@@ -89,7 +92,7 @@ struct Relation* CreateRelation(void* Owner, void* Target, struct Relation** Nex
  */
 void AddOpinion(void* Owner, void* Target, int Action, int Modifier, int RelLen, int Strength, struct Relation** Relation);
 /**
- * \brief Does the same as BigGuyAddOpinion except is given a BigGuyRelation instead of two BigGuys.
+ * \brief Does the same as AddOpinion except is given a Relation instead of two BigGuys.
  */
 void ChangeRelation(struct Relation* Relation, int Action, int Modifier, int RelLen, int Strength);
 /**

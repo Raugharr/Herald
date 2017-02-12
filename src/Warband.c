@@ -236,6 +236,7 @@ struct Army* CreateArmy(struct Settlement* Settlement, struct BigGuy* Leader, co
 	Army->Leader = Leader;
 	Army->WarbandCt = 0;
 	Army->Warbands = NULL;
+	Army->Food = 0;
 	Army->Goal = *Goal;
 	Army->Path.Path.Direction = TILE_SIZE;
 	Army->Path.Path.Tiles = 0;
@@ -255,7 +256,10 @@ struct Army* CreateArmy(struct Settlement* Settlement, struct BigGuy* Leader, co
 }
 
 void DestroyArmy(struct Army* Army) {
-	for(struct Warband* Warband = Army->Warbands; Warband != NULL; Warband = Warband->Next) {
+	Assert(Army->InBattle == false);
+
+	//for(struct Warband* Warband = Army->Warbands; Warband != NULL; Warband = Warband->Next) {
+	while(Army->Warbands != NULL) {
 		DestroyWarband(Army->Warbands);
 	}
 	for(int i = 0; i < Army->Captives.Size; ++i) {
@@ -264,6 +268,7 @@ void DestroyArmy(struct Army* Army) {
 	for(int i = 0; i < Army->Loot.Size; ++i) {
 		DestroyGood((struct Good*)Army->Loot.Table[i]);
 	}
+	DtorSprite(&Army->Sprite);
 	DestroyObject((struct Object*) Army);
 	DtorArray(&Army->Captives);
 	DtorArray(&Army->Loot);
@@ -293,11 +298,11 @@ int ArmyPathHeuristic(struct Tile* One, struct Tile* Two) {
 }
 
 void ArmyThink(struct Army* Army) {
-	Army->Goal.Think(Army);
 	if(Army->WarbandCt == 0) {
 		DestroyArmy(Army);
 		return;
 	}
+	Army->Goal.Think(Army);
 	//MapGetUnit(g_GameWorld.MapRenderer, &Army->Sprite.TilePos);
 }
 
@@ -366,7 +371,11 @@ int ArmyMoveDir(struct Army* Army, int Direction) {
 				Enemy = CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalDefend(&Goal, Settlement));
 				if(Enemy != NULL) {
 					struct Battle* Battle = CreateBattle(Army, Enemy);
+					struct Relation* Rel = GetRelation(Army->Government->Relations, Enemy->Government);
 
+					if(Rel == NULL)
+						Rel = CreateRelation(Army->Government, Enemy->Government, &Army->Government->Relations);
+					ChangeRelation(Rel, ACTTYPE_WAR, -25, OPNLEN_LARGE, OPINION_GREAT);
 					Battle->BattleSite = Settlement;
 				}
 			}
@@ -495,4 +504,54 @@ void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxG
 		else
 			ArrayAddGood(Loot, TakenGoods[i], TakenGoods[i]->Quantity * Percent);
 	}
+}
+
+void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32_t* Skirmishers, uint32_t* Support, uint32_t* Calvary) {
+	uint32_t MeleeCt = 0;
+	uint32_t SkirmishersCt = 0;
+	uint32_t SupportCt = 0;
+	uint32_t CalvaryCt = 0;
+	struct Good* Gear[GEAR_SIZE];
+	struct Weapon* Weapon = NULL;
+	struct ARmor* Armor = NULL;
+	uint8_t GearSz = 0;
+
+	for(int i = 0; i < PeopleCt; ++i) {
+		struct Family* Family = People[i]->Family;
+
+		for(int j = 0; j < Family->Goods.Size; ++j) {
+			struct Good* Good = Family->Goods.Table[i];
+
+			if(Good->Base->Type == GOOD_WEAPON) {
+				if(((struct WeaponBase*)Good->Base)->Range == MELEE_RANGE && Gear[GEAR_WEPMELEE] != NULL) {
+					Gear[GEAR_WEPMELEE] = Good;
+				} else if(((struct WeaponBase*)Good->Base)->Range != MELEE_RANGE && Gear[GEAR_WEPRANGE] != NULL){
+					Gear[GEAR_WEPRANGE] = Good;
+				}
+			} else if(Good->Base->Type == GOOD_ARMOR) {
+				if(((struct ArmorBase)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_ARMOR] != NULL) {
+					Gear[GEAR_ARMOR] = Good;
+				} else if(((struct ArmorBase)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_SHIELD] != NULL) {
+					Gear[GEAR_SHIELD] = Good;
+				}
+			}
+		}
+		Weapon = Gear[GEAR_WEPMELEE];
+		Armor = Gear[GEAR_SHIELD]
+		if((Weapon->Base->WeaponType == EWEAPON_SPEAR || Weapon->Base->WeaponType == EWEAPON_SPEAR) && Gear[GEAR_SHIELD] != NULL) {
+			++MeleeCt;
+		} else if(((struct Weapon*)Gear[GEAR_WEPRANGE])->Base->WeaponType == EWEAPON_JAVELIN && Weapon->Base->WeaponType == EWEAPON_SEAX) {
+			++SkirmishersCt;
+		} else if(((struct Weapon*)Gear[GEAR_WEPRANGE])->Base->WeaponType == EWEAPON_BOW) {
+			++SupportCt;
+		}
+		for(int j = 0; j < GEAR_SIZE; ++j) {
+			Gear[j] = NULL;
+		}
+	}
+
+	if(Melee != NULL) *Melee = MeleeCt;
+	if(Skirmishers != NULL) *Skirmishers = SkirmishersCt;
+	if(Support != NULL) *Support = SupportCt;
+	if(Calvary != NULL) *Calvary = CalvaryCt;
 }

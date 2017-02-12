@@ -78,13 +78,13 @@ int PopulationInputReqCmp(const void* _One, const void* _Two) {
 }
 
 int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	return (_Family->FieldCt > 0);
+	return (_Family->Caste == CASTE_FARMER) ? (_Family->Spec.Farmer.FieldCt > 0) : (0);
 }
 
 int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	for(int i = 0; i < _Family->BuildingCt; ++i)
-		if((_Family->Buildings[i]->ResidentType & ERES_HUMAN) == ERES_HUMAN)
-			return 1;
+	//for(int i = 0; i < _Family->BuildingCt; ++i)
+	//	if((_Family->Buildings[i]->ResidentType & ERES_HUMAN) == ERES_HUMAN)
+	//		return 1;
 	return 0;
 }
 

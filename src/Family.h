@@ -14,7 +14,6 @@
 
 #define CHILDREN_SIZE (8)
 #define FAMILY_PEOPLESZ (CHILDREN_SIZE + 2)
-#define FAMILY_BUILDINGCT (2)
 #define FAMILY_FIELDCT (2)
 
 #define HUSBAND (0)
@@ -64,18 +63,15 @@ struct CasteGoodReq {
 	uint32_t MinQuantity;
 };
 
+//TODO: We need a way for a family to figure out who are it's children families for inheritance reasons.
 struct Family {
 	struct Object Object;
 	const char* Name;
 	struct Person* People[FAMILY_PEOPLESZ];
 	struct Settlement* HomeLoc;
-	struct Family* Parent;
-	const struct Family* Owner; //Used if Caste is CASTE_SERF.
+	struct Family* Parent;//Family who contains the father of the husband in this family.
+	struct Family* Slave;
 	const struct Profession* Profession;
-	//FIXME: We should assume that a person will only have at most 2 fields.
-	// By replacing the array with a static one we should be able to save space.
-	struct Field* Fields[FAMILY_FIELDCT];
-	struct Building* Buildings[FAMILY_BUILDINGCT];
 	struct Array Goods;
 	struct Array Animals;
 	struct {
@@ -85,19 +81,18 @@ struct Family {
 		// this variable should be set to 0 at harvest time.
 	} Food;
 	uint8_t NumChildren;
-	uint8_t FieldCt;
-	uint8_t BuildingCt;
 	uint8_t Caste;
 	uint8_t Faction;
 	bool IsAlive;
-	/*union {
+	union {
 		struct {
 			struct Field* Fields[FAMILY_FIELDCT];
-		} Commoner;
+			uint8_t FieldCt;
+		} Farmer;
 		struct {
-			struct Family* Owner;
+			const struct Family* Owner;
 		} Slave;
-	}*/
+	} Spec;
 };
 
 //FIXME: Remove Family_Init and Family_Quit as they are not specifically related to Family.h and should be moved somewhere else that initializes data.

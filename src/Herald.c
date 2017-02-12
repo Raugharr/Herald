@@ -31,7 +31,6 @@
 #include "sys/Rule.h"
 #include "sys/Event.h"
 #include "sys/GenIterator.h"
-#include "sys/StackAllocator.h"
 
 #include "video/Animation.h"
 
@@ -57,13 +56,12 @@ struct HashTable g_Professions;
 struct HashTable g_BhvVars;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
-struct LifoAllocator g_StackAllocator;
+struct LifoAllocator g_StackAllocator = {0};
 
 struct ObjectList {
 	struct RBTree SearchTree;
 	struct {
 		struct Object* Front;
-		struct Object* Back;
 		ObjectThink Think;
 	} ObjectList[OBJECT_SIZE];
 	//struct Object* Front;
@@ -75,20 +73,20 @@ struct MissionEngine g_MissionEngine;
 //TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
-	{{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, NULL},
-	{NULL, NULL, FamilyObjThink},
-	{NULL, NULL, NULL}}
+	{{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, NULL},
+	{NULL, FamilyObjThink},
+	{NULL, NULL}}
 };
 
 static uint32_t g_Id = 0;
@@ -174,6 +172,13 @@ void HeraldDestroy() {
 	PathfindQuit();
 	DestroyMissionEngine(&g_MissionEngine);
 	free(g_StackAllocator.ArenaBot);
+}
+
+void ClearObjects() {
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		while(g_Objects.ObjectList[i].Front != NULL) 
+			DestroyObject(g_Objects.ObjectList[i].Front);
+	}
 }
 
 struct InputReq* CreateInputReq() {
@@ -323,10 +328,11 @@ void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Sta
 }*/
 
 void CreateObject(struct Object* _Obj, uint8_t _Type, ObjectThink _Think) {
-	_Obj->Id = NextId();
+	*(uint32_t*)&_Obj->Id = NextId();
 	_Obj->Type = _Type;
 	_Obj->Think = _Think;
 	RBInsert(&g_Objects.SearchTree, _Obj);
+	Assert(RBSearch(&g_Objects.SearchTree, _Obj));
 	if(_Think != NULL) {
 		ILL_CREATE(g_Objects.ObjectList[_Type].Front, _Obj);
 	}
@@ -369,11 +375,4 @@ void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family) {
 
 int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
-}
-
-void* SAlloc(size_t _SizeOf) {
-	return LifoAlloc(&g_StackAllocator, _SizeOf);
-}
-void SFree(void* _Ptr) {
-	LifoFree(&g_StackAllocator, 1);
 }

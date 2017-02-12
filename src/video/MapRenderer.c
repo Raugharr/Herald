@@ -317,11 +317,6 @@ void MapDrawColorOverlay(const struct MapRenderer* Renderer, const SDL_Point* Po
 	SDL_RenderFillRect(g_Renderer, &Rect);
 }
 
-void MapGetUnitPos(const void* Data, SDL_Point* Pos) {
-	Pos->x = ((struct Sprite*)Data)->TilePos.x;
-	Pos->y = ((struct Sprite*)Data)->TilePos.y;
-}
-
 void MapGetSettlementPos(const void* Data, SDL_Point* Point) {
 	const struct Settlement* Loc = (struct Settlement*) Data;
 
@@ -332,17 +327,17 @@ void MapGetSettlementPos(const void* Data, SDL_Point* Point) {
 struct Army* MapGetUnit(struct MapRenderer* Renderer, const SDL_Point* Point) {
 	if(Point->x < 0 || Point->x >= Renderer->TileLength || Point->y < 0 || Point->y >= Renderer->TileLength)
 		return NULL;
-	return (struct Army*) QTGetPoint(&Renderer->RenderArea[MAPRENDER_UNIT], Point, MapGetUnitPos);
+	return (struct Army*) QTGetPoint(&Renderer->RenderArea[MAPRENDER_UNIT], Point, (void(*)(const void*, SDL_Point*))SpriteGetTilePos);
 }
 
 int MapUnitCanMove(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point) {
-	return ((!((int) (QTGetPoint(&Renderer->RenderArea[MAPRENDER_UNIT], Point, MapGetUnitPos)))) && Army->InBattle == 0);
+	return ((!((int) (QTGetPoint(&Renderer->RenderArea[MAPRENDER_UNIT], Point, (void(*)(const void*, SDL_Point*))SpriteGetTilePos)))) && Army->InBattle == 0);
 }
 
 int MapMoveUnit(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point) {
 	if(MapUnitCanMove(Renderer, Army, Point)) {
 		//Causes crash.
-		QTRemoveNode(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite.TilePos, MapGetUnitPos, &Army->Sprite);
+		QTRemoveNode(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite.TilePos, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, &Army->Sprite);
 		QTInsertPoint(&Renderer->RenderArea[MAPRENDER_UNIT], &Army->Sprite, Point);
 		SpriteSetTilePos(&Army->Sprite, g_GameWorld.MapRenderer, Point);
 		return 1;

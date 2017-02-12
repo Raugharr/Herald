@@ -25,6 +25,7 @@
 #include "sys/RBTree.h"
 #include "sys/Event.h"
 #include "sys/LinkedList.h"
+#include "video/GuiLua.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -81,30 +82,7 @@ void BigGuyActionGift(struct BigGuy* Guy, const struct BigGuyAction* Action) {
 		}
 }
 
-/*
-struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* Owner, int Action) {
-	struct BigGuyActionHist* Hist = (struct BigGuyActionHist*) malloc(sizeof(struct BigGuyActionHist));
-
-	Hist->Owner = Owner;
-	Hist->ActionType = Action;
-	Hist->DayDone = g_GameWorld.Date;
-	return Hist;
-}
-
-int BigGuyActionHistIS(const struct BigGuyActionHist* One, const struct BigGuyActionHist* Two) {
-	int Diff = One->Owner - Two->Owner;
-	
-	if(Diff != 0)
-		return Diff;
-	return One->ActionType - Two->ActionType;
-}
-
-void DestroyBGActionHist(struct BigGuyActionHist* Hist) {
-	free(Hist);
-}
-*/
-
-void BGOnDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
+/*void BGOnDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
 	struct BigGuy* Guy = Data->One;
 	struct Person* Person = Data->OwnerObj;
 
@@ -114,10 +92,29 @@ void BGOnDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
 		DestroyAgent(Guy->Agent);
 	DestroyPerson(Person);
 	DestroyBigGuy(Guy);
-}
+}*/
 
 void BigGuyDeath(struct BigGuy* Guy) {
-	RBDelete(&g_GameWorld.Agents, Guy);
+	if(g_GameWorld.Player == Guy) {
+		char* Str = NULL;
+		if((Str = SAlloc(1024)) == NULL) {
+			LogNoMem();
+			return;
+		}
+		struct BigGuy* NewLeader = MonarchyNewLeader(g_GameWorld.Player, MALE);
+
+		//GovernmentSetLeader(g_GameWorld.Player->Person->Family->HomeLoc->Government, NewLeader);
+		strcpy(Str, g_GameWorld.Player->Person->Name);
+		strcat(Str, " has been killed.");
+		strcat(Str, " You will now play as ");
+		strcat(Str, NewLeader->Person->Name);
+		strcat(Str, " ");
+		strcat(Str, NewLeader->Person->Family->Name);
+		strcat(Str, ".");
+		g_GameWorld.Player = NewLeader;
+		MessageBox(Str);
+	} else 
+		RBDelete(&g_GameWorld.Agents, Guy);
 	if(Guy->Agent != NULL)
 		DestroyAgent(Guy->Agent);
 	DestroyBigGuy(Guy);
@@ -166,12 +163,17 @@ struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE
 	RBInsert(&g_GameWorld.BigGuys, BigGuy);
 	RBInsert(&g_GameWorld.Agents, BigGuy->Agent);
 	LnkLstPushBack(&FamilyGetSettlement(Person->Family)->BigGuys, BigGuy);
-	//EventHook(EVENT_DEATH, BGOnDeath, Person, BigGuy, NULL);
-	//EventHook(EVENT_NEWPLOT, BGOnNewPlot, BigGuyHome(BigGuy), BigGuy, NULL);
 
 	ConstructLinkedList(&BigGuy->PlotsAgainst);
 	BigGuy->Traits = BGRandTraits(&BigGuy->TraitCt);
 	BigGuy->Action = BGACT_NONE;
+	for(struct LnkLst_Node* Itr = Person->Family->HomeLoc->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
+		struct BigGuy* Target = Itr->Data;
+
+		CreateBigGuyRelation(BigGuy, Target);
+		CreateBigGuyRelation(Target, BigGuy);
+
+	}
 	return BigGuy;
 }
 
@@ -208,7 +210,7 @@ void BigGuySetState(struct BigGuy* Guy, int State, int Value) {
 
 struct BigGuy* BigGuyLeaderType(struct Person* Person) {
 	while(Person != NULL) {
-		if(Gender(Person) == EMALE && DateToDays(Person->Age) > ADULT_AGE) {
+		if(Gender(Person) == MALE && DateToDays(Person->Age) > ADULT_AGE) {
 			uint8_t Stats[BGSKILL_SIZE];
 
 			BGStatsWarlord(&Stats, 50);

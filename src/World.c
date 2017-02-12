@@ -93,7 +93,6 @@ const char* g_CasteNames[CASTE_SIZE] = {
 };
 
 struct TaskPool* g_TaskPool = NULL;
-struct HashTable* g_AIHash = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
 
@@ -521,6 +520,7 @@ void GameWorldInit(struct GameWorld* GameWorld, int Area) {
 	GameWorld->PlotList.ICallback = (RBCallback) PlotInsert;
 	GameWorld->PlotList.SCallback = (RBCallback) PlotSearch;
 
+	GameWorld->AIHash = CreateHash(32);
 	ConstructLinkedList(&GameWorld->MissionFrame);
 	GameWorld->Date = 0;
 	GameWorld->Tick = 0;
@@ -648,10 +648,8 @@ void WorldInit(int Area) {
 	++g_Log.Indents;
 	GameWorldInit(&g_GameWorld, Area);
 	g_GameOnClick.OnClick = g_GameOnClickFuncs[0];
-	g_AIHash = CreateHash(32);
 	chdir(DATAFLD);
 
-	AIInit(g_LuaState);
 	Array = FileLoad("FirstNames.txt", '\n');
 	g_PersonPool = (struct MemoryPool*) CreateMemoryPool(sizeof(struct Person), 1000000);
 	Family_Init(Array);
@@ -703,21 +701,22 @@ void WorldInit(int Area) {
 }
 
 void WorldQuit() {
-	AIQuit();
 	RBRemoveAll(&g_GameWorld.Families, (void(*)(void*))DestroyFamily);
 	LnkLstClear(&g_GameWorld.Settlements);
 	DestroyArray(g_GameWorld.AnFoodDeps);
 	DestroyRBTree(g_GameWorld.GoodDeps);
-	DestroyMemoryPool(g_PersonPool);
 	for(int i = 0; i < GOOD_SIZE; ++i)
 		LnkLstClear(&g_GoodCats[i]);
 	DtorArray(&g_GameWorld.Policies);
 	HashDeleteAll(&g_Goods, (void(*)(void*)) DestroyGoodBase);
 	HashDeleteAll(&g_Populations, (void(*)(void*)) DestroyPopulation);
+	HashDeleteAll(&g_Traits, (void(*)(void*)) DestroyTrait);
 	Family_Quit();
-	DestroyHash(g_AIHash);
+	DestroyHash(g_GameWorld.AIHash);
 	DestroyConstrntBnds(g_GameWorld.AgeGroups);
 	DestroyConstrntBnds(g_GameWorld.BabyAvg);
+	ClearObjects();
+	DestroyMemoryPool(g_PersonPool);
 }
 
 uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two, uint32_t Context) {

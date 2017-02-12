@@ -86,8 +86,8 @@ static const luaL_Reg g_LuaFuncsFamily[] = {
 
 static const struct LuaEnum g_LuaPersonEnum[] = {
 	{"DailyNut", NUTRITION_DAILY},
-	{"Male", EMALE},
-	{"Female", EFEMALE},
+	{"Male", MALE},
+	{"Female", FEMALE},
 	{NULL, 0}
 };
 
@@ -114,8 +114,8 @@ static const luaL_Reg g_LuaFuncsAnimal[] = {
 };
 
 static const struct LuaEnum g_LuaAnimalEnum[] = {
-	{"Male", EMALE},
-	{"Female", EFEMALE},
+	{"Male", MALE},
+	{"Female", FEMALE},
 	{NULL, 0}
 };
 
@@ -171,7 +171,7 @@ int LuaPersonGetY(lua_State* State) {
 int LuaPersonGetGender(lua_State* State) {
 	struct Person* Person = (struct Person*) LuaToObject(State, 1, LOBJ_PERSON);
 
-	lua_pushinteger(State, Person->Flags & PERSON_MALE);
+	lua_pushinteger(State, Person->Flags & MALE);
 	return 1;
 }
 
@@ -276,6 +276,7 @@ int LuaFamilyGetName(lua_State* State) {
 
 int LuaFamilyGetPeople(lua_State* State) {
 	struct Family* Family = (struct Family*) LuaToObject(State, 1, LOBJ_FAMILY);
+	int Idx = 0;
 
 	if(Family == NULL)
 		return LuaClassError(State, 1, LOBJ_FAMILY);
@@ -284,18 +285,23 @@ int LuaFamilyGetPeople(lua_State* State) {
 		if(Family->People[i] == NULL)
 			continue;
 		LuaCtor(State, Family->People[i], LOBJ_PERSON);
-		lua_rawseti(State, -2, i + 1);
+		lua_rawseti(State, -2, ++Idx);
 	}
 	return 1;
 }
 
 int LuaFamilyGetFields(lua_State* State) {
 	struct Family* Family = (struct Family*) LuaToObject(State, 1, LOBJ_FAMILY);
+	int Idx = 0;
 
-	lua_createtable(State, Family->FieldCt, 0);
-	for(int i = 0; i < Family->FieldCt; ++i) {
-		LuaCtor(State, Family->Fields[i], LOBJ_FIELD);
-		lua_rawseti(State, -2, i + 1);
+	if(Family->Caste != CASTE_FARMER) {
+		lua_createtable(State, 0, 0);
+		return 1;
+	}
+	lua_createtable(State, Family->Spec.Farmer.FieldCt, 0);
+	for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
+		LuaCtor(State, Family->Spec.Farmer.Fields[i], LOBJ_FIELD);
+		lua_rawseti(State, -2, ++Idx);
 	}
 	return 1;
 }
@@ -303,19 +309,21 @@ int LuaFamilyGetFields(lua_State* State) {
 int LuaFamilyGetBuildings(lua_State* State) {
 	struct Family* Family = (struct Family*) LuaToObject(State, 1, LOBJ_FAMILY);
 
-	lua_createtable(State, Family->BuildingCt, 0);
+	/*lua_createtable(State, Family->BuildingCt, 0);
 	for(int i = 0; i < Family->BuildingCt; ++i) {
 		LuaCtor(State, Family->Buildings[i], LOBJ_BUILDING);
 		lua_rawseti(State, -2, i + 1);
 	}
-	return 1;
+	return 1;*/
+	return 0;
 }
 
 int LuaFamilyGetBulidingCt(lua_State* State) {
 	struct Family* Family = (struct Family*) LuaToObject(State, 1, LOBJ_FAMILY);
 
-	lua_pushinteger(State, Family->BuildingCt);
-	return 1;
+//	lua_pushinteger(State, Family->BuildingCt);
+//	return 1;
+	return 0;
 }
 
 int LuaFamilyGetGoods(lua_State* State) {
@@ -429,7 +437,7 @@ int LuaAnimalGetId(lua_State* State) {
 int LuaAnimalIsMale(lua_State* State) {
 	struct Animal* Animal = (struct Animal*) LuaToObject(State, 1, LOBJ_ANIMAL);
 
-	lua_pushboolean(State, (Animal->Gender == EMALE));
+	lua_pushboolean(State, (Animal->Gender == MALE));
 	return 1;
 }
 

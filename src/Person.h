@@ -15,8 +15,6 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#define EMALE (0)
-#define EFEMALE (1)
 #define IsMarried(_Person) (_Person->Family->Wife != NULL)
 #define PersonDead(_Person) (_Person->Nutrition == 0)
 #define MAX_NUTRITION (250)
@@ -38,8 +36,15 @@ struct Food;
 extern struct MemoryPool* g_PersonPool;
 
 enum PersonFlags {
-	PERSON_MALE = (1 << 0),
-	PERSON_PRISONER = (1 << 1)
+	MALE = (1 << 0),
+	FEMALE = (1 << 1),
+	PRISONER = (1 << 2)
+};
+
+enum {
+	DEATH_ILLNESS,
+	DEATH_DUEL,
+	DEATH_BATTLE
 };
 
 struct Person {
@@ -92,9 +97,9 @@ int PersonIsWarrior(const struct Person* Person);
 struct Person* GetFather(struct Person* Person);
 static inline bool IsChild(const struct Person* Person) {return (YEAR(Person->Age) < ADULT_AGE);}
 static inline bool PersonMature(const struct Person* Person) {return YEAR(Person->Age) >= ADULT_AGE;}
-static inline uint8_t Gender(const struct Person* Person) {return Person->Flags & PERSON_MALE;}
+static inline uint8_t Gender(const struct Person* Person) {return Person->Flags & (MALE | FEMALE);}
 static inline void Prisoner(struct Person* Person, bool Prisoner) {Person->Flags = (Person->Flags | (Prisoner << 1));}
-static inline bool IsPrisoner(struct Person* Person) {return (Person->Flags & PERSON_PRISONER);}
+static inline bool IsPrisoner(struct Person* Person) {return (Person->Flags & PRISONER);}
 uint16_t PersonWorkMult(const struct Person* Person);
 #endif
 

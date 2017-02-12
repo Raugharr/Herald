@@ -504,7 +504,7 @@ struct Good* CreateGood(const struct GoodBase* Base, int X, int Y) {
 	if(Base == NULL)
 		return NULL;
 	Good = (struct Good*) malloc(sizeof(struct Good));
-	CreateObject((struct Object*)Good, OBJECT_GOOD, NULL);
+	//CreateObject((struct Object*)Good, OBJECT_GOOD, NULL);
 	Good->Id = ++g_GoodId;
 	Good->Pos.x = X;
 	Good->Pos.y = Y;
@@ -555,7 +555,8 @@ void DestroyFoodBase(struct FoodBase* Food) {
 struct Food* CreateFood(const struct FoodBase* Base, int X, int Y) {
 	struct Food* Food = (struct Food*) malloc(sizeof(struct Food));
 	
-	CreateObject((struct Object*)Food, OBJECT_GOOD, NULL);
+	//CreateObject((struct Object*)Food, OBJECT_GOOD, NULL);
+	Food->Id = ++g_GoodId;
 	Food->Pos.x = X;
 	Food->Pos.y = Y;
 	Food->Base = Base;
@@ -660,7 +661,8 @@ struct InputReq** GoodBuildList(const struct Array* Goods, int* Size, int Catego
 
 	if(Size)
 		*Size = OutputSize;
-	Outputs = realloc(Outputs, sizeof(struct InputReq*) * OutputSize);
+	if((Outputs = realloc(Outputs, sizeof(struct InputReq*) * OutputSize)) == NULL)
+		LogNoMem();
 	return Outputs;
 }
 

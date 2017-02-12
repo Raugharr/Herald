@@ -89,6 +89,8 @@ void* RBMax(struct RBNode* _Node);
  *  Returns the data of the smallest element that is _Node or a child of _Node.
  */
 void* RBMin(struct RBNode* _Node);
+int RBInvariant(struct RBNode* Node, RBCallback ICallback);
+int RBCount(struct RBNode* Node);
 /**
  * Returns the height of this tree.
 */

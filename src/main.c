@@ -92,6 +92,7 @@ int main(int argc, char* args[]) {
 			goto quit;
 		}
 	}
+	AIInit(g_LuaState);
 	AnimationLoad(g_LuaState, "data/anim/test.lua");
 	WorldInit(150);
 
@@ -99,6 +100,7 @@ int main(int argc, char* args[]) {
 	quit:
 	ResourceManagementQuit();
 	WorldQuit();
+	AIQuit();
 	IMG_Quit();
 	for(_SysCt = _SysCt - 1;_SysCt >= 0; --_SysCt) {
 		Log(ELOG_INFO, "Quitting %s system.", _Systems[_SysCt].Name);

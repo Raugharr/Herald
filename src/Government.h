@@ -77,6 +77,7 @@ enum {
 
 
 struct Government {
+	struct Object Object;
 	uint16_t GovType;
 	uint16_t  GovRank;
 	struct Settlement* Location;
@@ -144,5 +145,6 @@ void GovernmentAddPolicy(struct Government* Gov, const struct Policy* Policy);
 void GovernmentRemovePolicy(struct Government* Gov, const struct Policy* Policy);
 void GovernmentUpdatePolicy(struct Government* Gov, struct ActivePolicy* OldPolicy, const struct ActivePolicy* Policy);
 int GovernmentHasPolicy(const struct Government* Gov, const struct Policy* Policy);
+struct BigGuy* CreateNewLeader(struct Government* Gov);
 
 #endif

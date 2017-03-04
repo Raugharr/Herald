@@ -16,7 +16,7 @@
 #define TEMP_AVG (70)
 #define PLANT_TIME (2)
 #define CropName(Crop) ((Crop)->Name)
-#define FieldHarvestMod(Field, Mod) ((Field)->Acres * (Field)->Crop->SeedsPerAcre * (Field)->Crop->YieldMult * HarvestMod)
+#define FieldHarvestMod(Field, Mod) ((Field)->Acres * ToPound((Field)->Crop->SeedsPerAcre) * (Field)->Crop->YieldMult * HarvestMod)
 
 typedef struct lua_State lua_State;
 struct LinkedList;
@@ -41,7 +41,7 @@ enum {
 };
 
 struct Crop {
-	int Id;
+	uint32_t Id;
 	const struct FoodBase* const Output;
 	const char* Name;
 	uint16_t Type;
@@ -58,7 +58,6 @@ struct Crop {
 
 struct Field {
 	struct Object Object;
-	SDL_Point Pos;
 	const struct Crop* Crop;
 	struct Family* Owner;
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
@@ -84,7 +83,7 @@ void FieldReset(struct Field* Field);
  * Sets the state of the field to be planting and removed enough seeds from Seeds
  * to fill up the field.
  */
-int FieldPlant(struct Field* Field, struct Good* Seeds);
+void FieldPlant(struct Field* Field, struct Good* Seeds);
 int FieldHarvest(struct Field* Field, struct Array* Goods, float HarvestMod);
 void FieldUpdate(struct Field* Field);
 void FieldSetAcres(struct Field* Field, int Acres);

@@ -54,7 +54,7 @@ struct Crop* CreateCrop(const char* Name, int Type, int PerAcre, double NutVal, 
 	Crop->GrowingDegree = GrowingDegree;
 	Crop->GrowingBase = GrowingBase;
 	Crop->SurviveWinter = SurviveWinter;
-	HashInsert(&g_Goods, Output->Base.Name, CreateFoodBase(Output->Base.Name, GOOD_SEED, NutVal));
+	HashInsert(&g_Goods, Output->Base.Name, Output);
 	Log(ELOG_INFO, "Crop loaded %s.", Output->Base.Name);
 	return Crop;
 }
@@ -125,8 +125,6 @@ struct Field* CreateField(const struct Crop* Crop, int Acres, struct Family* Own
 
 	Field = (struct Field*) malloc(sizeof(struct Field));
 	CreateObject((struct Object*)Field, OBJECT_CROP);
-	Field->Pos.x = Owner->HomeLoc->Pos.x;
-	Field->Pos.y = Owner->HomeLoc->Pos.y;
 	Field->Crop = Crop;
 	Field->YieldTotal = 0;
 	Field->Acres = Acres;
@@ -156,19 +154,19 @@ void FieldReset(struct Field* Crop) {
 	Crop->Status = EFALLOW;
 }
 
-int FieldPlant(struct Field* Field, struct Good* Seeds) {
+void FieldPlant(struct Field* Field, struct Good* Seeds) {
 	int TempAcres = Seeds->Quantity / Field->Crop->SeedsPerAcre;
 
 	if(Field->Crop == NULL) {
 		FieldReset(Field);
-		return 0;
+		return;
 	}
 	if(Field->Status != EFALLOW)
-		return 0;
+		return;
 	if(TempAcres < Field->UnusedAcres) {
 		int Total = Field->Acres + Field->UnusedAcres;
 
-		Field->Acres += TempAcres;
+		Field->Acres = TempAcres;
 		Field->UnusedAcres = Total - TempAcres;
 	} else {
 		Field->Acres = Field->UnusedAcres;
@@ -177,7 +175,6 @@ int FieldPlant(struct Field* Field, struct Good* Seeds) {
 	Seeds->Quantity -= Field->Crop->SeedsPerAcre * Field->Acres;
 	Field->Status = EPLOWING - 1;
 	FieldChangeStatus(Field);
-	return 1;
 }
 
 void FieldWork(struct Field* Field, int Total, const struct Array* Goods) {
@@ -222,30 +219,37 @@ int FieldHarvest(struct Field* Field, struct Array* Goods, float HarvestMod) {
 	int Quantity = FieldHarvestMod(Field, HarvestMod);
 	int SeedQuantity = 0;
 	int TempAcres = 0;
+	SDL_Point Pos = {Field->Owner->HomeLoc->Pos.x, Field->Owner->HomeLoc->Pos.y};
 
 	Assert(Field->Status == EHARVESTING);
-	Seeds = CheckGoodTbl(Goods, CropName(Field->Crop), &g_Goods, Field->Pos.x, Field->Pos.y);
+	Seeds = CheckGoodTbl(Goods, CropName(Field->Crop), &g_Goods, Pos.x, Pos.y);
 	if(Field->Crop->Type == EGRASS) {
 		struct Good* Straw = NULL;
 
-		Straw = CheckGoodTbl(Goods, "Straw", &g_Goods, Field->Pos.x, Field->Pos.y);
+		Straw = CheckGoodTbl(Goods, "Straw", &g_Goods, Pos.x, Pos.y);
 		Straw->Quantity += Quantity * 4;
 	}
 	TempAcres = Field->Acres;
 	Field->Acres = Field->Acres - (Field->Acres - Field->UnusedAcres);
 	Field->UnusedAcres = TempAcres;
 	//FieldReset(Field);
-	if(Field->Acres > Field->UnusedAcres)
-		SeedQuantity = ToPound(Field->Acres * Field->Crop->SeedsPerAcre);
-	else
-		SeedQuantity = ToPound(Field->UnusedAcres * Field->Crop->SeedsPerAcre);
+	TempAcres = (Field->Acres > Field->UnusedAcres) ? (Field->Acres) : (Field->UnusedAcres);
+	SeedQuantity = ToPound(TempAcres * Field->Crop->SeedsPerAcre);
+	if(HarvestMod >= 1.0f && Seeds->Quantity * 2 < Field->Crop->SeedsPerAcre * TempAcres) {
+		SeedQuantity += (Quantity - SeedQuantity) / 8;
+	}
+	//Quantity = ToPound(Quantity);
 	Seeds->Quantity += SeedQuantity;
-	return (ToPound(Quantity) - SeedQuantity) * Field->Crop->NutVal;
+	if(Quantity - SeedQuantity < 0) {
+		SeedQuantity = Quantity / 2;;
+	}
+	//Assert(Quantity - SeedQuantity > 0);
+	return (Quantity - SeedQuantity) * Field->Crop->NutVal;
 }
 
 void FieldUpdate(struct Field* Field) {
 	if(Field->Status == EGROWING) {
-		int Temp = g_TemperatureList[TO_MONTHS(g_GameWorld.Date)];
+		int Temp = g_TemperatureList[MONTH(g_GameWorld.Date)];
 
 		Field->StatusTime -= GrowingDegree(Temp, Temp, Field->Crop->GrowingBase);
 		if(Field->StatusTime <= 0) {

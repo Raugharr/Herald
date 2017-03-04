@@ -156,15 +156,21 @@ int LuaPersonGetId(lua_State* State) {
 
 int LuaPersonGetX(lua_State* State) {
 	struct Person* Person = (struct Person*) LuaToObject(State, 1, LOBJ_PERSON);
+	uint32_t x = 0;
+	uint32_t y = 0;
 
-	lua_pushinteger(State, Person->Pos.x);
+	PersonGetPos(Person, &x, &y);
+	lua_pushinteger(State, x);
 	return 1;
 }
 
 int LuaPersonGetY(lua_State* State) {
 	struct Person* Person = (struct Person*) LuaToObject(State, 1, LOBJ_PERSON);
+	uint32_t x = 0;
+	uint32_t y = 0;
 
-	lua_pushinteger(State, Person->Pos.y);
+	PersonGetPos(Person, &x, &y);
+	lua_pushinteger(State, y);
 	return 1;
 }
 
@@ -185,7 +191,7 @@ int LuaPersonGetNutrition(lua_State* State) {
 int LuaPersonGetAge(lua_State* State) {
 	struct Person* Person = (struct Person*) LuaToObject(State, 1, LOBJ_PERSON);
 
-	lua_pushinteger(State, Person->Age);
+	lua_pushinteger(State, Person->Age.Years);
 	return 1;
 }
 
@@ -458,7 +464,7 @@ int LuaAnimalGetNutrition(lua_State* State) {
 int LuaAnimalGetAge(lua_State* State) {
 	struct Animal* Animal = (struct Animal*) LuaToObject(State, 1, LOBJ_ANIMAL);
 
-	lua_pushinteger(State, Animal->Age);
+	lua_pushinteger(State, Animal->Age.Years);
 	return 1;
 }
 
@@ -756,7 +762,7 @@ int LuaCreateAnimal(lua_State* State) {
 	Name = luaL_checkstring(State, 1);
 	if((Population = HashSearch(&g_Populations, Name)) == NULL)
 		return luaL_error(State, "Cannot find Population %s.", Name);
-	LuaCtor(State, CreateAnimal(Population, Random(0, Population->Ages[AGE_DEATH]->Max), 1500, -1, -1), LOBJ_ANIMAL);
+	LuaCtor(State, CreateAnimal(Population, Random(0, Population->Ages[AGE_DEATH]->Max), 0, 1500, -1, -1), LOBJ_ANIMAL);
 	return 1;
 }
 

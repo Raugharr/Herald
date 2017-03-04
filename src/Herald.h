@@ -63,6 +63,7 @@ enum {
 	OBJECT_LOCATION,
 	OBJECT_BIGGUY,
 	OBJECT_FAMILY,
+	OBJECT_GOVERNMENT,
 	OBJECT_SIZE
 };
 
@@ -132,4 +133,6 @@ static inline void* SAlloc(size_t _SizeOf) {
 static inline void SFree(void* _Ptr) {
 	LifoFree(&g_StackAllocator, 1);
 }
+
+struct Object* FindObject(uint32_t Id);
 #endif

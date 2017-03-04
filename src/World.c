@@ -174,16 +174,8 @@ void PopulateManor(struct GameWorld* World, struct FamilyType** FamilyTypes,
 	struct Settlement* Settlement = NULL;
 	struct Retinue* Retinue = NULL;
 	double CastePercent[CASTE_SIZE] = {0, 0.50, 0.10, 0, 0, 0.40, 0.0};
-	//uint8_t CurrCaste = CASTE_THRALL;
 	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 
-		//TODO: AgeGroups and BabyAvg should not be here but instead in an argument.
-	/*for(int i = 0; i < MaxFarmers; ++i) {
-		while(CurrCaste < CASTE_SIZE && CasteCount[CurrCaste] + Count <= i) {
-			Count += CasteCount[CurrCaste];
-			++CurrCaste;
-		}
-	}*/
 	Settlement = CreateSettlement(X, Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
 	CreateFarmerFamilies(World, Settlement, AgeGroups, BabyAvg);
 	RandTable(CastePercent, &CasteCount, CASTE_SIZE, Settlement->NumPeople);
@@ -210,8 +202,7 @@ void PopulateManor(struct GameWorld* World, struct FamilyType** FamilyTypes,
 			Chief = Guy;
 		}
 	}
-	//Warlord = Settlement->Government->Warlord;
-	//found_warlord:
+	//If we couldn't find a chief then create a new big guy that is a farmer and make him chief.
 	if(Chief == NULL) {
 		struct BigGuy* Guy = NULL;
 		for(int i = 0; i < Settlement->Factions.Bosses[FACTION_IDPEASANT].Size; ++i) {
@@ -228,6 +219,7 @@ void PopulateManor(struct GameWorld* World, struct FamilyType** FamilyTypes,
 		Chief = Guy;
 	}
 	found_chief:
+	//If we could't find a warlord then pick someone from the nobility faction and make them the Warlord.
 	if(Warlord == NULL) {
 		struct BigGuy* Guy = NULL;
 		for(int i = 0; i < Settlement->Factions.Bosses[FACTION_IDNOBLE].Size; ++i) {
@@ -483,6 +475,8 @@ void GameWorldInit(struct GameWorld* GameWorld, int Area) {
 	//TODO: When this data is moved to a more proper spot remove sys/video.h from the includes.
 	SDL_Point ScreenSize = {ceil(SDL_WIDTH / ((float)TILE_WIDTH)), ceil(SDL_HEIGHT / ((float)TILE_HEIGHT_THIRD))};
 
+	EventClear();
+	SDL_FlushEvents(SDL_USEREVENT, SDL_LASTEVENT);
 	GameWorld->IsPaused = 1;
 	GameWorld->MapRenderer = CreateMapRenderer(Area, &ScreenSize);
 
@@ -505,6 +499,9 @@ void GameWorldInit(struct GameWorld* GameWorld, int Area) {
 	GameWorld->PersonRetinue.Table = NULL;
 	GameWorld->PersonRetinue.Size = 0;
 
+	GameWorld->Pregnancies.Start = 0;
+	GameWorld->Pregnancies.End = 0;
+
 	GameWorld->Agents.Table = NULL;
 	GameWorld->Agents.Size = 0;
 	GameWorld->Agents.ICallback = (RBCallback) AgentICallback;
@@ -521,6 +518,8 @@ void GameWorldInit(struct GameWorld* GameWorld, int Area) {
 	GameWorld->PlotList.SCallback = (RBCallback) PlotSearch;
 
 	GameWorld->AIHash = CreateHash(32);
+	GameWorld->DeadPeople = NULL;
+	GameWorld->DeadBigGuys = NULL;
 	ConstructLinkedList(&GameWorld->MissionFrame);
 	GameWorld->Date = 0;
 	GameWorld->Tick = 0;
@@ -808,8 +807,20 @@ int World_Tick() {
 	int Ticks = 1;
 	int OldMonth = MONTH(g_GameWorld.Date);
 	struct RBItrStack Stack[g_GameWorld.Agents.Size];
+	struct Object* Obj = NULL;
+	struct Object* NextObj = NULL;
 
 	do {
+		for(Obj = g_GameWorld.DeadPeople; Obj != NULL; Obj = NextObj) {
+			NextObj = Obj->Next;
+			DestroyPerson((struct Person*)Obj);
+		}
+		g_GameWorld.DeadPeople = NULL;
+		for(Obj = g_GameWorld.DeadBigGuys; Obj != NULL; Obj = NextObj) {
+			NextObj = Obj->Next;
+			DestroyBigGuy((struct BigGuy*)Obj);
+		}
+		g_GameWorld.DeadBigGuys = NULL;
 		MissionEngineThink(&g_MissionEngine, g_LuaState, &g_GameWorld.BigGuys);
 		RBDepthFirst(g_GameWorld.Agents.Table, Stack);
 		for(int i = 0; i < g_GameWorld.Agents.Size; ++i) {
@@ -824,6 +835,27 @@ int World_Tick() {
 			}
 		}
 		ObjectsThink();
+		if(g_GameWorld.Pregnancies.Start != g_GameWorld.Pregnancies.End && DateCmp(g_GameWorld.Date, g_GameWorld.Pregnancies.Table[g_GameWorld.Pregnancies.Start]->BirthDay) >= 0) {
+			struct Pregnancy* Pregnancy = g_GameWorld.Pregnancies.Table[g_GameWorld.Pregnancies.Start]->Data;
+			struct Pregnancy* Next = NULL;
+			
+			//for(Next = Pregnancy->Next; Pregnancy != NULL; Pregnancy = Next, Next = Pregnancy->Next) {
+			while(Pregnancy != NULL) {
+				struct Family* Family = Pregnancy->Mother->Family;
+
+				Next = Pregnancy->Next; 
+				if(Family->NumChildren >= CHILDREN_SIZE) 
+					goto preg_end;
+				
+				Family->People[CHILDREN + Family->NumChildren] = CreateChild(Pregnancy->Mother->Family);
+				PushEvent(EVENT_BIRTH, Pregnancy->Mother, Family->People[CHILDREN + Family->NumChildren]);
+				preg_end:
+				DestroyPregnancy(Pregnancy);	
+				Pregnancy = Next;
+			}
+			g_GameWorld.Pregnancies.Table[g_GameWorld.Pregnancies.Start]->Data = NULL;
+			++g_GameWorld.Pregnancies.Start;
+		}
 		NextDay(&g_GameWorld.Date);
 		++g_GameWorld.Tick;
 		if(MONTH(g_GameWorld.Date) != OldMonth) {

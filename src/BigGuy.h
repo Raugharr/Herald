@@ -118,7 +118,7 @@ int BigGuyIdCmp(const int* Two, const struct BigGuy* BigGuy);
 int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission);
 void BigGuySetState(struct BigGuy* Guy, int State, int Value);
 
-struct BigGuy* BigGuyLeaderType(struct Person* Person);
+//struct BigGuy* BigGuyLeaderType(struct Person* Person);
 
 
 /**

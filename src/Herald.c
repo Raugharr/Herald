@@ -9,6 +9,7 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Building.h"
+#include "Government.h"
 #include "BigGuy.h"
 #include "World.h"
 #include "Good.h"
@@ -65,8 +66,6 @@ struct ObjectList {
 		struct Object* Front;
 		ObjectThink Think;
 	} ObjectList[OBJECT_SIZE];
-	//struct Object* Front;
-	//struct Object* Back;
 };
 
 struct MissionEngine g_MissionEngine;
@@ -74,15 +73,16 @@ struct MissionEngine g_MissionEngine;
 //TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
-	{{NULL, NULL},
+	{{NULL, PersonObjThink},
+	{NULL, AnimalObjThink},
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
-	{NULL, NULL},
-	{NULL, FamilyObjThink}
+	{NULL, FamilyObjThink},
+	{NULL, NULL}
 	}
 };
 
@@ -96,6 +96,7 @@ static ObjectThink g_ObjectThinks[OBJECT_SIZE] = {
 	(ObjectThink)SettlementThink,
 	(ObjectThink)BigGuyThink,
 	FamilyThink,
+	(ObjectThink)GovernmentThink
 };
 
 static uint32_t g_Id = 0;
@@ -353,15 +354,14 @@ void ObjectsThink() {
 	for(int i = 0; i < OBJECT_SIZE; ++i) {
 		if(g_Objects.ObjectList[i].Think != NULL) {
 			g_Objects.ObjectList[i].Think(g_Objects.ObjectList[i].Front);
-		} else {
-			struct Object* _Obj = g_Objects.ObjectList[i].Front;
-			struct Object* _Next = NULL;
+		}
+		struct Object* _Obj = g_Objects.ObjectList[i].Front;
+		struct Object* _Next = NULL;
 
-			while(_Obj != NULL) {
-				_Next = _Obj->Next;
-				g_ObjectThinks[i](_Obj);
-				_Obj = _Next;
-			}
+		while(_Obj != NULL) {
+			_Next = _Obj->Next;
+			g_ObjectThinks[i](_Obj);
+			_Obj = _Next;
 		}
 	}
 }
@@ -379,4 +379,8 @@ void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family) {
 
 int ObjectCmp(const void* _One, const void* _Two) {
 	return *((int*)_One) - *((int*)_Two);
+}
+
+struct Object* FindObject(uint32_t Id) {
+	return RBSearch(&g_Objects.SearchTree, &Id);
 }

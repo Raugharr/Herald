@@ -193,11 +193,11 @@ struct Population* PopulationLoad(lua_State* State, int Index) {
 			Return = LuaGetInteger(State, -1, &Milk);
 		else if(!strcmp("MatureAge", Key)) {
 			Return = LuaIntPair(State, -1, &Young, &Old);
-			Young = YearToDays(Young);
-			Old = YearToDays(Old);
+			Young = Young;
+			Old = Old;
 		} else if(!strcmp("DeathAge", Key)) {
 			Return = LuaGetInteger(State, -1, &Death);
-			Death = YearToDays(Death);
+			Death = Death;
 		} else if (!strcmp("SpaceReq", Key)) { 
 			Return = LuaGetInteger(State, -1, &SpaceReq);
 		} else if(!strcmp("FMRatio", Key)) {
@@ -339,7 +339,7 @@ struct Population* PopulationLoad(lua_State* State, int Index) {
 	return NULL;
 }
 
-struct Animal* CreateAnimal(const struct Population* Pop, int Age, int Nutrition, int X, int Y) {
+struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t Months, int16_t Nutrition, int X, int Y) {
 	struct Animal* Animal = (struct Animal*) malloc(sizeof(struct Animal));
 	int Gender = 0;
 
@@ -348,7 +348,8 @@ struct Animal* CreateAnimal(const struct Population* Pop, int Age, int Nutrition
 	} else
 		Gender = FEMALE;
 	CreateObject(&Animal->Object, OBJECT_ANIMAL);
-	Animal->Age = Age;
+	Animal->Age.Years = Years;
+	Animal->Age.Months = Months;
 	Animal->Pos.x = X;
 	Animal->Pos.y = Y;
 	Animal->Gender = Gender;
@@ -366,15 +367,31 @@ void DestroyAnimal(struct Animal* Animal) {
 	free(Animal);
 }
 
+
+void AnimalObjThink(struct Object* Obj) {
+	struct Object* Front = Obj;
+
+	if(DAY(g_GameWorld.Date) == 0) {
+		for(; Front != NULL; Front = Front->Next) {
+			struct Animal* Animal = (struct Animal*) Front;
+			
+			++Animal->Age.Months;
+			if(Animal->Age.Months >= MONTHS) {
+				Animal->Age.Months = 0;
+				++Animal->Age.Years;
+			}
+		}
+	}
+}
+
 void AnimalThink(struct Object* Obj) {
 	struct Animal* Animal = (struct Animal*) Obj;
 
 	Animal->Nutrition -= (AnimalMature(Animal) == true) ? (Animal->PopType->Nutrition) : (Animal->PopType->Nutrition / 2);
 	if(Animal->Nutrition < 0)
 		Animal->Nutrition = 0;
-	NextDay(&Animal->Age);
-	if(Animal->Nutrition > MAX_NUTRITION)
-		Animal->Nutrition = MAX_NUTRITION;
+	if(Animal->Nutrition > NUTRITION_MAX)
+		Animal->Nutrition = NUTRITION_MAX;
 }
 
 void AnimalDepAddAn(const struct AnimalDep* Dep, const struct Array* Tbl) {

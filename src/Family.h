@@ -51,6 +51,18 @@ enum CasteEnum {
 	CASTE_SIZE
 };
 
+enum RationEnum {
+	RATION_FOURTH,
+	RATION_HALF,
+	RATION_THIRD,
+	RATION_FULL,
+	RATION_FULLFOURTH,
+	RATION_FULLHALF,
+	RATION_FULLTHIRD,
+	RATION_DOUBLE,
+	RATION_SIZE
+};
+
 enum CasteGroupEnum {
 	CASTE_GSLAVE,
 	CASTE_GCOMMON,
@@ -75,14 +87,15 @@ struct Family {
 	struct Array Goods;
 	struct Array Animals;
 	struct {
-		int16_t SlowSpoiled;
-		int16_t FastSpoiled;
-		int16_t AnimalFood; //Accounts for all nutrition that is assumed to be grown from wild plants on the farmers fallow fields. Since it is not harvested
+		int32_t SlowSpoiled;
+		int32_t FastSpoiled;
+		int32_t AnimalFood; //Accounts for all nutrition that is assumed to be grown from wild plants on the farmers fallow fields. Since it is not harvested
 		// this variable should be set to 0 at harvest time.
 	} Food;
 	uint8_t NumChildren;
 	uint8_t Caste;
 	uint8_t Faction;
+	uint8_t Rations;
 	bool IsAlive;
 	union {
 		struct {

@@ -38,6 +38,7 @@ extern int* g_AvgTempMap[MONTHS];
 extern const char* g_CasteNames[CASTE_SIZE];
 
 
+#define PREGTABLE_SZ (511)
 #define GameWorldInsertSettlement(_GameWorld, Settlement) 																				\
 {																																		\
 	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
@@ -64,6 +65,11 @@ struct SubTimeObject {
 	void* List;
 };
 
+struct PregElem {
+	DATE BirthDay;
+	struct Pregnancy* Data;
+};
+
 struct GameWorld {
 	DATE Date;
 	uint32_t Tick;
@@ -79,6 +85,13 @@ struct GameWorld {
 	struct RBTree ActionHistory;
 	struct RBTree PlotList;
 	struct IntTree PersonRetinue; //Mapping of a person to their retinue.
+	struct {
+		struct PregElem* Table[PREGTABLE_SZ];
+		struct PregElem AllocTable[PREGTABLE_SZ];
+		uint16_t AllocIdx;
+		uint16_t Start;
+		uint16_t End;
+	} Pregnancies;
 	struct LinkedList MissionFrame;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
@@ -87,9 +100,11 @@ struct GameWorld {
 	struct Constraint** AgeGroups;
 	struct HashTable* AIHash;
 	struct Queue FreeWarriors;
+	struct Object* DeadPeople; //List of people who died in the last tick who need to be cleaned up.
+	struct Object* DeadBigGuys;
 	float DecayRate[WORLD_DECAY];
 	uint8_t PolicySz;
-	uint8_t IsPaused;
+	bool IsPaused;
 };
 
 struct FamilyType {

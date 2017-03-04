@@ -95,6 +95,18 @@ void BigGuyActionGift(struct BigGuy* Guy, const struct BigGuyAction* Action) {
 }*/
 
 void BigGuyDeath(struct BigGuy* Guy) {
+	struct LinkedList* List = &FamilyGetSettlement(Guy->Person->Family)->BigGuys;
+	struct LnkLst_Node* Itr = List->Front;
+
+	while(Itr != NULL) {
+		if(Itr->Data == Guy) {
+			LnkLstRemove(List, Itr);
+			break;
+		}
+		Itr = Itr->Next;
+	}
+	RBDelete(&g_GameWorld.BigGuys, Guy->Person);
+	DestroyObject(&Guy->Object);
 	if(g_GameWorld.Player == Guy) {
 		char* Str = NULL;
 		if((Str = SAlloc(1024)) == NULL) {
@@ -103,21 +115,27 @@ void BigGuyDeath(struct BigGuy* Guy) {
 		}
 		struct BigGuy* NewLeader = MonarchyNewLeader(g_GameWorld.Player, MALE);
 
-		//GovernmentSetLeader(g_GameWorld.Player->Person->Family->HomeLoc->Government, NewLeader);
-		strcpy(Str, g_GameWorld.Player->Person->Name);
-		strcat(Str, " has been killed.");
-		strcat(Str, " You will now play as ");
-		strcat(Str, NewLeader->Person->Name);
-		strcat(Str, " ");
-		strcat(Str, NewLeader->Person->Family->Name);
-		strcat(Str, ".");
-		g_GameWorld.Player = NewLeader;
-		MessageBox(Str);
+		//strcpy(Str, g_GameWorld.Player->Person->Name);
+		//strcat(Str, " has been killed.");
+		if(NewLeader != NULL) {
+		//	strcat(Str, " You will now play as ");
+		//	strcat(Str, NewLeader->Person->Name);
+		//	strcat(Str, " ");
+		//	strcat(Str, NewLeader->Person->Family->Name);
+		//	strcat(Str, ".");
+			if(RBSearch(&g_GameWorld.Agents, NewLeader) != NULL)
+				RBDelete(&g_GameWorld.Agents, NewLeader);
+			g_GameWorld.Player = NewLeader;
+		} else {
+			//strcat(Str, " There is no one left to inherit your lands.");
+			g_GameWorld.Player = NULL;
+		}
+		//MessageBox(Str);
 	} else 
 		RBDelete(&g_GameWorld.Agents, Guy);
 	if(Guy->Agent != NULL)
 		DestroyAgent(Guy->Agent);
-	DestroyBigGuy(Guy);
+	//DestroyBigGuy(Guy);
 }
 
 void BGOnTargetDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
@@ -149,6 +167,7 @@ void BGOnNewPlot(const struct EventData* Data, void* Extra1) {
 struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE], int Motivation) {
 	struct BigGuy* BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
 
+	Person->Flags |= BIGGUY;
 	CreateObject((struct Object*)BigGuy, OBJECT_BIGGUY);
 	BigGuy->Person = Person;
 	BigGuy->IsDirty = 1;
@@ -172,25 +191,12 @@ struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE
 
 		CreateBigGuyRelation(BigGuy, Target);
 		CreateBigGuyRelation(Target, BigGuy);
-
 	}
 	return BigGuy;
 }
 
 void DestroyBigGuy(struct BigGuy* BigGuy) {
-	struct LinkedList* List = &FamilyGetSettlement(BigGuy->Person->Family)->BigGuys;
-	struct LnkLst_Node* Itr = List->Front;
-
-	while(Itr != NULL) {
-		if(Itr->Data == BigGuy) {
-			LnkLstRemove(List, Itr);
-			break;
-		}
-		Itr = Itr->Next;
-	}
-	RBDelete(&g_GameWorld.BigGuys, BigGuy->Person);
 	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(BigGuy), BigGuy, NULL);
-	DestroyObject((struct Object*)BigGuy);
 	free(BigGuy->Traits);
 	free(BigGuy);
 }
@@ -208,9 +214,9 @@ void BigGuySetState(struct BigGuy* Guy, int State, int Value) {
 	Guy->IsDirty = 1;
 }
 
-struct BigGuy* BigGuyLeaderType(struct Person* Person) {
+/*struct BigGuy* BigGuyLeaderType(struct Person* Person) {
 	while(Person != NULL) {
-		if(Gender(Person) == MALE && DateToDays(Person->Age) > ADULT_AGE) {
+		if(Gender(Person) == MALE && Person->Age.Years > ADULT_AGE) {
 			uint8_t Stats[BGSKILL_SIZE];
 
 			BGStatsWarlord(&Stats, 50);
@@ -219,7 +225,7 @@ struct BigGuy* BigGuyLeaderType(struct Person* Person) {
 		Person = Person->Next;
 	}
 	return NULL;
-}
+}*/
 
 void BGStatsRandom(int Points, int StatCt, ...) {
 	va_list Valist;
@@ -413,15 +419,6 @@ int BigGuySuccessMargin(const struct BigGuy* Guy, int Skill, int PassReq) {
 
 int BigGuyPopularity(const struct BigGuy* Guy) {
 	return Guy->Popularity;
-	/*int BGPop = 0;
-	struct BigGuyRelation* Relation = Guy->Relations;
-
-	while(Relation != NULL) {
-		if(Relation->Relation > BGREL_NEUTURAL)
-			BGPop++; 
-		Relation = Relation->Next;
-	}
-	return BGPop + Guy->Popularity;*/
 }
 
 

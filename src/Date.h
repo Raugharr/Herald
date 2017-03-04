@@ -52,6 +52,20 @@ DATE DateAddInt(DATE _Date, int _Two);
 uint32_t DaysBetween(DATE _DateOne, DATE  _DateTwo);
 
 extern const char* g_ShortMonths[];
+static const uint8_t g_MonthDays[MONTHS] = {
+	DAYS_EVEN,
+	DAYS_FEB,
+	DAYS_EVEN,
+	DAYS_ODD,
+	DAYS_EVEN,
+	DAYS_ODD,
+	DAYS_EVEN,
+	DAYS_EVEN,
+	DAYS_ODD,
+	DAYS_EVEN,
+	DAYS_ODD,
+	DAYS_EVEN
+};
 /*
  * Returns the number of days in a DATE.
  */

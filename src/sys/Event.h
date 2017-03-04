@@ -104,6 +104,7 @@ struct EventObserver {
  */
 void EventInit();
 void EventQuit();
+void EventClear();
 void EventHook(int EventType, EventCallback Callback, void* Owner, void* Data1, void* Data2);
 void EventHookRemove(int EventType, void* Owner, void* Data1, void* Data);
 void EventHookUpdate(const SDL_Event* Event);

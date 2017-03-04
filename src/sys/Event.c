@@ -91,6 +91,11 @@ void EventQuit() {
 		DestroyRBTree(g_EventHooks[i]);
 }
 
+void EventClear() {
+	for(int i = 0; i < EVENT_SIZE; ++i)
+		RBRemoveAll(g_EventHooks[i], (void(*)(void*))DestroyEventObserver);
+}
+
 void EventHook(int EventType, EventCallback Callback, void* Owner, void* Data1, void* Data2) {
 	struct EventObserver* New = NULL;
 	struct RBNode* Node = NULL;
@@ -110,7 +115,7 @@ void EventHookRemove(int EventType, void* Owner, void* Data1, void* Data2) {
 	struct EventObserver* Obs = NULL;
 	struct RBNode* Node = NULL;
 
-	SDL_assert(EventType >= 0 && EventType <=  EVENT_SIZE);
+	Assert(EventType >= 0 && EventType <=  EVENT_SIZE);
 	if((Node = RBSearchNode(g_EventHooks[EventType], Owner)) != NULL) {
 		Obs = Node->Data;
 		do {

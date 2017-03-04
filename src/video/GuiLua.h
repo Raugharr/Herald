@@ -22,13 +22,6 @@ typedef struct SDL_Surface SDL_Surface;
 		LuaSetMenu_Aux((State));													\
 		}
 #define GuiLoadMenu(State, File) ((bool)(LuaLoadFile((State), (File), "Menu") == LUA_OK))
-#define MessageBox(Text) 					\
-	lua_createtable(g_LuaState, 0, 1);		\
-	lua_pushstring(g_LuaState, "Text");		\
-	lua_pushstring(g_LuaState, Text);		\
-	lua_rawset(g_LuaState, -3);				\
-	CreateMenu("MessageBox")				\
-
 struct Widget;
 typedef struct SDL_Color SDL_Color;
 extern const struct LuaEnumReg g_LuaGuiEnums[];
@@ -201,6 +194,7 @@ void LuaWidgetUnref(lua_State* State, struct Widget* Widget);
 void LuaAddMenu(lua_State* State, const char* Name);
 
 void CreateMenu(const char* Menu);
+void CreateMessageBox(const char* Text);
 void GuiSetParentHook(struct Container* Container);
 struct Container* GuiGetParentHook(void);
 int LuaGuiClose(lua_State* State);

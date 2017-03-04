@@ -1383,6 +1383,14 @@ void CreateMenu(const char* Menu) {
 	LuaCallFunc(g_LuaState, 2, 0, 0);
 }
 
+void MessageBox(const char* Text) {
+	lua_createtable(g_LuaState, 0, 1);
+	lua_pushstring(g_LuaState, "Text");
+	lua_pushstring(g_LuaState, Text);
+	lua_rawset(g_LuaState, -3);
+	CreateMenu("MessageBox");
+}
+
 void GuiSetParentHook(struct Container* Container) {
 	g_GuiParentHook = Container;
 }

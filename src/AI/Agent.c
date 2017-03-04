@@ -41,7 +41,7 @@ int BigGuyStateInsert(const struct Agent* _One, const struct Agent* _Two) {
 void AgentOnNewPlot(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
 	struct Agent* _Agent = _Data->One;
 
-	_Agent->Update(_Agent, EVENT_NEWPLOT, _Extra2);	
+	//_Agent->Update(_Agent, EVENT_NEWPLOT, _Extra2);	
 }
 
 void AgentOnEndPlot(const struct EventData* _Data, void* _Extra1, void* _Extra2) {

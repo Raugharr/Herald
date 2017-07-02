@@ -60,6 +60,7 @@ extern lua_State* g_LuaState;
 
 enum LuaObjectsEnum {
 	LUA_BASECLASS = 0,
+	LOBJ_NONE,
 	LOBJ_ITERATOR,
 	LOBJ_LINKEDLISTNODE,
 	LOBJ_LINKEDLIST,
@@ -73,9 +74,10 @@ enum LuaObjectsEnum {
 	LOBJ_BHVDECORATOR,
 	LOBJ_BHVNODE,
 	LOBJ_ARMY,
+	LOBJ_CRISIS,
 	LOBJ_GOVERNMENT,
 	LOBJ_BIGGUY,
-	LOBJ_BIGGUYRELATION,
+	LOBJ_RELATION,
 	LOBJ_BIGGUYTRAIT,
 	LOBJ_SETTLEMENT,
 	LOBJ_BUILDMAT,
@@ -101,6 +103,7 @@ enum LuaObjectsEnum {
 	LOBJ_BUTTON,
 	LOBJ_IMAGEWIDGET,
 	LOBJ_TEXTBOX,
+	LOBJ_CONSOLE,
 	LOBJ_SPRITE,
 	LOBJ_ANIMATION,
 	LOBJ_MISSIONOPTION,
@@ -111,6 +114,7 @@ enum LuaObjectsEnum {
 	LOBJ_GSTYLE,
 	LOBJ_GSKIN,
 	LOBJ_FACTION,
+	LOBJ_CROP,
 	LOBJ_SIZE
 };
 
@@ -315,4 +319,11 @@ int LuaMathRandomVar(lua_State* _State);
 int LuaMathProbability(lua_State* _State);
 
 int LuaInputMousePos(lua_State* _State);
+/*
+ * Determines of a table at stack location Index is a class or not.
+ * Returns a pointer to the class if the table is a class and NULL if it is not.
+ * If Class is non-null it will be filled with which class the table is.
+ * If the table has no class id then NULL will be returned.
+ */
+void* LuaIsObject(lua_State* State, int Index, int* Class);
 #endif

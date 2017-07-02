@@ -1,4 +1,4 @@
-#define FontHandle uint32_t
+/*#define FontHandle uint32_t
 #define TextHandle uint32_t
 
 struct Glyph {
@@ -37,12 +37,13 @@ struct Font {
 	struct GlyphCache[53] Cache;
 	volatile int16_t RefCt;
 };
-
+*/
 /*
  **\return 0 if LoadFont fails otherwise returns the id of the new font.
  */
-FontHandle LoadFont(const char* _Name, uint16_t _PtSize);
+/*FontHandle LoadFont(const char* _Name, uint16_t _PtSize);
 void DestroyFont(FontHandle _Id);
 TextHandle FontCacheSolidText(FontHandle _Font, const char* _Text);
 void RenderText(TextHandle _Text);
 void DisplayText();
+*/

@@ -38,10 +38,12 @@ enum {
 };
 
 enum {
-	WARROLE_MELEE = (1 << 0),
-	WARROLE_SKIRMISH = (1 << 1),
-	WARROLE_SUPPORT = (1 << 2),
-	WARROLE_CALVARY = (1 << 3)
+	WARROLE_LIGHTINF,
+	WARROLE_HEAVYINF,
+	WARROLE_SKIRMISHER,
+	WARROLE_SUPPORT,
+	WARROLE_CALVARY,
+	WARROLE_SIZE
 };
 
 enum {
@@ -155,5 +157,8 @@ void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t 
  * Takes as much food weapon and armor as possible from the families in Families and places the look in Loot.
  */
 void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxGoods);
-void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32_t* Skirmishers, uint32_t* Support, uint32_t* Calvary);
+/**
+ *	Families contains struct Family.
+ */
+void WarTypes(struct LinkedList* Families, uint32_t (*RoleCt)[WARROLE_SIZE]);
 #endif

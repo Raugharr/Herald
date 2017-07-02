@@ -35,6 +35,7 @@ void MathInit();
 
 uint64_t Random(uint64_t _Min, uint64_t _Max);
 uint64_t Rand();
+uint8_t RandByte();
 void Srand(int _Seed);
 
 int min(int _One, int _Two);

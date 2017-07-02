@@ -47,6 +47,8 @@ enum {
 };
 
 enum {
+	ACTTYPE_RAPE,
+	ACTTYPE_MURDER,
 	ACTTYPE_THEFT,
 	ACTTYPE_GENERAL,
 	ACTTYPE_TRAIT,
@@ -58,6 +60,7 @@ enum {
 	//Government relations.
 	ACTTYPE_CULTURE,
 	ACTTYPE_WAR,
+	ACTTYPE_ENVOY,
 	ACTTYPE_SIZE
 };
 
@@ -85,6 +88,7 @@ struct Relation* CreateRelation(void* Owner, void* Target, struct Relation** Nex
 /**
  * \brief Adds an opinion to Relation. If an opinion already exists that has the Same parameters, then
  * Modifier is appdended to that opinion otherwise a new opinion is created.
+ * If Owner and Target currently have no existing relation a relation will be created and the opinion added to it.
  * \param Relation Which relation to modify.
  * \param Action The action that has been done to justify the opinion change. Use ACTTYPE_* enumeration.
  * \param RelLen How fast this opinion will decay. Use OPNLEN_* enumeration.
@@ -101,6 +105,7 @@ void ChangeRelation(struct Relation* Relation, int Action, int Modifier, int Rel
 void RelUpdate(struct Relation* Relation);
 /**
  * \return The relation Guy has with Target if one exists or NULL if no relation exists.
+ * Relation is a pointer to the first Relation in the Relation list.
  */
 struct Relation* GetRelation(struct Relation* Relation, const void* Target);
 static inline bool RelAtLeast(const struct Relation* Rel, int RelType) {

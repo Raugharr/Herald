@@ -11,11 +11,9 @@ function Menu.Init(Menu, Data)
 	local ToCaste = 0
 	local FromCaste = 0
 
-	print(FactId)
 	Menu:OnNewChild(Container.Vertical)
 	Table:SetCellWidth(Font:Width() * 8)
 	Table:SetCellHeight(Font:Height())
-if Goal == Faction.SupportCaste then
 	local Text = Menu:CreateLabel("Caste to add power")
 		for i, Caste in ipairs(World.Castes) do
 			local Button = Table:CreateButton(Caste,
@@ -23,10 +21,8 @@ if Goal == Faction.SupportCaste then
 					ToCaste = Widget.Caste;
 					Text:SetText("Cate to take power")
 					for i, Child in ipairs(Table:Children()) do
-						print("Child " .. Child.Caste)
 						Child:OnClick(
 							function(Widget)
-							print(ToCaste, Widget.Caste)
 								FactId:SetGoal(Goal, ToCaste, Widget.Caste)
 								Gui.CreateWindow("FactionBet", {Faction = FactId})
 								Menu:Close()
@@ -35,7 +31,6 @@ if Goal == Faction.SupportCaste then
 				end)
 			Button.Caste = i - 1;
 		end
-end
 end
 
 function Menu.Quit(Menu)

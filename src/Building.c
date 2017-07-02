@@ -215,5 +215,5 @@ struct GoodBase* BuildMatToGoodBase(struct BuildMat* _Mat) {
 		_Size = snprintf(_Name, 64, "%s %s", _Mat->Good->Name, "Roof");
 	_RealName = calloc(_Size + 1, sizeof(char));
 	strcpy(_RealName, _Name);
-	return InitGoodBase((struct GoodBase*) malloc(sizeof(struct GoodBase)), _Name, GOOD_OTHER);
+	return CreateGoodBase((struct GoodBase*) malloc(sizeof(struct GoodBase)), _Name, GOOD_OTHER);
 }

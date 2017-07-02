@@ -34,6 +34,28 @@
 
 struct MemoryPool* g_PersonPool = NULL;
 
+const uint8_t g_AdultRations[RATION_SIZE] = {
+	NUTRITION_DAILY / 4,
+	NUTRITION_DAILY / 2,
+	(NUTRITION_DAILY / 4) * 3,
+	NUTRITION_DAILY,
+	NUTRITION_DAILY + (NUTRITION_DAILY / 4),
+	NUTRITION_DAILY + (NUTRITION_DAILY / 2),
+	NUTRITION_DAILY + ((NUTRITION_DAILY  / 4) * 3),
+	NUTRITION_DAILY * 2
+};
+
+const uint8_t g_ChildRations[RATION_SIZE] = {
+	NUTRITION_CHILDDAILY / 4,
+	NUTRITION_CHILDDAILY / 2,
+	(NUTRITION_CHILDDAILY / 4) * 3,
+	NUTRITION_CHILDDAILY,
+	NUTRITION_CHILDDAILY + (NUTRITION_CHILDDAILY / 4),
+	NUTRITION_CHILDDAILY + (NUTRITION_CHILDDAILY / 2),
+	NUTRITION_CHILDDAILY + ((NUTRITION_CHILDDAILY  / 4) * 3),
+	NUTRITION_CHILDDAILY * 2
+};
+
 void PregOnDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
 	struct Pregnancy* Pregnancy = Data->One;
 	
@@ -70,6 +92,7 @@ struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, stru
 		World->Pregnancies.Table[TableEnd]->Data = Pregnancy;
 		World->Pregnancies.Table[TableEnd]->BirthDay = BirthDay;
 		++World->Pregnancies.End;
+		if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
 	} else {
 		ILL_CREATE(World->Pregnancies.Table[TableEnd]->Data, Pregnancy);
 	}
@@ -89,11 +112,13 @@ struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, stru
 			break;
 	}
 	World->Pregnancies.End = World->Pregnancies.End + 1;
+	if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
 	Assert(Pregnancy->Front != NULL);
 	return Pregnancy;
 }
 
 void DestroyPregnancy(struct Pregnancy* Pregnancy) {
+	Pregnancy->Mother->Flags = (Pregnancy->Mother->Flags & (~PREGNANT));
 	EventHookRemove(EVENT_DEATH, Pregnancy->Mother, Pregnancy, NULL);
 	ILL_DESTROY(Pregnancy->Front->Data, Pregnancy);
 	free(Pregnancy);
@@ -114,42 +139,44 @@ struct Person* BirthChild(struct Pregnancy* Pregnancy) {
 	return Child;
 }
 
-struct Person* CreatePerson(const char* Name, DATE Age, int Gender, int Nutrition, int X, int Y, struct Family* Family) {
+struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition, struct Family* Family) {
 	struct Person* Person = NULL;
 
-	Assert(Name != NULL && Age >= 0 && (Gender == MALE || Gender == FEMALE) && Family != NULL && X >= 0 && Y >= 0);
+	Assert(Name != NULL && Age >= 0 && (Gender == MALE || Gender == FEMALE) && Family != NULL);
 
 	Person = (struct Person*) MemPoolAlloc(g_PersonPool);
 	CreateObject(&Person->Object, OBJECT_PERSON);
 	Person->Name = Name;
-	Person->Age.Years = YEAR(Age);
-	Person->Age.Months= MONTH(Age);
+	Person->Age.Years = Age;
+	Person->Age.Months = 0;
 	Person->Flags = (MALE & Gender);
 	Person->Nutrition = Nutrition;
 	Person->Family = Family;
 	Person->Location = Family->HomeLoc->Object.Id;
-	Person->NutRate = (PersonMature(Person) == true) ? (Person->Nutrition / NUTRITION_DIV) : (Person->Nutrition / (NUTRITION_DIV * 2));
+	Person->NutRate = PersonRation(Person);
+	//Person->NutRate = (PersonMature(Person) == true) ? (Person->Nutrition / NUTRITION_DIV) : (Person->Nutrition / (NUTRITION_DIV * 2));
 	SettlementAddPerson(Person->Family->HomeLoc, Person);
 	return Person;
 }
 
 void DestroyPerson(struct Person* Person) {
-	//struct Family* Family = Person->Family;
+	struct Family* Family = Person->Family;
 
-	//	DestroyFamily(Family);
 	FamilyRemovePerson(Person->Family, Person);
+	//for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
+	//	if(Family->People[i] != NULL) goto end;
+	//}
+	//DestroyFamily(Family);
+	//end:
 	MemPoolFree(g_PersonPool, Person);
 }
 
 struct Person* CreateChild(struct Family* Family) {
 	struct Person* Mother = Family->People[WIFE];
-	uint32_t x = 0;
-	uint32_t y = 0;
 	struct Person* Child = NULL;
 	
-	PersonGetPos(Mother, &x, &y);
-	Child = CreatePerson("Foo", 0, Random(1, 2), Mother->Nutrition, x, y, Mother->Family);
-	Child->Family = Family;
+	Child = CreatePerson("Foo", 0, ((RandByte() & 0x80) != 0) + 1, Mother->Nutrition, Mother->Family);
+	Child->Location = Mother->Location;
 	++Family->HomeLoc->YearBirths;
 	++Family->NumChildren;
 	return Child;
@@ -158,19 +185,10 @@ struct Person* CreateChild(struct Family* Family) {
 void PersonThink(struct Object* Obj) {
 	struct Person* Person = (struct Person*) Obj;
 
-	/*if(Gender(Person) == FEMALE) {
-		if(Person->Family != NULL
-				&& Person->Pregnancy == NULL
-				&& Person == Person->Family->People[WIFE]
-				&& Person->Family->NumChildren < CHILDREN_SIZE
-				&& Random(0, 1499) < 1) {
-			Person->Pregnancy = CreatePregnancy(Person);
-		}
-	} 	*/
-	if(Rand() < 1263475621490000) {//188167542980000000) {
-		PersonDeath(Person);
-		return;
-	}
+//	if(Rand() < 631737810745000) {
+//		PersonDeath(Person);
+//		return;
+//	}
 	Person->Nutrition -= Person->NutRate;
 	if(Person->Nutrition > NUTRITION_MAX)
 		Person->Nutrition = NUTRITION_MAX;
@@ -182,25 +200,25 @@ void PersonThink(struct Object* Obj) {
 
 void PersonObjThink(struct Object* Obj) {
 	if(DAY(g_GameWorld.Date) == 0) {
-		for(struct Person* Person = (struct Person*)Obj; Obj != NULL; Obj = Obj->Next) {
+		for(struct Person* Person = (struct Person*)Obj; Person != NULL; Person = (struct Person*) Person->Object.Next) {
 			++Person->Age.Months;
 			if(Person->Age.Months >= MONTHS) {
 				++Person->Age.Years;
+				//FIXME: This shouldn't be placed here because it will be computed on every tick.
+				//Instead it should be placed somewhere that will only be evaulated for people who are not adults.
+				if(Person->Age.Years == ADULT_AGE) {
+					if(Gender(Person) == MALE) {
+						 ArrayInsert_S(&Person->Family->HomeLoc->Suitors, Person);
+						++Person->Family->HomeLoc->AdultMen;
+					} else {
+						ArrayInsert_S(&Person->Family->HomeLoc->Brides, Person);
+						++Person->Family->HomeLoc->AdultWomen;
+					}
+				}
 				Person->Age.Months = 0;
 			}
 		}
 	}
-}
-
-void PersonMarry(struct Person* Father, struct Person* Mother, struct Family* Family) {
-	struct Family* NewFam = CreateFamily(Family->Name, FamilyGetSettlement(Family), Family);
-
-	NewFam->People[HUSBAND] = Father;
-	NewFam->People[WIFE] = Mother;
-	Father->Family = NewFam;
-	Mother->Family = NewFam;
-	//Removed as PersonMarry code hasnt been touched in a year or so and Families are no longer all farmers(2/2/2017).
-	//NewFam->Fields[NewFam->FieldCt++] = CreateField(NULL, 30, NewFam);
 }
 
 void PersonDeath(struct Person* Person) {
@@ -241,7 +259,6 @@ void PersonDeathArr(struct Person** List, uint32_t Size) {
 			Family->IsAlive = false;
 		DestroyObject(&List[i]->Object);
 		ILL_CREATE(g_GameWorld.DeadPeople, &List[i]->Object);
-		PushEvent(EVENT_DEATH, List[i], NULL);
 	}
 	Settlement->YearDeaths += Size;
 }
@@ -280,4 +297,8 @@ uint16_t PersonWorkMult(const struct Person* Person) {
 	}
 	//return (Modifier >= 1.0f) ? (WorkRate) : (WorkRate * Modifier);
 	return (Modifier >= 100) ? (WorkRate) : ((WorkRate * Modifier) / MAX_WORKRATE);
+}
+
+uint16_t PersonRation(const struct Person* Person) {
+		return (PersonMature(Person) == true) ? (g_AdultRations[Person->Family->Rations]) : (g_ChildRations[Person->Family->Rations]);
 }

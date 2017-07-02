@@ -56,7 +56,7 @@ struct GUIMessagePair {
 };*/
 
 //_Func should be a value from the GUIL_* enumeration.
-void LuaGuiCallFunc(lua_State* State, struct Widget* Widget, uint32_t Func);
+void LuaGuiCallFunc(lua_State* State, struct Widget* Widget, uint32_t Func, uint32_t Args);
 
 int LuaCreateLabel(lua_State* State);
 int LuaCreateButton(lua_State* State);
@@ -124,12 +124,16 @@ int LuaWidgetSetFocus(lua_State* State);
 int LuaWidgetDestroy(lua_State* State);
 int LuaWidgetOnHover(lua_State* State);
 int LuaWidgetOnHoverLoss(lua_State* State);
-int LuaWidgetSetStyle(lua_State* State);
+int LuaWidgetIsVisible(lua_State* State);
+int LuaWidgetHide(lua_State* State);
+//int LuaWidgetSetStyle(lua_State* State);
+
 int LuaContainerLeftOf(lua_State* State);
 int LuaContainerRightOf(lua_State* State);
 int LuaContainerAbove(lua_State* State);
 int LuaContainerBelow(lua_State* State);
 int LuaContainergetSkin(lua_State* State);
+
 
 /**
  * Container functions
@@ -179,6 +183,8 @@ int LuaTableGetCellHeight(lua_State* State);
 int LuaFontWidth(lua_State* State);
 int LuaFontHeight(lua_State* State);
 
+int LuaTextBoxGetText(lua_State* State);
+
 int InitGUILua(lua_State* State);
 int QuitGUILua(lua_State* State);
 int LuaKeyState(lua_State* State, int Index);
@@ -186,7 +192,7 @@ void LuaGuiGetRef(lua_State* State);
 /**
  * The table that contains the Widget must be on top of the stack.
  */
-int LuaWidgetRef(lua_State* State);
+int LuaWidgetRef(lua_State* State, struct Widget* Widget, uint32_t ClassType);
 void LuaWidgetUnref(lua_State* State, struct Widget* Widget);
 /**
  * Retrieves the Menu global from the environment Menu and sets it as a global in the main environment.
@@ -194,7 +200,7 @@ void LuaWidgetUnref(lua_State* State, struct Widget* Widget);
 void LuaAddMenu(lua_State* State, const char* Name);
 
 void CreateMenu(const char* Menu);
-void CreateMessageBox(const char* Text);
+void MessageBox(const char* Text);
 void GuiSetParentHook(struct Container* Container);
 struct Container* GuiGetParentHook(void);
 int LuaGuiClose(lua_State* State);

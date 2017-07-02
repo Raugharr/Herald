@@ -1,17 +1,18 @@
-#include "Font.h"
+/*#include "Font.h"
 
 struct IntTree g_FontHandles;
 struct IntTree g_TextHandles;
 FontHandle g_NextFontHdl = 1;
 FT_Library g_FontLibrary;
 
-FontHandle LoadFont(const char* _Name, uint16_t _PtSize) {
+FontHandle LoadFont(const char* _Name, uint16_t _PtSize) {*/
 	/*
 	 * Use FileManager to look up _Name in font folder.
 	 * Use freetype to load font.
 	 * Create a Font struct and fill it with data.
 	 * Put Font into array that stores FontHandles.
 	 */
+	 /*
 	 FT_Error _Error;
 	 FT_CharMap _Charmap;
 	 FT_Face _Face;
@@ -33,10 +34,10 @@ FontHandle LoadFont(const char* _Name, uint16_t _PtSize) {
 	 for(int i = 0; i < _Face->num_charmaps; ++i) {
 		FT_CharMap _Map = _Face->charmaps[i];
 
-		if ((charmap->platform_id == 3 && _Map->encoding_id == 1) /* Windows Unicode */
-			 || (_Map->platform_id == 3 && _Map->encoding_id == 0) /* Windows Symbol */
-			 || (_Map->platform_id == 2 && _Map->encoding_id == 1) /* ISO Unicode */
-			 || (_Map->platform_id == 0)) { /* Apple Unicode */
+		if ((charmap->platform_id == 3 && _Map->encoding_id == 1) // Windows Unicode /
+			 || (_Map->platform_id == 3 && _Map->encoding_id == 0) // Windows Symbol /
+			 || (_Map->platform_id == 2 && _Map->encoding_id == 1) // ISO Unicode 
+			 || (_Map->platform_id == 0)) { // Apple Unicode 
 				_Charmap = _Map;
 				break;
 			}
@@ -105,27 +106,28 @@ void DestroyFont(FontHandle _Id) {
 	free(_Font);
 }
 
-TextHandle FontCacheSolidText(FontHandle _Font, const char* _Text) {
+TextHandle FontCacheSolidText(FontHandle _Font, const char* _Text) {*/
 	/*
 	 * create a struct Character array that is equal to strlen of _Text
 	 * lookup the glyph for each character and do the following,
 	 * Use freetype to calculate the position of the new character via its kerning etc
 	 * put store its relative position to the first character and the position of the glyph in the atlas in the ith character.
 	 * Put the TextCache onto the TextCache tree and then output it's id.  
-	 */
+	 *//*
 	return 0;
 }
 
-void RenderText(TextHandle _Text, SDL_Point* _Pos) {
+void RenderText(TextHandle _Text, SDL_Point* _Pos) {*/
 	/*
 	 * Get the TextCache that corrisponds to _Text.
 	 * For each character in the TextCache put it in the batch array that corrisponds to its glyph.
 	 */
+	 /*
 };
 
-void DisplayText() {
+void DisplayText() {*/
 	/*
 	 * Go through every available font and do the following.
 	 * Go through the font's batche arrays and render the glyph at the given position.
 	 */
-}
+//}

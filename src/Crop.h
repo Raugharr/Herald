@@ -6,7 +6,8 @@
 #ifndef __CROP_H
 #define __CROP_H
 
-#include "sys/Event.h"
+#include "Herald.h"
+#include "Family.h"
 
 #include <SDL2/SDL.h>
 
@@ -17,6 +18,7 @@
 #define PLANT_TIME (2)
 #define CropName(Crop) ((Crop)->Name)
 #define FieldHarvestMod(Field, Mod) ((Field)->Acres * ToPound((Field)->Crop->SeedsPerAcre) * (Field)->Crop->YieldMult * HarvestMod)
+#define PastureHarvestMod(Mod) (ToPound(PastureCrop()->SeedsPerAcre) * PastureCrop()->YieldMult * Mod * PastureCrop()->NutVal)
 
 typedef struct lua_State lua_State;
 struct LinkedList;
@@ -45,6 +47,7 @@ struct Crop {
 	const struct FoodBase* const Output;
 	const char* Name;
 	uint16_t Type;
+	uint32_t LuaRef;//Integer of lua reference to a Lua table.
 	double NutVal; //Nutritional Value per pound.
 	double YieldMult; //How many pounds of seed to expect from one pound.
 	double PlantMult; //Multiplier to time required to plant this crop.
@@ -63,11 +66,11 @@ struct Field {
 	double YieldTotal; //How much of the field as a percent of up to 100, that has been successfully grown.
 	int16_t Acres;
 	int16_t UnusedAcres;
-	int16_t Status;
 	int16_t StatusTime; //How much more time it will take to reach the next status.
+	uint8_t Status;
 };
 
-struct Crop* CreateCrop(const char* Name, int Type, int PerAcre, double NutVal, double YieldMult, int GrowingDegree, int GrowingBase, int SurviveWinter);
+struct Crop* CreateCrop(lua_State* State, const char* Name, int Type, int PerAcre, double NutVal, double YieldMult, int GrowingDegree, int GrowingBase, int SurviveWinter, float FlourRemain);
 void DestroyCrop(struct Crop* Crop);
 struct Crop* CropLoad(lua_State* State, int Index);
 
@@ -160,6 +163,13 @@ static inline int FieldStatusDays(const struct Field* const Field) {
 
 static inline int CropAcreHarvest(const struct Crop* Crop) {
 		return Crop->NutVal * ToPound(Crop->SeedsPerAcre) * Crop->YieldMult;
+}
+
+static inline void FieldSwap(struct Field* Field) {
+	uint16_t Temp = Field->Acres;
+
+	Field->Acres = Field->UnusedAcres;
+	Field->UnusedAcres = Temp;
 }
 
 #endif

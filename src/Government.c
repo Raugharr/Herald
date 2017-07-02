@@ -77,13 +77,15 @@ GovernmentSuccession g_GovernmentSuccession[GOVSUCCESSION_SIZE] = {
 };
 
 struct BigGuy* CreateNewLeader(struct Government* Gov) {
-	for(struct Person* Person = Gov->Location->People; Person != NULL; Person = Person->Next) {
+	for(int i = 0; i < Gov->Location->People.Size; ++i) {
+		struct Person* Person = Gov->Location->People.Table[i];
+		
 		if((Person->Flags & BIGGUY) == BIGGUY)
 			continue;
 		if(PersonMature(Person) && (Gender(Person) & Gov->RulerGender) != 0) {
 			uint8_t Stats[BGSKILL_SIZE];
 
-			BGStatsWarlord(&Stats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+			GenerateStats(Person->Family->Caste, &Stats); 
 			return CreateBigGuy(Person, &Stats, BGMOT_RULE);
 		}
 	}
@@ -112,13 +114,14 @@ void GovOnChangePolicy(const struct EventData* Data, void* Extra1, void* Extra2)
 }
 
 void GovOnSucessorDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
-	struct Person* Person = Extra1;
+	//struct Person* Person = Extra1;
 	struct Government* Gov = Data->Two;
 
 	Gov->NextLeader = g_GovernmentSuccession[(Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](Gov->Leader, Gov->RulerGender);
 	if(Gov->NextLeader == NULL) Gov->NextLeader = CreateNewLeader(Gov); 
 	Assert(Gov->NextLeader != NULL);
 	EventHookRemove(Data->EventType, Data->OwnerObj, Extra1, NULL);
+	EventHook(EVENT_DEATH, GovOnSucessorDeath, Gov->NextLeader->Person, Gov->NextLeader, Gov);
 };
 
 void GovOnLeaderDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
@@ -126,7 +129,6 @@ void GovOnLeaderDeath(const struct EventData* Data, void* Extra1, void* Extra2) 
 	//struct BigGuy* NewLeader = Data->One;//RBSearch(&g_GameWorld.BigGuys, Person);
 	struct Government* Gov = Data->Two;//Person->Family->HomeLoc->Government;
 
-	EventHookRemove(Data->EventType, Data->OwnerObj, Gov->Leader, Gov);
 	if(Gov->NextLeader == NULL) {
 		DestroySettlement(Gov->Location);
 		return;
@@ -236,10 +238,11 @@ struct BigGuy* MonarchyNewLeader(const struct BigGuy* Guy, uint8_t Gen) {
 	for(int i = CHILDREN; i < CHILDREN + Family->NumChildren; ++i)
 		if(Gender(Family->People[i]) == MALE && Family->People[i]->Age.Years >= ADULT_AGE) {
 			if((NewLeader = RBSearch(&g_GameWorld.BigGuys, Family->People[i])) == NULL) {
-				uint8_t BGStats[BGSKILL_SIZE];
+				uint8_t Stats[BGSKILL_SIZE];
 
-				BGStatsWarlord(&BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
-				return CreateBigGuy(Family->People[i], &BGStats, BGMOT_WEALTH);
+
+				GenerateStats(Family->Caste, &Stats);
+				return CreateBigGuy(Family->People[i], &Stats, BGMOT_WEALTH);
 			}
 			return NewLeader;	
 		}
@@ -297,6 +300,7 @@ struct Government* GovernmentTop(struct Government* Gov) {
 
 void GovernmentSetLeader(struct Government* Gov, struct BigGuy* Guy) {
 	if(Gov->Leader != NULL) EventHookRemove(EVENT_DEATH, Gov->Leader->Person, Gov->Leader, Gov); 
+	if(Gov->NextLeader != NULL) EventHookRemove(EVENT_DEATH, Gov->NextLeader->Person, Gov->NextLeader, Gov);
 	Gov->Leader = Guy;
 	Gov->NextLeader = g_GovernmentSuccession[(Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](Gov->Leader, Gov->RulerGender);
 	//TODO: If NextLeader is NULL then no sutable BigGuy could be found, a new BigGuy should be created.
@@ -304,11 +308,6 @@ void GovernmentSetLeader(struct Government* Gov, struct BigGuy* Guy) {
 		Gov->NextLeader = CreateNewLeader(Gov);
 	}
 	EventHook(EVENT_DEATH, GovOnSucessorDeath, Gov->NextLeader->Person, Gov->NextLeader, Gov);
-	if((Gov->GovType & GOVSTCT_CHIEFDOM) == GOVSTCT_CHIEFDOM) {
-		Gov->Appointments.Steward = Guy;
-		Gov->Appointments.Judge = Guy;
-		Gov->Appointments.Marshall = Guy;
-	}
 	EventHook(EVENT_DEATH, GovOnLeaderDeath, Gov->Leader->Person, Gov->Leader, Gov);
 }
 

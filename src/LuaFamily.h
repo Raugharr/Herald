@@ -22,6 +22,7 @@ int LuaPersonGetFamily(lua_State* State);
 int LuaPersonInRetinue(lua_State* State);
 int LuaPersonRetinue(lua_State* State);
 int LuaPersonBanish(lua_State* State);
+int LuaPersonIsBigGuy(lua_State* State);
 
 int LuaGoodGetId(lua_State* State);
 int LuaGoodGetQuantity(lua_State* State);
@@ -41,6 +42,7 @@ int LuaFamilyGetAnimalCt(lua_State* State);
 int LuaFamilyChangeNutrition(lua_State* State);
 int LuaFamilyGetWealth(lua_State* State);
 int LuaFamilyGetSettlement(lua_State* State);
+int LuaFamilySetSettlement(lua_State* State);
 int LuaFamilyGetCasteName(lua_State* State);
 
 int LuaFieldGetId(lua_State* State);

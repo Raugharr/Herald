@@ -77,7 +77,6 @@ struct GameWorld {
 	struct QuadTree SettlementMap;
 	struct RBTree* GoodDeps; //Tree consisting of
 	struct Array* AnFoodDeps;
-	struct RBTree Families;
 	struct BigGuy* Player;
 	struct LinkedList Settlements;
 	struct RBTree BigGuys;
@@ -92,7 +91,6 @@ struct GameWorld {
 		uint16_t Start;
 		uint16_t End;
 	} Pregnancies;
-	struct LinkedList MissionFrame;
 	struct FoodBase** HumanEats;
 	struct FoodBase** HumanDrinks;
 	struct Array Policies;
@@ -118,10 +116,9 @@ int IsPlayerGovernment(const struct GameWorld* World, const struct Settlement* S
 /*
  * NOTE: Does this actually work or does it just return everything in a square distance away?
  */
-void WorldSettlementsInRadius(struct GameWorld* World, const SDL_Point* Point, int Radius, struct LinkedList* List);
-
+void SettlementsInRadius(const struct GameWorld* World, const SDL_Point* Point, uint32_t Radius, struct Settlement** List, uint32_t* Size, uint32_t TableSz);
 struct FoodBase** LoadHumanFood(lua_State* State, struct FoodBase** FoodArray, const char* LuaTable);
-void WorldInit(int Area);
+void WorldInit(uint32_t Area, uint32_t SettCt);
 void WorldQuit();
 
 uint32_t GameDefaultClick(const struct Object* One, const struct Object* Two, uint32_t Context);
@@ -137,5 +134,7 @@ void** SubTimeGetList(int Type);
 void SetClickState(struct Object* Data, uint32_t State, uint32_t Context);
 struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos);
 uint8_t WorldGetPolicyId(const struct Policy* Policy);
+void ScoreSetLoc(const struct GameWorld* World);
+const struct Crop* PastureCrop();
 
 #endif

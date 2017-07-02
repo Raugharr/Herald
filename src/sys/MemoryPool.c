@@ -47,8 +47,8 @@ struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
 }
 void DestroyMemoryPool(struct MemoryPool* _MemPool) {
 #ifdef DEBUG
-	if(_MemPool != NULL)
-		Assert(_MemPool->MaxSize == _MemPool->Size);
+	//if(_MemPool != NULL)
+	//	Assert(_MemPool->MaxSize == _MemPool->Size);
 #endif
 	free(_MemPool->BlockPool);
 	SDL_DestroyMutex(_MemPool->Lock);

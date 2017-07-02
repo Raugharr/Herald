@@ -65,7 +65,6 @@ struct Agent* CreateAgent(struct BigGuy* _Guy) {
 		_Agent->Plan[i] = NULL;
 	//_Agent->GoalSet = g_Goap.GoalSets[_Guy->Motivation];
 	_Agent->GoalSet = g_Goap.GoalSets[0];
-	Assert(_Guy->Motivation < g_Goap.GoalSetCt);
 	InitBlackboard(&_Agent->Blackboard);
 	EventHook(EVENT_NEWPLOT, AgentOnNewPlot, BigGuyHome(_Agent->Agent), _Agent, NULL);
 	EventHook(EVENT_ENDPLOT, AgentOnEndPlot, BigGuyHome(_Agent->Agent), _Agent, NULL);
@@ -141,7 +140,7 @@ void AgentSetState(struct Agent* _Agent, int _State) {
  * AGENT_SIDLE otherwise make our state AGENT_SACTION.
  */
 void AgentThink(struct Agent* _Agent) {
-	if(_Agent->Blackboard.ShouldReplan == 1) {
+/*	if(_Agent->Blackboard.ShouldReplan == 1) {
 		AgentPlan(&g_Goap, _Agent);
 	}
 	if(_Agent->PlanIdx != -1 && GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->State, _Agent) == 1) {
@@ -164,7 +163,7 @@ void AgentThink(struct Agent* _Agent) {
 		AgentSetState(_Agent, AGENT_SIDLE);
 		_Agent->Blackboard.ShouldReplan = 1;
 		AgentIdleThink(_Agent);
-	}
+	}*/
 }
 
 const struct GoapAction* AgentGetAction(const struct Agent* _Agent) {

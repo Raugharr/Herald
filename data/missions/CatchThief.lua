@@ -6,14 +6,20 @@ Mission.Load {
 	Options = {
 		{
 			Text = "Ask neighbors for information.",
+			Trigger = function(Frame)
+			end,
 			AIUtility = function(Frame) end
 		},
 		{
 			Text = "Go door to door.",
+			Trigger = function(Frame)
+			end,
 			AIUtility = function(Frame) end
 		},
 		{
 			Text = "Accuse [VarTwo.FirstName] [VarTwo.LastName].",
+			Trigger = function(Frame)
+			end,
 			AIUtility = function(Frame) end
 		}
 	},

@@ -212,6 +212,17 @@ function DisplayRelation(Menu, Left, Right)
 	FillRelationList(CreateRelationTable(Right, #List), List)
 end
 
+function EstimateHarvest(Fields)
+	local Estimate = 0
+
+	for k, v in ipairs(Fields) do 
+		local Crop = v:GetCrop()
+
+		Estimate = Estimate + (Field:GetAcres() * Crop.PerAcre * (Crop.YieldMult - 1))
+	end
+	return Estimate / 365
+end
+
 function DisplayGeneral(Menu, Guy) 
 	local Skin = Menu:GetSkin()
 	local Font = Skin:Table():GetFont()
@@ -233,19 +244,21 @@ function DisplayGeneral(Menu, Guy)
 	--Table:CreateLabel("General")
 	--Table:SetSkin(Skin)
 	Table:CreateLabel("Age")
-	Table:CreateLabel(bit32.arshift(Guy:GetPerson():GetAge(), 9))
+	Table:CreateLabel(Guy:GetPerson():GetAge())
 	Table:CreateLabel("Caste")
 	Table:CreateLabel(Family:GetCasteName()) 
 	Table:CreateLabel("Popularity")
 	Table:CreateLabel(Guy:Popularity()) 
 	Table:CreateLabel("Glory")
 	Table:CreateLabel(Guy:Glory()) 
-	Table:CreateLabel("Harvest")
-	Table:CreateLabel("0") 
 	Table:CreateLabel("Stored")
 	Table:CreateLabel(string.format("%0.2f", Family:GetNutrition() / (Family:GetNutritionReq() * 365)))
-	Table:CreateLabel("Acres")
-	Table:CreateLabel(Acres) 
+	if Guy:GetFamily():GetCasteName() == "Farmer" then
+		Table:CreateLabel("Harvest")
+		Table:CreateLabel(string.format("%0.2f", EstimateHarvest(Family:GetFields()))) 
+		Table:CreateLabel("Acres")
+		Table:CreateLabel(Acres) 
+	end
 	Table:Shrink()
 	Container:Shrink()
 	return Container
@@ -325,6 +338,7 @@ function Menu.Init(Menu, Person)
 
 	Menu.Person = Person.Person
 	Menu.Guy = Guy
+	print(Menu.Guy:GetPerson():GetName())
 	if World.GetPlayer():GetPerson() ~= Person and Guy ~= nil then
 		local Rel = Guy:GetRelation(World.GetPlayer())
 		if Rel == nil then

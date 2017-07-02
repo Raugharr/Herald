@@ -30,7 +30,45 @@
 
 static int g_CropId = 0;
 
-struct Crop* CreateCrop(const char* Name, int Type, int PerAcre, double NutVal, double YieldMult, int GrowingDegree, int GrowingBase, int SurviveWinter) {
+int LuaCropRegister(lua_State* State, const struct Crop* Crop) {
+	int Ref = 0;
+	
+	lua_pushvalue(State, LUA_REGISTRYINDEX);
+	lua_createtable(State, 0, 7);
+
+	lua_pushstring(State, "Id");
+	lua_pushinteger(State, Crop->Id);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "Name");
+	lua_pushstring(State, Crop->Name);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "Type");
+	lua_pushinteger(State, Crop->Type);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "PerAcre");
+	lua_pushinteger(State, Crop->SeedsPerAcre);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "NutVal");
+	lua_pushinteger(State, Crop->NutVal);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "GrowDays");
+	lua_pushinteger(State, Crop->GrowingDegree);
+	lua_rawset(State, -3);
+
+	lua_pushstring(State, "YieldMult");
+	lua_pushnumber(State, Crop->YieldMult);
+	lua_rawset(State, -3);
+	Ref = luaL_ref(State, -2);
+	lua_pop(State, 1);
+	return Ref;
+}
+
+struct Crop* CreateCrop(lua_State* State, const char* Name, int Type, int PerAcre, double NutVal, double YieldMult, int GrowingDegree, int GrowingBase, int SurviveWinter, float FlourRemain) {
 	struct Crop* Crop = NULL;
 	struct FoodBase* Output = NULL;
 
@@ -49,11 +87,12 @@ struct Crop* CreateCrop(const char* Name, int Type, int PerAcre, double NutVal, 
 	Crop->NutVal = NutVal;
 	Crop->YieldMult = YieldMult;
 	Crop->PlantMult = ToPound(PerAcre) / ((float)BUSHEL);
-	Crop->FlourRemain = 1.0f;
+	Crop->FlourRemain = 0.7f;
 	Crop->NutritionScore = ToPound(PerAcre) * (YieldMult - 1) * NutVal * Crop->FlourRemain;
 	Crop->GrowingDegree = GrowingDegree;
 	Crop->GrowingBase = GrowingBase;
 	Crop->SurviveWinter = SurviveWinter;
+	Crop->LuaRef = LuaCropRegister(State, Crop);
 	HashInsert(&g_Goods, Output->Base.Name, Output);
 	Log(ELOG_INFO, "Crop loaded %s.", Output->Base.Name);
 	return Crop;
@@ -67,6 +106,7 @@ struct Crop* CropLoad(lua_State* State, int Index) {
 	int Type = 0;
 	int PerAcre = 0;
 	double NutValue = 0;
+	double FlourRemain = 0;
 	int GrowingDegree = 0;
 	int Return = -2;
 	int SurviveWinter = 0;
@@ -110,6 +150,9 @@ struct Crop* CropLoad(lua_State* State, int Index) {
 				Return = 0;
 			SurviveWinter = lua_toboolean(State, -1);
 		}
+		else if(!strcmp("MillingCost", Key)) {
+			Return = LuaGetNumber(State, -1, &FlourRemain);
+		}
 		lua_pop(State, 1);
 		if(!(Return > 0)) {
 			lua_pop(State, 1);
@@ -117,7 +160,7 @@ struct Crop* CropLoad(lua_State* State, int Index) {
 			return NULL;
 		}
 	}
-	return CreateCrop(Name, Type, PerAcre, NutValue, YieldMult, GrowingDegree, GrowBase, SurviveWinter);
+	return CreateCrop(State, Name, Type, PerAcre, NutValue, YieldMult, GrowingDegree, GrowBase, SurviveWinter, FlourRemain);
 }
 
 struct Field* CreateField(const struct Crop* Crop, int Acres, struct Family* Owner) {
@@ -156,6 +199,9 @@ void FieldReset(struct Field* Crop) {
 
 void FieldPlant(struct Field* Field, struct Good* Seeds) {
 	int TempAcres = Seeds->Quantity / Field->Crop->SeedsPerAcre;
+#ifdef DEBUG
+	uint16_t TotalAcres = Field->Acres + Field->UnusedAcres;
+#endif
 
 	if(Field->Crop == NULL) {
 		FieldReset(Field);
@@ -164,21 +210,27 @@ void FieldPlant(struct Field* Field, struct Good* Seeds) {
 	if(Field->Status != EFALLOW)
 		return;
 	if(TempAcres < Field->UnusedAcres) {
-		int Total = Field->Acres + Field->UnusedAcres;
+		FieldSwap(Field);
+		//int Total = Field->Acres + Field->UnusedAcres;
 
-		Field->Acres = TempAcres;
-		Field->UnusedAcres = Total - TempAcres;
+		//Field->Acres = TempAcres;
+		//Field->UnusedAcres = Total - TempAcres;
 	} else {
+		uint16_t Temp = Field->Acres;
+
 		Field->Acres = Field->UnusedAcres;
-		Field->UnusedAcres = Field->Acres;
+		Field->UnusedAcres = Temp;
 	}
 	Seeds->Quantity -= Field->Crop->SeedsPerAcre * Field->Acres;
 	Field->Status = EPLOWING - 1;
 	FieldChangeStatus(Field);
+#ifdef DEBUG
+	Assert(TotalAcres == Field->Acres + Field->UnusedAcres);
+#endif
 }
 
 void FieldWork(struct Field* Field, int Total, const struct Array* Goods) {
-	int Modifier = 1000;
+	uint32_t Modifier = 1000;
 
 	if(Field->Status == EGROWING)
 		return;
@@ -219,32 +271,30 @@ int FieldHarvest(struct Field* Field, struct Array* Goods, float HarvestMod) {
 	int Quantity = FieldHarvestMod(Field, HarvestMod);
 	int SeedQuantity = 0;
 	int TempAcres = 0;
-	SDL_Point Pos = {Field->Owner->HomeLoc->Pos.x, Field->Owner->HomeLoc->Pos.y};
 
 	Assert(Field->Status == EHARVESTING);
-	Seeds = CheckGoodTbl(Goods, CropName(Field->Crop), &g_Goods, Pos.x, Pos.y);
+	Seeds = CheckGoodTbl(Goods, CropName(Field->Crop), &g_Goods);
 	if(Field->Crop->Type == EGRASS) {
 		struct Good* Straw = NULL;
 
-		Straw = CheckGoodTbl(Goods, "Straw", &g_Goods, Pos.x, Pos.y);
+		Straw = CheckGoodTbl(Goods, "Straw", &g_Goods);
 		Straw->Quantity += Quantity * 4;
 	}
-	TempAcres = Field->Acres;
-	Field->Acres = Field->Acres - (Field->Acres - Field->UnusedAcres);
-	Field->UnusedAcres = TempAcres;
-	//FieldReset(Field);
+	//TempAcres = Field->Acres;
+	//Field->Acres = Field->Acres - (Field->Acres - Field->UnusedAcres);
+	//Field->UnusedAcres = TempAcres;
+	FieldSwap(Field);
 	TempAcres = (Field->Acres > Field->UnusedAcres) ? (Field->Acres) : (Field->UnusedAcres);
 	SeedQuantity = ToPound(TempAcres * Field->Crop->SeedsPerAcre);
 	if(HarvestMod >= 1.0f && Seeds->Quantity * 2 < Field->Crop->SeedsPerAcre * TempAcres) {
 		SeedQuantity += (Quantity - SeedQuantity) / 8;
 	}
-	//Quantity = ToPound(Quantity);
-	Seeds->Quantity += SeedQuantity;
-	if(Quantity - SeedQuantity < 0) {
-		SeedQuantity = Quantity / 2;;
-	}
-	//Assert(Quantity - SeedQuantity > 0);
-	return (Quantity - SeedQuantity) * Field->Crop->NutVal;
+	/*/if(Quantity - SeedQuantity < 0) {
+		SeedQuantity = Quantity / 2;
+	}*/
+	Seeds->Quantity += ToOunce(SeedQuantity);
+	Assert(Quantity - SeedQuantity > 0);
+	return (Quantity - SeedQuantity) * Field->Crop->NutVal * Field->Crop->FlourRemain;
 }
 
 void FieldUpdate(struct Field* Field) {
@@ -337,12 +387,12 @@ int SelectCrops(struct Family* Family, struct Field* Fields[], int FieldSz, int 
 	int FamSize = FamilySize(Family);
 	int NewMaxSz = 0;
 	struct InputReq** AnList = AnimalTypeCount(&Family->Animals, &AnimalCt);
-	struct LinkedList Crops = {0, NULL, NULL};
+	struct LinkedList Crops = {0, NULL, NULL}; //List of selectable crops.
 	struct LnkLst_Node* Itr = NULL;
 	double Ratio = 0;
 
-	if(AnimalCt <= 0)
-		return NewMaxSz;
+//	if(AnimalCt <= 0)
+//		return NewMaxSz;
 	for(int i = 0; g_GameWorld.HumanEats[i] != NULL; ++i) {
 		Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, g_GameWorld.HumanEats[i]->Base.Name), HashSearch(&g_Goods, g_GameWorld.HumanEats[i]->Base.Name), NUTRITION_DAILY, FamSize);
 	}
@@ -356,6 +406,7 @@ int SelectCrops(struct Family* Family, struct Field* Fields[], int FieldSz, int 
 				Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, Eats->Base.Name), HashSearch(&g_Goods, Eats->Base.Name), ((struct Population*)AnList[i]->Req)->Nutrition, AnList[i]->Quantity);
 		}
 	}
+	if(Crops.Size == 0) return 0;
 	//If we don't have enough acres reduce all fields by a certain percentage.
 	Ratio = (double)TotalAcreage / Acreage;
 	struct LnkLst_Node* LastItr = NULL;

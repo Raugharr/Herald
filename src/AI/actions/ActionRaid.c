@@ -24,15 +24,17 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 	struct BigGuy* _Guy = _Agent->Agent;
 	struct Settlement* _Settlement = FamilyGetSettlement(_Guy->Person->Family);
 	struct ArmyGoal _Goal;
-	struct LinkedList _List = {0, NULL, NULL};
+	uint32_t TableSz = FrameSizeRemain() / sizeof(struct Settlement*);
+	uint32_t Size = 0;
+	struct Settlement** SettlementList = FrameAlloc(TableSz * sizeof(struct Settlement*));
 
-	WorldSettlementsInRadius(&g_GameWorld, &_Settlement->Pos, 20, &_List);
-	if(_List.Size <= 0)
+	SettlementsInRadius(&g_GameWorld, &_Settlement->Pos, 20, SettlementList, &Size, TableSz);
+	if(Size <= 0)
 		goto end;
-	ArmyGoalRaid(&_Goal, (struct Settlement*)&_List.Back->Data, ARMYGOAL_SLAUGHTER);
+	ArmyGoalRaid(&_Goal, (struct Settlement*)&SettlementList[0], ARMYGOAL_SLAUGHTER);
 	SettlementRaiseFyrd(_Settlement, &_Goal);
 	end:
-	LnkLstClear(&_List);
+	FrameReduce(TableSz);
 	return 1;
 }
 

@@ -10,110 +10,110 @@
 #include <stdlib.h>
 #include <math.h>
 
-struct QuadTree* CreateQTNode(SDL_Rect* _Center) {
-	struct QuadTree* _Node = (struct QuadTree*) malloc(sizeof(struct QuadTree));
+struct QuadTree* CreateQTNode(SDL_Rect* Center) {
+	struct QuadTree* Node = (struct QuadTree*) malloc(sizeof(struct QuadTree));
 
-	_Node->NorthWest = NULL;
-	_Node->NorthEast = NULL;
-	_Node->SouthEast = NULL;
-	_Node->SouthWest = NULL;
-	_Node->BoundingBox.x = _Center->x;
-	_Node->BoundingBox.y = _Center->y;
-	_Node->BoundingBox.w = _Center->w;
-	_Node->BoundingBox.h = _Center->h;
-	_Node->Data = NULL;
-	return _Node;
+	Node->NorthWest = NULL;
+	Node->NorthEast = NULL;
+	Node->SouthEast = NULL;
+	Node->SouthWest = NULL;
+	Node->BoundingBox.x = Center->x;
+	Node->BoundingBox.y = Center->y;
+	Node->BoundingBox.w = Center->w;
+	Node->BoundingBox.h = Center->h;
+	Node->Data = NULL;
+	return Node;
 }
 
-void QTSubdivide(struct QuadTree* _Node) {
-	SDL_Rect _Center = {_Node->BoundingBox.x, _Node->BoundingBox.y, _Node->BoundingBox.w / 2, _Node->BoundingBox.h / 2};
+void QTSubdivide(struct QuadTree* Node) {
+	SDL_Rect Center = {Node->BoundingBox.x, Node->BoundingBox.y, Node->BoundingBox.w / 2, Node->BoundingBox.h / 2};
 
-	_Node->NorthEast = CreateQTNode(&_Center);
-	_Center.x = (_Center.x + _Center.w) + (_Node->BoundingBox.w & 1);
-	_Node->NorthWest = CreateQTNode(&_Center);
+	Node->NorthEast = CreateQTNode(&Center);
+	Center.x = (Center.x + Center.w) + (Node->BoundingBox.w & 1);
+	Node->NorthWest = CreateQTNode(&Center);
 
-	_Center.y = (_Center.y + _Center.h) + (_Node->BoundingBox.h & 1);
-	_Node->SouthWest = CreateQTNode(&_Center);
+	Center.y = (Center.y + Center.h) + (Node->BoundingBox.h & 1);
+	Node->SouthWest = CreateQTNode(&Center);
 
-	_Center.x = _Node->BoundingBox.x;
-	_Node->SouthEast = CreateQTNode(&_Center);
+	Center.x = Node->BoundingBox.x;
+	Node->SouthEast = CreateQTNode(&Center);
 }
 
-void QTRemoveAABB(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetRect)(const void*, struct SDL_Rect*)) {
-	SDL_Rect _Area;
+void QTRemoveAABB(struct QuadTree* Node, const SDL_Rect* Rect, void (*GetRect)(const void*, struct SDL_Rect*)) {
+	SDL_Rect Area;
 
-	if(_Node->Data == NULL || AABBInsideAABB(_Rect, &_Node->BoundingBox) == 0)
+	if(Node->Data == NULL || AABBInsideAABB(Rect, &Node->BoundingBox) == 0)
 		return;
-	_GetRect(_Node->Data, &_Area);
-	if(_Rect->x != _Area.x || _Rect->y != _Area.y || _Rect->w != _Area.w || _Rect->h != _Area.h) {
-		QTRemoveAABB(_Node->NorthEast, _Rect, _GetRect);
-		QTRemoveAABB(_Node->NorthWest, _Rect, _GetRect);
-		QTRemoveAABB(_Node->SouthWest, _Rect, _GetRect);
-		QTRemoveAABB(_Node->SouthEast, _Rect, _GetRect);
+	GetRect(Node->Data, &Area);
+	if(Rect->x != Area.x || Rect->y != Area.y || Rect->w != Area.w || Rect->h != Area.h) {
+		QTRemoveAABB(Node->NorthEast, Rect, GetRect);
+		QTRemoveAABB(Node->NorthWest, Rect, GetRect);
+		QTRemoveAABB(Node->SouthWest, Rect, GetRect);
+		QTRemoveAABB(Node->SouthEast, Rect, GetRect);
 	}
-	_Node->Data = NULL;
-	QTMoveUp(_Node);
+	Node->Data = NULL;
+	QTMoveUp(Node);
 }
 
 
-int QTInsertAABB(struct QuadTree* _Node, void* _Data, SDL_Rect* _AABB) {
-	if(AABBIntersectsAABB(&_Node->BoundingBox, _AABB) == 0)
+int QTInsertAABB(struct QuadTree* Node, void* Data, SDL_Rect* AABB) {
+	if(AABBIntersectsAABB(&Node->BoundingBox, AABB) == 0)
 		return 0;
-	if(_Node->Data != NULL) {
-		QTInsertAABB(_Node->NorthEast, _Data, _AABB);
-		QTInsertAABB(_Node->NorthWest, _Data, _AABB);
-		QTInsertAABB(_Node->SouthWest, _Data, _AABB);
-		QTInsertAABB(_Node->SouthEast, _Data, _AABB);
+	if(Node->Data != NULL) {
+		QTInsertAABB(Node->NorthEast, Data, AABB);
+		QTInsertAABB(Node->NorthWest, Data, AABB);
+		QTInsertAABB(Node->SouthWest, Data, AABB);
+		QTInsertAABB(Node->SouthEast, Data, AABB);
 		return 1;
 	}
-	_Node->Data = _Data;
-	QTSubdivide(_Node);
+	Node->Data = Data;
+	QTSubdivide(Node);
 	return 1;
 }
 
-void QTRemovePoint(struct QuadTree* _Node, const SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Point*)) {
-	SDL_Point _Pos;
+void QTRemovePoint(struct QuadTree* Node, const SDL_Point* Point, void (*GetPos)(const void*, SDL_Point*)) {
+	SDL_Point Pos;
 
-	if(_Node->Data == NULL || PointInAABB(_Point, &_Node->BoundingBox) == 0)
+	if(Node->Data == NULL || PointInAABB(Point, &Node->BoundingBox) == 0)
 		return;
-	_GetPos(_Node->Data, &_Pos);
-	if(_Pos.x != _Point->x || _Pos.y != _Point->y) {
-		QTRemovePoint(_Node->NorthEast, _Point, _GetPos);
-		QTRemovePoint(_Node->NorthWest, _Point, _GetPos);
-		QTRemovePoint(_Node->SouthWest, _Point, _GetPos);
-		QTRemovePoint(_Node->SouthEast, _Point, _GetPos);
+	GetPos(Node->Data, &Pos);
+	if(Pos.x != Point->x || Pos.y != Point->y) {
+		QTRemovePoint(Node->NorthEast, Point, GetPos);
+		QTRemovePoint(Node->NorthWest, Point, GetPos);
+		QTRemovePoint(Node->SouthWest, Point, GetPos);
+		QTRemovePoint(Node->SouthEast, Point, GetPos);
 	}
-	_Node->Data = NULL;
-	QTMoveUp(_Node);
+	Node->Data = NULL;
+	QTMoveUp(Node);
 }
 
 
-void QTRemoveNode(struct QuadTree* _Node, const struct SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Point*), void* _Data) {
-	SDL_Point _Pos;
+void QTRemoveNode(struct QuadTree* Node, const struct SDL_Point* Point, void (*GetPos)(const void*, SDL_Point*), void* Data) {
+	SDL_Point Pos;
 
-	if(_Node->Data == NULL || PointInAABB(_Point, &_Node->BoundingBox) == 0)
+	if(Node->Data == NULL || PointInAABB(Point, &Node->BoundingBox) == 0)
 		return;
-	_GetPos(_Node->Data, &_Pos);
-//	if(_Pos.x != _Point->x || _Pos.y != _Point->y) {
-		QTRemovePoint(_Node->NorthEast, _Point, _GetPos);
-		QTRemovePoint(_Node->NorthWest, _Point, _GetPos);
-		QTRemovePoint(_Node->SouthWest, _Point, _GetPos);
-		QTRemovePoint(_Node->SouthEast, _Point, _GetPos);
+	GetPos(Node->Data, &Pos);
+//	if(Pos.x != Point->x || Pos.y != Point->y) {
+		QTRemovePoint(Node->NorthEast, Point, GetPos);
+		QTRemovePoint(Node->NorthWest, Point, GetPos);
+		QTRemovePoint(Node->SouthWest, Point, GetPos);
+		QTRemovePoint(Node->SouthEast, Point, GetPos);
 //	}
-	if(_Node->Data == _Data) {
-		_Node->Data = NULL;
-		QTMoveUp(_Node);
+	if(Node->Data == Data) {
+		Node->Data = NULL;
+		QTMoveUp(Node);
 	}
 }
 
-int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point) {
-	if(PointInAABB(_Point, &_Node->BoundingBox) == 0)
+int QTInsertPoint(struct QuadTree* Node, void* Data, const SDL_Point* Point) {
+	if(PointInAABB(Point, &Node->BoundingBox) == 0)
 		return 0;
-	if(_Node->Data != NULL) {
-		if(QTInsertPoint(_Node->NorthEast, _Data, _Point) == 0) {
-			if(QTInsertPoint(_Node->NorthWest, _Data, _Point) == 0) {
-				if(QTInsertPoint(_Node->SouthWest, _Data, _Point) == 0) {
-					if(QTInsertPoint(_Node->SouthEast, _Data, _Point) == 0) {
+	if(Node->Data != NULL) {
+		if(QTInsertPoint(Node->NorthEast, Data, Point) == 0) {
+			if(QTInsertPoint(Node->NorthWest, Data, Point) == 0) {
+				if(QTInsertPoint(Node->SouthWest, Data, Point) == 0) {
+					if(QTInsertPoint(Node->SouthEast, Data, Point) == 0) {
 						return 0;
 					}
 				}
@@ -121,120 +121,120 @@ int QTInsertPoint(struct QuadTree* _Node, void* _Data, const SDL_Point* _Point) 
 		}
 		return 1;
 	}
-	_Node->Data = _Data;
-	if(_Node->NorthEast == NULL)
-		QTSubdivide(_Node);
+	Node->Data = Data;
+	if(Node->NorthEast == NULL)
+		QTSubdivide(Node);
 	return 1;
 }
 
-void QTPointInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Point*), struct LinkedList* _DataList) {
-	SDL_Point _Point;
+void QTPointInRectangle(const struct QuadTree* Node, const SDL_Rect* Rect, void (*GetPos)(const void*, SDL_Point*), void** Stack, uint32_t* Size, uint32_t TableSz) {
+	SDL_Point Point;
 
-	if(_Node == NULL)
+	if(Node == NULL || (*Size) >= TableSz)
 		return;
-	if(AABBIntersectsAABB(&_Node->BoundingBox, _Rect) == 0)
+	if(AABBIntersectsAABB(&Node->BoundingBox, Rect) == 0)
 		return;
-	if(_Node->Data != NULL) {
-		_GetPos(_Node->Data, &_Point);
-		if(PointInAABB(&_Point, _Rect)) {
-			LnkLstPushBack(_DataList, _Node->Data);
+	if(Node->Data != NULL) {
+		GetPos(Node->Data, &Point);
+		if(PointInAABB(&Point, Rect)) {
+			Stack[(*Size)++] = Node->Data;
 		}
 	}
-	QTPointInRectangle(_Node->NorthEast, _Rect, _GetPos, _DataList);
-	QTPointInRectangle(_Node->NorthWest, _Rect, _GetPos, _DataList);
-	QTPointInRectangle(_Node->SouthWest, _Rect, _GetPos, _DataList);
-	QTPointInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
+	QTPointInRectangle(Node->NorthEast, Rect, GetPos, Stack, Size, TableSz);
+	QTPointInRectangle(Node->NorthWest, Rect, GetPos, Stack, Size, TableSz);
+	QTPointInRectangle(Node->SouthWest, Rect, GetPos, Stack, Size, TableSz);
+	QTPointInRectangle(Node->SouthEast, Rect, GetPos, Stack, Size, TableSz);
 }
 
-void* QTGetPoint(struct QuadTree* _Node, const SDL_Point* _Pos, void (*_GetPos)(const void*, SDL_Point*)) {
-	void* _Data = NULL;
-	SDL_Point _NodePos;
+void* QTGetPoint(const struct QuadTree* Node, const SDL_Point* Pos, void (*GetPos)(const void*, SDL_Point*)) {
+	void* Data = NULL;
+	SDL_Point NodePos;
 
-	if(_Node == NULL || _Node->Data == NULL || PointInAABB(_Pos, &_Node->BoundingBox) == 0)
+	if(Node == NULL || Node->Data == NULL || PointInAABB(Pos, &Node->BoundingBox) == 0)
 		return NULL;
-	_GetPos(_Node->Data, &_NodePos);
-	if(_Pos->x == _NodePos.x && _Pos->y == _NodePos.y)
-		return _Node->Data;
-	if((_Data = QTGetPoint(_Node->NorthEast, _Pos, _GetPos)) == NULL)
-		if((_Data = QTGetPoint(_Node->NorthWest, _Pos, _GetPos)) == NULL)
-			if((_Data = QTGetPoint(_Node->SouthWest, _Pos, _GetPos)) == NULL)
-				_Data = QTGetPoint(_Node->SouthEast, _Pos, _GetPos);
-	return _Data;
+	GetPos(Node->Data, &NodePos);
+	if(Pos->x == NodePos.x && Pos->y == NodePos.y)
+		return Node->Data;
+	if((Data = QTGetPoint(Node->NorthEast, Pos, GetPos)) == NULL)
+		if((Data = QTGetPoint(Node->NorthWest, Pos, GetPos)) == NULL)
+			if((Data = QTGetPoint(Node->SouthWest, Pos, GetPos)) == NULL)
+				Data = QTGetPoint(Node->SouthEast, Pos, GetPos);
+	return Data;
 }
 
-void* QTGetAABB(struct QuadTree* _Node, const SDL_Point* _Pos, void(*_GetPos)(const void*, SDL_Rect*)) {
-	void* _Data = NULL;
-	SDL_Rect _NodePos;
+void* QTGetAABB(struct QuadTree* Node, const SDL_Point* Pos, void(*GetPos)(const void*, SDL_Rect*)) {
+	void* Data = NULL;
+	SDL_Rect NodePos;
 
-	if(_Node == NULL || _Node->Data == NULL || PointInAABB(_Pos, &_Node->BoundingBox) == 0)
+	if(Node == NULL || Node->Data == NULL || PointInAABB(Pos, &Node->BoundingBox) == 0)
 		return NULL;
-	_GetPos(_Node->Data, &_NodePos);
-	if(PointInAABB(_Pos, &_NodePos) != 0)
-		return _Node->Data;
-	if((_Data = QTGetAABB(_Node->NorthEast, _Pos, _GetPos)) == NULL)
-		if((_Data = QTGetAABB(_Node->NorthWest, _Pos, _GetPos)) == NULL)
-			if((_Data = QTGetAABB(_Node->SouthWest, _Pos, _GetPos)) == NULL)
-				_Data = QTGetAABB(_Node->SouthEast, _Pos, _GetPos);
-	return _Data;
+	GetPos(Node->Data, &NodePos);
+	if(PointInAABB(Pos, &NodePos) != 0)
+		return Node->Data;
+	if((Data = QTGetAABB(Node->NorthEast, Pos, GetPos)) == NULL)
+		if((Data = QTGetAABB(Node->NorthWest, Pos, GetPos)) == NULL)
+			if((Data = QTGetAABB(Node->SouthWest, Pos, GetPos)) == NULL)
+				Data = QTGetAABB(Node->SouthEast, Pos, GetPos);
+	return Data;
 }
 
-void QTAABBInRectangle(struct QuadTree* _Node, const SDL_Rect* _Rect, void (*_GetPos)(const void*, SDL_Rect*), struct LinkedList* _DataList) {
-	struct SDL_Rect _AABB;
+void QTAABBInRectangle(const struct QuadTree* Node, const SDL_Rect* Rect, void (*GetPos)(const void*, SDL_Rect*), void** Stack, uint32_t* Size, uint32_t TableSz) {
+	struct SDL_Rect AABB;
 
-	if(_Node == NULL)
+	if(Node == NULL)
 		return;
-	if(AABBIntersectsAABB(&_Node->BoundingBox, _Rect) == 0)
+	if(AABBIntersectsAABB(&Node->BoundingBox, Rect) == 0)
 		return;
-	if(_Node->Data != NULL) {
-		_GetPos(_Node->Data, &_AABB);
-		if(AABBInsideAABB(_Rect, &_AABB)) {
-			LnkLstPushBack(_DataList, _Node->Data);
+	if(Node->Data != NULL) {
+		GetPos(Node->Data, &AABB);
+		if(AABBInsideAABB(Rect, &AABB)) {
+			Stack[(*Size)++] = Node->Data;
 		}
 	}
-	QTAABBInRectangle(_Node->NorthEast, _Rect, _GetPos, _DataList);
-	QTAABBInRectangle(_Node->NorthWest, _Rect, _GetPos, _DataList);
-	QTAABBInRectangle(_Node->SouthWest, _Rect, _GetPos, _DataList);
-	QTAABBInRectangle(_Node->SouthEast, _Rect, _GetPos, _DataList);
+	QTAABBInRectangle(Node->NorthEast, Rect, GetPos, Stack, Size, TableSz);
+	QTAABBInRectangle(Node->NorthWest, Rect, GetPos, Stack, Size, TableSz);
+	QTAABBInRectangle(Node->SouthWest, Rect, GetPos, Stack, Size, TableSz);
+	QTAABBInRectangle(Node->SouthEast, Rect, GetPos, Stack, Size, TableSz);
 }
 
-void QTRectangleInPoint(struct QuadTree* _Node, const SDL_Point* _Point, void (*_GetPos)(const void*, SDL_Rect*), struct LinkedList* _DataList) {
-	struct SDL_Rect _AABB;
+void QTRectangleInPoint(const struct QuadTree* Node, const SDL_Point* Point, void (*GetPos)(const void*, SDL_Rect*), void** Stack, uint32_t* Size, uint32_t TableSz) {
+	struct SDL_Rect AABB;
 
-	if(_Node == NULL)
+	if(Node == NULL)
 		return;
-	if(PointInAABB(_Point, &_Node->BoundingBox) == 0)
+	if(PointInAABB(Point, &Node->BoundingBox) == 0)
 		return;
-	if(_Node->Data != NULL) {
-		_GetPos(_Node->Data, &_AABB);
-		if(PointInAABB(_Point, &_AABB)) {
-			LnkLstPushBack(_DataList, _Node->Data);
+	if(Node->Data != NULL) {
+		GetPos(Node->Data, &AABB);
+		if(PointInAABB(Point, &AABB)) {
+			Stack[(*Size)++] = Node->Data;
 		}
 	}
-	QTRectangleInPoint(_Node->NorthEast, _Point, _GetPos, _DataList);
-	QTRectangleInPoint(_Node->NorthWest, _Point, _GetPos, _DataList);
-	QTRectangleInPoint(_Node->SouthWest, _Point, _GetPos, _DataList);
-	QTRectangleInPoint(_Node->SouthEast, _Point, _GetPos, _DataList);
+	QTRectangleInPoint(Node->NorthEast, Point, GetPos, Stack, Size, TableSz);
+	QTRectangleInPoint(Node->NorthWest, Point, GetPos, Stack, Size, TableSz);
+	QTRectangleInPoint(Node->SouthWest, Point, GetPos, Stack, Size, TableSz);
+	QTRectangleInPoint(Node->SouthEast, Point, GetPos, Stack, Size, TableSz);
 }
 
-void QTMoveUp(struct QuadTree* _Node) {
-	if(_Node->Data != NULL)
+void QTMoveUp(struct QuadTree* Node) {
+	if(Node->Data != NULL)
 		return;
-	if(_Node->NorthEast->Data != NULL) {
-		_Node->Data = _Node->NorthEast->Data;
-		QTMoveUp(_Node->NorthEast);
-	} else if(_Node->NorthWest->Data != NULL) {
-		_Node->Data = _Node->NorthWest->Data;
-		QTMoveUp(_Node->NorthWest);
-	} else if(_Node->SouthWest->Data != NULL) {
-		_Node->Data = _Node->SouthWest->Data;
-		QTMoveUp(_Node->SouthWest);
-	} else if(_Node->SouthEast->Data != NULL) {
-		_Node->Data = _Node->SouthEast->Data;
-		QTMoveUp(_Node->SouthEast);
+	if(Node->NorthEast->Data != NULL) {
+		Node->Data = Node->NorthEast->Data;
+		QTMoveUp(Node->NorthEast);
+	} else if(Node->NorthWest->Data != NULL) {
+		Node->Data = Node->NorthWest->Data;
+		QTMoveUp(Node->NorthWest);
+	} else if(Node->SouthWest->Data != NULL) {
+		Node->Data = Node->SouthWest->Data;
+		QTMoveUp(Node->SouthWest);
+	} else if(Node->SouthEast->Data != NULL) {
+		Node->Data = Node->SouthEast->Data;
+		QTMoveUp(Node->SouthEast);
 	}
 }
 
-void QTRange(struct QuadTree* _Tree, SDL_Rect* _Boundary) {
-	if(AABBInsideAABB(_Boundary, &_Tree->BoundingBox) == 0)
+void QTRange(struct QuadTree* Tree, SDL_Rect* Boundary) {
+	if(AABBInsideAABB(Boundary, &Tree->BoundingBox) == 0)
 		return;
 }

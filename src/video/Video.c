@@ -8,6 +8,7 @@
 #include "Gui.h"
 #include "GuiLua.h"
 #include "MapRenderer.h"
+#include "TextRenderer.h"
 
 #include "../World.h"
 #include "../sys/LuaCore.h"
@@ -40,6 +41,84 @@ SDL_Texture* g_WindowTexture = NULL;
 int g_VideoTimer = 0;
 static struct HoverWidget g_LHWidget = {0x0, 0, false};
 
+static const struct LuaEnum g_LuaKeyCodes[] = {
+	{"0", SDLK_0},
+	{"1", SDLK_1},
+	{"2", SDLK_2},
+	{"3", SDLK_3},
+	{"4", SDLK_4},
+	{"5", SDLK_5},
+	{"6", SDLK_6},
+	{"7", SDLK_7},
+	{"8", SDLK_8},
+	{"9", SDLK_9},
+	{"a", SDLK_a},
+	{"b", SDLK_b},
+	{"c", SDLK_c},
+	{"d", SDLK_d},
+	{"e", SDLK_e},
+	{"f", SDLK_f},
+	{"g", SDLK_g},
+	{"h", SDLK_h},
+	{"i", SDLK_i},
+	{"j", SDLK_j},
+	{"k", SDLK_k},
+	{"l", SDLK_l},
+	{"m", SDLK_m},
+	{"n", SDLK_n},
+	{"o", SDLK_o},
+	{"p", SDLK_p},
+	{"q", SDLK_q},
+	{"r", SDLK_r},
+	{"s", SDLK_s},
+	{"t", SDLK_t},
+	{"u", SDLK_u},
+	{"v", SDLK_v},
+	{"w", SDLK_w},
+	{"x", SDLK_x},
+	{"y", SDLK_y},
+	{"z", SDLK_z},
+	{"Return", SDLK_RETURN},
+	{"(", SDLK_RIGHTPAREN},
+	{")", SDLK_LEFTPAREN},
+	{"`", SDLK_BACKQUOTE},
+	{NULL, 0}
+};
+
+static const struct LuaEnum g_LuaModCodes[] = {
+	{"None", KMOD_NONE},
+	{"LShift", KMOD_LSHIFT},
+	{"RShift", KMOD_RSHIFT},
+	{"LCtrl", KMOD_LCTRL},
+	{"RCtrl", KMOD_RCTRL},
+	{"RAlt", KMOD_RALT},
+	{"LAlt", KMOD_LALT},
+	{"LGui", KMOD_LGUI},
+	{"RGui", KMOD_RGUI},
+	{"Num", KMOD_NUM},
+	{"Caps", KMOD_CAPS},
+	{"Mode", KMOD_MODE},
+	{"Ctrl", KMOD_CTRL},
+	{"Shift", KMOD_SHIFT},
+	{"Alt", KMOD_ALT},
+	{"Gui", KMOD_GUI},
+	{NULL, 0}
+};
+
+const struct LuaEnumReg g_LuaKeyboardEnums[] = {
+	{"Keyboard", "Key", g_LuaKeyCodes},
+	{"Keyboard", "Mod", g_LuaModCodes},
+	{NULL, NULL}
+};
+
+int LuaKeyboardMod(lua_State* State) {
+	int One = luaL_checkinteger(State, 1);
+	int Two = luaL_checkinteger(State, 2);
+
+	lua_pushboolean(State, One & Two);
+	return 1;
+}
+
 int VideoInit(void) {
 	Log(ELOG_INFO, "Setting up video.");
 	++g_Log.Indents;
@@ -57,6 +136,7 @@ int VideoInit(void) {
 	}
 	if(TTF_Init() == -1)
 		goto error;
+	if(InitTextRenderer() == false) goto error;
 	g_WindowTexture = SDL_CreateTexture(g_Renderer, SDL_GetWindowPixelFormat(g_Window), SDL_TEXTUREACCESS_STREAMING, SDL_WIDTH, SDL_HEIGHT);
 	SDL_SetTextureBlendMode(g_WindowTexture, SDL_BLENDMODE_NONE);
 	SDL_SetRenderDrawBlendMode(g_Renderer, SDL_BLENDMODE_BLEND);
@@ -67,6 +147,12 @@ int VideoInit(void) {
 		Log(ELOG_ERROR, IMG_GetError());
 		goto error;
 	}
+	lua_newtable(g_LuaState);
+	//LuaAddEnum(g_LuaState, -1, g_LuaKeyCodes);
+	RegisterLuaEnums(g_LuaState, g_LuaKeyboardEnums);
+	lua_setglobal(g_LuaState, "KeyCode");
+	lua_pushcfunction(g_LuaState, LuaKeyboardMod);
+	lua_setglobal(g_LuaState, "KeyboardMod");
 	return 1;
 	error:
 	g_VideoOk = 0;
@@ -77,6 +163,7 @@ int VideoInit(void) {
 void VideoQuit(void) {
 	struct GUIFocus* _Focus = NULL;
 
+	QuitTextRenderer();
 	TTF_Quit();
 	SDL_DestroyWindow(g_Window);
 	SDL_Quit();
@@ -114,7 +201,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 	if(g_LHWidget.Widget == g_HoverWidget && g_LHWidget.Fired == false && SDL_TICKS_PASSED(SDL_GetTicks(), g_LHWidget.StartTime + 1000) != 0) {
 		g_LHWidget.Fired = true;
 		if(g_LHWidget.Widget != NULL)
-			LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVER);
+			LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVER, 0);
 	}
 	if(_State->MouseMove != 0) {
 		if(g_HoverWidget != NULL)
@@ -122,7 +209,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		g_HoverWidget = GuiFind(offsetof(struct Widget, OnFocus), &_State->MousePos);	
 		if(g_LHWidget.Widget != g_HoverWidget) {
 			if(g_LHWidget.Fired == true && g_LHWidget.Widget != NULL) {
-				LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVERLOSS);
+				LuaGuiCallFunc(_LuaState, g_LHWidget.Widget, GUIL_ONHOVERLOSS, 0);
 				g_LHWidget.Fired = false;	
 			}
 			g_LHWidget.Widget = g_HoverWidget;
@@ -143,9 +230,7 @@ int VideoEvents(const struct KeyMouseState* _State) {
 		return 1;
 	} else if(_State->MouseState == SDL_RELEASED) {
 		g_HoverWidget = GuiFind(offsetof(struct Widget, OnClick), &_State->MousePos);
-		if(g_HoverWidget == NULL || g_HoverWidget->Clickable == 0) {
-			return 0;
-		}
+		if(g_HoverWidget == NULL || g_HoverWidget->Clickable == 0) return 0;
 			if(g_HoverWidget->Parent == NULL) {
 				_Container = (struct Container*) g_HoverWidget;
 			} else {
@@ -154,38 +239,39 @@ int VideoEvents(const struct KeyMouseState* _State) {
 					_Container = _Container->Widget.Parent;
 			}
 			GuiZToTop(_Container);
-			LuaGuiCallFunc(_LuaState, g_HoverWidget, GUIL_ONCLICK); 
+			LuaGuiCallFunc(_LuaState, g_HoverWidget, GUIL_ONCLICK, 0); 
 			g_DraggableWidget.Widget = NULL;
 			return 1;
 	}
+	struct Widget* ClickWidget = (g_HoverWidget != NULL) ? (g_HoverWidget) : (GuiGetBack());
+	union UWidgetOnKey KeyEvent;
+	char c = '\0';
 	if(_State->KeyboardButton != 0 && _State->KeyboardState == SDL_RELEASED) {
-		if(g_HoverWidget != NULL) {
-			g_HoverWidget->OnKey(g_HoverWidget, _State->KeyboardButton, _State->KeyboardMod);
-		}
+		KeyEvent.Type = WEVENT_KEY;
+		KeyEvent.Key.Key = _State->KeyboardButton;
+		KeyEvent.Key.Mod = _State->KeyboardMod;
+		c = _State->KeyboardButton;
+		lua_pushinteger(_LuaState, c);
+		lua_pushinteger(_LuaState, _State->KeyboardMod);
+		LuaGuiCallFunc(_LuaState, ClickWidget, GUIL_ONKEY, 2);
+	} else if(_State->TextBuff[0] != '\0') {
+		KeyEvent.Type = WEVENT_TEXT;
+		KeyEvent.Text.Text = _State->TextBuff;
+		c = _State->TextBuff[0];
+	} else {
+		goto end;
 	}
+	ClickWidget->OnKey(ClickWidget, &KeyEvent);
+	/*if(_State->KeyboardButton != 0 && _State->KeyboardState == SDL_RELEASED) {
+		struct Widget* ClickWidget = (g_HoverWidget != NULL) ? (g_HoverWidget) : (GuiGetBack());
+
+		lua_pushinteger(_LuaState, _State->KeyboardButton);
+		lua_pushinteger(_LuaState, _State->KeyboardMod);
+		LuaGuiCallFunc(_LuaState, ClickWidget, GUIL_ONKEY, 2);
+		ClickWidget->OnKey(ClickWidget, ((_State->TextBuff[0] == '\0') ? (_State->KeyboardButton) : (_State->TextBuff[0])), _State->KeyboardMod);
+	}*/
+	end:
 	return 0;
-}
-
-struct Font* CreateFont(const char* _Name, int _Size) {
-	struct Font* _Ret = malloc(sizeof(struct Font));
-
-	if((_Ret->Font = TTF_OpenFont(_Name, _Size)) == NULL)
-		Log(ELOG_ERROR, TTF_GetError());
-	_Ret->Name = calloc(strlen(_Name) + 1, sizeof(char));
-	strcpy(_Ret->Name, _Name);
-	_Ret->Size = _Size;
-	_Ret->Prev = NULL;
-	_Ret->Next = NULL;
-	_Ret->RefCt = 0;
-	return _Ret;
-}
-
-void DestroyFont(struct Font* _Font) {
-	if(--_Font->RefCt > 0)
-		return;
-	TTF_CloseFont(_Font->Font);
-	free(_Font->Name);
-	free(_Font);
 }
 
 void DestroyFocus(struct GUIFocus* _Focus) {

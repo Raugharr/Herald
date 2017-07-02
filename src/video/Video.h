@@ -26,15 +26,6 @@ struct Widget;
 struct Container;
 struct KeyMouseState;
 
-struct Font {
-	TTF_Font* Font;
-	char* Name; //Replace with TTF_FontFaceStyleName.
-	struct Font* Next;
-	struct Font* Prev;
-	uint8_t Size;
-	volatile int16_t RefCt;
-};
-
 /*
  *
  * TODO: Remove g_Window, g_Renderer, g_VideoOk, and g_WindowTexture as globals and only allow them to be accessed by Video.c
@@ -46,7 +37,7 @@ extern SDL_Texture* g_WindowTexture;
 
 int VideoInit(void);
 void VideoQuit(void);
-int NextGUIId(void);
+uint32_t NextGUIId(void);
 void Draw(void);
 int VideoEvents(const struct KeyMouseState* _State);
 int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _Two);

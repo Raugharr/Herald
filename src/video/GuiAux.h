@@ -7,13 +7,15 @@
 
 #include "Gui.h"
 
-#include "../sys/LinkedList.h"
+#include "TextRenderer.h"
 
-struct GameWorld;
+#include "../sys/LinkedList.h"
+#include "../sys/Array.h"
 
 struct Label {
 	struct Widget Widget;
-	int (*SetText)(struct Widget*, SDL_Texture*);
+	SDL_Rect LabelPos;
+	void (*SetText)(struct Widget*, const char*);
 	SDL_Texture* Text;
 };
 
@@ -26,8 +28,7 @@ struct Table {
 
 struct TextBox {
 	struct Widget Widget;
-	SDL_Texture* TextSurface;
-	struct LinkedList Letters; /* List of letters in the text box. */
+	struct TextStream Stream;
 	SDL_Rect TextRect;
 };
 
@@ -37,53 +38,52 @@ struct ContextItem {
 };
 
 struct Button {
-	struct Widget Widget;
-	int (*SetText)(struct Widget*, SDL_Texture*);
-	SDL_Texture* Text;
+	struct Label Label;
 };
 
-/*
-struct GameWorldWidget {
-	DECLARE_WIDGET;
-	const struct GameWorld* World;
+struct Console {
+	struct Container Container;
+	struct TextBox TextBox;
+	struct Label* History;//Array of labels.
+	uint8_t HistorySize;//Number of labels that are in the console.
+	uint8_t Top; //Index of Label at top of the stack in the History array.
+	struct Array TextArr; //Array of text to fill History with.
 };
-*/
 
+//NOTE: Do yo really need to pass a Rect to a label and textbox? Shouldn't this be calculated internally to make it easier on the user?
 struct Label* CreateLabel(void);
-void ConstructLabel(struct Label* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, const struct GuiStyle* _Style);
-void DestroyLabel(struct Label* _Text, lua_State* _State);
-int LabelOnDraw(struct Widget* _Widget);
-int LabelSetText(struct Widget* _Widget, SDL_Texture* _Text);
-void LabelWordWrap(struct Label* _Label, const char* _Text);
+void ConstructLabel(struct Label* Widget, struct Container* Parent, const char* Text);
+void DestroyLabel(struct Widget* Widget);
+int LabelOnDraw(struct Widget* Widget);
+void LabelSetText(struct Widget* Widget, const char* Text);
 
 struct Button* CreateButton(void);
-struct Button* ConstructButton(struct Button* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, SDL_Texture* _Text, struct Font* _Font);
-struct Widget* ButtonOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
-int ButtonOnUnFocus(struct Widget* _Widget);
-int ButtonOnDraw(struct Widget* _Widget);
-void ButtonSetClickable(struct Button* _Button, int _Clickable);
+struct Button* ConstructButton(struct Button* Widget, struct Container* Parent, const char* Text);
+struct Widget* ButtonOnFocus(struct Widget* Widget, const SDL_Point* Point);
+int ButtonOnUnFocus(struct Widget* Widget);
+int ButtonOnDraw(struct Widget* Widget);
+void ButtonSetClickable(struct Button* Button, int Clickable);
 
 struct Table* CreateTable(void);
-void ConstructTable(struct Table* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State,
-		int _Columns, int _Rows, struct Font* _Font);
-void DestroyTable(struct Table* _Table, lua_State* _State);
-void TableNewChild(struct Container* _Parent, struct Widget* _Child);
-int TableHorzFocChange(const struct Container* _Container);
+void ConstructTable(struct Table* Widget, struct Container* Parent, SDL_Rect* Rect,	int Columns, int Rows);
+void DestroyTable(struct Widget* Widget);
+void TableNewChild(struct Container* Parent, struct Widget* Child);
 
 struct ContextItem* CreateContextItem(void);
-void ConstructContextItem(struct ContextItem* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State);
-int ContextItemOnDraw(struct ContextItem* _Container);
-struct Widget* ContextItemOnFocus(struct ContextItem* _Widget, const SDL_Point* _Point);
-int ContextItemOnUnfocus(struct ContextItem* _Widget);
-int ContextHorzFocChange(const struct Container* _Container);
+void ConstructContextItem(struct ContextItem* Widget, struct Container* Parent, SDL_Rect* Rect);
+int ContextItemOnDraw(struct ContextItem* Container);
+struct Widget* ContextItemOnFocus(struct ContextItem* Widget, const SDL_Point* Point);
+int ContextItemOnUnfocus(struct ContextItem* Widget);
 
 struct TextBox* CreateTextBox(void);
-void ConstructTextBox(struct TextBox* _TextBox, struct Container* _Parent, int _Rows, int _Chars, lua_State* _State, struct Font* _Font, const struct GuiStyle* _Style);
-void TextBoxOnKey(struct TextBox* _TextBox, unsigned int _Key, unsigned int _Mod); 
-int TextBoxOnDraw(struct TextBox* _Widget);
+void ConstructTextBox(struct TextBox* TextBox, struct Container* Parent, int Chars);
+void TextBoxOnKey(struct Widget* Widget, const union UWidgetOnKey* Event); 
+int TextBoxOnDraw(struct Widget* Widget);
+struct Widget* TextBoxOnFocus(struct Widget* Widget, const SDL_Point* Point);
+int TextBoxOnUnfocus(struct Widget* Widget);
 
-/*struct GameWorldWidget* CreateGWWidget(void);
-struct GameWorldWidget* ConstructGWWidget(struct GameWorldWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct GameWorld* _World);
-int GameWorldWidgetOnDraw(struct Widget* _Widget);*/
+struct Console* CreateConsole(void);
+void ConstructConsole(struct Console* Console, struct Container* Parent, int Rows, int Cols);
+void ConsoleOnKey(struct Widget* Widget, const union UWidgetOnKey* Event);
 
 #endif

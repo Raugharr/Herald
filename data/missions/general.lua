@@ -3,7 +3,7 @@ Mission.Load {
 	Description = "",
 	NoMenu = true,
 	OnTrigger = function(Frame)
-		local Target = Frame.RandomPerson({Adult = true, Male = true}) 
+		local Target = Frame:RandomPerson({Adult = true, Male = true}) 
 
 		for Itr in Frame.Owner:GetTraits():Next() do
 			local TraitName = Itr:GetName()
@@ -39,7 +39,7 @@ Mission.Load {
 	Id = "General.2"
 }
 
-Mission.Load {
+--[[Mission.Load {
 	Name = "Help person with problem.",
 	Description = "[Target.FirstName] is in need of help with a problem.",
 	OnTrigger = function(Frame)
@@ -57,7 +57,7 @@ Mission.Load {
 	end,
 	MeanTime = 365 * 5,
 	Id = "General.3"
-}
+}--]]
 
 --[[
 These random events should be decided based on the traits of the owner of the event. The owner will then be given a few options whose outcome will

@@ -25,6 +25,7 @@
 #include "sys/FrameAllocator.h"
 
 #include "BigGuy.h"
+#include "Crisis.h"
 
 #include <SDL2/SDL.h>
 
@@ -91,6 +92,7 @@ struct MissionOption {
 struct MissionTextFormat {
 	uint8_t Object;
 	uint8_t Param;
+	uint8_t Extra; //Extra byte for special cases, currently used by MOBJECT_VAR to determine which variable is being referenced.
 };
 
 struct Mission {
@@ -123,17 +125,22 @@ struct MissionEngine {
 	//FIXME: Use array not LinkedList.
 	struct LinkedList MissionsTrigger; //List of all missions that can trigger.
 	struct Mission* ActionMissions[BGACT_SIZE];
+	struct Mission* CrisisMissions[CRISIS_SIZE];
 	struct Array Events[MEVENT_SIZE];
 	struct HashTable Namespaces;
 };
 
 void ConstructMissionEngine(struct MissionEngine* Engine);
 
+struct MissionFrame* CreateMissionFrame(struct BigGuy* From, struct BigGuy* Target, const struct Mission* Mission);
+void DestroyMissionFrame(struct MissionFrame* MissionFrame);
+
 int MissionEngineEvent(const int* One, const struct LnkLst_Node* Two);
 void LoadAllMissions(lua_State* State, struct MissionEngine* Engine);
 void DestroyMission(struct Mission* Mission);
 void MissionCheckOption(struct lua_State* State, struct Mission* Mission, struct MissionFrame* Data, int Option);
-void MissionCall(lua_State* State, const struct Mission* Mission, struct BigGuy* From, struct BigGuy* Target);
+void MissionFrameAddVar(struct MissionFrame* Frame, uint8_t VSize, ...);
+void MissionCall(lua_State* State, struct MissionFrame* Frame);
 void MissionAction(const char* Name, struct BigGuy* From, struct BigGuy* Target);
 
 void DestroyMissionEngine(struct MissionEngine* Engine);
@@ -157,11 +164,11 @@ struct Mission* MissionStrToId(const char* Str);
 int LuaMissionGetOwner(lua_State* State);
 int LuaMissionGetFrom(lua_State* State);
 int LuaMissionGetRandomPerson(lua_State* State);
+int LuaMissionQuerySettlement(lua_State* State);
 int LuaMissionCallById_Aux(lua_State* State);
 int LuaMissionCallById(lua_State* State);
 int LuaMissionNormalize(lua_State* State);
 int LuaMissionFrame(lua_State* State);
-int LuaMissionAddData(lua_State* State);
 
 int LuaMissionLoad(lua_State* State);
 int LuaMissionFuncWrapper(lua_State* State);
@@ -170,9 +177,24 @@ struct GenIterator* CrisisCreateItr(void* Tree);
 
 struct MissionFrame* MissionFrameTop();
 struct BigGuy* MissionFrameOwner(struct MissionFrame* Data);
+/*
+ * Gets a variable from a Frame's stack.
+ */
 int LuaMissionSetVar(lua_State* State);
+/*
+ * Sets a variable from a Frame's stack.
+ */
 int LuaMissionGetVar(lua_State* State);
-const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId);
+/*
+ * Finds the next valid token in Str. If there is a token found returns the char
+ * immediatly after the found token.
+ * A token is written as either [From.FirstName] or as [FrameVar] where the first
+ * will assume From is a person and get their first name. The second will assume
+ * the token is a variable and output its value as a string.
+ * If a token is given that is incorrect such as [NotaVar] then NULL will be returned
+ * and ObjId and ParamId will be filled with 255.
+ */
+const char* MissionParseStr(const char* Str, struct MissionTextFormat* Format, const struct MissionFrame* Frame);
 void InitMissionLua(lua_State* State);
 int LuaMissionStatUtility(lua_State* State);
 int LuaUtilityLinear(lua_State* State);

@@ -25,7 +25,7 @@ local function ShowCastePower(Menu, Faction)
 	local Font = Skin:Table():GetFont()
 	local Idx = 1
 	local Power = Faction:GetCastePower()
-	local Weight= Faction:GetCasteWeight()
+	local Weight = Faction:GetCasteWeight()
 
 	Table:SetCellWidth(Font:Width() * 8)
 	Table:SetCellHeight(Font:Height())
@@ -40,20 +40,27 @@ local function ShowCastePower(Menu, Faction)
 	end
 end
 
-local function DisplayGoals(Menu, Faction)
+local function DisplayGoals(Menu, FactId)
 	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), 200)
 	Container:CreateButton("Select goal",
 		function(Widget)
-			if Faction:CanPassGoal() == false then
+			if FactId:CanPassGoal() == false then
 				return
 			end
 			if Widget.Open == nil or Widget.Open == false then
-			for k, v in pairs(Faction:ListGoals()) do
+			for k, v in pairs(FactId:ListGoals()) do
 					Container:CreateButton(v,
 						function(Widget)
-							--Faction:SetGoal(k)
-							--Gui.CreateWindow("FactionBet", {Faction = Faction})
-							Gui.CreateWindow("FactionGoalSelect", {Faction = Faction, Goal = k - 1})
+							local Window = nil
+
+							if k - 1 == Faction.SupportCaste then
+								Window = "FactionGoalSelect"
+							elseif k - 1 == Faction.ChangePolicy then
+								print("Policy")
+								Window = "FactionGoalPolicy"
+							end
+							print (k - 1, Faction.AddPolicy)
+							Gui.CreateWindow(Window, {Faction = FactId, Goal = k - 1})
 						end)	
 
 					end
@@ -70,11 +77,16 @@ function Menu.Init(Menu, Data)
 
 	Menu:OnNewChild(Container.Vertical)
 	Menu:SetSkin(Gui.GetSkin("Header"))
-	Menu:CreateLabel(Faction:GetName() .. " Faction")
-	Menu:SetSkin(Skin)
-	ShowGeneral(Menu, Faction)
-	ShowCastePower(Menu, Faction)
-	DisplayGoals(Menu, Faction)
+	if Faction ~= nil then
+		Menu:CreateLabel(Faction:GetName() .. " Faction")
+		Menu:SetSkin(Skin)
+		ShowGeneral(Menu, Faction)
+		ShowCastePower(Menu, Faction)
+		DisplayGoals(Menu, Faction)
+	else
+		Menu:CreateLabel("No Faction")
+		Menu:SetSkin(Skin)
+	end
 	Menu:CreateButton("Close",
 		function(Widget)
 			Menu:Close()

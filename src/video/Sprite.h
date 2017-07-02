@@ -21,7 +21,6 @@ struct Resource;
 #define DestroyGameObject(_Object) DestroySprite(_Object)
 
 struct MapRenderer;
-typedef struct SDL_Texture SDL_Texture;
 
 struct Sprite {
 	struct Resource* Image;

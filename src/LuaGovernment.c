@@ -9,6 +9,7 @@
 #include "Faction.h"
 #include "Government.h"
 #include "Policy.h"
+#include "Relation.h"
 
 #include "sys/LuaCore.h"
 #include "sys/Log.h"
@@ -21,13 +22,12 @@ static const luaL_Reg g_LuaFuncsGovernment[] = {
 	{"Type", LuaGovernmentType},
 	{"Rule", LuaGovernmentRule},
 	{"GetLeader", LuaGovernmentGetLeader},
-	{"GetJudge", LuaGovernmentGetJudge},
-	{"GetMarshall", LuaGovernmentGetMarshall},
-	{"GetSteward", LuaGovernmentGetSteward},
 	{"HasPolicy", LuaGovernmentHasPolicy},
 	{"GetPolicyCategory", LuaGovernmentGetPolicyCategory},
 	{"GetTaxRate", LuaGovernmentGetTaxRate},
 	{"PolicyApproval", LuaGovernmentPolicyGetPolicyApproval},
+	{"GetRelation", LuaGovernmentGetRelation},
+	{"CreateRelation", LuaGovernmentCreateRelation},
 	{NULL, NULL}
 };
 
@@ -101,27 +101,6 @@ int LuaGovernmentGetLeader(lua_State* State) {
 	return 1;
 }
 
-int LuaGovernmentGetJudge(lua_State* State) {
-	struct Government* Government = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
-	
-	LuaCtor(State, Government->Appointments.Judge, LOBJ_BIGGUY);
-	return 1;
-}
-
-int LuaGovernmentGetMarshall(lua_State* State) {
-	struct Government* Government = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
-	
-	LuaCtor(State, Government->Appointments.Marshall, LOBJ_BIGGUY);
-	return 1;
-}
-
-int LuaGovernmentGetSteward(lua_State* State) {
-	struct Government* Government = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
-	
-	LuaCtor(State, Government->Appointments.Steward, LOBJ_BIGGUY);
-	return 1;
-}
-
 int LuaGovernmentHasPolicy(lua_State* State) {
 	struct Government* Government = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
 	struct Policy* Policy = LuaCheckClass(State, 2, LOBJ_POLICY);
@@ -158,6 +137,32 @@ int LuaGovernmentPolicyGetPolicyApproval(lua_State* State) {
 	struct Policy* Policy = LuaCheckClass(State, 2, LOBJ_POLICY);
 
 	lua_pushinteger(State, Government->PolicyPop[Policy->Id]);
+	return 1;
+}
+
+int LuaGovernmentGetRelation(lua_State* State) {
+	struct Government* Owner = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
+	struct Government* Target = LuaCheckClass(State, 2, LOBJ_GOVERNMENT);
+	struct Relation* Relation = GetRelation(Owner->Relations, Target);
+
+	if(Relation == NULL) {
+		lua_pushnil(State);
+		return 1;
+	}
+	LuaCtor(State, Relation, LOBJ_RELATION);
+	return 1;
+}
+
+int LuaGovernmentCreateRelation(lua_State* State) {
+	struct Government* Owner = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
+	struct Government* Target = LuaCheckClass(State, 2, LOBJ_GOVERNMENT);
+	struct Relation* Relation = GetRelation(Owner->Relations, Target);
+
+	if(Relation != NULL) {
+		LuaCtor(State, Relation, LOBJ_RELATION);
+		return 1;
+	}
+	Relation = CreateRelation(Owner, Target, &Owner->Relations);
 	return 1;
 }
 
@@ -353,3 +358,4 @@ int LuaFactionGetSettlement(lua_State* State) {
 	LuaCtor(State, Faction->Settlement, LOBJ_SETTLEMENT);
 	return 1;
 }
+

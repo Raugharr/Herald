@@ -1,4 +1,3 @@
-Menu.__savestate = false;
 Menu.moveable = false;
 
 Strings = {
@@ -6,6 +5,13 @@ Strings = {
 	"Glory represents how respected you are by the warrior caste."
 }
 
+local function OnKey(Menu, Key, Mod)
+	print(Menu, Key, Mod)
+	if (Key == Keyboard.Key["`"] and KeyboardMod(Keyboard.Mod['Shift'], Mod)) or Key == string.byte("~") then
+	elseif Key == Keyboard.Key["Return"] then
+		load(Menu:GetText())()
+	end
+end
 function InfoWidgetClose(Widget)
 	Widget.Window:Close()
 end
@@ -13,11 +19,13 @@ end
 function Menu.Init(Menu, Data)
 	local TempSkin = nil
 
+	Menu.Console = Menu:CreateTextBox()
+	--Menu.Console:Hide(true)
+	Menu.Console:OnKey(OnKey)
 	Menu.DateCont = Gui.HorizontalContainer(Menu, 300, 50):SetFocus(false)
 	Menu.MenuBar = Gui.VerticalContainer(Menu, 512, Menu:GetHeight()):Below(Menu.DateCont)
 	Menu.HoverCont = nil
 	
---	Menu:CreateWorldRender();
 	World.Pause(false)
 	World.Render(true)
 	Menu.MenuBar:CreateButton("Government",

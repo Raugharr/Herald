@@ -13,12 +13,13 @@
 #include "Faction.h"
 
 #include "sys/LinkedList.h"
+#include "sys/Array.h"
 
 #include "video/AABB.h"
 
 #define SETTLEMENT_MINBG (3)
 #define MILE_ACRE (640)
-#define SETTLEMENT_SPACE (MILE_ACRE / 3)
+#define SETTLEMENT_SPACE (520 * 7)
 #define HARVEST_YEARS (3)
 #define SettlementRaiseFyrd(Settlement, ArmyGoal) CreateArmy((Settlement), (Settlement)->Government->Leader, (ArmyGoal))
 
@@ -34,42 +35,102 @@ struct Object;
 struct BulletinItem;
 struct Retinue;
 
+enum ESelp {
+	SELP_REG = (1 << 0),//Regular person.
+	SELP_BIG = (1 << 1),//Big guy.
+	SELP_ANY = SELP_REG | SELP_BIG
+};
+
+enum EFine {
+	FINE_MURDER,
+	FINE_SIZE
+};
+
+enum EFineL {
+	FINE_LLIGHT,
+	FINE_LNORMAL,
+	FINE_LHEAVY
+};
+/**
+ * Struct used in QueryPeople to determine which people should be selected and how many
+ * people should be selected.
+ */
+struct PersonSelector {
+	uint16_t Count; //Will select Count number of people. If there arent enough valid people will then select them all.
+	int8_t Gender; //Gender of people to return use (EMALE | EFEMALE) to return both.
+	int8_t Adult;
+	int8_t Caste;
+	//Type of person this is, see ESELP enumeration for valid values.
+	int8_t PType;
+	struct Person* Target;
+	bool Relatives;//Only select relatives.
+};
+
+struct SettlementSelector {
+	const struct Settlement* Target;
+	uint16_t Distance; //Distance from Target to query search results.
+	uint16_t Count;
+};
+
 struct Settlement {
 	struct Object Object;
 	SDL_Point Pos;
 	char* Name;
 	//Look into replacing this with an array as People should not be frequently leaving/joining a settlement.
-	struct Person* People;
+	struct Array People;
+	//List of crisis that have been started here.
+	struct Array Crisis;
+	//List of families that are slaves, used to lookup who owns what slave family.
+	//Sorted by Owner's family id.
+	struct Array Slaves;
 	struct Sprite* Sprite;
 	struct Government* Government;
 	struct BuyRequest* BuyOrders;
 	struct SellRequest* Market;
-	struct BulletinItem* Bulletin;
+	struct Array Bulletin;
 	struct Retinue* Retinues; 
-	struct Faction Factions;
 	struct LinkedList Families; // List of struct Family*
 	struct LinkedList BigGuys; // List of struct BigGuy*
 	struct LinkedList FreeWarriors; //List of struct Person*
-	struct Field Meadow; //Common area that anyone can use to feed their animals.
+	//Men who are looking for wives.
+	struct Array Suitors;
+	//Women who are looking for husbands.
+	struct Array Brides;
 	DATE LastRaid;
-	uint16_t NumPeople;
+	struct {
+		int32_t SlowSpoiled;
+		int32_t FastSpoiled;
+		int32_t AnimalFood; //Accounts for all nutrition that is assumed to be grown from wild plants on the farmers fallow fields. Since it is not harvested
+		// this variable should be set to 0 at harvest time.
+	} Food;
 	//Migrants are not accounted for.
 	uint16_t YearDeaths; //Record of deaths in this settlement this year.
 	uint16_t YearBirths;
 	uint16_t AdultMen;
 	uint16_t AdultWomen;
 	uint16_t MaxWarriors;
+	//How many acres remain to give out as farming land.
 	uint16_t FreeAcres;
+	//Number of farming acres in use.
 	uint16_t UsedAcres;
+	uint16_t NumPeople;
 	uint16_t StarvingFamilies;
 	uint16_t CasteCount[CASTE_SIZE];
 	uint8_t Stats[BGSKILL_SIZE];
 	uint8_t CasteHappiness[CASTE_SIZE];
+	uint8_t HarvestYear;
+	struct {
+		const struct Crop* Crop; //What crop is growing in the meadow.
+		uint16_t Acres;
+		int32_t MonthNut;//How much food this field generates per month.
+		int32_t NutRem;//How much food is unused.
+	} Meadow;
 	/**
 	 * Modifier to how many pounds are harvested from each field in this
 	 * settlement. Changes every year and is dependant on the previous year.
 	 */
 	uint8_t HarvestMod[HARVEST_YEARS];
+	struct Faction Factions;
 };
 
 void LocationGetPoint(const struct Settlement* Location, SDL_Point* Point);
@@ -131,4 +192,9 @@ static inline int SettlementAllocAcres(struct Settlement* Settlement, int Acres)
 	Settlement->FreeAcres -= Acres;
 	return 1;
 }
+void InitPersonSelector(struct PersonSelector* Selector);
+//Returns a list of people that is at most Selector->Count people that are in the InList that satisfy the selctor's parameters.
+struct Person** QueryPeople(struct Person** const InList, uint32_t InListSz, const struct PersonSelector* Selector, uint32_t* OutListSz);
+struct Settlement** QuerySettlement(const struct SettlementSelector* Selector, uint32_t* OutListSz);
+bool LocationCreateField(struct Family* Family, int Acres);
 #endif

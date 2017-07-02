@@ -36,8 +36,10 @@ extern const char* g_FactionGoalNames[FACTION_GSIZE];
 extern const char* g_FactionNames[FACTION_GSIZE];
 
 enum EFactionIdeology {
-	FACTION_IDNOBLE,
-	FACTION_IDPEASANT,
+	//FACTION_IDNOBLE,
+	//FACTION_IDPEASANT,
+	FACTION_IDRETINUE,
+	FACTION_IDGOVERN,
 	FACTION_IDRELIGION,
 	FACTION_IDMERCHANT,
 	FACTION_IDSIZE,
@@ -75,8 +77,8 @@ struct Faction {
 //	uint16_t CasteOpinion[FACTION_IDSIZE * CASTE_SIZE];
 //	uint16_t CasteDelta[FACTION_IDSIZE * CASTE_SIZE];//Modifier of CasteOpinion that is done once per month. Modifier is halved every month.
 	uint16_t CasteCount[FACTION_IDSIZE * CASTE_SIZE]; //Number of people in this faction for each caste.
-	uint16_t Goal; //Goal trying to be passed.
 	int16_t FactionBet[FACTION_IDSIZE];
+	uint8_t Goal; //Goal trying to be passed.
 	uint8_t CastePower[CASTE_SIZE]; //How much power each caste gives.
 	uint8_t FactionWeight[FACTION_IDSIZE * CASTE_SIZE]; //How likely a member of a caste will join a certain faction.
 	uint8_t ActiveMask;

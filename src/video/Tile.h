@@ -35,8 +35,12 @@ enum ETileTerrain {
 	TILE_TSIZE
 };
 
+struct TileBase {
+    uint8_t MoveCost;
+};
+
 struct Tile {
-	uint8_t Soil;//How fertile the soil is.
+	uint8_t Soil;//How fertile the soil is. Number is between 1-100.
 	uint8_t TileVar; //Which variation the will render.
 	uint8_t Temperature;
 	uint8_t TileSheet;

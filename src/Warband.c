@@ -90,7 +90,6 @@ void DestroyWarrior(struct Warrior* Warrior, struct Warband* Warband) {
 
 void CreateWarband(struct Settlement* Settlement, struct BigGuy* Leader, struct Army* Army) {
 	struct Warband* Warband = NULL;
-	struct Person* Person = Settlement->People;
 	struct Family* Family = NULL;
 	struct Good* Good = NULL;
 	struct Good* MeleeWeapon = NULL;
@@ -110,9 +109,10 @@ void CreateWarband(struct Settlement* Settlement, struct BigGuy* Leader, struct 
 	Warband->Next = NULL;
 	Warband->Prev = NULL;
 	InitUnitStats(&Warband->Stats);
-	while(Person != NULL) {
-		if(PersonIsWarrior(Person) == 0)
-			goto loop_end;
+	for(int i = 0; i < Settlement->People.Size; ++i) {
+		struct Person* Person  = Settlement->People.Table[i];
+
+		if(PersonIsWarrior(Person) == 0) continue;
 		Family = Person->Family;
 		for(int i = 0; i < Family->Goods.Size; ++i) {
 			Good = (struct Good*) Family->Goods.Table[i];
@@ -128,10 +128,8 @@ void CreateWarband(struct Settlement* Settlement, struct BigGuy* Leader, struct 
 					Shield = ArrayRemoveGood(&Family->Goods, i, 1);
 			}
 		}
-		ILL_DESTROY(Settlement->People, Person);
+		SettlementRemovePerson(Settlement, Person);
 		CreateWarrior(Warband, Person, MeleeWeapon, RangeWeapon, Armor, Shield);
-		loop_end:
-		Person = Person->Next;
 	}
 	Warband->Stats[WARSTAT_OFFENSE] = Settlement->Stats[BGSKILL_STRENGTH];
 	Warband->Stats[WARSTAT_DEFENSE] = Settlement->Stats[BGSKILL_TOUGHNESS];
@@ -181,7 +179,7 @@ void DisbandWarband(struct Warband* Warband) {
 
 	for(int i = 0; i < Warband->Warriors.Size; ++i) {
 		Warrior = Warband->Warriors.Table[i];
-		ILL_CREATE(Warband->Settlement->People, Warrior->Person);
+		SettlementAddPerson(Warband->Settlement, Warrior->Person);
 	}
 	PushEvent(EVENT_WARBNDHOME, Warband, NULL);
 }
@@ -506,51 +504,67 @@ void LootFamilies(struct Array* Loot, struct LinkedList* Families, uint32_t MaxG
 	}
 }
 
-void WarTypes(struct Person** People, uint32_t PeopleCt, uint32_t* Melee, uint32_t* Skirmishers, uint32_t* Support, uint32_t* Calvary) {
-	uint32_t MeleeCt = 0;
-	uint32_t SkirmishersCt = 0;
-	uint32_t SupportCt = 0;
-	uint32_t CalvaryCt = 0;
-	struct Good* Gear[GEAR_SIZE];
+void WarTypes(struct LinkedList* Families, uint32_t (*RoleCt)[WARROLE_SIZE]) {
+	struct Good* Gear[GEAR_SIZE] = {0};
 	struct WeaponBase* Weapon = NULL;
-	struct ArmorBase* Armor = NULL;
+	//struct ArmorBase* Armor = NULL;
 
-	for(int i = 0; i < PeopleCt; ++i) {
-		struct Family* Family = People[i]->Family;
+	for(struct LnkLst_Node* Itr = Families->Front; Itr != NULL; Itr = Itr->Next) {
+		struct Family* Family = Itr->Data;
+		int CurrPerson = 0;
 
-		for(int j = 0; j < Family->Goods.Size; ++j) {
-			struct Good* Good = Family->Goods.Table[i];
+		for(; CurrPerson < Family->NumChildren + CHILDREN; ++CurrPerson) {
+			if(PersonIsWarrior(Family->People[CurrPerson]) == false) goto loop_end;
+			//goto loop_end;
+			//find_gear:
+			for(int j = 0; j < Family->Goods.Size; ++j) {
+				struct Good* Good = Family->Goods.Table[j];
 
-			if(Good->Base->Category == GOOD_WEAPON) {
-				if(((struct WeaponBase*)Good->Base)->Range == MELEE_RANGE && Gear[GEAR_WEPMELEE] != NULL) {
-					Gear[GEAR_WEPMELEE] = Good;
-				} else if(((struct WeaponBase*)Good->Base)->Range != MELEE_RANGE && Gear[GEAR_WEPRANGE] != NULL){
-					Gear[GEAR_WEPRANGE] = Good;
-				}
-			} else if(Good->Base->Category == GOOD_ARMOR) {
-				if(((struct ArmorBase*)Good->Base)->ArmorType== EARMOR_BODY && Gear[GEAR_ARMOR] != NULL) {
-					Gear[GEAR_ARMOR] = Good;
-				} else if(((struct ArmorBase*)Good->Base)->ArmorType == EARMOR_BODY && Gear[GEAR_SHIELD] != NULL) {
-					Gear[GEAR_SHIELD] = Good;
+				if(Good->Base->Category == GOOD_WEAPON) {
+					if(((struct WeaponBase*)Good->Base)->Range == MELEE_RANGE && Gear[GEAR_WEPMELEE] == NULL) {
+						Gear[GEAR_WEPMELEE] = Good;
+					} else if(((struct WeaponBase*)Good->Base)->Range != MELEE_RANGE && Gear[GEAR_WEPRANGE] == NULL){
+						Gear[GEAR_WEPRANGE] = Good;
+					}
+				} else if(Good->Base->Category == GOOD_ARMOR) {
+					if(((struct ArmorBase*)Good->Base)->ArmorType== EARMOR_BODY && Gear[GEAR_ARMOR] == NULL) {
+						Gear[GEAR_ARMOR] = Good;
+					} else if(((struct ArmorBase*)Good->Base)->ArmorType == EARMOR_SHIELD && Gear[GEAR_SHIELD] == NULL) {
+						Gear[GEAR_SHIELD] = Good;
+					}
 				}
 			}
-		}
-		Weapon = (struct WeaponBase*) Gear[GEAR_WEPMELEE]->Base;
-		Armor = (struct ArmorBase*) Gear[GEAR_SHIELD]->Base;
-		if((Weapon->WeaponType == EWEAPON_SPEAR || Weapon->WeaponType == EWEAPON_SPEAR) && Gear[GEAR_SHIELD] != NULL) {
-			++MeleeCt;
-		} else if(((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_JAVELIN && Weapon->WeaponType == EWEAPON_SEAX) {
-			++SkirmishersCt;
-		} else if(((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_BOW) {
-			++SupportCt;
-		}
-		for(int j = 0; j < GEAR_SIZE; ++j) {
-			Gear[j] = NULL;
+			if(Gear[GEAR_WEPMELEE] != NULL) {
+				Weapon = (struct WeaponBase*) Gear[GEAR_WEPMELEE]->Base;
+			} else {
+				goto support;
+			}
+			if(Gear[GEAR_SHIELD] != NULL) {
+				//Armor = (struct ArmorBase*) Gear[GEAR_SHIELD]->Base;
+			} else {
+				//goto skirmisher;
+			}
+			if((Weapon->Range == MELEE_RANGE)) {// && Gear[GEAR_SHIELD] != NULL) {
+				if(Gear[GEAR_SHIELD] !=  NULL && Gear[GEAR_ARMOR] != NULL)
+					++(*RoleCt)[WARROLE_HEAVYINF];
+				else
+					++(*RoleCt)[WARROLE_LIGHTINF];
+				goto loop_end;
+			} 
+			//skirmisher:
+			if(((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_JAVELIN && (Weapon == NULL || Weapon->WeaponType == EWEAPON_SEAX)) {
+				++(*RoleCt)[WARROLE_SKIRMISHER];
+				goto loop_end;
+			} 
+			support:
+			if(Gear[GEAR_WEPRANGE] != NULL && ((struct WeaponBase*)Gear[GEAR_WEPRANGE]->Base)->WeaponType == EWEAPON_BOW) {
+				++(*RoleCt)[WARROLE_SUPPORT];
+				goto loop_end;
+			}
+			loop_end:
+			for(int j = 0; j < GEAR_SIZE; ++j) {
+				Gear[j] = NULL;
+			}
 		}
 	}
-
-	if(Melee != NULL) *Melee = MeleeCt;
-	if(Skirmishers != NULL) *Skirmishers = SkirmishersCt;
-	if(Support != NULL) *Support = SupportCt;
-	if(Calvary != NULL) *Calvary = CalvaryCt;
 }

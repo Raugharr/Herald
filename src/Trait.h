@@ -9,7 +9,8 @@
 typedef struct lua_State lua_State;
 
 struct Trait {
-	int Id;
+	uint32_t Id;
+	uint32_t Chance; //Percentage between 0 and 2^32 - 1 to have a person have this trait.
 	const char* Name;
 	struct Trait** Likes;
 	struct Trait** Dislikes;

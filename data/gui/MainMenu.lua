@@ -1,12 +1,13 @@
-Menu.__savestate = false;
 Menu.moveable = false;
 
 function Menu.Init(Menu, Data)
-	Menu.TitleCon = Gui.HorizontalContainer(Menu, Menu:GetWidth(), 30):SetFocus(false)
+	Menu.TitleCon = Gui.HorizontalContainer(Menu, Menu:GetWidth(), 50):SetFocus(false)
+	Menu.TitleCon:SetSkin(Gui.GetSkin("Title"))
 	Menu.Title = Menu.TitleCon:CreateLabel("Herald")
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
 	Menu.ButList = Gui.VerticalContainer(Menu, 100, 500)
+	Menu.ButList:SetSkin(Gui.GetSkin("Big"))
 	Menu.ButList:SetY(100)
 	Menu.ButList:CreateButton("New",
 	function()

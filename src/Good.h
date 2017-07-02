@@ -105,14 +105,14 @@ struct GoodBase {
 	char* Name;
 	struct InputReq** InputGoods;
 	uint32_t Category;
+	uint32_t Cost; //Value of good.
 	uint8_t IGSize; //InputGood size.
 };
 
 struct Good {
-	int Id;
-	SDL_Point Pos;
-	const struct GoodBase* Base;
+	uint32_t Id;
 	int32_t Quantity; //!Described either as fluid ounces, ounces, or per item.
+	const struct GoodBase* Base;
 };
 
 struct WeaponBase {
@@ -141,10 +141,9 @@ struct FoodBase {
 };
 
 struct Food {
-	int Id;
-	SDL_Point Pos;
+	uint32_t Id;
+	int32_t Quantity;
 	const struct FoodBase* Base;
-	int Quantity;
 	int Parts;
 };
 
@@ -161,7 +160,7 @@ int GoodDepCmp(const struct GoodDep* One, const struct GoodDep* Two);
 int GoodBaseDepCmp(const struct GoodBase* Weapon, const struct GoodDep* Pair);
 int InputReqGoodCmp(const struct InputReq* One, const struct Good* Two);
 
-struct GoodBase* InitGoodBase(struct GoodBase* Weapon, const char* Name, int Category);
+struct GoodBase* CreateGoodBase(struct GoodBase* Weapon, const char* Name, int Category);
 struct GoodBase* CopyGoodBase(const struct GoodBase* Good);
 int GoodBaseCmp(const void* One, const void* Two);
 void DestroyGoodBase(struct GoodBase* Weapon);
@@ -174,7 +173,7 @@ int GoodInpGdCmp(const void* One, const void* Two);
 struct Good* GoodCopy(const struct Good* Good);
 struct Good* FoodGoodCopy(const struct Good* Good);
 
-struct Good* CreateGood(const struct GoodBase* Base, int X, int Y);
+struct Good* CreateGood(const struct GoodBase* Base);
 int GoodCmp(const void* One, const void* Two);
 void DestroyGood(struct Good* Weapon);
 
@@ -187,7 +186,7 @@ void DestroyToolBase(struct ToolBase* Tool);
 struct FoodBase* CreateFoodBase(const char* Name, int Category, int Nutrition);
 void DestroyFoodBase(struct FoodBase* Food);
 
-struct Food* CreateFood(const struct FoodBase* Base, int X, int Y);
+struct Food* CreateFood(const struct FoodBase* Base);
 void DestroyFood(struct Food* Food);
 
 struct ClothingBase* CreateClothingBase(const char* Name, int Category);
@@ -260,7 +259,7 @@ int GoodPay(struct Family* Buyer, const struct SellRequest* SellReq);
 const struct GoodBase* GoodPayInKind(const struct Family* Buyer, int Cost, const struct GoodBase* PayGood, int* Quantity);
 void SellItem(struct Family* Buyer, const struct SellRequest* SellReq);
 int GoodGetValue(const struct GoodBase* Base);
-struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs, int X, int Y);
+struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs);
 const struct LinkedList* GoodGetCategory(const char* Category);
 /*
  * Takes Quantity amount from Good and inserts it into Family's Good array, creating a new good if Family's
@@ -275,12 +274,12 @@ struct Good* ArrayRemoveGood(struct Array* GoodList, uint32_t Index, uint32_t Qu
  * Returns the yearly requirement of nutrition needed to feed the people in the family Family.
  */
 
-static inline struct Good* CheckGoodTbl(struct Array* Array, const char* GoodName, const struct HashTable* Search, int X, int Y) {
+static inline struct Good* CheckGoodTbl(struct Array* Array, const char* GoodName, const struct HashTable* Search) {
 	const struct GoodBase* GoodBase = HashSearch(Search, GoodName);
 	struct Good* Good = NULL;
 
 	if((Good = LinearSearch(GoodBase, Array->Table, Array->Size, (CompCallback) GoodBaseGoodCmp)) == NULL) {
-		Good = CreateGood(GoodBase, X, Y);
+		Good = CreateGood(GoodBase);
 		ArrayInsertSort(Array, Good, GoodCmp);
 	}
 	return Good;

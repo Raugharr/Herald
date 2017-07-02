@@ -58,6 +58,9 @@ void MapLoad(struct MapRenderer* Map);
 void ScreenToHex(const SDL_Point* Screen, SDL_Point* Hex);
 void TileRing(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t Radius, struct Tile** Out);
 void TileSpiral(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t Radius, struct Tile** Out);
+/**
+ * Returns the number of tiles that exist in a given radius.
+ */
 static inline uint32_t NumTileRadius(uint16_t Radius) {
 	return 3 * (Radius * Radius) - (3 * Radius) + 1;
 }
@@ -72,7 +75,10 @@ static inline void MapHexOffset(uint16_t ScreenX, uint16_t ScreenY, uint16_t Y, 
 }
 void MapRender(SDL_Renderer* Renderer, SDL_Texture* Texture, uint16_t SrcX, uint16_t SrcY, uint16_t DestX, uint16_t DestY);
 void MapRenderAll(SDL_Renderer* Renderer, struct MapRenderer* Map);
-void MapObjectsInRect(struct MapRenderer* Renderer, int Layer, const SDL_Rect* Rect, struct LinkedList* Data);
+/**
+ *\out Data Size
+ */
+void MapObjectsInRect(struct MapRenderer* Renderer, uint8_t Layer, const SDL_Rect* Rect, void** Data, uint32_t* Size, uint32_t TableSz);
 const struct Tile* MapGetTileConst(const struct MapRenderer* const Renderer, const SDL_Point* Point);
 //FIXME: Move to Tile.h
 struct Tile* MapGetTile(struct MapRenderer*  Renderer, const SDL_Point* Point);

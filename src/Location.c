@@ -1,4 +1,5 @@
-/* Author: David Brotz
+/**
+ * Author: David Brotz
  * File: Location.c
  */
 
@@ -11,14 +12,17 @@
 #include "Warband.h"
 #include "Crop.h"
 #include "Bulletin.h"
-#include "Plot.h"
 #include "Retinue.h"
+#include "Mission.h"
+#include "Crisis.h"
 
 #include "sys/Math.h"
 #include "sys/ResourceManager.h"
 #include "sys/Array.h"
 #include "sys/Log.h"
 #include "sys/Coroutine.h"
+#include "sys/Rule.h"
+#include "sys/LuaCore.h"
 
 #include "video/Sprite.h"
 #include "video/Tile.h"
@@ -30,6 +34,8 @@
 #define HARVESTMOD_MIN 0.4f
 #define HARVESTMOD_MAX 1.6f
 #define SETTLEMENT_AVGSTAT (50)
+
+uint8_t UpdateHarvestMod(uint8_t (*HarvestYears)[HARVEST_YEARS], uint8_t CurrYear);
 
 void LocationGetPoint(const struct Settlement* Location, SDL_Point* Point) {
 	(*Point).x = Location->Pos.x;
@@ -71,7 +77,8 @@ struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType)
 	Loc->Pos.x = X;
 	Loc->Pos.y = Y;
 	Loc->Name = calloc(strlen(Name) + 1, sizeof(char));
-	Loc->People = NULL;
+	CtorArray(&Loc->People, 64);
+	CtorArray(&Loc->Slaves, 20);
 	Loc->Government = CreateGovernment(GovType, 0, Loc);
 	Loc->NumPeople = 0;
 	Loc->BigGuys.Size = 0;
@@ -82,40 +89,38 @@ struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType)
 	Loc->Families.Size = 0;
 	Loc->Families.Front = NULL;
 	Loc->Families.Back = NULL;
-	Loc->People = NULL;
-	Loc->People = NULL;
+	CtorArray(&Loc->Suitors, 8);
+	CtorArray(&Loc->Brides, 8);
 	Loc->YearBirths = 0;
 	Loc->YearDeaths = 0;
 	for(uint8_t i = 0; i < HARVEST_YEARS - 1; ++i)
 		Loc->HarvestMod[i] = 5;
 	Loc->HarvestMod[HARVEST_YEARS - 1] = 6;
 	Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &Loc->Pos);
-	Loc->Meadow.Pos.x = Loc->Pos.x;
-	Loc->Meadow.Pos.y = Loc->Pos.y;
 	Loc->Meadow.Crop = HashSearch(&g_Crops, "Hay");
-	Loc->Meadow.YieldTotal = 0;
-	Loc->Meadow.Acres = 200;
-	Loc->Meadow.UnusedAcres = 0;
-	Loc->Meadow.Owner = NULL;
+	Loc->Meadow.Acres = SETTLEMENT_SPACE / 2;
+	Loc->Meadow.MonthNut = Loc->Meadow.Acres * ToPound(Loc->Meadow.Crop->SeedsPerAcre) * Loc->Meadow.Crop->YieldMult * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&Loc->HarvestMod); 
+	Loc->Meadow.NutRem = Loc->Meadow.MonthNut;
 	Loc->BuyOrders = NULL;
+	Loc->Food.SlowSpoiled = 0;
 	Loc->Market = NULL;
 	Loc->LastRaid = 0;
 	Loc->AdultMen = 0;
 	Loc->AdultWomen = 0;
-	Loc->Bulletin = NULL;
+	CtorArray(&Loc->Bulletin, 8);
 	Loc->MaxWarriors = 0;
-	Loc->FreeAcres = SETTLEMENT_SPACE;
+	Loc->FreeAcres = SETTLEMENT_SPACE - Loc->Meadow.Acres;
 	Loc->UsedAcres = 0;
+	//FIXME: Each family should take an acre of land.
 	Loc->StarvingFamilies = 0;
 	Loc->Retinues = NULL;
 	CtorFaction(&Loc->Factions, Loc);
-	BGStatsWarlord(&Loc->Stats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
-	/*for(int i = 0; i < BGSKILL_SIZE; ++i) {
-		_Loc->Stats[i] = _BGStats[i];
-	}*/
+	GenerateStats(CASTE_FARMER, &Loc->Stats);
+	for(int i = 0; i < HARVEST_YEARS; ++i) UpdateHarvestMod(&Loc->HarvestMod, i);
+	Loc->HarvestYear = 0;
 	ConstructLinkedList(&Loc->FreeWarriors);
-	Loc->Meadow.Status = EGROWING;
-	Loc->Meadow.StatusTime = 0;
+	CtorArray(&Loc->Crisis, 8);
+	Assert(Loc->FreeAcres >= 100);
 	return Loc;
 }
 
@@ -123,15 +128,24 @@ void DestroySettlement(struct Settlement* Location) {
 	DestroyObject((struct Object*)Location);
 	LnkLstClear(&Location->Families);
 	DestroyGameObject(Location->Sprite);
+	DtorArray(&Location->People);
+	DtorArray(&Location->Suitors);
+	DtorArray(&Location->Brides);
+	DtorArray(&Location->Crisis);
+	for(int i = 0; i < Location->Bulletin.Size; ++i) {
+		struct BulletinItem* Obj = Location->Bulletin.Table[i];
+
+		DestroyBulletinItem(Obj);
+	}
+	DtorArray(&Location->Bulletin);
 	free(Location->Government);
 	free(Location->Name);
 	free(Location);
 }
 
 uint8_t UpdateHarvestMod(uint8_t (*HarvestYears)[HARVEST_YEARS], uint8_t CurrYear) {
-	if(++CurrYear >= HARVEST_YEARS)
-		CurrYear = 0;
-	*HarvestYears[CurrYear] = Random(1, 10);
+	//CurrYear = CurrYear % HARVEST_YEARS;
+	//(*HarvestYears)[CurrYear] = (uint8_t) Random(1, 10);
 	return CurrYear;
 }
 
@@ -145,11 +159,15 @@ float HarvestModifier(uint8_t (* const HarvestYears)[HARVEST_YEARS]) {
 
 void SettlementThink(struct Settlement* Settlement) {
 	struct LnkLst_Node* Itr = Settlement->Families.Front;
-	struct BulletinItem* Bulletin = Settlement->Bulletin;
 
-	FieldUpdate(&Settlement->Meadow);
-	GovernmentThink(Settlement->Government);
+	//GovernmentThink(Settlement->Government);
 	if(MONTH(g_GameWorld.Date) == 0 && DAY(g_GameWorld.Date) == 0) {
+		uint16_t MeadowDelta = Settlement->Meadow.Acres * ToPound(Settlement->Meadow.Crop->SeedsPerAcre) * Settlement->Meadow.Crop->YieldMult * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&Settlement->HarvestMod);
+		UpdateHarvestMod(&Settlement->HarvestMod, Settlement->HarvestYear);
+		Settlement->Meadow.MonthNut = MeadowDelta; 
+		Settlement->Meadow.NutRem = Settlement->Meadow.MonthNut + MeadowDelta;
+		++Settlement->HarvestYear;
+		Settlement->HarvestYear = Settlement->HarvestYear % HARVEST_YEARS;
 		if(YEAR(g_GameWorld.Date) - YEAR(Settlement->LastRaid) >= 1 && DAY(g_GameWorld.Date) == 0) {
 			//MessageBox(g_LuaState, "You have not raided recently.");
 			Itr = Settlement->BigGuys.Front;
@@ -164,13 +182,87 @@ void SettlementThink(struct Settlement* Settlement) {
 		}
 		Settlement->YearBirths = 0;
 		Settlement->YearDeaths = 0;
+		//Determine how many crisis will be generated this year.
+		GenerateCrisis(Settlement);
 	}
 	if(DAY(g_GameWorld.Date) == 0) {
-		if(MONTH(g_GameWorld.Date) == 0) {
+		if(MONTH(g_GameWorld.Date) == JANURARY) {
 			if(Settlement->FreeAcres + Settlement->UsedAcres <= MILE_ACRE)
 				Settlement->FreeAcres += Settlement->Families.Size;
-		}
+		} else {//if(MONTH(g_GameWorld.Date) == FEBURARY) {
+		    for(int i = 0; i < Settlement->Crisis.Size; ++i) {
+#define FormatSz (8)
 
+				struct Crisis* Crobj = Settlement->Crisis.Table[i];
+		        struct Primitive Crisis;
+		        struct Primitive Offender;
+		        struct Primitive Defender;
+				struct Mission* Mission = g_MissionEngine.CrisisMissions[Crobj->Type];
+		        struct MissionFrame* Frame = CreateMissionFrame(NULL, Settlement->Government->Leader, Mission);
+		        //struct MissionTextFormat TextFormat[FormatSz];
+				//uint8_t FormatCurr = 0;
+		        //const char* Str = NULL;
+		        
+				if(Frame == NULL) break;
+		        PrimitiveSetPtr(&Crisis, Settlement->Crisis.Table[i], LOBJ_CRISIS);
+		        PrimitiveSetPtr(&Offender, Crobj->Offender, LOBJ_PERSON);
+		        PrimitiveSetPtr(&Defender, Crobj->Defender, LOBJ_PERSON);
+				MissionFrameAddVar(Frame, 3, "Crisis", &Crisis, "Offender", &Offender, "Defender", &Defender);
+		        MissionCall(g_LuaState, Frame);
+#undef FormatSz
+		    }
+		    Settlement->Crisis.Size = 0;
+		}
+		//Attempt to match a suitor and bride together and then marry them.
+		for(int i = 0; i < Settlement->Suitors.Size; ++i) {
+			if(Settlement->Brides.Size <= 0)
+				break;
+			struct Person* Suitor = Settlement->Suitors.Table[i];
+			struct Person* Bride = Settlement->Brides.Table[Settlement->Brides.Size -1];
+			struct Family* Family = CreateFamily(Suitor->Family->Name, Settlement, Suitor->Family, Suitor->Family->Caste);
+			struct Good* Good = NULL;
+
+			for(int i = 0; i < Suitor->Family->Goods.Size; ++i) {
+				Good = Suitor->Family->Goods.Table[i];
+				
+				if(Good->Base->Category == GOOD_SEED) {
+					struct Good* NewGood = CreateGood(Good->Base);	
+					struct Crop* Crop = HashSearch(&g_Crops, Good->Base->Name);
+					int Take = Crop->SeedsPerAcre * FAMILY_ACRES;
+					int NutTake = 0;
+					int NutReq = 16; //FamilyNutReq(Family);
+					
+					if(Take > Good->Quantity) Take = Good->Quantity / 2;
+					ArrayInsert_S(&Family->Goods, NewGood);
+					ArrayAddGood(&Family->Goods, Good, Take);
+
+					NutTake = (NutReq * (YEAR_DAYS / 2));
+					if(NutTake > Family->Parent->Food.SlowSpoiled) NutTake = Family->Parent->Food.SlowSpoiled;
+					Family->Parent->Food.SlowSpoiled -= NutTake;
+					Family->Food.SlowSpoiled += NutTake;
+
+					if(NutTake > Bride->Family->Food.SlowSpoiled) NutTake = Bride->Family->Food.SlowSpoiled;
+					Bride->Family->Food.SlowSpoiled -= NutTake;
+					Family->Food.SlowSpoiled += NutTake;
+					FamilyDivideAnimals(Family, Suitor->Family, Suitor->Family->NumChildren);
+					//Family->Food.SlowSpoiled += 1000;
+				}
+			}
+			#ifdef DEBUG
+			if(Family->Caste == CASTE_FARMER) Assert(Family->Goods.Size > 0);
+			#endif
+			LocationCreateField(Family, FAMILY_ACRES);
+			FamilyRemovePerson(Suitor->Family, Suitor);
+			FamilyRemovePerson(Bride->Family, Bride);
+			Family->People[HUSBAND] = Suitor;
+			Family->People[WIFE] = Bride;
+			Suitor->Family = Family;
+			Bride->Family = Family;
+			ArrayRemove(&Settlement->Suitors, i);
+			ArrayRemove(&Settlement->Brides, Settlement->Brides.Size - 1);
+			//SettlementPlaceFamily(Settlement, Family);
+			LnkLstPushBack(&Settlement->Families, Family);
+		}
 		Settlement->StarvingFamilies = 0;
 		for(struct Retinue* Itr = Settlement->Retinues; Itr != NULL; Itr = Itr->Next) {
 			RetinueThink(Itr);
@@ -200,16 +292,14 @@ void SettlementThink(struct Settlement* Settlement) {
 			CoResume(Settlement->Factions.Coro);
 		}
 	}
-	while(Bulletin != NULL) {
+	for(int i = 0; i < Settlement->Bulletin.Size; ++i) {
+		struct BulletinItem* Bulletin = Settlement->Bulletin.Table[i];
+
 		--Bulletin->DaysLeft;
 		if(Bulletin->DaysLeft <= 0) {
-			struct BulletinItem* BulletinNext = Bulletin->Next;
-			
-			ILL_DESTROY(Settlement->Bulletin, Bulletin);
-			Bulletin = BulletinNext;
-			continue;
+			ArrayRemove(&Settlement->Bulletin, i);
+			DestroyBulletinItem(Bulletin);
 		}
-		Bulletin = Bulletin->Next;
 	}
 }
 
@@ -220,15 +310,23 @@ void SettlementDraw(const struct MapRenderer* Renderer, struct Settlement* Settl
 }
 
 void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family) {
-	Location->Meadow.Acres = Location->Meadow.Acres + 10;
+	//Location->Meadow.Acres = Location->Meadow.Acres + 10;
+	/*if(Location->People.Size >= Location->People.TblSize)
+		ArrayGrow(&Location->People, Location->People.TblSize * 2);
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(Family->People[i] == NULL || PersonMature(Family->People[i]) == 0)
 			continue;
-		if(Gender(Family->People[i]) == MALE)
+		if(Gender(Family->People[i]) == MALE) {
+			if(i >= CHILDREN) ArrayInsert_S(&Location->Suitors, Family->People[i]);
 			++Location->AdultMen;
-		else
+		} else {
+			if(i >= CHILDREN) ArrayInsert_S(&Location->Brides, Family->People[i]);
 			++Location->AdultWomen;
-	}
+		}
+		Family->People[i]->Sidx = Location->People.Size;
+		ArrayInsert(&Location->People, Family->People[i]);
+	}*/
+	ArrayInsertSort_S(&Location->Slaves, Family, ObjectCmp);
 	LnkLstPushBack(&Location->Families, Family);
 }
 
@@ -253,9 +351,15 @@ void SettlementGetCenter(const struct Settlement* Location, SDL_Point* Pos) {
 void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
 	int Caste = PERSON_CASTE(Person);
 
-	ILL_CREATE(Settlement->People, Person);
+	Person->Sidx = Settlement->People.Size;
+	ArrayInsert_S(&Settlement->People, Person);
+	Assert(Person->Sidx == Settlement->People.Size - 1);
 	++Settlement->NumPeople;
 	if(PersonMature(Person) == true) {
+		if(Gender(Person) == MALE)
+			++Settlement->AdultMen;
+		else
+			++Settlement->AdultWomen;
 		if(Caste == CASTE_WARRIOR) {
 			LnkLstPushBack(&Settlement->FreeWarriors, Person);
 			++Settlement->MaxWarriors;
@@ -271,15 +375,34 @@ void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
 void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person) {
 	Assert(Settlement->NumPeople > 0);
 
-	ILL_DESTROY(Person->Family->HomeLoc->People, Person);
+	uint32_t Sidx = Person->Sidx;
+
+	Assert(Sidx == ((struct Person*)Settlement->People.Table[Sidx])->Sidx);
+	--Settlement->People.Size;
+	Settlement->People.Table[Sidx] = Settlement->People.Table[Settlement->People.Size];
+	((struct Person*)Settlement->People.Table[Sidx])->Sidx = Sidx;
 	--Settlement->NumPeople;
-	if(PersonMature(Person) == 1) {
-		if(Gender(Person) == MALE)
+	if(PersonMature(Person) == true) {
+		if(Gender(Person) == MALE) {
 			--Settlement->AdultMen;
-		else
+			for(int i = 0; i < Settlement->Suitors.Size; ++i) {
+				if(Settlement->Suitors.Table[i] == Person) {
+					ArrayRemove(&Settlement->Suitors, i);
+					break;
+				}
+			}
+		}
+		else {
 			--Settlement->AdultWomen;
+			for(int i = 0; i < Settlement->Brides.Size; ++i) {
+				if(Settlement->Brides.Table[i] == Person) {
+					ArrayRemove(&Settlement->Brides, i);
+					break;
+				}
+			}
+		}
 	}
-	if(PersonMature(Person) != 0 && PERSON_CASTE(Person) == CASTE_NOBLE) {
+	if(PersonMature(Person) != false && PERSON_CASTE(Person) == CASTE_NOBLE) {
 		for(struct LnkLst_Node* Itr = Settlement->FreeWarriors.Front; Itr != NULL; Itr = Itr->Next) {
 			if(Itr->Data == Person) {
 				LnkLstRemove(&Settlement->FreeWarriors, Itr);
@@ -291,13 +414,12 @@ void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person
 }
 
 int SettlementCountWarriors(const struct Settlement* Settlement) {
-	struct Person* Person = Settlement->People;
 	int Ct = 0;
 
-	while(Person != NULL) {
-		if(PersonIsWarrior(Person) != 0)
-			++Ct;
-		Person = Person->Next;
+	for(int i = 0; i < Settlement->People.Size; ++i) {
+		struct Person* Person = Settlement->People.Table[i];
+
+		if(PersonIsWarrior(Person) != 0) ++Ct;
 	}
 	return Ct;
 }
@@ -337,7 +459,7 @@ void TribalCreateBigGuys(struct Settlement* Settlement, double CastePercent[CAST
 		if(CasteCount[Family->Caste] <= 0)
 			goto skip_bigguy;
 		--CasteCount[Family->Caste];
-		BGStatsWarlord(&BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
+		GenerateStats(Family->Caste, &BGStats);
 		CreateBigGuy(Family->People[0], &BGStats, MotCt);
 		--Motivations[MotCt];
 		if(Motivations[MotCt] <= 0)
@@ -413,14 +535,14 @@ int SettlementExpectedYield(const struct Settlement* Settlement) {
 }
 
 struct Plot* SettlementFindPlot(const struct Settlement* Settlement, int PlotType, void* PlotData) {
-	struct Plot* Plot = NULL;
+/*	struct Plot* Plot = NULL;
 
 	for(const struct LnkLst_Node* Itr = SettlementPlots(Settlement); Itr != NULL; Itr = Itr->Next) {
 		Plot = Itr->Data;
 		if(Plot->Type == PLOT_CHANGEPOLICY && Plot->PlotData == PlotData) {
 			return Plot;
 		}
-	}
+	}*/
 	return NULL;
 }
 
@@ -437,4 +559,64 @@ struct Retinue* SettlementAddRetinue(struct Settlement* Settlement, struct BigGu
 	}
 	IntInsert(&g_GameWorld.PersonRetinue, Leader->Person->Object.Id, Retinue);
 	return Retinue;
+}
+
+void InitPersonSelector(struct PersonSelector* Selector) {
+	Selector->Count = ~(0);
+	Selector->Gender = (MALE | FEMALE);
+	Selector->Adult = true;
+	Selector->Caste = ~(0);
+	Selector->PType = SELP_ANY;
+}
+
+struct Person** QueryPeople(struct Person** const InList, uint32_t InListSz, const struct PersonSelector* Selector, uint32_t* OutListSz) {
+	uint32_t PeopleSz = InListSz;
+	uint16_t BuffSz = 0;
+	//List of people to return.
+	struct Person** People = FrameAlloc(sizeof(struct Person*) * InListSz);
+	
+	for(int i = 0; i < InListSz; ++i) People[i] = InList[i];
+	BuffSz = 0;
+	//Go through every person and determine if they are valid for being selected. Done in O(n) time, if sorted would it be faster at O(log(n)) time?
+	for(int i = 0; i < PeopleSz; ++i) {
+		if((Selector->Gender & People[i]->Flags)) People[BuffSz++] = People[i];
+		if(BuffSz >= Selector->Count) goto end;
+	}
+	PeopleSz = BuffSz;
+	BuffSz = 0;
+	for(int i = 0; i < PeopleSz; ++i) {
+		if(PersonMature(People[i]) == Selector->Adult) People[BuffSz++] = People[i];
+		if(BuffSz >= Selector->Count) goto end;
+	}
+	PeopleSz = BuffSz;
+	BuffSz = 0;
+	for(int i = 0; i < PeopleSz; ++i) {
+		if((People[i]->Family->Caste & Selector->Caste) != 0) People[BuffSz++] = People[i];
+		if(BuffSz >= Selector->Count) goto end;
+	}
+	end:
+	*OutListSz = PeopleSz;
+	return People;
+}
+
+struct Settlement** QuerySettlement(const struct SettlementSelector* Selector, uint32_t* OutListSz) {
+	struct Settlement** SetList = FrameAlloc(sizeof(struct Settlement*) * Selector->Count);
+	int Size = 0;
+
+	if(Selector->Target != NULL) {
+		SettlementsInRadius(&g_GameWorld, &Selector->Target->Pos, Selector->Distance, SetList, &Size, Selector->Count);
+	}
+	*OutListSz = Size;
+	return SetList;
+}
+
+bool LocationCreateField(struct Family* Family, int Acres) {
+	struct Settlement* Settlement  = Family->HomeLoc;
+
+	if(Acres < Settlement->FreeAcres) {
+		Settlement->FreeAcres -= Acres;	
+		Family->Spec.Farmer.Fields[Family->Spec.Farmer.FieldCt++] = CreateField(NULL, Acres, Family);
+		return true;
+	}
+ 	return false;
 }

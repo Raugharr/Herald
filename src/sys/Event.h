@@ -6,14 +6,20 @@
 #ifndef __EVENT_H
 #define __EVENT_H
 
-#include "../World.h"
+//#include "../World.h"
 
 #include "RBTree.h"
+
+#include <inttypes.h>
+#include <SDL2/SDL.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
 
+#define KM_TEXTBUFF (32)
+
+typedef struct lua_State lua_State;
 extern const char* g_EventNames[];
 extern struct RBTree g_ActorObservers;
 
@@ -62,17 +68,19 @@ enum {
 	(State)->MouseMove = 0;		\
 	(State)->MousePos.x = -1;		\
 	(State)->MousePos.y = -1;		\
-	(State)->KeyboardState = 0;
+	(State)->KeyboardState = 0;		\
+	(State)->TextBuff[0] = '\0';
 
 struct KeyMouseState {
-	uint16_t MouseButton; /* Which button is pressed. */
-	uint16_t MouseState; /* Pressed or released. */
+	uint8_t MouseButton; /* Which button is pressed. */
+	uint8_t MouseState; /* Pressed or released. */
 	uint16_t MouseClicks;
 	uint16_t KeyboardButton; /* Which key is pressed. */
 	uint16_t KeyboardMod;
 	uint16_t MouseMove;
 	int16_t KeyboardState; /* SDL_PRESSED or SDL_RELEASED */
 	SDL_Point MousePos;
+	char TextBuff[KM_TEXTBUFF];
 };
 
 struct WEvent {

@@ -33,6 +33,6 @@ Goods = {
 	{Name = "Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 10, InputGoods = {}},
 	{Name = "Partial Leather Armor", Category = "Armor", Type = "Armor", Defense = 5, InputGoods = {}},
 	{Name = "Full Leather Body Armor", Category = "Armor", Type = "Armor", Defense = 15, InputGoods = {{"Leather Body Armor", 1}, {"Partial Leather Armor", 1}}},
-	{Name = "Shield", Category = "Armor", Type = "Armor", Defense = 5, InputGoods = {}}
+	{Name = "Shield", Category = "Armor", Type = "Shield", Defense = 5, InputGoods = {}}
 	--{Name = "Javalin", Category = "Weapon", Type = "Javelin", Damage = 2, RangeDamage = 3, Impact = 1 InputGoods = {}},
 }

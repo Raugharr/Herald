@@ -108,11 +108,15 @@ function Menu.Init(Menu, Data)
 	Main.Acres:Shrink()
 	Main:CreateButton("Raise Fyrd",
 		function()
-			World.SetOnClick(1, Settlement.__self)
+			Gui.CreateWindow("ArmyGoal", {Settlement = Settlement})
 			Menu:Close()
 		end)
-
 	Main:Shrink()
+	Menu:CreateButton("Bulletin",
+		function()
+			Gui.CreateWindow("SettlementBulitinMenu", Data)
+		end)
+
 	Menu:CreateButton("Close",
 		function(Widget)
 			Menu:Close()

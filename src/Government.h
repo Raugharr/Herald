@@ -88,11 +88,6 @@ struct Government {
 	struct LinkedList SubGovernments;
 	struct LinkedList Advisors;
 	struct LinkedList PolicyList;
-	struct {
-		struct BigGuy* Judge;
-		struct BigGuy* Marshall;
-		struct BigGuy* Steward;
-	} Appointments;
 	uint8_t TaxRate;//Percent from 0 to 100
 	uint8_t RulerGender;
 	uint8_t AllowedSubjects;

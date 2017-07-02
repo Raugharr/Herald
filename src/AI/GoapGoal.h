@@ -24,7 +24,7 @@ typedef void (*GoapGoalUpdate)(struct Agent*, int, void*);
 struct GoapGoal {
 	const char* Name;
 	const struct GoapAction* Actions[GOAPGOAL_ACTIONS]; //Contains the index of the action.
-	int AtomActions[GOAPGOAL_ATOMS][GOAP_ATOMOPS];//Contains all atoms and the actions that modify them.
+	uint8_t AtomActions[GOAPGOAL_ATOMS][GOAP_ATOMOPS];//Contains all atoms and the actions that modify them.
 	int ActionCt;
 	struct WorldState GoalState;
 	GoapGoalUtility UtilityFunc;

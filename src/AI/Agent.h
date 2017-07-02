@@ -17,6 +17,7 @@
 	(_Agent)->PlanIdx = 0;																			\
 	(_Agent)->Blackboard.ShouldReplan = 0
 #define AgentHasPlan(_Agent) (_Agent->PlanIdx != AGENT_NOPLAN)
+#define AGENT_MOTSZ (4)
 
 enum {
 	BGBYTE_ISLEADER,
@@ -42,6 +43,17 @@ struct AgentSensor;
 typedef void (*AgentSensorCall)(struct AgentSensor*, struct Agent*);
 typedef void (*AgentStateUpdate)(struct Agent*, int, void*);
 
+//NOTE: Motivations should be used for AI only and should be moved to the AI file.
+struct MotivationRevenge {
+	uint8_t Type;
+	struct Person* Target;
+};
+
+union Motivation {
+	uint8_t Type;
+	struct MotivationRevenge Revenge;
+};
+
 struct AgentSensor {
 	AgentSensorCall Update;
 	int TickTime; //How much time is left before this sensor updates.
@@ -60,6 +72,7 @@ struct Agent {
 	const struct GoapGoalSet* GoalSet;
 	const struct GoapGoal* CurrGoal;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
+	union Motivation* Motivations[AGENT_MOTSZ];
 	struct Blackboard Blackboard;
 	struct AgentSensor Sensors[WorldStateBytes];
 	struct WorldState State;

@@ -92,6 +92,7 @@ struct ActivePolicy {
 	int8_t OptionSel;
 };
 
+uint8_t CountPolicyFuncs(struct PolicyFunc* Funcs);
 void CtorPolicy(struct Policy* _Policy, const char* _Name, const char* _Description, int _Category);
 void DestroyPolicy(struct Policy* _Policy);
 

@@ -126,7 +126,7 @@ int PAIMakeGood(struct Family* _Family, struct HashTable* _Vars, const struct Pr
 	if(_Args[0].Type != PRIM_STRING && _Args[1]. Type != PRIM_INTEGER)
 		return 0;
 	_Good = HashSearch(&g_Goods, _Args[0].Value.String);
-	GoodMake(_Good, _Args[1].Value.Int, &_Family->Goods, _Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y);
+	GoodMake(_Good, _Args[1].Value.Int, &_Family->Goods);
 	return 1;
 }
 

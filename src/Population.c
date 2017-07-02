@@ -76,6 +76,7 @@ struct Population* CreatePopulation(const char* Name, int Nutrition, int Meat, i
 	Population->Name = (char*) calloc(strlen(Name) + 1, sizeof(char));
 	strcpy(Population->Name, Name);
 	Population->Nutrition = Nutrition;
+	Population->ChildNut = Nutrition / 2;
 	Population->Meat = Meat;
 	Population->Milk = Milk;
 	Population->Ages = Ages;
@@ -83,7 +84,6 @@ struct Population* CreatePopulation(const char* Name, int Nutrition, int Meat, i
 	Population->MaleRatio = MaleRatio;
 	Population->FMRatio = FMRatio;
 	Population->SpaceReq = SpaceReq;
-	Population->MaxNutrition = Nutrition * 31;
 
 	Population->Skin.Skin = NULL;
 	Population->Skin.Pounds = 0.0;
@@ -121,6 +121,13 @@ struct Population* CopyPopulation(const struct Population* Population) {
 
 int PopulationCmp(const void* One, const void* Two) {
 	return ((struct Population*)One)->Id - ((struct Population*)Two)->Id;
+}
+
+int AnimalGenderCmp(const void* One, const void* Two) {
+	const struct Animal* AnOne = One;
+	const struct Animal* AnTwo = Two;
+
+	return AnOne->Gender - AnTwo->Gender;
 }
 
 int PopulationFoodCmp(const void* One, const void* Two) {
@@ -339,7 +346,7 @@ struct Population* PopulationLoad(lua_State* State, int Index) {
 	return NULL;
 }
 
-struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t Months, int16_t Nutrition, int X, int Y) {
+struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t Months) {
 	struct Animal* Animal = (struct Animal*) malloc(sizeof(struct Animal));
 	int Gender = 0;
 
@@ -350,10 +357,7 @@ struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t
 	CreateObject(&Animal->Object, OBJECT_ANIMAL);
 	Animal->Age.Years = Years;
 	Animal->Age.Months = Months;
-	Animal->Pos.x = X;
-	Animal->Pos.y = Y;
 	Animal->Gender = Gender;
-	Animal->Nutrition = Nutrition;
 	*(const struct Population**)&Animal->PopType = Pop;
 	return Animal;
 }
@@ -385,13 +389,13 @@ void AnimalObjThink(struct Object* Obj) {
 }
 
 void AnimalThink(struct Object* Obj) {
-	struct Animal* Animal = (struct Animal*) Obj;
+	//struct Animal* Animal = (struct Animal*) Obj;
 
-	Animal->Nutrition -= (AnimalMature(Animal) == true) ? (Animal->PopType->Nutrition) : (Animal->PopType->Nutrition / 2);
-	if(Animal->Nutrition < 0)
-		Animal->Nutrition = 0;
-	if(Animal->Nutrition > NUTRITION_MAX)
-		Animal->Nutrition = NUTRITION_MAX;
+	//if(Animal->Nutrition < 0) {
+	//	Animal->Nutrition = 0;
+	//}
+	//if(Animal->Nutrition > NUTRITION_MAX)
+	//	Animal->Nutrition = NUTRITION_MAX;
 }
 
 void AnimalDepAddAn(const struct AnimalDep* Dep, const struct Array* Tbl) {
@@ -503,15 +507,12 @@ struct InputReq** AnimalTypeCount(const struct Array* Animals, int* Size) {
 }
 
 //NOTE: Test me.
-void AnimalArrayInsert(struct Array* Array, struct Animal* Animal) {
+/*void AnimalArrayInsert(struct Array* Array, struct Animal* Animal) {
 	//const struct Population* PopType = Animal->PopType;
 	struct Animal* InsertAn = Animal;
 	struct Animal* PrevAn = NULL;
 	struct Animal* CurrAn = NULL;
 	const struct Population* CurrPop = NULL;
-#ifdef DEBUG
-	int Size = Array->Size;
-#endif
 
 	if(Array->Size >= Array->TblSize)
 		ArrayResize(Array);
@@ -535,24 +536,6 @@ void AnimalArrayInsert(struct Array* Array, struct Animal* Animal) {
 		}
 	}
 	ArrayInsert(Array, InsertAn);
-#ifdef DEBUG
-	Assert(Size + 1 == Array->Size);
-#endif
-	/*for(int i = 0; i < Array->Size; ++i) {
-		InsertAn = (struct Animal*) Array->Table[i];
-		if(InsertAn->PopType == PopType) {
-			FoundType = 1;
-		} else if(FoundType == 1) {
-			Array->Table[i] = Animal;
-			Animal = InsertAn;
-			FoundType = 2;
-		}
-	}
-	if(FoundType <= 1) {
-		ArrayInsert(Array, Animal);
-	} else if(FoundType == 2) {
-		++Array->Size;
-	}*/
 }
 
 //FIXME: Change to ensure all animals of the same type are adjacent.
@@ -578,7 +561,7 @@ struct Animal* AnimalArrayRemove(struct Array* Array, int Index) {
 	--Array->Size;
 	Array->Table[Index] = Array->Table[Array->Size];
 	return Animal;
-}
+}*/
 
 int CountAnimal(const struct Population* PopType, const struct Animal** List, size_t ListSz) {
 	int AnCt = 0;
@@ -600,7 +583,7 @@ int AnimalsReproduce(const struct Population* Population, int MaleCt, int Female
 		int Temp = Random(Population->ReproduceRate.Min, Population->ReproduceRate.Max);
 		int Remain = 0;
 
-		NewAnimals = Temp / 100;
+		NewAnimals += Temp / 100;
 		if((Remain = (Temp % 100)) != 0 && Random(1, 100) >= Remain) {
 			++NewAnimals;
 		}

@@ -13,7 +13,7 @@ const char* BulletinItemGetName(struct BulletinItem* _Item) {
 }
 
 void BulletinItemOnClick(struct BulletinItem* _Item, lua_State* _State, struct BigGuy* _Selector) {
-	MissionCall(_State, _Item->SuccMission, _Selector, _Item->Owner);
+	MissionCall(_State, CreateMissionFrame(_Item->Owner, _Selector, _Item->SuccMission));
 }
 
 struct BulletinItem* CreateBulletinItem(const struct Mission* _SuccMission, const struct Mission* _FailMission,
@@ -33,12 +33,4 @@ struct BulletinItem* CreateBulletinItem(const struct Mission* _SuccMission, cons
 
 void DestroyBulletinItem(struct BulletinItem* _Item) {
 	free(_Item);
-}
-
-void BulletinThink(struct BulletinItem* _Item) {
-	--_Item->DaysLeft;
-	if(_Item->DaysLeft <= 0) {
-		ILL_DESTROY(_Item->Owner->Person->Family->HomeLoc->Bulletin, _Item);
-		DestroyBulletinItem(_Item);
-	}
 }

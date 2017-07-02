@@ -69,13 +69,14 @@ int InputReqGoodCmp(const struct InputReq* One, const struct Good* Two) {
 	return ((struct GoodBase*)One->Req)->Id - Two->Base->Id;
 }
 
-struct GoodBase* InitGoodBase(struct GoodBase* Good, const char* Name, int Category) {
+struct GoodBase* CreateGoodBase(struct GoodBase* Good, const char* Name, int Category) {
 	Good->Name = (char*) malloc(sizeof(char) * strlen(Name) + 1);
 	strcpy(Good->Name, Name);
 	Good->Category = Category;
 	Good->Id = NextId();
 	Good->InputGoods = NULL;
 	Good->IGSize = 0;
+	Good->Cost = 0;
 	return Good;
 }
 
@@ -145,13 +146,13 @@ void DestroySellRequest(struct SellRequest* SellReq) {
 }
 
 struct Good* GoodCopy(const struct Good* Good) {
-	struct Good* NewGood = CreateGood(Good->Base, Good->Pos.x, Good->Pos.y);
+	struct Good* NewGood = CreateGood(Good->Base);
 
 	return NewGood;
 }
 
 struct Good* FoodGoodCopy(const struct Good* Good) {
-	struct Good* NewGood = (struct Good*) CreateFood((struct FoodBase*)Good->Base, Good->Pos.x, Good->Pos.y);
+	struct Good* NewGood = (struct Good*) CreateFood((struct FoodBase*)Good->Base);
 
 	((struct Food*)NewGood)->Parts = ((struct Food*)Good)->Parts;
 	return NewGood;
@@ -253,14 +254,14 @@ struct GoodBase* GoodLoad(lua_State* State, int Index) {
 			return NULL;
 		}
 	} else if(Category == GOOD_ARMOR) {
-		Good = InitGoodBase((struct GoodBase*) malloc(sizeof(struct WeaponBase)), Name, Category);//(struct GoodBase*)// CreateArmorBase(Name, Category);
+		Good = CreateGoodBase((struct GoodBase*) malloc(sizeof(struct WeaponBase)), Name, Category);//(struct GoodBase*)// CreateArmorBase(Name, Category);
 		if(ArmorBaseLoad(State, (struct ArmorBase*)Good) == 0) {
 			Top = lua_gettop(State);
 			DestroyWeaponBase((struct WeaponBase*)Good);
 			return NULL;
 		}
 	} else
-		Good = InitGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), Name, Category);
+		Good = CreateGoodBase((struct GoodBase*)malloc(sizeof(struct GoodBase)), Name, Category);
 	if(Return > 0) {
 		return Good;
 	}
@@ -498,7 +499,7 @@ void DestroyGoodDep(struct GoodDep* GoodDep) {
 	free(GoodDep);
 }
 
-struct Good* CreateGood(const struct GoodBase* Base, int X, int Y) {
+struct Good* CreateGood(const struct GoodBase* Base) {
 	struct Good* Good = NULL;
 
 	if(Base == NULL)
@@ -506,8 +507,6 @@ struct Good* CreateGood(const struct GoodBase* Base, int X, int Y) {
 	Good = (struct Good*) malloc(sizeof(struct Good));
 	//CreateObject((struct Object*)Good, OBJECT_GOOD, NULL);
 	Good->Id = ++g_GoodId;
-	Good->Pos.x = X;
-	Good->Pos.y = Y;
 	Good->Base = Base;
 	Good->Quantity = 0;
 	return Good;
@@ -530,7 +529,7 @@ int GoodBaseGoodCmp(const struct GoodBase* One, const struct Good* Two) {
 }
 
 struct ToolBase* CreateToolBase(const char* Name, int Category, int Function, int Quality) {
-	struct ToolBase* Tool = (struct ToolBase*) InitGoodBase((struct GoodBase*)malloc(sizeof(struct ToolBase)), Name, Category);
+	struct ToolBase* Tool = (struct ToolBase*) CreateGoodBase((struct GoodBase*)malloc(sizeof(struct ToolBase)), Name, Category);
 
 	Tool->Function = Function;
 	Tool->Quality = Quality;
@@ -542,7 +541,7 @@ void DestroyToolBase(struct ToolBase* Tool) {
 }
 
 struct FoodBase* CreateFoodBase(const char* Name, int Category, int Nutrition) {
-	struct FoodBase* Food = (struct FoodBase*) InitGoodBase((struct GoodBase*) malloc(sizeof(struct FoodBase)), Name, Category);
+	struct FoodBase* Food = (struct FoodBase*) CreateGoodBase((struct GoodBase*) malloc(sizeof(struct FoodBase)), Name, Category);
 
 	Food->Nutrition = Nutrition;
 	return Food;
@@ -552,13 +551,11 @@ void DestroyFoodBase(struct FoodBase* Food) {
 	free(Food);
 }
 
-struct Food* CreateFood(const struct FoodBase* Base, int X, int Y) {
+struct Food* CreateFood(const struct FoodBase* Base) {
 	struct Food* Food = (struct Food*) malloc(sizeof(struct Food));
 	
 	//CreateObject((struct Object*)Food, OBJECT_GOOD, NULL);
 	Food->Id = ++g_GoodId;
-	Food->Pos.x = X;
-	Food->Pos.y = Y;
 	Food->Base = Base;
 	Food->Quantity = 0;
 	Food->Parts = FOOD_MAXPARTS;
@@ -570,7 +567,7 @@ void DestroyFood(struct Food* Food) {
 }
 
 struct WeaponBase* CreateWeaponBase(const char* Name, int Category) {
-	return (struct WeaponBase*) InitGoodBase((struct GoodBase*) malloc(sizeof(struct WeaponBase)), Name, Category);
+	return (struct WeaponBase*) CreateGoodBase((struct GoodBase*) malloc(sizeof(struct WeaponBase)), Name, Category);
 }
 
 void DestroyWeaponBase(struct WeaponBase* Weapon) {
@@ -791,7 +788,7 @@ void SellItem(struct Family* Buyer, const struct SellRequest* SellReq) {
 		}
 	}
 	//Good is not found create a good then add it to the good array.
-	Good = CreateGood(SellReq->Base, Buyer->HomeLoc->Pos.x, Buyer->HomeLoc->Pos.y);
+	Good = CreateGood(SellReq->Base);
 	Good->Quantity = SellReq->Quantity;
 	ArrayInsert_S(&Buyer->Goods, Good);
 }
@@ -800,7 +797,7 @@ int GoodGetValue(const struct GoodBase* Base) {
 	return 1;
 }
 
-struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs, int X, int Y) {
+struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* Inputs) {
 	struct Good* Good = NULL;
 
 	for(int i = 0; i < Base->IGSize; ++i) {
@@ -810,10 +807,10 @@ struct Good* GoodMake(const struct GoodBase* Base, int Quantity, struct Array* I
 	if((Good = LinearSearch(Base, Inputs->Table, Inputs->Size, (int(*)(const void*, const void*))GoodGBaseCmp)) == NULL) {
 		switch(Base->Category) {
 		case GOOD_FOOD:
-			Good =  (struct Good*) CreateFood((const struct FoodBase*)Base, X, Y);
+			Good =  (struct Good*) CreateFood((const struct FoodBase*)Base);
 			break;
 		default:
-			Good = CreateGood(Base, X, Y);
+			Good = CreateGood(Base);
 			break;
 		}
 		ArrayInsert_S(Inputs, Good);
@@ -834,16 +831,17 @@ const struct LinkedList* GoodGetCategory(const char* Category) {
 void ArrayAddGood(struct Array* GoodList, struct Good* Good, uint32_t Quantity) {
 	Assert(Quantity <= Good->Quantity);
 	
-	for(int i = 0; i < GoodList->Size; ++i)
+	for(int i = 0; i < GoodList->Size; ++i) {
 		if(Good->Base == ((struct Good*)GoodList->Table[i])->Base) {
 			((struct Good*)GoodList->Table[i])->Quantity += Quantity;
 			if(Quantity >= Good->Quantity) {
-				DestroyGood(Good);
+	//			DestroyGood(Good);
 			} else {
 				Good->Quantity = Good->Quantity - Quantity;
 			}
 			return;
 		}
+	}
 	ArrayInsert(GoodList, Good);
 }
 

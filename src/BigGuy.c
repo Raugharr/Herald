@@ -55,45 +55,6 @@ int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission)
 	return 0;
 }
 
-void BigGuyActionImproveRel(struct BigGuy* Guy, const struct BigGuyAction* Action) {
-	struct Relation* Relation = NULL;
-	int Mod = Action->Modifier;
-
-	if(Mod > 0 && Random(STAT_MIN, STAT_MAX) > Guy->Stats[BGSKILL_CHARISMA])
-		--Mod;
-	if((Relation = GetRelation(Action->Target->Relations, Guy)) == NULL) {
-		//_Relation = CreateBigGuyRelation(Action->Target, Guy);
-		//CreateBigGuyOpinion(Relation, OPINION_SMALL, Mod);
-		//BigGuyRelationUpdate(Relation);
-	} else if(Relation->Relation < BGREL_LIKE) {
-		//BigGuyAddRelation(Relation, OPINION_SMALL, Mod, );
-	}
-}
-
-void BigGuyActionGift(struct BigGuy* Guy, const struct BigGuyAction* Action) {
-	struct Family* Family = Action->Target->Person->Family;
-	struct GoodBase* Base = (struct GoodBase*) Action->Data;
-
-	for(int i = 0; i < Family->Goods.Size; ++i)
-		if(Base == ((struct Good*)Family->Goods.Table[i])->Base) {
-			struct Good* Taken = ArrayRemoveGood(&Family->Goods, i, Action->Modifier);
-
-			ArrayAddGood(&Guy->Person->Family->Goods, Taken, Taken->Quantity);
-		}
-}
-
-/*void BGOnDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
-	struct BigGuy* Guy = Data->One;
-	struct Person* Person = Data->OwnerObj;
-
-	EventHookRemove(Data->EventType, Guy, Person, NULL);
-	RBDelete(&g_GameWorld.Agents, Guy);
-	if(Guy->Agent != NULL)
-		DestroyAgent(Guy->Agent);
-	DestroyPerson(Person);
-	DestroyBigGuy(Guy);
-}*/
-
 void BigGuyDeath(struct BigGuy* Guy) {
 	struct LinkedList* List = &FamilyGetSettlement(Guy->Person->Family)->BigGuys;
 	struct LnkLst_Node* Itr = List->Front;
@@ -135,6 +96,7 @@ void BigGuyDeath(struct BigGuy* Guy) {
 		RBDelete(&g_GameWorld.Agents, Guy);
 	if(Guy->Agent != NULL)
 		DestroyAgent(Guy->Agent);
+	ILL_CREATE(g_GameWorld.DeadBigGuys, &Guy->Object);
 	//DestroyBigGuy(Guy);
 }
 
@@ -174,14 +136,12 @@ struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE
 	BigGuy->Relations = NULL;
 	memcpy(&BigGuy->Stats, Stats, sizeof(uint8_t) * BGSKILL_SIZE);
 	BigGuy->Action = BGACT_NONE;
-	BigGuy->Motivation = Motivation;
 	BigGuy->Agent = CreateAgent(BigGuy);
 	BigGuy->Popularity = BGRandRes(BigGuy, BGSKILL_CHARISMA);
 	BigGuy->Glory = 0;
 	BigGuy->PopularityDelta = 0;
 	RBInsert(&g_GameWorld.BigGuys, BigGuy);
 	RBInsert(&g_GameWorld.Agents, BigGuy->Agent);
-	LnkLstPushBack(&FamilyGetSettlement(Person->Family)->BigGuys, BigGuy);
 
 	ConstructLinkedList(&BigGuy->PlotsAgainst);
 	BigGuy->Traits = BGRandTraits(&BigGuy->TraitCt);
@@ -192,11 +152,12 @@ struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE
 		CreateBigGuyRelation(BigGuy, Target);
 		CreateBigGuyRelation(Target, BigGuy);
 	}
+	LnkLstPushBack(&FamilyGetSettlement(Person->Family)->BigGuys, BigGuy);
 	return BigGuy;
 }
 
 void DestroyBigGuy(struct BigGuy* BigGuy) {
-	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(BigGuy), BigGuy, NULL);
+	//EventHookRemove(EVENT_NEWPLOT, BigGuyHome(BigGuy), BigGuy, NULL);
 	free(BigGuy->Traits);
 	free(BigGuy);
 }
@@ -241,6 +202,13 @@ void BGStatsRandom(int Points, int StatCt, ...) {
 		Stats[i] = va_arg(Valist, uint8_t*);
 	for(int i = 0; i < StatCt; ++i)
 		StatDist[i] = va_arg(Valist, double);
+#ifdef DEBUG
+	double StatCheck = 0;
+
+	for(int i = 0; i < StatCt; ++i)
+		StatCheck += StatDist[i];
+	Assert(StatCheck == 1.0);
+#endif
 	for(int i = 0; i < StatCt; ++i) {
 		Temp = Stats[i];
 		Rand = Random(0, StatCt - 1);
@@ -263,17 +231,54 @@ int BGRandRes(const struct BigGuy* Guy, int Stat) {
 	return (Guy->Stats[Stat] + Random(1, 100)) / 2;
 }
 
-void BGStatsWarlord(uint8_t (*Stats)[BGSKILL_SIZE], int Points) {
-	//int WarPoints = (Points <= 400) ? (Points / 2) : (240);
-	int WarPoints = (Points / 2);
-	int RemainPoints = Points - WarPoints;
+/*
+ * Generates a stat block based on a caste.
+ */
+void GenerateStats(uint8_t Caste, uint8_t (*Stats)[BGSKILL_SIZE]) {
+	int Points = Random(BG_MINGENSTATS, BG_MAXGENSTATS);
 
-	/*
-	 * TODO: The percentages given to each stat should be randomized slightly.
-	 */
-	BGStatsRandom(WarPoints, 3, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS], 0.36, 0.32, 0.32);
-	BGStatsRandom(RemainPoints, 4, &(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT],
-		&(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE], 0.25, 0.25, 0.25, 0.25);
+	switch(Caste) {
+		case CASTE_THRALL:
+			Points -= Points / 4;
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10);
+			return;	
+		case CASTE_FARMER:
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10); 
+			return;	
+		case CASTE_CRAFTSMAN:
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.05, 0.20, 0.25, 0.15, 0.10, 0.15, 0.10); 
+			return;	
+		case CASTE_LOWNOBLE:
+			Points += Points / 10; 
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10); 
+			return;	
+		case CASTE_PRIEST:
+			Points += Points / 10; 
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.05, 0.10, 0.10, 0.10, 0.20, 0.25, 0.20); 
+			return;	
+		case CASTE_WARRIOR:
+			Points += Points / 10; 
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.25, 0.15, 0.15, 0.15, 0.10, 0.10, 0.10); 
+			return;	
+		case CASTE_NOBLE:
+			Points += Points / 4;
+			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+				0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10); 
+			return;	
+	}
 }
 
 struct Trait* RandomTrait(struct Trait** Traits, uint8_t TraitCt, struct HashItr* Itr) {

@@ -58,7 +58,6 @@ struct HashTable g_Professions;
 struct HashTable g_BhvVars;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
-struct LifoAllocator g_StackAllocator = {0};
 
 struct ObjectList {
 	struct RBTree SearchTree;
@@ -153,15 +152,11 @@ int HeraldInit() {
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_OpinionMods = CreateConstrntBnds(5, -REL_MAX, -76, -26, 25, 75, REL_MAX);
-	EventInit();
+	EventInit(g_LuaState);
 	PathfindInit();
 	MathInit();
 
 	ConstructMissionEngine(&g_MissionEngine);
-
-	g_StackAllocator.ArenaSize = STACKALLOC_SZ;
-	g_StackAllocator.ArenaBot = malloc(g_StackAllocator.ArenaSize);
-	g_StackAllocator.ArenaTop = g_StackAllocator.ArenaBot;
 	return 1;
 }
 
@@ -181,7 +176,6 @@ void HeraldDestroy() {
 	EventQuit();
 	PathfindQuit();
 	DestroyMissionEngine(&g_MissionEngine);
-	free(g_StackAllocator.ArenaBot);
 }
 
 void ClearObjects() {

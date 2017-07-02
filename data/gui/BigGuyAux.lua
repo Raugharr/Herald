@@ -14,7 +14,8 @@ local ActionStr = {
 	"Foo",
 	"Foo",
 	"Foo",
-	"Challange a person to a duel, if they refuse they will lose glory."
+	"Challange a person to a duel, if they refuse they will lose glory.",
+	"Foo"
 }
 
 function CreateToolTipOnHover(Widget, Str)
@@ -152,11 +153,6 @@ function GenderName(Animal)
 	return "Female"
 end
 
-function WidgetSetAction(Widget)
-	Widget:GetParent().Action = Widget.Action 
-	Widget.DescMenu[1]:SetText(Widget.Str)	
-end
-
 function GeneralActions(Menu, Owner, Target)
 	local Labels = {}
 	local ActionMenu = Gui.VerticalContainer(Menu, Menu:GetWidth() / 2, Menu:GetHeight() / 2)
@@ -170,9 +166,14 @@ function GeneralActions(Menu, Owner, Target)
 		Action.Steal,
 		Action.Befriend,
 		Action.Murder,
-		Action.Duel
+		Action.Duel,
+		Action.Slander
 	}
 
+function WidgetSetAction(Widget)
+	Menu.Action = Widget.Action 
+	Widget.DescMenu[1]:SetText(Widget.Str)	
+end
 	if Owner:Equal(Target) or Target == nil then
 		Labels[1] = ActionMenu:CreateButton("Raise Popularity", WidgetSetAction)
 		Labels[2] = ActionMenu:CreateButton("Raise Glory", WidgetSetAction)
@@ -181,6 +182,12 @@ function GeneralActions(Menu, Owner, Target)
 		Labels[4] = ActionMenu:CreateButton("Befriend", WidgetSetAction)
 		Labels[5] = ActionMenu:CreateButton("Murder", WidgetSetAction)
 		Labels[6] = ActionMenu:CreateButton("Duel", WidgetSetAction)
+		Labels[7] = ActionMenu:CreateButton("Slander", WidgetSetAction)
+	end
+	for k, v in pairs(Labels) do 
+		v.Action = Actions[k]
+		v.Str = ActionStr[k]
+		v.DescMenu = DescTbl 
 	end
 	Menu:CreateButton("Close",
 		function(Widget)
@@ -192,15 +199,11 @@ function GeneralActions(Menu, Owner, Target)
 			if Target == nil then
 				Target = Owner
 			end
-			Owner.SetAction(Menu.Action, Target)
+			Owner:SetAction(Menu.Action, Target)
+			Menu:Close()
 		end)
 	DescTbl[1] = DescLabel
 	DescTbl[2] = DescButton
-	for k, v in ipairs(Labels) do 
-		v.Action = Actions[k]
-		v.Str = ActionStr[k]
-		v.DescMenu = DescTbl 
-	end
 end
 
 function DisplayBigGuys(Menu, Owner)

@@ -18,13 +18,12 @@ int LuaGovernmentStructure(lua_State* State);
 int LuaGovernmentType(lua_State* State);
 int LuaGovernmentRule(lua_State* State);
 int LuaGovernmentGetLeader(lua_State* State);
-int LuaGovernmentGetJudge(lua_State* State);
-int LuaGovernmentGetMarshall(lua_State* State);
-int LuaGovernmentGetSteward(lua_State* State);
 int LuaGovernmentHasPolicy(lua_State* State);
 int LuaGovernmentGetPolicyCategory(lua_State* State);
 int LuaGovernmentGetTaxRate(lua_State* State);
 int LuaGovernmentPolicyGetPolicyApproval(lua_State* State);
+int LuaGovernmentGetRelation(lua_State* State);
+int LuaGovernmentCreateRelation(lua_State* State);
 
 int LuaFactionGetName(lua_State* State);
 int LuaFactionGetLeader(lua_State* State);

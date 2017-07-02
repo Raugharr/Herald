@@ -39,23 +39,15 @@ enum {
 	BGACT_STEAL,
 	BGACT_DUEL,
 	BGACT_MURDER,
-	BGACT_GAINPOP,
-	BGACT_SABPOP,
-	BGACT_GAINGLORY,
-	BGACT_SABGLORY,
-	BGACT_PLOTOVERTHROW,
+	BGACT_SLANDER,
 	BGACT_SIZE
 };
 
 enum {
 	BGMOT_RULE,
 	BGMOT_WEALTH,
+	BGMOT_REVENGE,
 	BGMOT_SIZE
-};
-
-enum {
-	CRISIS_WARDEATH,
-	CRISIS_SIZE
 };
 
 enum {
@@ -69,20 +61,14 @@ enum {
 	BGSKILL_SIZE
 };
 
+//NOTE: Are these two variables used?
 extern const char* g_BGMission[BGACT_SIZE];
-extern const char* g_CrisisStateStr[CRISIS_SIZE];
 extern int g_BGActCooldown[BGACT_SIZE];
 
 struct BigGuyMission {
 	int Type;
 };
 
-struct BigGuyAction {
-	struct BigGuy* Target;
-	void* Data;
-	uint16_t Type;
-	uint16_t Modifier;
-};
 
 struct BigGuy {
 	struct Object Object;
@@ -90,7 +76,6 @@ struct BigGuy {
 	struct Agent* Agent;
 	struct Relation* Relations;
 	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
-	uint8_t Motivation;
 	float Popularity; 
 	float Glory;
 	struct LinkedList PlotsAgainst;
@@ -100,6 +85,7 @@ struct BigGuy {
 	uint8_t IsDirty;
 	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
 	uint8_t Action;
+	uint8_t ActionTime;//Time to complete.
 	struct BigGuy* ActionTarget;
 };
 
@@ -130,9 +116,9 @@ void BigGuySetState(struct BigGuy* Guy, int State, int Value);
 void BGStatsRandom(int Points, int StatCt, ...);
 int BGRandRes(const struct BigGuy* Guy, int Stat);
 /*
- * Creates a big guy with a stat emphasis on warfare.
+ * Generates a stat block based on a caste.
  */
-void BGStatsWarlord(uint8_t (*Stats)[BGSKILL_SIZE], int Points);
+void GenerateStats(uint8_t Caste, uint8_t (*Stats)[BGSKILL_SIZE]);
 
 struct Trait** BGRandTraits();
 int HasTrait(const struct BigGuy* BigGuy, const struct Trait* Trait);

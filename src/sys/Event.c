@@ -202,6 +202,11 @@ void Events() {
 			g_KeyMouseState.MousePos.x = Event.motion.x;
 			g_KeyMouseState.MousePos.y = Event.motion.y;
 			break;
+		case SDL_TEXTINPUT:
+			strcpy(g_KeyMouseState.TextBuff, Event.text.text);
+			Assert(g_KeyMouseState.TextBuff[0] != '\0');
+			//VideoTextInput(g_LuaState, Event.text.text, g_KeyMouseState.KeyboardMod);
+			break;
 		}
 		if(Event.type >= g_EventTypes[0] && Event.type <= g_EventTypes[EVENT_SIZE - 1]) {
 			struct Person* Person = Event.user.data1;
@@ -288,7 +293,6 @@ void Events() {
 					if(((struct Person*)CaptiveList->Table[j])->Family == ((struct Person*)CaptiveList->Table[i])->Family) {
 						SettlementAddPerson(Warband->Settlement, CaptiveList->Table[CaptiveList->Size - 1]);	
 						//Slaves need owners.
-						((struct Person*)CaptiveList->Table[CaptiveList->Size - 1])->Family->Caste = CASTE_THRALL;
 						--CaptiveList->Size;
 					} else {
 						i = j;
@@ -298,8 +302,9 @@ void Events() {
 				while(WarriorCt < Warband->Warriors.Size) {
 					Assert(WarriorCt < Warband->Warriors.Size);//If true should mean a slave cannot be paired with a warrior.
 					Warrior = Warband->Warriors.Table[WarriorCt++];
-					if(Warrior->Family->Slave == NULL)
-						Warrior->Family->Slave = ((struct Person*)CaptiveList->Table[i - 1])->Family;
+					if(GetSlave(Warrior->Family) == NULL)
+						FamilySetCasteSlave(((struct Person*)CaptiveList->Table[CaptiveList->Size - 1])->Family, Warrior->Family);
+						//SetSlaveOwner(Warrior->Family, ((struct Person*)CaptiveList->Table[i - 1])->Family);
 				}
 			}
 			sprintf(Buffer, "You have taken %i captives.", Spoils);
@@ -308,7 +313,9 @@ void Events() {
 			DestroyWarband(Warband);	
 		}
 	}
-	if(/*(g_KeyMouseState.KeyboardMod & KMOD_LCTRL) == KMOD_LCTRL && */g_KeyMouseState.KeyboardButton == SDLK_r && g_KeyMouseState.KeyboardState == SDL_RELEASED) {
+	//Code to relead a menu.
+	/*
+	if(g_KeyMouseState.KeyboardButton == SDLK_r && g_KeyMouseState.KeyboardState == SDL_RELEASED) {
 		const char* GuiMenu = StackTop(&g_GUIStack);
 		char* Menu = alloca(sizeof(char) * strlen(GuiMenu));
 		char* File = alloca(sizeof(char) * strlen(GuiMenu) + 5);//+ 1 for \0 and 4 for .lua
@@ -329,7 +336,7 @@ void Events() {
 			LuaSetMenu(g_LuaState);
 		}
 		chdir("../..");
-	}
+	}*/
 	if(VideoEvents(&g_KeyMouseState) == 0)
 		GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
 }

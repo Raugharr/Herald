@@ -20,7 +20,7 @@ Gui.LoadSkin {
 		Font = Gui.Font("Timeless.ttf", 18),
 		FocusColor = Gui.Color(255, 215, 0),
 		UnfocusColor = Gui.Color(230, 194, 0),
-		Background = Gui.Color(128, 128, 128)
+		Background = Gui.Color(36, 24, 14),
 	},
 	Label = {
 		Font = Gui.Font("Timeless.ttf", 16),
@@ -39,12 +39,32 @@ Gui.LoadSkin {
 	DefaultSkin = true
 }
 
+Gui.LoadSkin {
+	Name = "Big",
+	Default = {
+		Font = Gui.Font("Timeless.ttf", 20),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(36, 24, 14),
+		Margins = {4, 4, 4, 4}
+	}
+}
+
 Gui.LoadSkin { 
 	Name = "Header",
 	Default = {
-		Font = Gui.Font("Plain Germanica.ttf", 16),
+		Font = Gui.Font("Plain Germanica.ttf", 17),
 		FocusColor = Gui.Color(31, 31, 107),
-		--UnfocusColor = Gui.Color(31, 31, 107),
+		UnfocusColor = Gui.Color(255, 255, 255),
+		Background = Gui.Color(36, 24, 14)
+	}
+}
+
+Gui.LoadSkin { 
+	Name = "Title",
+	Default = {
+		Font = Gui.Font("Plain Germanica.ttf", 38),
+		FocusColor = Gui.Color(31, 31, 107),
 		UnfocusColor = Gui.Color(255, 255, 255),
 		Background = Gui.Color(36, 24, 14)
 	}

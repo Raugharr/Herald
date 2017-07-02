@@ -121,6 +121,7 @@ struct MapRenderer* CreateMapRenderer(int MapLength, SDL_Point* RenderSize) {
 	}*/
 	
 	//MapLoad(Map);
+	free(HeightMap);
 	return Map;
 }
 
@@ -219,7 +220,7 @@ void TileRing(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t Ra
 		for(int j = 1; j < Radius; ++j) {
 			TileNeighbor(Neighbors[i], &Tile, &Tile);
 			Temp = MapGetTile(Renderer, &Tile);
-			if(Temp != NULL)
+			//if(Temp != NULL)
 				Out[Count++] = Temp;
 		}
 	}
@@ -258,9 +259,7 @@ void MapTileRenderRect(const struct MapRenderer* Renderer, const SDL_Point* Tile
 
 void MapRenderAll(SDL_Renderer* Renderer, struct MapRenderer* Map) {
 	struct LinkedList QuadList = {0, NULL, NULL};
-	struct LnkLst_Node* Itr = NULL;
 	struct Tile* Tile = NULL;
-	struct Sprite* Sprite = NULL;
 
 /*	MapObjectsInRect(Map, MAPRENDER_TILE, &Map->Screen, &QuadList);
 	Itr = QuadList.Front;
@@ -282,21 +281,21 @@ void MapRenderAll(SDL_Renderer* Renderer, struct MapRenderer* Map) {
 //	}
 	LnkLstClear(&QuadList);
 	for(int Layer = MAPRENDER_TILE + 1; Layer < MAPRENDER_LAYERS; ++Layer) {
-		MapObjectsInRect(Map, Layer, &Map->Screen, &QuadList);
-		Itr = QuadList.Front;
-		while(Itr != NULL) {
-			Sprite = (struct Sprite*)Itr->Data;
-			SpriteOnDraw(Renderer, Sprite, Map->Screen.x * TILE_WIDTH, Map->Screen.y * TILE_HEIGHT_THIRD);
-			Itr = Itr->Next;
-		}
-		LnkLstClear(&QuadList);
+		uint32_t TableSz = FrameSizeRemain() / sizeof(struct Sprite*);
+		struct Sprite** SpriteList = SAlloc(TableSz * sizeof(struct Sprite*));
+		uint32_t ListSize = 0;
+
+		MapObjectsInRect(Map, Layer, &Map->Screen, (void**)SpriteList, &ListSize, TableSz);
+		for(int i = 0; i < ListSize; ++i)
+			SpriteOnDraw(Renderer, SpriteList[i], Map->Screen.x * TILE_WIDTH, Map->Screen.y * TILE_HEIGHT_THIRD);
+		SFree(sizeof(void*) * TableSz);
 	}
 }
 
-void MapObjectsInRect(struct MapRenderer* Renderer, int Layer, const SDL_Rect* Rect, struct LinkedList* Data) {
+void MapObjectsInRect(struct MapRenderer* Renderer, uint8_t Layer, const SDL_Rect* Rect, void** Data, uint32_t* Size, uint32_t TableSz) {
 	if(Layer < 0 || Layer >= MAPRENDER_LAYERS)
 		return;
-	QTPointInRectangle(&Renderer->RenderArea[Layer], Rect, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, Data);
+	QTPointInRectangle(&Renderer->RenderArea[Layer], Rect, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, Data, Size, TableSz);
 }
 
 const struct Tile* MapGetTileConst(const struct MapRenderer* const Renderer, const SDL_Point* Point) {

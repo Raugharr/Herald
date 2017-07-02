@@ -264,7 +264,7 @@ void CreateHeightMap(uint16_t Width, uint16_t Height, float* HeightMap, float Di
 }
 
 void HeightMapTexture(const char* Name, uint16_t Width, uint16_t Height, float* HeightMap) {
-	SDL_Surface* Surface = SDL_CreateRGBSurface(SDL_SWSURFACE, Width, Height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+	SDL_Surface* Surface = SDL_CreateRGBSurface(0, Width, Height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
 	for(uint16_t x = 0; x < Width; ++x) {
 		for(uint16_t y = 0; y < Height; ++y) {
@@ -272,7 +272,7 @@ void HeightMapTexture(const char* Name, uint16_t Width, uint16_t Height, float* 
 			uint32_t Pixel = (Val << 16) | (Val << 8) | Val; 
 			//uint32_t Pixel = Val & (Val << 8) & (Val << 16);
 
-			((uint32_t*)Surface->pixels)[y * Surface->w + x] = Pixel;
+			((uint32_t*)Surface->pixels)[y * Surface->w+ x] = Pixel;
 		}
 	}
 	if(SDL_SaveBMP(Surface, Name) != 0) {

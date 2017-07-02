@@ -15,10 +15,10 @@ struct ImageWidget {
 };
 
 struct ImageWidget* CreateImageWidget();
-void ConstructImageWidget(struct ImageWidget* _Widget, struct Container* _Parent, SDL_Rect* _Rect, lua_State* _State, struct Sprite* _Sprite, const struct GuiStyle* _Style);
-void DestroyImageWidget(struct ImageWidget* _Widget, lua_State* _State);
-int ImageOnDraw(struct Widget* _Widget);
-struct Widget* ImageOnFocus(struct Widget* _Widget, const SDL_Point* _Point);
-int ImageOnUnfocus(struct Widget* _Widget);
+void ConstructImageWidget(struct ImageWidget* Widget, struct Container* Parent, SDL_Rect* Rect, struct Sprite* Sprite);
+void DestroyImageWidget(struct Widget* Widget);
+int ImageOnDraw(struct Widget* Widget);
+struct Widget* ImageOnFocus(struct Widget* Widget, const SDL_Point* Point);
+int ImageOnUnfocus(struct Widget* Widget);
 
 #endif /* IMAGEWIDGET_H_ */

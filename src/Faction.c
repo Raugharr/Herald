@@ -24,10 +24,10 @@
  * and the peasant faction will get 5 of every 8 farmers on average.
  */
 static uint8_t g_FactionWeights[FACTION_IDSIZE * CASTE_SIZE] = {
-	3, 3, 2, 4, 1, 7, 7,
-	5, 5, 2, 2, 1, 3, 3,
-	3, 3, 1, 2, 9, 1, 1,
-	1, 1, 7, 4, 1, 1, 1
+	0, 0, 0, 0, 0, 1, 7,
+	5, 5, 2, 2, 1, 0, 3,
+	3, 3, 1, 2, 9, 0, 1,
+	1, 1, 7, 4, 1, 0, 1
 };
 
 const char* g_FactionGoalNames[FACTION_GSIZE] = {
@@ -39,8 +39,10 @@ const char* g_FactionGoalNames[FACTION_GSIZE] = {
 };
 
 const char* g_FactionNames[FACTION_GSIZE] = {
-	"Noble",
-	"Peasant",
+//	"Noble",
+//	"Peasant",
+	"Retinue",
+	"Government",
 	"Religion",
 	"Merchant"
 };
@@ -62,7 +64,7 @@ struct Faction* CtorFaction(struct Faction* Faction, struct Settlement* Settleme
 			Faction->FactionWeight[FactionCasteIdx(i, j)] = g_FactionWeights[FactionCasteIdx(i, j)];
 		}
 	}
-	Faction->ActiveMask = (1 << FACTION_IDPEASANT) | (1 << FACTION_IDNOBLE);
+	Faction->ActiveMask = (1 << FACTION_IDGOVERN) | (1 << FACTION_IDRETINUE);
 	Faction->Coro = -1;
 	return Faction;
 }

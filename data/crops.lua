@@ -7,7 +7,7 @@ Crops = {
 		NutritionalValue = 4,
 		GrowingDegree = 2900,
 		GrowingBase = 41,
-		--MillingCost = 0.7
+		MillingCost = 0.7
 	},
 	
 	{
@@ -18,7 +18,7 @@ Crops = {
 		NutritionalValue = 3,
 		GrowingDegree = 2800,
 		GrowingBase = 32,
-		--MillingCost = 0.6
+		MillingCost = 0.6
 	},
 	
 	{
@@ -29,7 +29,7 @@ Crops = {
 		NutritionalValue = 3,
 		GrowingDegree = 2500,
 		GrowingBase = 41,
-		--MillingCost = 0.7
+		MillingCost = 0.7
 	},
 	
 	{
@@ -40,7 +40,7 @@ Crops = {
 		NutritionalValue = 4.5,
 		GrowingDegree = 2900,
 		GrowingBase = 41,
-		--MillingCost = 0.7
+		MillingCost = 0.7
 	},
 	
 	{
@@ -50,7 +50,7 @@ Crops = {
 		YieldPerSeed = 12,
 		NutritionalValue = 1.6,
 		GrowingDegree = 2500,
-		GrowingBase = 41
-		--MillingCost = 1.0
+		GrowingBase = 41,
+		MillingCost = 1.0
 	}
 }

@@ -162,10 +162,14 @@ Mission.Load {
 	Options = {
 		{
 			Text = "Give him one family.",
+			Trigger = function(Frame)
+			end,
 			AIUtility = function(Frame) end
 		},
 		{
 			Text = "I have no thralls.",
+			Trigger = function(Frame)
+			end,
 			AIUtility = function(Frame) end
 		}
 	},
@@ -319,7 +323,9 @@ Mission.Load {
 	Description = "Nodesc.",
 	NoMenu = true,	
 	OnTrigger = function(Frame)
-		Mission.FireEvent("RETIN.1", Frame:RandomPerson({Adult = true, Male = true, BigGuy = true}))
+		local PList = Frame:RandomPerson({Adult = true, Male = true, BigGuy = true, Count = 1})
+		if #PList < 1 then return end
+		Mission.FireEvent("RETIN.1", PList[1])
 	end,
 	Trigger = function(Frame) 
 		local Retinue = Frame.Owner:GetPerson():Retinue()

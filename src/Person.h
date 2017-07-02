@@ -30,6 +30,7 @@
 #define PersonGetGovernment(Person) ((Person)->Family->HomeLoc->Government)
 #define IsPregnant(Person) (((Person)->Flags & PREGNANT) == PREGNANT)
 #define IsAlive(Person) (((Person)->Flags & DEAD) != DEAD)
+#define IsBigGuy(Person) (((Person)->Flags & BIGGUY) == BIGGUY)
 #define PREG_MINDAY (38 * 7)
 #define PREG_MAXDAY (42 * 7)
 
@@ -39,6 +40,8 @@ struct Settlement;
 struct Food;
 
 extern struct MemoryPool* g_PersonPool;
+extern const uint8_t g_AdultRations[RATION_SIZE];
+extern const uint8_t g_ChildRations[RATION_SIZE];
 
 enum PersonFlags {
 	MALE = (1 << 0),
@@ -61,10 +64,12 @@ struct Person {
 	const char* Name;
 	struct Family* Family;
 	//FIXME: Should be placed in a different spot most people will no be pregnant.
-	struct Person* Next;
-	struct Person* Prev;
 	uint32_t Location; //Id of Object that this person is located at. If they are at home this should be equal to the Id of the person's home settlement.
+	//The index this person's family's settlement people table this person is stored at. Added and removed in SettlementAddPerson and SettlemetRemovePerson.
+	uint32_t Sidx; 
+	//How much nutrition this person currently has. A person will always die if they have 0 or less nutrition and will work less efficiently if they are not at full nutrition.
 	int16_t Nutrition;
+	//How much nutrition this person requires every day.
 	uint8_t NutRate;
 	uint8_t Flags;
 	struct {
@@ -77,21 +82,18 @@ struct Pregnancy {
 	struct Person* Mother;
 	IMPLICIT_LINKEDLIST(struct Pregnancy);
 	struct PregElem* Front;
-	//uint16_t Table; //Index this pregnancy is in for World.Pregnancies.Table.
-// use as value in IntRBuint32_t TTP;//Time to pregancy
 };
 
 struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, struct GameWorld* World);
 void DestroyPregnancy(struct Pregnancy* Pregnancy);
 struct Person* BirthChild(struct Pregnancy* Pregnancy);
 
-struct Person* CreatePerson(const char* Name, DATE Age, int Gender, int Nutrition, int X, int Y, struct Family* Family);
+struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition, struct Family* Family);
 //FIXME: DestroyFamily should be called by DestroyPerson if Person is the last Person in its family.
 void DestroyPerson(struct Person* Person);
 struct Person* CreateChild(struct Family* Family);
 void PersonThink(struct Object* Obj);
 void PersonObjThink(struct Object* Obj);
-void PersonMarry(struct Person* Father, struct Person* Mother, struct Family* Family);
 double PersonEat(struct Person* Person, struct Food* Food);
 void PersonDeath(struct Person* Person);
 /**
@@ -117,5 +119,6 @@ static inline uint8_t Gender(const struct Person* Person) {return Person->Flags 
 static inline void Prisoner(struct Person* Person, bool Prisoner) {Person->Flags = (Person->Flags | (Prisoner << 1));}
 static inline bool IsPrisoner(struct Person* Person) {return (Person->Flags & PRISONER);}
 uint16_t PersonWorkMult(const struct Person* Person);
+uint16_t PersonRation(const struct Person* Person);
 #endif
 

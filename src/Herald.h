@@ -11,7 +11,7 @@
 #include "sys/RBTree.h"
 #include "sys/HashTable.h"
 #include "sys/LinkedList.h"
-#include "sys/StackAllocator.h"
+#include "sys/FrameAllocator.h"
 
 #include <math.h>
 
@@ -29,6 +29,7 @@
 #define DATAFLD "data/"
 #define Distance(_XOne, _YOne, _XTwo, _YTwo) ((int)(sqrt((pow(((_YOne) - (_YTwo)), 2) + pow((_XOne) - (_XTwo), 2)))))
 #define FAMILYSIZE (5)
+#define FindPopulation(Str) HashSearch(&g_Populations, (Str))
 
 typedef struct lua_State lua_State;
 typedef struct SDL_Color SDL_Color;
@@ -127,11 +128,11 @@ int NextId();
 
 void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family); 
 static inline void* SAlloc(size_t _SizeOf) {
-	return LifoAlloc(&g_StackAllocator, _SizeOf);
+	return FrameAlloc(_SizeOf);
 }
 
-static inline void SFree(void* _Ptr) {
-	LifoFree(&g_StackAllocator, 1);
+static inline void SFree(size_t _SizeOf) {
+	FrameReduce(_SizeOf);
 }
 
 struct Object* FindObject(uint32_t Id);

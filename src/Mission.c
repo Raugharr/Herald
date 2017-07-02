@@ -71,6 +71,7 @@ static const luaL_Reg g_LuaMissionRuleFuncs[] = {
 
 static const luaL_Reg g_LuaFuncsMissionFrame[] =  {
 	{"RandomPerson", LuaMissionGetRandomPerson},
+	{"QuerySettlement", LuaMissionQuerySettlement},
 	{"GetVar", LuaMissionGetVar},
 	{"SetVar", LuaMissionSetVar},
 	{NULL, NULL}
@@ -93,15 +94,18 @@ static const luaL_Reg g_LuaFuncsMissionOption[] = {
 };
 
 enum MissionObjectEnum {
+    MOBJECT_VAR,
 	MOBJECT_FROM,
 	MOBJECT_TARGET,
-	MOBJECT_SIZE
+	MOBJECT_NONE,
+	MOBJECT_SIZE = MOBJECT_NONE
 };
 
 enum MissionParamEnum {
 	MOPCODE_FIRSTNAME,
 	MOPCODE_LASTNAME,
 	MOPCODE_PROFESSION,
+	MOPCODE_PRONOUN,
 	MOPCODE_SIZE
 };
 
@@ -114,6 +118,7 @@ enum MissionFrameEnum {
 };
 
 static const char* g_MissionObjects[MOBJECT_SIZE] = {
+	"Variable",
 	"From",
 	"Target",
 };
@@ -122,6 +127,7 @@ static const char* g_MissionParams[MOPCODE_SIZE] = {
 	"FirstName",
 	"LastName",
 	"Profession",
+	"Pronoun",
 };
 
 //TODO: Add reference counter to ensure that we dont clean up a frame prematurely.
@@ -138,29 +144,6 @@ struct MissionFrame {
 	volatile uint8_t RefCt;
 };
 
-struct MissionFrame* CreateMissionFrame(struct BigGuy* From, struct BigGuy* Target, const struct Mission* Mission) {
-	struct MissionFrame* MissionFrame = (struct MissionFrame*) malloc(sizeof(struct MissionFrame));
-
-	MissionFrame->From = From;
-	MissionFrame->Owner = Target;
-	LnkLstPushBack(&g_GameWorld.MissionFrame, MissionFrame); //FIXME: Remove g_GameWorld.FMissionFrame
-	MissionFrame->StackSz = 0;
-	MissionFrame->Mission = Mission;
-	MissionFrame->IsOptSel = 0;
-	MissionFrame->RefCt = 1;
-	return MissionFrame;
-}
-
-static inline void MissionFrameIncrRef(struct MissionFrame* Frame) {
-	++Frame->RefCt;
-}
-
-void DestroyMissionFrame(struct MissionFrame* MissionFrame) {
-	--MissionFrame->RefCt;
-	if(MissionFrame->RefCt <= 0)
-		free(MissionFrame);
-}
-
 static inline void SetupMissionFrame(lua_State* State, struct MissionFrame* Frame) {
 	LuaCtor(State, Frame, LOBJ_MISSIONFRAME);
 	lua_pushstring(State, "From");
@@ -173,6 +156,9 @@ static inline void SetupMissionFrame(lua_State* State, struct MissionFrame* Fram
 	lua_rawset(State, -3);
 }
 
+/**
+ * Returns true if the mission's preconditions have been met.
+ */
 static inline bool CallMissionCond(lua_State* State, MLRef Ref, struct MissionFrame* Frame) {
 	if(Ref == LUA_REFNIL)
 		return true;
@@ -187,8 +173,53 @@ static inline bool CallMissionCond(lua_State* State, MLRef Ref, struct MissionFr
 	return true;
 }
 
+struct MissionFrame* CreateMissionFrame(struct BigGuy* From, struct BigGuy* Target, const struct Mission* Mission) {
+	struct MissionFrame* MissionFrame = NULL;
+	double Percent = 0;
+
+	if(Mission == NULL) return NULL;
+	MissionFrame = (struct MissionFrame*) malloc(sizeof(struct MissionFrame));
+	/*
+	 *FIXME: Why do we do all the work of setting up a mission frame only to then decide that the mission wont fire?
+	 * Shouldn't this check be immediatly before we start to create the MissionFrame?
+	 */
+	 /*
+	  * FIXME: Why do we need a numberic number here? When given the mean time from the mission file we can simply convert the Percent
+	  * into a integer between 0 and 2^64 - 1.
+	  */
+	Percent = Mission->MeanPercent;
+	MissionFrame->From = From;
+	MissionFrame->Owner = Target;
+	MissionFrame->StackSz = 0;
+	MissionFrame->Mission = Mission;
+	MissionFrame->IsOptSel = 0;
+	MissionFrame->RefCt = 1;
+	if(CallMissionCond(g_LuaState, Mission->Trigger, MissionFrame) == 0) {
+		DestroyMissionFrame(MissionFrame);
+		 return NULL;
+	}
+	for(uint8_t i = 0; i < Mission->MeanModsSz; ++i) {
+		if(Mission->MeanModTrig[i] == 0 || CallMissionCond(g_LuaState, Mission->MeanModTrig[i], MissionFrame) == true)
+			Percent = Percent * Mission->MeanMods[i];
+	}
+	if(Rand() / ((double)0xFFFFFFFFFFFFFFFF) > Percent) { 
+		DestroyMissionFrame(MissionFrame);
+		return NULL;
+	}
+
+	return MissionFrame;
+}
+
+void DestroyMissionFrame(struct MissionFrame* MissionFrame) {
+	--MissionFrame->RefCt;
+	if(MissionFrame->RefCt <= 0)
+		free(MissionFrame);
+}
+
 static inline void CallMissionAction(lua_State* State, MLRef Ref, struct MissionFrame* Frame) {
+	if(Ref == 0) return;
 	lua_rawgeti(State, LUA_REGISTRYINDEX, Ref);
+	Assert(lua_type(State, -1) == LUA_TFUNCTION);
 	SetupMissionFrame(State, Frame);
 	LuaCallFunc(State, 1, 0, 0);
 }
@@ -251,12 +282,16 @@ struct Mission* MissionStrToId(const char* Str) {
 }*/
 
 void MissionInsert(struct MissionEngine* Engine, struct Mission* Mission, const char* Namespace, uint8_t Id) {
-	if(HashSearch(&Engine->Namespaces, Namespace) == NULL) {
-		//NOTE: Ensure the Arrays allocated here are freed later.
-		struct Array* Array = CreateArray(MISENG_ARSZ);
+	struct Array* NSArray = NULL;
 
-		ArraySet_S(Array, Mission, Id);
-		HashInsert(&Engine->Namespaces, Namespace, Array);
+	if((NSArray = HashSearch(&Engine->Namespaces, Namespace)) == NULL) {
+		//NOTE: Ensure the Arrays allocated here are freed later.
+		NSArray = CreateArray(MISENG_ARSZ);
+
+		ArraySet_S(NSArray, Mission, Id);
+		HashInsert(&Engine->Namespaces, Namespace, NSArray);
+	} else {
+		ArraySet_S(NSArray, Mission, Id);
 	}
 	if(RBSearch(&Engine->MissionId, Mission->Name) != NULL) {
 		Log(ELOG_WARNING, "Mission cannot be loaded id %f is already in use.", Mission->Id);
@@ -271,18 +306,7 @@ void MissionInsert(struct MissionEngine* Engine, struct Mission* Mission, const 
 }
 
 void MissionFrameClear(struct MissionFrame* Data) {
-	struct LnkLst_Node* Itr = NULL;
-
 	DestroyMissionFrame(Data);
-	Itr = g_GameWorld.MissionFrame.Front;
-	while(Itr != NULL) {
-		if(Itr->Data == Data) {
-			LnkLstRemove(&g_GameWorld.MissionFrame, Itr);
-			return;
-		}
-		Itr = Itr->Next;
-	}
-	Assert(0);
 }
 
 struct Mission* CreateMission() {
@@ -314,6 +338,7 @@ void ConstructMissionEngine(struct MissionEngine* Engine) {
 		CtorArray(&Engine->Events[i], 32);//FIXME: use macro instead of literal value 32.
 	}
 	ConstructHashTable(&Engine->Namespaces, MISENG_NSSZ);
+	memset(Engine->CrisisMissions, 0, sizeof(Engine->CrisisMissions));
 }
 
 void LoadAllMissions(lua_State* State, struct MissionEngine* Engine) {
@@ -334,6 +359,7 @@ void LoadAllMissions(lua_State* State, struct MissionEngine* Engine) {
 		}
 	}
 	//error:
+	closedir(Dir);
 	chdir("../..");
 }
 
@@ -359,41 +385,59 @@ void MissionCheckOption(struct lua_State* State, struct Mission* Mission, struct
 	MissionFrameClear(Frame);
 }
 
-void MissionCall(lua_State* State, const struct Mission* Mission, struct BigGuy* Owner, struct BigGuy* From) {
+/**
+ * Adds VSize variables to Frame, if Frame has enough space for the variables.
+ * If there is not enough space the function will not add any variables and return.
+ * The vargs should be ordered by first passing a const char* and then a struct Primitive*
+ * for each variable being added to the frame.
+ */
+void MissionFrameAddVar(struct MissionFrame* Frame, uint8_t VSize, ...) {
+    va_list Varg;
+    const char* Key = NULL;
+    struct Primitive* Primitive = NULL;
+    
+    if(VSize + Frame->StackSz >= MISSION_STACKSZ) return;
+    va_start(Varg, VSize);
+    for(int i = 0; i < VSize; ++i) {
+        Key = (const char*) va_arg(Varg, const char*);
+        Primitive = (struct Primitive*) va_arg(Varg, struct Primitive*);
+        Frame->StackKey[i] = Key;
+        Frame->Stack[i] = *Primitive;
+    }
+	Frame->StackSz += VSize;
+    va_end(Varg);
+}
+
+//NOTE: Mission is now derived from the Frame. Instead of supplying the owner and from fields to create a Frame just pass in the frame.
+void MissionCall(lua_State* State, struct MissionFrame* Frame) {
 	const char* NewDesc = NULL;
-	struct MissionFrame* Frame = CreateMissionFrame(From, Owner, Mission);
-	double Percent = 0;
+	const struct Mission* Mission = NULL;
 
-	if(Mission == NULL)
-		return;
-	Percent = Mission->MeanPercent;
-	if(CallMissionCond(g_LuaState, Mission->Trigger, Frame) == 0)
-		return;
-	for(uint8_t i = 0; i < Mission->MeanModsSz; ++i) {
-		if(Mission->MeanModTrig[i] == 0 || CallMissionCond(g_LuaState, Mission->MeanModTrig[i], Frame) != 0)
-			Percent = Percent * Mission->MeanMods[i];
-	}
-	if(Rand() / ((double)0xFFFFFFFFFFFFFFFF) > Percent)
-		return;
+	if(Frame == NULL) return;
+	Mission = Frame->Mission;
+	if(Mission == NULL) goto end;
 	NewDesc = Mission->Description;
-	if(g_GameWorld.Player == Owner) {
-		if(Mission->TextFormatSz > 0) {
-			//Breaks when MissionFormatText is run on a coroutine other than the main coroutine.
-			//because the rule used points to the main coroutine's lua_State.
-			NewDesc = MissionFormatText(Mission->Description, Mission->TextFormat, Mission->TextFormatSz, Frame); 
-			if(NewDesc ==  NULL)
-				return (void) luaL_error(State, "Mission (%s) cannot fire, cannot format description.", Mission->Name);
+	if(g_GameWorld.Player == Frame->Owner) {
+#define FORMAT_MAX (8)
+		struct MissionTextFormat Format[FORMAT_MAX];
+		uint8_t FormatSz = 0;
+		const char* Str = NULL;
 
-		/*	if(SizeOf == 0) {
-				Log(ELOG_WARNING, "Mission %s failed: MissionFormatText failed to format text.", Mission->Name);
-				return;
-			}
-			*/
-		}
 		if(Mission->OnTrigger != 0)
 			CallMissionAction(State, Mission->OnTrigger, Frame);
 		if((Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU)
 			return;
+		//if(Mission->TextFormatSz > 0) {
+			//Breaks when MissionFormatText is run on a coroutine other than the main coroutine.
+			//because the rule used points to the main coroutine's lua_State.
+
+			Str = Mission->Description;
+			while((Str = MissionParseStr(Str, &Format[FormatSz], Frame)) != NULL && FormatSz < FORMAT_MAX) ++FormatSz; 
+			NewDesc = MissionFormatText(Mission->Description, Format, FormatSz, Frame); 
+			//NewDesc = MissionFormatText(Mission->Description, Mission->TextFormat, Mission->TextFormatSz, Frame); 
+			if(NewDesc ==  NULL)
+				return (void) luaL_error(State, "Mission (%s) cannot fire, cannot format description.", Mission->Name);
+		//}
 		lua_settop(State, 0);
 		//lua_pushstring(State, "MissionMenu");
 		lua_createtable(State, 0, 3);
@@ -402,7 +446,7 @@ void MissionCall(lua_State* State, const struct Mission* Mission, struct BigGuy*
 		lua_rawset(State, -3);
 
 		lua_pushstring(State, "BigGuy");
-		LuaCtor(State, Owner, LOBJ_BIGGUY);
+		LuaCtor(State, Frame->Owner, LOBJ_BIGGUY);
 		lua_rawset(State, -3);
 
 		lua_pushstring(State, "Data");
@@ -419,30 +463,39 @@ void MissionCall(lua_State* State, const struct Mission* Mission, struct BigGuy*
 			g_PlayerMisCall = CoRunning();
 			CoYield();
 		}
+#undef FORMAT_MAX
 	} else {
 		int BestIndex = -1;
-		//float BestUtility = -1.0;
-		//float Utility = 0.0;
+		float BestUtility = -1.0;
+		float Utility = 0.0;
 
-		if(Mission->OnTrigger != 0)
-			CallMissionCond(State, Mission->OnTrigger, Frame);
+		if(Mission->OnTrigger != 0 && CallMissionCond(State, Mission->OnTrigger, Frame) == false)
+			return;
 		if((Mission->Flags & MISSION_FNOMENU) == MISSION_FNOMENU)
 			return;
-		/*for(int i = 0; i < Mission->OptionCt; ++i) {
-			if(RuleEval(Mission->Options[i].Condition) == 0)
-				continue;
-			Utility = RuleEval(Mission->Options[i].Utility);
+		for(int i = 0; i < Mission->OptionCt; ++i) {
+			lua_rawgeti(State, LUA_REGISTRYINDEX, Mission->Options[i].Utility);
+			SetupMissionFrame(State, Frame);
+			LuaCallFunc(State, 1, 1, 0);
+			Utility = lua_tonumber(State, -1);
+			lua_pop(State, 1);
+		//	if(RuleEval(Mission->Options[i].Condition) == 0)
+		//		continue;
+			//Utility = RuleEval(Mission->Options[i].Utility);
 			if(Utility > BestUtility) {
 				BestIndex = i;
 				BestUtility = Utility;
 			}
-		}*/
+		}
 		BestIndex = 0;
 		Frame->IsOptSel = 1;
 		if(Mission->Options[BestIndex].Action != 0)
 			CallMissionAction(State, Mission->Options[BestIndex].Action, Frame);
 		MissionFrameClear(Frame); //FIXME: When an AI event fires an event to a player this will clear the frame before the player can select their option.
 	}
+	return;
+	end:
+	MissionFrameClear(Frame);
 }
 
 void MissionAction(const char* Name, struct BigGuy* From, struct BigGuy* Target) {
@@ -459,22 +512,22 @@ void MissionOnEvent(struct MissionEngine* Engine, uint32_t EventType, struct Big
 	Assert(EventType < EventUserOffset());
 	int EventId = 0;//FIXME: Instead of checking if the EventId is valid (No events exist for the event type check it after all missions are loaded.
 	struct Mission* Mission = Engine->Events[EventType].Table[EventId];
-	struct MissionFrame Frame = {0};
+	struct MissionFrame* Frame = NULL;
 
 	if(Engine->Events[EventType].Size == 0)
 		return;
 
 	EventId = Random(0, Engine->Events[EventType].Size - 1);//FIXME: Instead of checking if the EventId is valid (No events exist for the event type check it after all missions are loaded.
-	Frame.Owner = Guy;
-	Frame.Mission = Mission;
 	switch(EventType) {
 	case EVENT_JOINRETINUE:
 	case EVENT_QUITRETINUE:
-		Frame.From = Guy;
-		Frame.Owner = ((struct Retinue*)Extra)->Leader;
+		Frame = CreateMissionFrame(Guy, ((struct Retinue*)Extra)->Leader, Mission);
+		break;
+	default:
+		Frame = CreateMissionFrame(NULL, Guy, Mission);
 		break;
 	}
-	MissionCall(g_LuaState, Mission, Frame.Owner, Frame.From);
+	MissionCall(g_LuaState, Frame);
 }
 
 void MissionCompare(struct RBNode* GuyNode, struct LinkedList* Missions, struct Mission* (*ActionList)[BGACT_SIZE]) {
@@ -485,16 +538,17 @@ void MissionCompare(struct RBNode* GuyNode, struct LinkedList* Missions, struct 
 	Guy = GuyNode->Data;
 	for(struct LnkLst_Node* Itr = Missions->Front; Itr != NULL; Itr = Itr->Next) {
 		struct Mission* Mission = Itr->Data;
-		static int Fired = 0;
 
-		MissionCall(g_LuaState, Mission, Guy, NULL);
-		if(Fired == 0 && Mission == MissionStrToId("BANDT.1")) {
-			Fired = 1;
-			MissionCall(g_LuaState, Mission, g_GameWorld.Player, NULL);
-		}
+		MissionCall(g_LuaState, CreateMissionFrame(NULL, Guy, Mission));
 	}
-	if(((struct BigGuy*)GuyNode->Data)->Action != BGACT_NONE)
-		MissionCall(g_LuaState, (*ActionList)[Guy->Action], Guy, Guy->ActionTarget);
+	if(((struct BigGuy*)GuyNode->Data)->Action != BGACT_NONE) {
+		struct MissionFrame* Frame = CreateMissionFrame(Guy->ActionTarget, Guy, (*ActionList)[Guy->Action]);
+
+		if(Frame != NULL) {
+			MissionCall(g_LuaState, Frame);
+			((struct BigGuy*)GuyNode->Data)->Action = BGACT_NONE;
+		} 	
+	}
 	MissionCompare(GuyNode->Left, Missions, ActionList);
 	MissionCompare(GuyNode->Right, Missions, ActionList);
 }
@@ -510,10 +564,11 @@ void RBMissionOnEvent(struct MissionEngine* Engine, uint32_t EventId, struct RBN
 void MissionEngineThink(struct MissionEngine* Engine, lua_State* State, const struct RBTree* BigGuys) {
 	MissionCompare(BigGuys->Table, &Engine->MissionsTrigger, &Engine->ActionMissions);
 	
-	if(DAY(g_GameWorld.Date) == 0 && MONTH(g_GameWorld.Date) == MARCH)
-		RBMissionOnEvent(Engine, MEVENT_SPRING, BigGuys->Table);
-	else if(DAY(g_GameWorld.Date) == 0 && MONTH(g_GameWorld.Date) == SEPTEMBER)
-		RBMissionOnEvent(Engine, MEVENT_SPRING, BigGuys->Table);
+	
+	//if(DAY(g_GameWorld.Date) == 0 && MONTH(g_GameWorld.Date) == MARCH)
+	//	RBMissionOnEvent(Engine, MEVENT_SPRING, BigGuys->Table);
+	//else if(DAY(g_GameWorld.Date) == 0 && MONTH(g_GameWorld.Date) == SEPTEMBER)
+	//	RBMissionOnEvent(Engine, MEVENT_SPRING, BigGuys->Table);
 }
 
 int MissionIdInsert(const int* One, const struct Mission* Two) {
@@ -530,13 +585,17 @@ const char* MissionFormatText(const char* restrict FormatIn, const struct Missio
 	char* DestStr = NULL;
 	const char* FrontStr = FormatIn;
 	const char* BackStr = FrontStr;
+	const char* CaseStr = NULL;
+	char* restrict Buffer = NULL;
 	char** restrict Strings = alloca(sizeof(char*) * FormatOpsSz);
 	size_t ExtraSz = 0;
 	size_t StringSz = 0;
 	size_t SizeOf = 0;
 	uint8_t EscapeChar = 0;
 	uint8_t OpIdx = 0;
+	uint16_t Class = 0;//Class of variable ptr.
 	
+	if(FormatIn == NULL || FormatOps == 0 || FormatOpsSz < 1 || Frame == NULL) return FormatIn;
 	for(int i = 0; i < FormatOpsSz; ++i) {
 		switch(FormatOps[i].Object) {
 			case MOBJECT_TARGET:
@@ -545,30 +604,76 @@ const char* MissionFormatText(const char* restrict FormatIn, const struct Missio
 					return NULL;
 				}
 				Obj = Frame->Owner;
-				break;
+				goto hard_switch;
 			case MOBJECT_FROM:
 				if(Frame->From == NULL) {
 					Log(ELOG_WARNING, "Warning: cannot format Frame.From: Frame.From is null.");
 					return NULL;
 				}
 				Obj = Frame->From;
-				break;
+				goto hard_switch;
+			case MOBJECT_VAR:
+				if(Frame->StackSz <= FormatOps->Extra) {
+					Log(ELOG_WARNING, "Warning: cannot format Frame.Variable: Frame.Variable is beyond stack.");
+					return NULL;
+				}
+				Obj = Frame->Stack[FormatOps->Extra].Value.Ptr;
+				Class = Frame->Stack[FormatOps->Extra].Class;
+				goto soft_switch;
 		}
+		//switch for non hardcoded objects.
+		soft_switch:
 		switch(FormatOps[i].Param) {
 			case MOPCODE_FIRSTNAME:
-				StringSz = strlen(((struct BigGuy*)Obj)->Person->Name);
-				Strings[i] = FrameAlloc(StringSz + 1);
-				strcpy(Strings[i], ((struct BigGuy*)Obj)->Person->Name);
+				switch(Class) {
+					case LOBJ_PERSON:
+						CaseStr = ((struct Person*)Obj)->Name;
+						break;
+					case LOBJ_BIGGUY:
+						CaseStr = ((struct BigGuy*)Obj)->Person->Name;
+						break;
+					default:
+						Log(ELOG_WARNING, "Warning: cannot format Frame.Variable: variable %i does not have a first name paramater.", Class);
+						return NULL;
+				}
 				break;
 			case MOPCODE_LASTNAME:
-				StringSz = strlen(((struct BigGuy*)Obj)->Person->Family->Name);
-				Strings[i] = FrameAlloc(StringSz + 1);
-				strcpy(Strings[i], ((struct BigGuy*)Obj)->Person->Family->Name);
+				break;
+				switch(Class) {
+					case LOBJ_PERSON:
+						CaseStr = ((struct Person*)Obj)->Family->Name;
+						break;
+					case LOBJ_BIGGUY:
+						CaseStr = ((struct BigGuy*)Obj)->Person->Family->Name;
+						break;
+					default:
+						Log(ELOG_WARNING, "Warning: cannot format Frame.Variable: variable %i does not have a last name paramater.", Class);
+						return NULL;
+				}
+		}
+		goto switch_end;
+		//switch for hardcoded objects.
+		hard_switch:
+		switch(FormatOps[i].Param) {
+			case MOPCODE_FIRSTNAME:
+				CaseStr = ((struct BigGuy*)Obj)->Person->Name;
+				break;
+			case MOPCODE_LASTNAME:
+				CaseStr = ((struct BigGuy*)Obj)->Person->Family->Name;
+				break;
+			case MOPCODE_PRONOUN:
+				CaseStr = ((((struct BigGuy*)Obj)->Person->Flags & MALE) == MALE) ? ("he") : ("she");
 				break;
 			default:
-				Assert(0);
+				Buffer = alloca(512);
+				PrimitiveToStr(&Frame->Stack[FormatOps[i].Object], Buffer, 512);
+				CaseStr = Buffer;
 				break;
 		}
+		switch_end:
+		StringSz = strlen(CaseStr);
+		Strings[i] = FrameAlloc(StringSz + 1);
+		strcpy(Strings[i], CaseStr);
 		ExtraSz += StringSz;	
 	}
 	SizeOf = strlen(FormatIn) + ExtraSz + 1;
@@ -602,25 +707,92 @@ const char* MissionFormatText(const char* restrict FormatIn, const struct Missio
 		++FrontStr;	
 	}
 	strcat(DestStr, BackStr);
+	//FIXME: Why are we deallocating memory and then returning it?
 	FrameReduce(SizeOf);
 	return DestStr;
 }
 
-struct PersonSelector {
-	uint16_t Count;
-	int8_t Male;
-	int8_t Adult;
-	int8_t Caste;
-	uint8_t OnlyBigGuy;
-};
+void LuaSettlementSelector(lua_State* State, struct SettlementSelector* Selector) {
+	int Type = 0;
 
+	lua_pushstring(State, "Count");
+	lua_rawget(State, -2);
+	if((Type = lua_type(State, -1)) == LUA_TNIL) {
+		Selector->Count = 1;
+	} else if(Type != LUA_TNUMBER) {
+		return (void) luaL_error(State, "Count is not a number.");
+	} else {
+		Selector->Count = lua_tointeger(State, -1);
+	}
+	lua_pop(State, 1);
+
+	lua_pushstring(State, "Target");
+	lua_rawget(State, -2);
+	if((Type = lua_type(State, -1)) == LUA_TNIL) {
+		Selector->Target = NULL;
+	} else if(Type != LUA_TTABLE) {
+		return (void) luaL_error(State, "Target is not a settlement.");
+	} else {
+		Selector->Target = LuaCheckClass(State, -1, LOBJ_SETTLEMENT);
+	}
+	lua_pop(State, 1);
+
+	lua_pushstring(State, "Distance");
+	lua_rawget(State, -2);
+	if((Type = lua_type(State, -1)) == LUA_TNIL) {
+		Selector->Distance = 20;
+	} else if(Type != LUA_TNUMBER) {
+		return (void) luaL_error(State, "Distance is not a number.");
+	} else {
+		Selector->Distance = lua_tointeger(State, -1);
+	}
+	lua_pop(State, 1);
+}
+
+int LuaMissionQuerySettlement(lua_State* State) {
+	//Argument indices and return index.
+	enum LuaArgs {
+		LARG_FRAME = 1,
+		LARG_SELECTORS,
+	};
+	struct Array* SetArr = NULL;
+	struct Settlement** TempArr = NULL;
+	uint32_t Size = 0;
+	struct SettlementSelector Selector;
+
+	LuaSettlementSelector(State, &Selector);
+	TempArr = QuerySettlement(&Selector, &Size);
+	lua_pushinteger(State, Size);
+	lua_insert(State, 1);
+	LuaArrayCreate(State);
+	SetArr = LuaCheckClass(State, -1, LOBJ_ARRAY);
+	for(int i = 0; i < Size; ++i)
+		SetArr->Table[i] = TempArr[i];
+	FrameReduce(sizeof(*TempArr) * Selector.Count);
+	return 1;
+}
+
+/**
+ * Converts a Lua table to a PersonSelector.
+ */
 void LuaPersonSelector(lua_State* State, struct PersonSelector* Selector) {
+	lua_pushstring(State, "Count");
+	lua_rawget(State, -2);
+	if(lua_type(State, -1) != LUA_TNUMBER) {
+		if(lua_type(State, -1) != LUA_TNIL)
+			return (void) luaL_error(State, "Count is not a number.");
+		Selector->Count = -1;//Select max amount.
+	} else {
+		Selector->Count = lua_tointeger(State, -1);
+	}
+	lua_pop(State, 1);
+
 	lua_pushstring(State, "Male");
 	lua_rawget(State, -2);
 	if(lua_type(State, -1) != LUA_TBOOLEAN) {
 		return (void) luaL_error(State, "Male is not a boolean.");
 	}
-	Selector->Male = (lua_toboolean(State, -1) == 1) ? (MALE) : (FEMALE);
+	Selector->Gender = (lua_toboolean(State, -1) == 1) ? (MALE) : (FEMALE);
 	lua_pop(State, 1);
 
 	lua_pushstring(State, "Adult");
@@ -634,91 +806,61 @@ void LuaPersonSelector(lua_State* State, struct PersonSelector* Selector) {
 	} else {
 		Selector->Adult = lua_toboolean(State, -1);
 	}
+	//TODO: Add BigGuy parameter.
+	lua_pop(State, 1);
+	lua_pushstring(State, "Relatives");
+	lua_rawget(State, -2);
+	if(lua_type(State, -1) == LUA_TBOOLEAN) {
+		Selector->Relatives = lua_toboolean(State, -1);
+	} else {
+		Selector->Relatives = false;
+	}
+	lua_pop(State, 1);
+
+	lua_pushstring(State, "Target");
+	lua_rawget(State, -2);
+	Selector->Target = LuaCheckClass(State, -1, LOBJ_PERSON);
+	if(Selector->Target == NULL) {
+		if(lua_type(State, -2) != LUA_TNIL) {
+			return (void) luaL_error(State, "Target is not nil or a valid value.");
+		}
+	}
 	lua_pop(State, 1);
 }
 
-static inline uint8_t LuaPersonSelect(const struct Person* Person, const struct MissionFrame* Frame, const struct PersonSelector* Selector) {
-	if((Selector->Male != -1 && Gender(Person) != Selector->Male)
-		|| (Selector->Adult != -1 && PersonMature(Person) != Selector->Adult)) {
-			return true;
-	}
-	return false;
-}
-
-static inline int RandomPersonItr(lua_State* State, const struct Settlement* Settlement, 
-	const struct PersonSelector* Selector, const struct MissionFrame* Frame, int Ct, int* Skipped) {
-	for(struct Person* Person = Settlement->People; Person != NULL && Ct > 0; Person = Person->Next) {
-		//Pick someone who didnt fire the trigger.
-		if(LuaPersonSelect(Person, Frame, Selector)) {
-			++(*Skipped);
-			continue;
-		}
-		LuaCtor(State, Person, LOBJ_PERSON);
-		lua_rawseti(State, -2, Ct);
-		--Ct;
-	}
-	return Ct;
-}
-
-static inline int RandomBigGuyItr(lua_State* State, const struct Settlement* Settlement,
-	const struct PersonSelector* Selector, const struct MissionFrame* Frame, int Ct, int* Skipped) {
-	struct LnkLst_Node* Itr = NULL;
-	struct BigGuy* Guy = NULL;
-	struct Person* Person = NULL;
-
-	assert(Settlement->BigGuys.Size != 0 && "LuaMissionGetRandomPerson: Settlement has no BigGuys.");
-	Itr = Settlement->BigGuys.Front;
-	Guy = (struct BigGuy*)Itr->Data;
-	Person = Guy->Person;
-	while(Itr != NULL && Ct > 0) {
-		if(LuaPersonSelect(Person, Frame, Selector)) {
-			++Skipped;
-			goto loop_end;
-		}
-		LuaCtor(State, Guy, LOBJ_BIGGUY);
-		lua_rawseti(State, -2, Ct);
-		--Ct;
-		loop_end:
-		Itr = Itr->Next;
-		Guy = Itr->Data;
-		Person = Guy->Person;	
-	}
-	return Ct;
-}
-
 int LuaMissionGetRandomPerson(lua_State* State) {
+	//Argument indices and return index.
 	enum LuaArgs {
 		LARG_FRAME = 1,
 		LARG_SELECTORS,
+		LARG_SETTLEMENT,
 		LRET_PLIST //List of people to return.
 	};
 	struct MissionFrame* Frame = LuaCheckClass(State, LARG_FRAME, LOBJ_MISSIONFRAME);
 	struct Settlement* Settlement = NULL;
-	int Ct = 0;
-	int Skipped = 0;
 	struct PersonSelector Selector = {0};
+	struct Person** PersonList = NULL;
+	uint32_t SelectSz = 0;
 	
 	lua_settop(State, 2);
 	luaL_checktype(State, LARG_SELECTORS, LUA_TTABLE);
-	Selector.Count = 1;
-	Selector.OnlyBigGuy = true;
+	Selector.PType = SELP_BIG;
 	LuaPersonSelector(State, &Selector);
-	lua_newtable(State);
-	Settlement = FamilyGetSettlement(Frame->Owner->Person->Family);
-	Ct = Selector.Count;
-	loop_start:
-	if(Selector.OnlyBigGuy == true)
-		Ct = RandomBigGuyItr(State, Settlement, &Selector, Frame, Ct, &Skipped);
+	//lua_newtable(State);
+	if(lua_gettop(State) < LARG_SETTLEMENT)
+		Settlement = FamilyGetSettlement(Frame->Owner->Person->Family);
 	else
-		Ct = RandomPersonItr(State, Settlement, &Selector, Frame, Ct, &Skipped);
-	if(Skipped >= Settlement->NumPeople)
+		Settlement = LuaCheckClass(State, LARG_SETTLEMENT, LOBJ_SETTLEMENT);
+	if((PersonList = QueryPeople((struct Person** const) Settlement->People.Table, Settlement->People.Size, &Selector, &SelectSz)) == NULL)
 		goto error;
-	if(Ct > 0)
-		goto loop_start;
-	if(Selector.Count == 1)
-		lua_rawgeti(State, LRET_PLIST, 1);
-	else
-		lua_settop(State, LRET_PLIST);
+	for(int i = 0; i < SelectSz; ++i) {
+		if(IsBigGuy(PersonList[i]) == true) {
+			LuaCtor(State, RBSearch(&g_GameWorld.BigGuys, PersonList[i]), LOBJ_BIGGUY);
+		} else {
+			LuaCtor(State, PersonList, LOBJ_PERSON);
+		}
+		lua_rawseti(State, i + 1, -1);
+	}
 	return 1;
 	error:
 	return luaL_error(State, "LuaMissionGetRandomPerson: No available person to select.");
@@ -730,25 +872,15 @@ int LuaMissionCallById(lua_State* State) {
 	struct BigGuy* From = NULL;
 	struct Mission* Mission = NULL;
 
-	//if(lua_type(State, 1) == LUA_TSTRING) {
-	//	Str = lua_tostring(State, 1);
 	Str = luaL_checkstring(State, 1);
 	if((Mission = MissionStrToId(Str)) == NULL)
 		return luaL_error(State, "%s is an invalid mission name.", Str);
-	//	if((Id = MissionStrToId(Str)) == -1)
-	//		return 0;
-	//} else {
-		//_Id = luaL_checkinteger(State, 1);
-	//}
-	/*if((Mission = RBSearch(&g_MissionEngine.MissionId, &Id)) == NULL)
-		return (Str != NULL) ? 
-			(luaL_error(State, "Attempted to call nil mission %s", Str)) :
-			(luaL_error(State, "Attempted to call nil mission %d", Id));
-			*/
 	if(lua_gettop(State) >= 3) {
 		From = LuaCheckClass(State, 3, LOBJ_BIGGUY);
+		Assert(From != NULL);
 	}
-	MissionCall(State, Mission, Owner, From);
+	Assert(Owner != NULL);
+	MissionCall(State, CreateMissionFrame(From, Owner, Mission));
 	return 0;
 }
 
@@ -759,8 +891,7 @@ void MissionLoadOption(lua_State* State, struct Mission* Mission) {
 	const char* FormatStr = NULL;
 	MLRef Condition = 0;
 	MLRef Trigger = 0;
-	uint8_t Object[FUNC_FORMATSZ];
-	uint8_t Param[FUNC_FORMATSZ];
+	struct MissionTextFormat Format[FUNC_FORMATSZ];
 
 	lua_pushstring(State, "Options");
 	lua_rawget(State, -2);
@@ -807,7 +938,7 @@ void MissionLoadOption(lua_State* State, struct Mission* Mission) {
 		lua_pop(State, 1);
 
 		FormatStr = Text;
-		while((FormatStr = MissionParseStr(FormatStr, &Object[FormatSz], &Param[FormatSz])) != NULL &&
+		while((FormatStr = MissionParseStr(FormatStr, &Format[FormatSz], NULL)) != NULL &&
 			FormatSz < FUNC_FORMATSZ) ++FormatSz;
 		Mission->Options[Mission->OptionCt].TextFormatSz = FormatSz;
 		if(FormatSz > 0)
@@ -835,7 +966,7 @@ void MissionLoadOption(lua_State* State, struct Mission* Mission) {
 			Trigger = 0;
 			lua_pop(State, 1);
 		}
-
+		if(Mission->OptionCt > 0) Assert(Trigger != 0);
 		lua_pushstring(State, "AIUtility");
 		lua_rawget(State, -2);
 		if(lua_type(State, -1) != LUA_TFUNCTION)
@@ -863,10 +994,10 @@ int LuaMissionLoad(lua_State* State) {
 	//const struct Array* NSArray = NULL;
 	char* Namespace = alloca(MISENG_NSSTR);
 	double Prob = 0;
-	uint8_t Object[FUNC_FORMATSZ];
-	uint8_t Param[FUNC_FORMATSZ];
+	struct MissionTextFormat Format[FUNC_FORMATSZ];
 	uint8_t FormatSz = 0;
 	uint8_t Action = 0;
+	uint8_t Crisis = 0;
 
 	lua_pushstring(State, "Id");
 	lua_rawget(State, 1);
@@ -919,25 +1050,27 @@ int LuaMissionLoad(lua_State* State) {
 
 	lua_pushstring(State, "Description");
 	lua_rawget(State, 1);
-	if(lua_type(State, -1) != LUA_TSTRING)
-		luaL_error(State, "Mission's description is not a string.");
-	TempStr = lua_tostring(State, -1);
-	FormatStr = TempStr;
-	while((FormatStr = MissionParseStr(FormatStr, &Object[FormatSz], &Param[FormatSz])) != NULL &&
-		FormatSz < FUNC_FORMATSZ) ++FormatSz;
-	Mission->Description = calloc(sizeof(char), strlen(TempStr) + 1);
-	Mission->TextFormatSz = FormatSz;
-	if(FormatSz > 0)
-		Mission->TextFormat = calloc(sizeof(struct MissionTextFormat), FormatSz);
-	else 
-		Mission->TextFormat = NULL;
-	for(int i = 0; i < FormatSz; ++i) {
-		Mission->TextFormat[i].Object = Object[i];
-		Mission->TextFormat[i].Param = Param[i];
+	if(lua_type(State, -1) == LUA_TSTRING) {
+		TempStr = lua_tostring(State, -1);
+		FormatStr = TempStr;
+		while((FormatStr = MissionParseStr(FormatStr, &Format[FormatSz], NULL)) != NULL &&
+			FormatSz < FUNC_FORMATSZ) ++FormatSz;
+		Mission->Description = calloc(sizeof(char), strlen(TempStr) + 1);
+		Mission->TextFormatSz = FormatSz;
+		if(FormatSz > 0)
+			Mission->TextFormat = calloc(sizeof(struct MissionTextFormat), FormatSz);
+		else 
+			Mission->TextFormat = NULL;
+		for(int i = 0; i < FormatSz; ++i) {
+			memcpy(&Mission->TextFormat[i], &Format[i], sizeof(Format[i]));
+		}
+		strcpy(Mission->Description, TempStr);
+	} else {
+		Mission->Description = NULL;
 	}
-	strcpy(Mission->Description, TempStr);
-	lua_pop(State, 1);
+		//luaL_error(State, "Mission's description is not a string.");
 
+	lua_pop(State, 1);
 	MissionLoadOption(State, Mission);
 	lua_pop(State, 1);
 
@@ -993,10 +1126,28 @@ int LuaMissionLoad(lua_State* State) {
 			if(Mission->MeanPercent <= 0 || Mission->MeanPercent > 1.0)
 				return luaL_error(State, "Mission.EventChance not greater than 0 and less than 1.(EventChance is %f).", Mission->MeanPercent);
 		}
+		goto crisis_skip;
 		//goto skip_meantime;
 	}
 	lua_pop(State, 1);
 
+	lua_pushstring(State, "Crisis");
+	lua_rawget(State, 1);
+	if(lua_type(State, -1) != LUA_TNUMBER) {
+		if(lua_type(State, -1) == LUA_TNIL) goto crisis_skip;
+		return luaL_error(State, "Mission.Crisis is not a number.");
+	}
+	Crisis = lua_tointeger(State, -1);
+	if(Crisis <= 0 || Crisis >= CRISIS_SIZE) {
+		ErrorStr = "Mission.Crisis is not a valid integer. (%d is invalid.)";
+		goto error;
+	}
+	//FIXME: If this mission errors out later in this function then this reference needs to be removed.
+	g_MissionEngine.CrisisMissions[Crisis] = Mission;
+	Mission->Flags = Mission->Flags | MISSION_FEVENT;
+	lua_pop(State, 1);
+
+	crisis_skip:
 	lua_pushstring(State, "MeanTime");
 	lua_rawget(State, 1);
 	if(lua_type(State, -1) != LUA_TTABLE) {
@@ -1061,6 +1212,10 @@ int LuaMissionLoad(lua_State* State) {
 	} else {
 		Mission->OnTrigger = 0;
 	}
+	if(Mission->Description == NULL && (Mission->Flags & MISSION_FNOMENU) == 0) {
+		ErrorStr = "Description is NULL and NoMenu is false.";
+		goto error;
+	}
 	MissionInsert(&g_MissionEngine, Mission, Namespace, Id);
 	Log(ELOG_DEBUG, "Loaded mission %s", Mission->Name);
 	return 0;
@@ -1085,6 +1240,7 @@ int LuaMissionSetVar(lua_State* State) {
 		return luaL_error(State, "Cannot add Frame var: to many variables exist.");
 	LuaToPrimitive(State, 3, &Frame->Stack[Frame->StackSz]);
 	Frame->StackKey[Frame->StackSz] = calloc(strlen(Key) + 1, sizeof(char));
+	strcpy((char*)Frame->StackKey[Frame->StackSz], Key);
 	++Frame->StackSz;
 	return 0;
 }
@@ -1135,7 +1291,7 @@ int LuaMissionCombatRound(lua_State* State) {
 	return 1;
 }
 
-const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
+const char* MissionParseStr(const char* Str, struct MissionTextFormat* Format, const struct MissionFrame* Frame) {
 #define PARSESTR_BUFLEN (64)
 
 	enum MissionParseStrEnum {
@@ -1148,11 +1304,12 @@ const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
 
 	const char* Pos = Str;
 	uint8_t State = PARSESTR_NONE;
-	uint8_t ObjectSz= 0;
+	uint8_t ObjectSz = 0;
 	uint8_t ParamSz = 0;
 	char Object[PARSESTR_BUFLEN];
 	char Param[PARSESTR_BUFLEN];
 
+	if(Str == NULL)	goto invalid_token;
 	do {
 		switch(State) {
 			case PARSESTR_NONE:
@@ -1162,12 +1319,12 @@ const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
 						break;
 					case ']':
 					//case '.':
-					//	return NULL;
+					//	goto invalid_token;
 					case '\\':
 						State = PARSESTR_BCKSLASH;
 						break;
 					case '\0':
-						return NULL;
+						goto invalid_token;
 					default:
 						break;
 				}
@@ -1175,18 +1332,18 @@ const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
 			case PARSESTR_OPNBRCK:	
 				switch(*Pos) {
 					case '[':
-						return NULL;
+						goto invalid_token;
 					case ']':
-						return NULL;	
+						goto invalid_token;	
 					case '.':
 						if(ObjectSz <= 0)
-							return NULL;
+							goto invalid_token;
 						Object[ObjectSz] = '\0';
 						State = PARSESTR_DOT;
 						break;
 					default:
 						if(ObjectSz - 1 >= PARSESTR_BUFLEN)
-							return NULL;
+							goto invalid_token;
 						Object[ObjectSz++] = *Pos;
 						break;
 				}
@@ -1195,17 +1352,17 @@ const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
 				switch(*Pos) {
 					case '[':
 					case '.':
-						return NULL;
+						goto invalid_token;
 					case ']':
 						State = PARSESTR_NONE;
 						if(ParamSz <= 0)
-							return NULL;
+							goto invalid_token;
 						Param[ParamSz] = '\0';
 						++Pos;
 						goto found_token;
 					default:
 						if(ParamSz - 1 >= PARSESTR_BUFLEN)
-							return NULL;
+							goto invalid_token;
 						Param[ParamSz++] = *Pos;
 				}
 				break;
@@ -1215,24 +1372,49 @@ const char* MissionParseStr(const char* Str, uint8_t* ObjId, uint8_t* ParamId) {
 		}
 	} while(Pos++ != NULL);
 	found_token:
-	for(int i = 0; i < MOBJECT_SIZE; ++i) {
-		if(strcmp(g_MissionObjects[i], Object) == 0) {
-			*ObjId = i;
-			break;
+	//Compare found string to object lookup table g_MissionObjects.
+	for(int i = 1; i < MOBJECT_SIZE; ++i) {
+        if(strcmp(g_MissionObjects[i], Object) == 0) {
+            Format->Object = i;
+            goto found_obj;
+        }
+    }
+    /*
+     * If this code is executed it is assumed the string is a variable look 
+     * through all variable keys to find a match.
+     */
+	if(Frame == NULL) goto invalid_token;
+	for(uint8_t i = 0; i < Frame->StackSz; ++i) {
+		if(strcmp(Frame->StackKey[i], Object) == 0) {
+			Format->Object = MOBJECT_VAR;
+			Format->Extra = i;
+			goto found_obj;
 		}
 	}
+	//Object is not a variable object name must be incorrect.
+	goto invalid_token;
+	//Use lookup table to find valid paramter string.
+	found_obj:
 	for(int i = 0; i < MOPCODE_SIZE; ++i) {
-		if(strcmp(g_MissionParams[i], Param) == 0) {
-			*ParamId = i;
-			break;
-		}
-	}
+		//use object not param.
+        if(strcmp(g_MissionParams[i], Param) == 0) {
+            Format->Param = i;
+            goto no_id;
+        }
+    }
+    //Paramater given is incorrect error out.out
+    goto invalid_token;
+	no_id:
 	return Pos;
+	invalid_token:
+	memset(Format, 0xFF, sizeof(*Format));
+	return NULL;
 #undef PARSESTR_BUFLEN
 }
 
 void InitMissionLua(lua_State* State) {
 	const char* Temp = NULL;
+	//Names of global variables to include in the mission environment.
 	static const char* GlobalVars[] = {
 		"Stat",
 		"Relation",
@@ -1240,6 +1422,7 @@ void InitMissionLua(lua_State* State) {
 		"pairs",
 		"print",
 		"Action",
+		"Crisis",
 		"Null",
 		NULL
 	};
@@ -1308,15 +1491,23 @@ void InitMissionLua(lua_State* State) {
 }
 
 int LuaMissionOptionGetName(lua_State* State) {
+#define FORMAT_MAX (8)
 	struct MissionOption* Option = LuaCheckClass(State, 1, LOBJ_MISSIONOPTION);
 	struct MissionFrame* Frame = LuaCheckClass(State, 2, LOBJ_MISSIONFRAME);
+	struct MissionTextFormat Format[FORMAT_MAX];
+	uint8_t FormatSz = 0;
+	const char* Str = NULL;
 
 	if(lua_gettop(State) < 1) {
 		lua_pushstring(State, Option->Name);
 		return 1;
 	}
-	lua_pushstring(State, MissionFormatText(Option->Name, Option->TextFormat, Option->TextFormatSz, Frame));
+	Str = Option->Name;
+	while((Str = MissionParseStr(Str, &Format[FormatSz], Frame)) != NULL && FormatSz < FORMAT_MAX) ++FormatSz; 
+	lua_pushstring(State, MissionFormatText(Option->Name, Format, FormatSz, Frame));
+	//lua_pushstring(State, MissionFormatText(Option->Name, Option->TextFormat, Option->TextFormatSz, Frame));
 	return 1;
+#undef FORMAT_MAX
 }
 
 int LuaMissionOptionConditionSatisfied(lua_State* State) {

@@ -1463,8 +1463,13 @@ void InitMissionLua(lua_State* State) {
 		lua_pushnil(State);
 		while(lua_next(State, -4) != 0) {
 			if(lua_iscfunction(State, -1) == 0) {
-				Temp = lua_tostring(State, -2);
-				if(Temp[0] == '_') {
+				if(lua_isnumber(State, -2) == 0) {
+					Temp = lua_tostring(State, -2);
+					if(Temp[0] == '_') {
+						lua_pop(State, 1);
+						continue;
+					}
+				} else {
 					lua_pop(State, 1);
 					continue;
 				}

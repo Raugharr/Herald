@@ -444,7 +444,7 @@ void RaidFamilies(struct Array* Captives, struct LinkedList* Families, uint32_t 
 
 				if(Family->People[i] == NULL)
 					continue;
-				if(Family->Caste == CASTE_WARRIOR || PersonIsWarrior(Person)) {
+				if(Family->Prof == PROF_WARRIOR || PersonIsWarrior(Person)) {
 					ArrayInsert_S(&DeathList, Person);
 				} else if(Captives->Size < MaxCaptives) {
 					SettlementRemovePerson(Family->HomeLoc, Person);

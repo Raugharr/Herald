@@ -79,12 +79,13 @@ struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType)
 	Loc->Name = calloc(strlen(Name) + 1, sizeof(char));
 	CtorArray(&Loc->People, 64);
 	CtorArray(&Loc->Slaves, 20);
-	Loc->Government = CreateGovernment(GovType, 0, Loc);
+	Loc->Government = CreateGovernment(Loc, GovType & GOVRULE_MASK, GovType & GOVTYPE_MASK, GovType & GOVSTCT_MASK, GovType & GOVMIX_MASK, 0);
+	Assert(Loc->Government != NULL);
 	Loc->NumPeople = 0;
 	Loc->BigGuys.Size = 0;
 	Loc->BigGuys.Front = NULL;
 	strcpy(Loc->Name, Name);
-	LnkLstPushBack(&g_GameWorld.Settlements, Loc);
+	ArrayInsert_S(&g_GameWorld.Settlements, Loc);
 	QTInsertPoint(&g_GameWorld.SettlementMap, Loc, &Loc->Pos);
 	Loc->Families.Size = 0;
 	Loc->Families.Front = NULL;
@@ -112,10 +113,9 @@ struct Settlement* CreateSettlement(int X, int Y, const char* Name, int GovType)
 	Loc->FreeAcres = SETTLEMENT_SPACE - Loc->Meadow.Acres;
 	Loc->UsedAcres = 0;
 	//FIXME: Each family should take an acre of land.
-	Loc->StarvingFamilies = 0;
 	Loc->Retinues = NULL;
 	CtorFaction(&Loc->Factions, Loc);
-	GenerateStats(CASTE_FARMER, &Loc->Stats);
+	GenerateStats(CASTE_GENEAT, &Loc->Stats);
 	for(int i = 0; i < HARVEST_YEARS; ++i) UpdateHarvestMod(&Loc->HarvestMod, i);
 	Loc->HarvestYear = 0;
 	ConstructLinkedList(&Loc->FreeWarriors);
@@ -144,8 +144,8 @@ void DestroySettlement(struct Settlement* Location) {
 }
 
 uint8_t UpdateHarvestMod(uint8_t (*HarvestYears)[HARVEST_YEARS], uint8_t CurrYear) {
-	//CurrYear = CurrYear % HARVEST_YEARS;
-	//(*HarvestYears)[CurrYear] = (uint8_t) Random(1, 10);
+	CurrYear = CurrYear % HARVEST_YEARS;
+	(*HarvestYears)[CurrYear] = (uint8_t) Random(1, 10);
 	return CurrYear;
 }
 
@@ -190,6 +190,9 @@ void SettlementThink(struct Settlement* Settlement) {
 			if(Settlement->FreeAcres + Settlement->UsedAcres <= MILE_ACRE)
 				Settlement->FreeAcres += Settlement->Families.Size;
 		} else {//if(MONTH(g_GameWorld.Date) == FEBURARY) {
+			/*
+			 * Handle crisis.
+			 */
 		    for(int i = 0; i < Settlement->Crisis.Size; ++i) {
 #define FormatSz (8)
 
@@ -219,39 +222,42 @@ void SettlementThink(struct Settlement* Settlement) {
 				break;
 			struct Person* Suitor = Settlement->Suitors.Table[i];
 			struct Person* Bride = Settlement->Brides.Table[Settlement->Brides.Size -1];
-			struct Family* Family = CreateFamily(Suitor->Family->Name, Settlement, Suitor->Family, Suitor->Family->Caste);
+			struct Family* Family = CreateFamily(Suitor->Family->Name, Settlement, Suitor->Family, Suitor->Family->Caste, Suitor->Family->Prof);
 			struct Good* Good = NULL;
 
-			for(int i = 0; i < Suitor->Family->Goods.Size; ++i) {
-				Good = Suitor->Family->Goods.Table[i];
-				
-				if(Good->Base->Category == GOOD_SEED) {
-					struct Good* NewGood = CreateGood(Good->Base);	
-					struct Crop* Crop = HashSearch(&g_Crops, Good->Base->Name);
-					int Take = Crop->SeedsPerAcre * FAMILY_ACRES;
-					int NutTake = 0;
-					int NutReq = 16; //FamilyNutReq(Family);
+			if(Suitor->Family->Prof == PROF_FARMER) {
+				for(int i = 0; i < Suitor->Family->Goods.Size; ++i) {
+					Good = Suitor->Family->Goods.Table[i];
 					
-					if(Take > Good->Quantity) Take = Good->Quantity / 2;
-					ArrayInsert_S(&Family->Goods, NewGood);
-					ArrayAddGood(&Family->Goods, Good, Take);
+					//Give the new family seeds to start a farm.
+					if(Good->Base->Category == GOOD_SEED) {
+						struct Good* NewGood = CreateGood(Good->Base);	
+						struct Crop* Crop = HashSearch(&g_Crops, Good->Base->Name);
+						int Take = Crop->SeedsPerAcre * FAMILY_ACRES;
+						int NutTake = 0;
+						int NutReq = 16; //FamilyNutReq(Family);
+						
+						if(Take > Good->Quantity) Take = Good->Quantity / 2;
+						ArrayInsert_S(&Family->Goods, NewGood);
+						ArrayAddGood(&Family->Goods, Good, Take);
 
-					NutTake = (NutReq * (YEAR_DAYS / 2));
-					if(NutTake > Family->Parent->Food.SlowSpoiled) NutTake = Family->Parent->Food.SlowSpoiled;
-					Family->Parent->Food.SlowSpoiled -= NutTake;
-					Family->Food.SlowSpoiled += NutTake;
+						NutTake = (NutReq * (YEAR_DAYS / 2));
+						if(NutTake > Family->Parent->Food.SlowSpoiled) NutTake = Family->Parent->Food.SlowSpoiled;
+						Family->Parent->Food.SlowSpoiled -= NutTake;
+						Family->Food.SlowSpoiled += NutTake;
 
-					if(NutTake > Bride->Family->Food.SlowSpoiled) NutTake = Bride->Family->Food.SlowSpoiled;
-					Bride->Family->Food.SlowSpoiled -= NutTake;
-					Family->Food.SlowSpoiled += NutTake;
-					FamilyDivideAnimals(Family, Suitor->Family, Suitor->Family->NumChildren);
-					//Family->Food.SlowSpoiled += 1000;
+						if(NutTake > Bride->Family->Food.SlowSpoiled) NutTake = Bride->Family->Food.SlowSpoiled;
+						Bride->Family->Food.SlowSpoiled -= NutTake;
+						Family->Food.SlowSpoiled += NutTake;
+						FamilyDivideAnimals(Family, Suitor->Family, Suitor->Family->NumChildren);
+						//Family->Food.SlowSpoiled += 1000;
+					}
 				}
-			}
 			#ifdef DEBUG
-			if(Family->Caste == CASTE_FARMER) Assert(Family->Goods.Size > 0);
+				Assert(Family->Goods.Size > 0);
 			#endif
 			LocationCreateField(Family, FAMILY_ACRES);
+			}
 			FamilyRemovePerson(Suitor->Family, Suitor);
 			FamilyRemovePerson(Bride->Family, Bride);
 			Family->People[HUSBAND] = Suitor;
@@ -263,7 +269,6 @@ void SettlementThink(struct Settlement* Settlement) {
 			//SettlementPlaceFamily(Settlement, Family);
 			LnkLstPushBack(&Settlement->Families, Family);
 		}
-		Settlement->StarvingFamilies = 0;
 		for(struct Retinue* Itr = Settlement->Retinues; Itr != NULL; Itr = Itr->Next) {
 			RetinueThink(Itr);
 		}
@@ -349,8 +354,6 @@ void SettlementGetCenter(const struct Settlement* Location, SDL_Point* Pos) {
 }
 
 void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
-	int Caste = PERSON_CASTE(Person);
-
 	Person->Sidx = Settlement->People.Size;
 	ArrayInsert_S(&Settlement->People, Person);
 	Assert(Person->Sidx == Settlement->People.Size - 1);
@@ -360,7 +363,7 @@ void SettlementAddPerson(struct Settlement* Settlement, struct Person* Person) {
 			++Settlement->AdultMen;
 		else
 			++Settlement->AdultWomen;
-		if(Caste == CASTE_WARRIOR) {
+		if(Person->Family->Prof == PROF_WARRIOR) {
 			LnkLstPushBack(&Settlement->FreeWarriors, Person);
 			++Settlement->MaxWarriors;
 		}
@@ -402,7 +405,7 @@ void SettlementRemovePerson(struct Settlement* Settlement, struct Person* Person
 			}
 		}
 	}
-	if(PersonMature(Person) != false && PERSON_CASTE(Person) == CASTE_NOBLE) {
+	if(PersonMature(Person) != false && PersonProf(Person) == PROF_WARRIOR) {
 		for(struct LnkLst_Node* Itr = Settlement->FreeWarriors.Front; Itr != NULL; Itr = Itr->Next) {
 			if(Itr->Data == Person) {
 				LnkLstRemove(&Settlement->FreeWarriors, Itr);
@@ -501,7 +504,7 @@ int SettlementYearlyNutrition(const struct Settlement* Settlement) {
 
 	while(Itr != NULL) {
 		Family = ((struct Family*)Itr->Data);
-		if(Family->Caste != CASTE_FARMER)
+		if(Family->Prof != PROF_FARMER)
 			goto end;
 		for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
 			Nutrition = Nutrition + (Family->Spec.Farmer.Fields[i]->Acres * 400);
@@ -619,4 +622,24 @@ bool LocationCreateField(struct Family* Family, int Acres) {
 		return true;
 	}
  	return false;
+}
+
+void MigrateFamilies(struct Settlement* Settlement, uint8_t* SetZones, uint16_t SetArea, struct Family** Families, int FamSz, int NewX, int NewY) {
+	struct Settlement* NewSet = NULL;		
+
+	if(FamSz < 0) return;
+	Assert(MapGravBest(SetZones, SetArea, NewX, NewY, &NewX, &NewY) > 0);
+	NewSet = CreateSettlement(NewX, NewY, "Test Settlement", Settlement->Government->GovType);
+	for(int i = 0; i < FamSz; ++i) {
+		SettlementRemoveFamily(Settlement, Families[i]);
+		SettlementPlaceFamily(Settlement, Families[i]);
+		if(Families[i]->Prof == PROF_FARMER) {
+			for(int j = 0; j < Families[i]->Spec.Farmer.FieldCt; ++j) {
+				int Acres = FieldTotalAcres(Families[i]->Spec.Farmer.Fields[j]);
+
+				Settlement->FreeAcres += Acres;
+				NewSet->FreeAcres -= Acres;
+			}
+		}
+	}
 }

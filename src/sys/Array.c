@@ -176,37 +176,73 @@ void InsertionSortPtr(void* Table[], size_t Count, CompCallback Callback) {
 	}
 
 }
-void QuickSort_Aux(void* Table, CompCallback Callback, int Size) {
-	/*
-	int i = Left;
-	int j = Right;
-	const void* Node = NULL;
-	const void** Swap = NULL;
 
-	if(Left >= Right)
-		return;
-	Node = *(const void**)(Table + sizeof(int*) * (Left));
-	do {
-		while(Callback(*((const void**)(Table + sizeof(int*) * j)), Node) >= 0 && i < j)
-			--j;
-		if(i != j) {
-			Swap = (const void**)(Table + sizeof(int*) * i);
-			*_Swap = *(const void**)(Table + sizeof(int*) * j);
-			++i;
-		}
-		while(Callback(*((const void**)(Table + sizeof(int*) * i)), Node) <= 0 && i < j)
-			++i;
-		if(i != j) {
-			Swap = (const void**)(Table + sizeof(int*) * j);
-			*_Swap = *(const void**)(Table + sizeof(int*) * i);
-			--j;
-		}
-	} while(i < j);
-	Swap = (const void**)(Table + sizeof(int*) * i);
-	*_Swap = Node;
- 	QuickSort_Aux(Table, Callback, Left, i - 1);
-	QuickSort_Aux(Table, Callback, i + 1, Right);
-	*/
+int QuickSortPartition(void** Table, int Size, void* Pivot, CompCallback Callback) {
+    int Left = 0;
+    int Right = Size - 1;
+    void* Temp = NULL;
+
+    /**
+     * Find all elements that are greater than the pivot and
+     * put them on the right side of the pivot, and find all
+     * elements on the right side of the pivot index that are less than
+     * the pivot and put them on the left side of the pivot.
+     */
+    while(1) {
+        while(Callback(Table[Left], Pivot) < 0) {
+            ++Left;
+        }
+        while(Callback(Table[Right], Pivot) > 0) {
+            --Right;
+        }
+        if(Left >= Right)
+            return Left;
+        Temp = Table[Left];
+        Table[Left] = Table[Right];
+        Table[Right] = Temp;
+    }
+}
+
+void* MedianPivot(void** Table, int Size) {
+    int Mid = Size / 2;
+    void* Temp = NULL;
+
+    //Sort the three points.
+    if(Table[Size - 1] < Table[0]) {
+        Temp = Table[Size - 1];
+        Table[Size - 1] = Table[0];
+        Table[0] = Temp;
+    }
+    if(Table[Mid] < Table[0]) {
+        Temp = Table[Mid];
+        Table[Mid] = Table[0];
+        Table[0] = Temp;
+    }
+    if(Table[Size - 1] < Table[Mid]) {
+        Temp = Table[Size - 1];
+        Table[Size - 1] = Table[Mid];
+        Table[Mid] = Temp;
+    }
+    return Table[Mid];
+}
+
+
+void QuickSort(void** Table, int Size, CompCallback Callback) {
+	void* Pivot = NULL;
+	int PivotIdx = 0;
+
+    //A table consisting of one element is always sorted.
+    if(Size <= 1)
+        return;
+    /**
+     * Find the pivot, then put all elements that are less than the pivot on the left of its
+     * and all elements that are greater on the right of the pivot, then subdivde the table
+     * in to two and repeat.
+     */
+    Pivot = MedianPivot(Table, Size);
+    PivotIdx = QuickSortPartition(Table, Size, Pivot, Callback);
+    QuickSort(Table, Size - (Size - PivotIdx), Callback);
+    QuickSort(Table + PivotIdx, (Size - PivotIdx), Callback);
 }
 
 int ArrayLen(const void* Table) {
@@ -258,6 +294,25 @@ void* BinarySearch(const void* Data, void* Table, int Size, CompCallback Callbac
 			return *(void**)(Table + sizeof(void*) * Mid);
 	}
 	return NULL;
+}
+
+int BinarySearchIdx(const void* Data, void* Table, int Size, CompCallback Callback) {
+	int Min = 0;
+	int Max = Size - 1;
+	int Mid = 0;
+	int Result = 0;
+
+	while(Max >= Min) {
+		Mid = Min + ((Max - Min) / 2);
+		Result = Callback(Data, *(void**)(Table + sizeof(void*) * Mid));
+		if(Result < 0)
+			Max = Mid - 1;
+		else if(Result > 0)
+			Min = Mid + 1;
+		else
+			return Mid;
+	}
+	return -1;
 }
 
 void* LinearSearch(const void* Data, void* Table, int Size, CompCallback Callback) {

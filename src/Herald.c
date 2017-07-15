@@ -73,7 +73,6 @@ struct MissionEngine g_MissionEngine;
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
 	{{NULL, PersonObjThink},
-	{NULL, AnimalObjThink},
 	{NULL, NULL},
 	{NULL, NULL},
 	{NULL, NULL},
@@ -87,7 +86,6 @@ static struct ObjectList g_Objects = {
 
 static ObjectThink g_ObjectThinks[OBJECT_SIZE] = {
 	PersonThink,
-	AnimalThink,
 	(ObjectThink)FieldUpdate,
 	(ObjectThink)ArmyThink, 
 	NULL,
@@ -146,9 +144,7 @@ int HeraldInit() {
 	g_BhvVars.TblSize = 0;
 	g_BhvVars.Table = calloc(sizeof(void*), 64);
 	g_BhvVars.Size = 64;
-
-	g_TaskPool = CreateTaskPool();
-
+	InitTaskPool();
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
 	g_OpinionMods = CreateConstrntBnds(5, -REL_MAX, -76, -26, 25, 75, REL_MAX);
@@ -169,7 +165,7 @@ void HeraldDestroy() {
 	}
 	HashDeleteItr(_Itr);
 	free(g_BhvVars.Table);
-	DestroyTaskPool(g_TaskPool);
+	QuitTaskPool();
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_OpinionMods);

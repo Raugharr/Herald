@@ -35,11 +35,6 @@
 
 #define LUA_CLASSCT (255)
 
-enum LuaObjectIds = {
-	LUA_OCLASS,
-	LUA_OSELF
-};
-
 lua_State* g_LuaState = NULL;
 
 const char* g_LuaGlobals[] = {
@@ -270,11 +265,11 @@ int LuaRegisterObject(lua_State* State, const char* Name, int Class, int BaseCla
 	lua_pushliteral(State, "__index");
 	lua_pushcfunction(State, LuaClassIndex);
 	lua_rawset(State, -3);
-	lua_pushstring(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_pushinteger(State, Ref);
 	lua_rawset(State, -3);
 
-	lua_pushliteral(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_pushinteger(State, Class);
 	lua_rawset(State, -3);
 	//Give them the base class Object. This doesn't need to be done for a class with a base class as their base class with be an object.
@@ -340,7 +335,7 @@ void LuaInitClass(lua_State* State, void* Ptr, int Class) {
 	lua_rawgeti(State, LUA_REGISTRYINDEX, g_LuaClassTable[Class]);
 	if(lua_type(State, -1) == LUA_TTABLE) {
 		lua_setmetatable(State, -2);
-		lua_pushstring(State, LUA_OSELF);
+		lua_pushinteger(State, LUA_OSELF);
 		lua_pushlightuserdata(State, Ptr);
 		lua_rawset(State, -3);
 		return;
@@ -357,9 +352,9 @@ const char* LuaObjectClass(lua_State* State, int Arg) {
 		return NULL;
 	if(lua_getmetatable(State, Arg) == 0)
 		return NULL;
-	lua_push(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_rawget(State, -2);
-	if(lua_type(State, -1) != LUA_TSTRING) {
+	if(lua_type(State, -1) != LUA_TNUMBER) {
 		lua_pop(State, 2);
 		return NULL;
 	}
@@ -478,7 +473,7 @@ int LuaLnkLstNodeIterate(lua_State* State) {
 	else
 		Itr = Itr->Prev;
 	lua_pushvalue(State, lua_upvalueindex(1));
-	lua_pushstring(State, LUA_OSELF);
+	lua_pushinteger(State, LUA_OSELF);
 	lua_pushlightuserdata(State, Itr);
 	lua_rawset(State, -3);
 	lua_pop(State, 1);
@@ -575,7 +570,7 @@ int LuaObjectIsEqual(lua_State* State) {
 }
 
 int LuaObjectGetClassName(lua_State* State) {
-	LuaObjectClass(State, 1);
+	lua_pushstring(State, LuaObjectClass(State, 1));
 	return 1;
 }
 
@@ -724,7 +719,7 @@ int LuaNull(lua_State* State) {
 		lua_pushboolean(State, 1);
 		return 1;
 	}
-	lua_pushstring(State, LUA_OSELF);
+	lua_pushinteger(State, LUA_OSELF);
 	lua_rawget(State, 1);
 	if(lua_touserdata(State, -1) == NULL)
 		lua_pushboolean(State, true);
@@ -919,7 +914,7 @@ void* LuaToClass(lua_State* State, int Index) {
 			return NULL;
 		if(lua_type(State, Pos) != LUA_TTABLE)
 			luaL_error(State, "LuaToClass: index is not a class (expected table got %s).", lua_typename(State, lua_type(State, Pos)));
-		lua_pushstring(State, LUA_OSELF);
+		lua_pushinteger(State, LUA_OSELF);
 		lua_rawget(State, Pos);
 		Pointer = lua_touserdata(State, -1);
 		lua_pop(State, 1);
@@ -930,7 +925,7 @@ void* LuaToClass(lua_State* State, int Index) {
 void* LuaTestClass(lua_State* State, int Index, int Class) {
 	if(lua_getmetatable(State, Index) == 0)
 		 luaL_error(State, LUA_TYPERROR(State, Index, Class, "LuaTestClass"));
-	lua_pushstring(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_rawget(State, -2);
 	if(lua_isnumber(State, -1) == 1 || Class == lua_tointeger(State, -1)) {
 		lua_pop(State, 2);
@@ -977,7 +972,7 @@ void* LuaCheckClass(lua_State* State, int Index, int  Class) {
 	lua_pop(State, 1);
 	const char* Name = NULL;
 
-	lua_pushstring(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_rawget(State, 1);
 	return (void*) luaL_error(State, LUA_TYPERROR(State, 1, lua_tostring(State, -1), "LuaCheckClass"));
 }
@@ -988,7 +983,7 @@ const char* LuaBaseClass(lua_State* State, int Index) {
 	if(lua_getmetatable(State, Index) == 0)
 		 luaL_error(State, LUA_TYPERROR(State, Index, "Table", "LuaTestClass"));
 	while(1) {
-		lua_pushstring(State, LUA_OCLASS);
+		lua_pushinteger(State, LUA_OCLASS);
 		lua_rawget(State, -2);
 		if(lua_isstring(State, -1) == 0) {
 			lua_pop(State, 2);
@@ -1338,7 +1333,7 @@ int LuaClassError(lua_State* State, int Arg, int Class) {
 	if(ArgType == NULL)
 		ArgType = lua_typename(State, lua_type(State, Arg));
 	else {
-		lua_pushstring(State, LUA_OSELF);
+		lua_pushinteger(State, LUA_OSELF);
 		lua_rawget(State, Arg);	
 		if(lua_touserdata(State, -1) == NULL)
 			return luaL_error(State, "Error argument #%d is of type \"%d\" but is NULL.", Arg, Class);
@@ -1379,13 +1374,13 @@ void* LuaIsObject(lua_State* State, int Index, int* Class) {
 		return NULL;
 	}
 	lua_getmetatable(State, Index);
-	lua_pushstring(State, LUA_OCLASS);
+	lua_pushinteger(State, LUA_OCLASS);
 	lua_rawget(State, -2);
 	if(lua_isnumber(State, -1) == 0) return NULL;
 	if(Class != NULL) *Class = lua_tointeger(State, -1);
 	lua_pop(State, 2);
 
-	lua_pushstring(State, LUA_OSELF);
+	lua_pushinteger(State, LUA_OSELF);
 	lua_rawget(State, Index);
 	Self = lua_touserdata(State, -1);
 	lua_pop(State, 1);

@@ -217,7 +217,7 @@ int LuaCreateLabel(lua_State* State) {
 	struct Container* Parent = LuaCheckClass(State, 1, LOBJ_CONTAINER);
 	const char* Text = luaL_checkstring(State, 2);
 
-	lua_newtable(State);
+	//lua_newtable(State);
 	Label = CreateLabel();
 	ConstructLabel(Label, Parent, Text);
 	return 1;
@@ -802,9 +802,9 @@ int LuaWidgetDestroy(lua_State* State) {
 
 	if(Widget == NULL)
 		return 0;
-	lua_pushstring(State, "__self");
+/*	lua_pushinteger(State, LUA_OSELF);
 	lua_pushnil(State);
-	lua_rawset(State, -3);
+	lua_rawset(State, -3);*/
 	Widget->OnDestroy(Widget);
 	return 0;
 }

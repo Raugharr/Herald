@@ -107,7 +107,6 @@ static const luaL_Reg g_LuaFuncsField[] = {
 
 
 static const luaL_Reg g_LuaFuncsAnimal[] = {
-	{"GetId", LuaAnimalGetId},
 	{"IsMale", LuaAnimalIsMale},
 	{"GetGender", LuaAnimalGetGender},
 	{"GetNutrition", LuaAnimalGetNutrition},
@@ -310,7 +309,7 @@ int LuaFamilyGetFields(lua_State* State) {
 	struct Family* Family = (struct Family*) LuaToObject(State, 1, LOBJ_FAMILY);
 	int Idx = 0;
 
-	if(Family->Caste != CASTE_FARMER) {
+	if(Family->Prof != PROF_FARMER) {
 		lua_createtable(State, 0, 0);
 		return 1;
 	}
@@ -441,13 +440,6 @@ int LuaFieldStatusCompletion(lua_State* State) {
 	return 1;
 }
 
-
-int LuaAnimalGetId(lua_State* State) {
-	struct Animal* Animal = (struct Animal*) LuaToObject(State, 1, LOBJ_ANIMAL);
-
-	lua_pushinteger(State, Animal->Object.Id);
-	return 1;
-}
 
 int LuaAnimalIsMale(lua_State* State) {
 	struct Animal* Animal = (struct Animal*) LuaToObject(State, 1, LOBJ_ANIMAL);
@@ -811,7 +803,7 @@ int LuaFamilyTakeAnimal(lua_State* State) {
 	}
 	end:
 	++i;
-	InsertionSortPtr(InsertList, i, AnimalCmp);
+//	InsertionSortPtr(InsertList, i, AnimalCmp);
 	FamilyInsertAnimalArr(To, InsertList, i);
 	lua_pushinteger(State, i);
 	return 1;

@@ -63,7 +63,6 @@ void MainCoro() {
 			_WorldTimer = _Ticks;
 			FrameFree();
 		}
-		++g_TaskPool->Time;
 		lua_settop(g_LuaState, 0);
 	}
 }
@@ -95,7 +94,7 @@ int main(int argc, char* args[]) {
 	}
 	AIInit(g_LuaState);
 	AnimationLoad(g_LuaState, "data/anim/test.lua");
-	WorldInit(150, 1);
+	WorldInit(150, 50);
 
 	CoSchedule(MainCoro);
 	quit:

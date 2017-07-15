@@ -45,14 +45,27 @@ struct GameWorld;
 typedef struct lua_State lua_State;
 
 enum CasteEnum {
-	CASTE_THRALL,
+	CASTE_THEOW,
+	CASTE_GEBUR,
+	CASTE_GENEAT,
+	CASTE_THEGN,
+	CASTE_EALDORMAN,
+/*
 	CASTE_FARMER,
 	CASTE_CRAFTSMAN,
 	CASTE_LOWNOBLE,
 	CASTE_PRIEST,
 	CASTE_WARRIOR,
-	CASTE_NOBLE,
+	CASTE_NOBLE,*/
 	CASTE_SIZE
+};
+
+enum {
+	PROF_FARMER,
+	PROF_BUTCHER,
+	PROF_MILLER,
+	PROF_WARRIOR,
+	PROF_SIZE
 };
 
 enum RationEnum {
@@ -65,12 +78,6 @@ enum RationEnum {
 	RATION_FULLTHIRD,
 	RATION_DOUBLE,
 	RATION_SIZE
-};
-
-enum CasteGroupEnum {
-	CASTE_GSLAVE,
-	CASTE_GCOMMON,
-	CASTE_GNOBLE
 };
 
 struct CasteGoodReq {
@@ -101,7 +108,7 @@ struct Family {
 	} Food;
 	uint8_t NumChildren;
 	uint8_t Caste;
-	uint8_t Job;
+	uint8_t Prof;
 	uint8_t Faction;
 	uint8_t Rations;
 	//Contains how many of each animal type this family has.
@@ -115,6 +122,7 @@ struct Family {
 			//To save space we might just want to remove this and check for NULL.
 			uint8_t FieldCt;
 		} Farmer;
+
 		struct {
 			const struct Family* Owner;
 		} Slave;
@@ -124,9 +132,9 @@ struct Family {
 //FIXME: Remove Family_Init and Family_Quit as they are not specifically related to Family.h and should be moved somewhere else that initializes data.
 void Family_Init(struct Array* Array);
 void Family_Quit();
-struct Family* CreateFamily(const char* Name, struct Settlement* Location, struct Family* Parent, int Caste);
+struct Family* CreateFamily(const char* Name, struct Settlement* Location, struct Family* Parent, uint8_t Caste, uint8_t Prof);
 struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Parent, struct Constraint * const * const AgeGroups, 
-	struct Constraint * const * const BabyAvg, struct Settlement* Location, uint8_t Caste);
+	struct Constraint * const * const BabyAvg, struct Settlement* Location, uint8_t Caste, uint8_t Prof);
 void DestroyFamily(struct Family* Family);
 struct Food* FamilyMakeFood(struct Family* Family);
 void FamilyWorkField(struct Family* Family);
@@ -134,18 +142,16 @@ void FamilyObjThink(struct Object* Obj);
 void FamilyThink(struct Object* Obj);
 static inline void FamilySetCaste(struct Family* Family, int Caste) {
 	Family->Caste = Caste;
-	Assert(Caste != CASTE_THRALL);
+	Assert(Caste != CASTE_THEOW);
 }
+
+static inline uint32_t FamilyGetFood(const struct Family* Family) {return Family->Food.SlowSpoiled + Family->Food.FastSpoiled;}
 
 void FamilySetCasteSlave(struct Family* Family, struct Family* Owner);
 /**
  * Returns how many people are in Family.
  */
 int FamilySize(const struct Family* Family);
-/**
- * Creates a new family that contains Male and Female as the husband and wife.
- */
-void Marry(struct Person* Male, struct Person* Female);
 /**
  * NOTE: Family is not fully created yet and has no people in it, thus FamilySize is needed
  */
@@ -189,7 +195,8 @@ static inline int StoredFoodSufficient(const struct Family* Family) {
 void FamilyRemovePerson(struct Family* Family, struct Person* Person);
 bool FamilyAddPerson(struct Family* Family, struct Person* Person);
 
-void CreateFarmerFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
+void CreateFarmerFamilies(struct Settlement* Settlement, int Families, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
+void CreateCrafterFamilies(struct Settlement* Settlement, int Families, struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg);
 void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
 /*
  * Adds a list of animals to Family's animal array.

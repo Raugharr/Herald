@@ -220,8 +220,7 @@ void TileRing(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t Ra
 		for(int j = 1; j < Radius; ++j) {
 			TileNeighbor(Neighbors[i], &Tile, &Tile);
 			Temp = MapGetTile(Renderer, &Tile);
-			//if(Temp != NULL)
-				Out[Count++] = Temp;
+			Out[Count++] = Temp;
 		}
 	}
 }
@@ -232,7 +231,6 @@ void TileSpiral(struct MapRenderer* Renderer, const SDL_Point* Center, uint16_t 
 
 	Out[Count++] = MapGetTile(Renderer, Center);
 	for(int i = 2; i <= Radius; ++i, Count += (i - 2) * TILE_SIZE) {
-	//	TileNeighbor(TILE_SOUTHWEST, &Tile, &Tile);
 		TileRing(Renderer, &Tile, i, &Out[Count]);
 	}
 }
@@ -372,4 +370,157 @@ void ShapeMountains(uint16_t Width, uint16_t Length, uint8_t* Map) {
 			*Pixel = Min;
 		}
 	}
+}
+
+void MapZeroArea(uint8_t* Map, uint16_t Width, int32_t Posx, int32_t Posy) {
+	int32_t Startx = Posx - 20;
+	int32_t Starty = Posy - 20;
+	int32_t Endx = Posx + 20;
+	int32_t Endy = Posy + 20;
+
+	if(Startx < 0) Startx = 0;
+	if(Starty < 0) Starty = 0;
+	if(Endx >= Width) Endx = Width;
+	if(Endy >= Width) Endy = Width;
+
+	for(int x = Startx; x < Endx; ++x) {
+		for(int y = Starty; y < Endy; ++y) {
+			Map[y * Width + x] = 0;
+		}
+	}
+}
+
+uint8_t MapGravBest(uint8_t* Map, uint16_t Width, int32_t Posx, int32_t Posy, int32_t* Bestx, int32_t* Besty) {
+	int32_t Startx = Posx - 20;
+	int32_t Starty = Posy - 20;
+	int32_t Endx = Posx + 20;
+	int32_t Endy = Posy + 20;
+	uint8_t BestScore = 0;
+	uint8_t Score = 0;
+
+	if(Startx < 0) Startx = 0;
+	if(Starty < 0) Starty = 0;
+	if(Endx >= Width) Endx = Width;
+	if(Endy >= Width) Endy = Width;
+	if(Bestx == NULL) return 0;
+	if(Besty == NULL) return 0;
+
+	for(int x = Startx; x < Endx; ++x) {
+		for(int y = Starty; y < Endy; ++y) {
+			Score = Map[y * Width + x];
+			if(Score > BestScore) {
+				*Besty = y;
+				*Bestx = x;
+				BestScore = Score;
+			}
+		}
+	}
+	return BestScore;
+}
+
+void CenterScreen(struct MapRenderer* Renderer, uint32_t x, uint32_t y) {
+	int LeftPos = x - (Renderer->Screen.w / 2);
+	int TopPos = y - (Renderer->Screen.h / 2);
+
+	if(LeftPos < 0) LeftPos = 0;
+	if(TopPos < 0)  TopPos = 0;
+	Renderer->Screen.x = LeftPos;
+	Renderer->Screen.y = TopPos;
+}
+
+/*void SetInf(const struct Settlement* Set, struct MapRenderer* Renderer, uint32_t* Score, uint32_t GovIdx) {
+	static uint8_t SetScore[SET_SIZE] = {0, 50, 100, 200};
+	static uint8_t Neighbors[TILE_SIZE] = {TILE_NORTHEAST, TILE_EAST, TILE_SOUTHEAST, TILE_SOUTHWEST, TILE_WEST, TILE_NORTHWEST};
+	SDL_Point Pos= Set->Pos;
+	uint32_t Radius = 20;
+	uint32_t TileScore = SetScore[SettlementType(Set)];
+
+	if(TileScore == 0) return;
+	for(int i = 2; i <= Radius; ++i) {
+		TileNeighbor(TILE_WEST, &Pos, &Pos);
+		for(int k = 0; k < TILE_SIZE; ++k) {
+			for(int j = 1; j < Radius; ++j) {
+				if(Pos.x < 0 || Pos.y < 0) {
+					TileNeighbor(Neighbors[k], &Pos, &Pos);
+					continue;
+				}
+				Assert(Pos.x < Renderer->TileLength || Pos.x >= 0);
+				Assert(Pos.y < Renderer->TileLength || Pos.y >= 0);
+				Assert(((int32_t)TileScore) - j > 0);
+				uint8_t TotalScore = TileScore - j;
+				Assert(TotalScore <= TileScore);
+				uint32_t* Tile = &Score[Pos.y * Renderer->TileLength + Pos.x];
+				uint8_t CurrScore = (*Tile) & (0xFF);
+
+				if(CurrScore != 0) {
+					if(CurrScore < TotalScore) {
+						*Tile = (GovIdx << 8) | (TotalScore - CurrScore);
+					} else {
+						*Tile = ((*Tile) & (~(uint32_t)0xFF)) | (CurrScore - TotalScore);
+					}
+				} else {
+					*Tile = (GovIdx << 8) | (TotalScore);
+				}
+				TileNeighbor(Neighbors[k], &Pos, &Pos);
+			}
+		}
+	}
+}*/
+
+/*void CalcInfluence(const struct Settlement** SetList, uint32_t GovSz, struct MapRenderer* Renderer) {
+	uint32_t* Score = malloc(sizeof(uint32_t) * Renderer->TileLength * Renderer->TileLength);
+
+	for(int i = 0; i < GovSz; ++i) {
+		SetInf(SetList[i], Renderer, Score, i);
+	}
+
+	for(int i = 0; i < GovSz; ++i) {
+		if((Score[SetList[i]->Pos.y * Renderer->TileLength + SetList[i]->Pos.x] >> 8) != i) {
+			Assert(false);
+			int foo = TileDistance(&SetList[i]->Pos, &SetList[(Score[SetList[i]->Pos.y * Renderer->TileLength + SetList[i]->Pos.x] >> 8)]->Pos);
+			if(foo != 0) Assert(true);
+		}
+	}
+}*/
+
+int SetPosCmp(const void* One, const void* Two) {
+	const struct Settlement* Sone = One;
+	const struct Settlement* Stwo = Two;
+	int Result = Sone->Pos.x - Stwo->Pos.x;
+	
+	if(Result == 0) return Result;
+	return Sone->Pos.y - Stwo->Pos.y;
+}
+
+struct InfScore* CalcInfluence(const struct Settlement** List, uint32_t GovSz, struct MapRenderer* Renderer) {
+	static uint8_t SetScore[SET_SIZE] = {0, 50, 100, 200};
+	struct Settlement** SetList = calloc(sizeof(struct Settlement*), GovSz);
+	struct InfScore* SetOwner = malloc(sizeof(struct InfScore) * GovSz);
+	int TblSz = 40;
+	uint32_t SetSz = 0;
+	struct Settlement** OutList = alloca(sizeof(struct Settlement*) * TblSz);
+
+	memset(SetOwner, 0, sizeof(int32_t) * GovSz);
+	memcpy(SetList, List, sizeof(struct Settlement*) * GovSz);
+	QuickSort((void**)SetList, GovSz, ObjectCmp);
+	for(int i = 0; i < GovSz; ++i) {
+		int32_t ScoreMod = SetScore[SettlementType(SetList[i])];
+
+		if(ScoreMod == 0) continue;
+		SettlementsInRadius(&g_GameWorld, &SetList[i]->Pos, 80, OutList, &SetSz, TblSz);
+		for(int j = 0; j < SetSz; ++j) {
+			if(OutList[j] == SetList[i]) continue;
+
+			int Target = BinarySearchIdx(OutList[j], SetList, GovSz, ObjectCmp);
+			int32_t TargetScore = SetScore[SettlementType(SetList[Target])];
+			int Dist = TileDistance(&SetList[i]->Pos, &SetList[Target]->Pos);
+
+			//if(SetScore[Target] == SetOwner[i]) continue;
+			if(ScoreMod - Dist > TargetScore)  {
+				SetOwner[Target].Score = ScoreMod - Dist;
+				SetOwner[Target].SetId = i;
+			}
+		}
+	}
+	return SetOwner;
 }

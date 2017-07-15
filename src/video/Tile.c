@@ -62,7 +62,7 @@ void TileAdjTileOffset(const struct SDL_Point* _Tile, int _Direction, SDL_Point*
 	}
 }
 
-int TileGetDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End) {
+int TileDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End) {
 	//return sign(1);
 	return (abs(_Start->x - _End->x) + abs(_Start->y - _End->y) + abs((-_Start->x - _Start->y) - (-_End->x - _End->y))) / 2;
 }

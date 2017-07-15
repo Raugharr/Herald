@@ -38,7 +38,8 @@ extern int* g_AvgTempMap[MONTHS];
 extern const char* g_CasteNames[CASTE_SIZE];
 
 
-#define PREGTABLE_SZ (511)
+#define PREGTABLE_SZ (512)
+#define PREGTABLE_MASK (PREGTABLE_SZ - 1)
 #define GameWorldInsertSettlement(_GameWorld, Settlement) 																				\
 {																																		\
 	LnkLstPushBack(&(_GameWorld)->Settlements, (_Settlement));																			\
@@ -78,7 +79,7 @@ struct GameWorld {
 	struct RBTree* GoodDeps; //Tree consisting of
 	struct Array* AnFoodDeps;
 	struct BigGuy* Player;
-	struct LinkedList Settlements;
+	struct Array Settlements;
 	struct RBTree BigGuys;
 	struct RBTree Agents;
 	struct RBTree ActionHistory;
@@ -134,7 +135,7 @@ void** SubTimeGetList(int Type);
 void SetClickState(struct Object* Data, uint32_t State, uint32_t Context);
 struct Settlement* WorldGetSettlement(struct GameWorld* World, SDL_Point* Pos);
 uint8_t WorldGetPolicyId(const struct Policy* Policy);
-void ScoreSetLoc(const struct GameWorld* World);
+uint8_t* ScoreSetLoc(const struct GameWorld* World);
 const struct Crop* PastureCrop();
 
 #endif

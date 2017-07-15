@@ -18,13 +18,12 @@ endif
 VIDEO=video
 SYS=sys
 AI=AI
-FILE=herald
 
 $(OBJFLD)%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
 herald: sys ai video main.c $(OBJ)
-	$(CC) -LC:\MinGW\lib -o ../$(FILE) main.c $(CFLAGS) $(OBJFLD)* $(LIB) $(DEFS)
+	$(CC) -LC:\MinGW\lib -o ../$(GNAME) main.c $(CFLAGS) $(OBJFLD)* $(LIB) $(DEFS)
 	
 all: herald
 

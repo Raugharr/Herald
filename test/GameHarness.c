@@ -9,6 +9,7 @@
 #include "../src/Location.h"
 #include "../src/Government.h"
 #include "../src/Battle.h"
+#include "../src/sys/LinkedList.h"
 
 #include "../src/sys/Log.h"
 #include "../src/sys/LuaCore.h"
@@ -19,9 +20,51 @@
 
 #include <SDL2/SDL_image.h>
 
+struct SettlementResults {
+	int StartPeople;
+	int EndPeople;
+	int Years;
+	struct SetYearRec* YearRec;
+};
+
+struct FamYearRec {
+	int FoodStart;
+	int FoodEnd;
+	int AnimalStart;
+	int AnimalEnd;
+	int FamilySz;
+};
+
+struct SetYearRec {
+	int BirthCt;
+	int DeathCt;
+	int HarvestMod;
+	struct Array PeopleRec;
+};
+
+void CtorSetYearRec(struct SetYearRec* Rec, const struct Settlement* Settlement) {
+	Rec->BirthCt = 0;
+	Rec->DeathCt = 0;
+	Rec->HarvestMod = HarvestModifier(&Settlement->HarvestMod);
+	CtorArray(&Rec->PeopleRec, Settlement->Families.Size);
+}
+
+void CtorFamYearRec(struct FamYearRec* Rec, const struct Family* Family) {
+	Rec->FoodStart = FamilyGetFood(Family);
+	Rec->FoodEnd = 0;
+	Rec->AnimalStart = 0;
+}
+
+void SetSold(struct Settlement* Settlement) {
+	uint32_t RoleCts[WARROLE_SIZE] = {0};
+
+	WarTypes(&Settlement->Families, &RoleCts);
+	printf("Warriors: light infantry: %d, heavy infantry %d, Skirmishers %d, Support %d, Calvary %d.\n", RoleCts[WARROLE_LIGHTINF], RoleCts[WARROLE_HEAVYINF], RoleCts[WARROLE_SKIRMISHER], RoleCts[WARROLE_SUPPORT], RoleCts[WARROLE_CALVARY]);
+}
+
 void BattleTest() {
-	struct Settlement* Settlement = g_GameWorld.Settlements.Front->Data;
-	struct Settlement* Target = g_GameWorld.Settlements.Back->Data;
+	struct Settlement* Settlement = g_GameWorld.Settlements.Table[0];
+	struct Settlement* Target = g_GameWorld.Settlements.Table[1];
 	struct ArmyGoal Goal;
 	struct ArmyGoal DefGoal;
 	struct Army* Army = NULL;
@@ -30,14 +73,19 @@ void BattleTest() {
 	uint16_t AttkSize = 0;
 	uint16_t DefSize = 0;
 
-	ArmyGoalRaid(&Goal, Target);
+	ArmyGoalRaid(&Goal, Target, 0);
+	SetSold(Settlement);
+	SetSold(Target);
 	Army = CreateArmy(Settlement, Settlement->Government->Leader, &Goal);
 	Defender = CreateArmy(Target, Target->Government->Leader, ArmyGoalDefend(&DefGoal, Target)); 
-	ArmyRaidSettlement(Army, Target);
+	//FIXME: Crashes because a person who is in the army is killed when raiding the families however he is not remved from the army and is then killed again in battle.
+	//RaidFamilies(&Army->Captives, &Target->Families, ArmyGetSize(Army));
 
 	AttkSize = ArmyGetSize(Army);
 	DefSize = ArmyGetSize(Defender);
 	Battle = CreateBattle(Army, Defender);
+
+	Battle->BattleSite = Target;
 	BattleThink(Battle);
 	printf("Attacker strength: %i. Attacker casualities: %i.\n", AttkSize, AttkSize - ArmyGetSize(Army));
 	printf("Defender strength: %i. Defender casualities: %i.\n", DefSize, DefSize - ArmyGetSize(Defender));
@@ -45,7 +93,67 @@ void BattleTest() {
 	DestroyArmy(Army);
 	DisbandWarband(Defender->Warbands);
 	DestroyArmy(Defender);
+	DestroyBattle(Battle);
 }
+
+void FarmTest(struct SettlementResults* Results) {
+	struct Settlement* Settlement = g_GameWorld.Settlements.Table[0];
+	struct Family* Farmer = NULL;
+	uint32_t StartFood = 0;
+	uint32_t EndFood = 0;
+	uint16_t FamNutReq = 0;
+
+	for(struct LnkLst_Node* Itr = Settlement->Families.Front; Itr != NULL; Itr = Itr->Next) {
+		Farmer = Itr->Data;
+		if(Farmer->Prof == PROF_FARMER)
+			break;
+	}
+	printf("Number of people in settlement: %d\n", Settlement->People.Size);
+	Assert(Farmer->Prof == PROF_FARMER);
+	StartFood = Farmer->Food.SlowSpoiled + Farmer->Food.FastSpoiled;
+	FamNutReq = FamilyNutReq(Farmer);
+	Results->StartPeople = Settlement->NumPeople;
+	Results->Years = 0;
+	for(int i = 0; i < 365 * 50; ++i) {
+		if(DAY(g_GameWorld.Date) == 0) {
+			if(MONTH(g_GameWorld.Date) == 0) {
+				//printf("Year: %d Month: %d Food: %f People: %d Animals: %d\n", YEAR(g_GameWorld.Date), MONTH(g_GameWorld.Date), Farmer->Food.SlowSpoiled / ((float) FamNutReq * 365), FamilySize(Farmer), Farmer->Animals.Size);
+				printf("Year: %d\n", YEAR(g_GameWorld.Date));
+				printf("HarvestMod: %f\n", HarvestModifier(&Settlement->HarvestMod));
+				printf("Family Size: %d, Food: %f\n", FamilySize(Farmer), FamilyGetFood(Farmer) / (((float)FamilyNutReq(Farmer) * 365)));
+				printf("People in settlement: %d \t Deaths: %d \t Births %d\n", Settlement->People.Size, Settlement->YearDeaths, Settlement->YearBirths);
+				printf("Adults: %d\tChildren: %d\n\n", Settlement->AdultMen + Settlement->AdultWomen, Settlement->NumPeople - (Settlement->AdultMen + Settlement->AdultWomen));
+			}
+		}
+		Events();
+		World_Tick();
+		FrameFree();
+	}
+	Results->Years = 50;
+	Results->EndPeople = Settlement->NumPeople;
+	EndFood = Farmer->Food.SlowSpoiled + Farmer->Food.FastSpoiled;
+	printf("Starting food: %f. Ending food %f.\n", StartFood / (((float)FamNutReq) * 365), EndFood / (((float)FamNutReq) * 365));
+	printf("Number of people in settlement: %d\n", Settlement->NumPeople);
+	DestroySettlement(Settlement);
+}
+
+void FarmTestHarness() {
+	struct SettlementResults Results;
+
+	FarmTest(&Results);
+}
+struct GameTests {
+	void(*TestFunc)(void);
+	const char* Name;
+	uint32_t SettCt;
+};
+
+
+static struct GameTests g_GameTests[] = {
+	//{BattleTest, "BattleTest"},
+	{FarmTestHarness, "FarmTest", 1},
+	{NULL, NULL}
+};
 
 int GameHarness(int argc, char* args[]) {
     int _SysCt = 0;
@@ -64,11 +172,19 @@ int GameHarness(int argc, char* args[]) {
             goto quit;
         }
     }
-    WorldInit(150);
-	BattleTest();
-
+	AIInit(g_LuaState);
+	for(int i = 0; g_GameTests[i].TestFunc != NULL; ++i) {
+		printf("Starting test %s.\n", g_GameTests[i].Name);
+		WorldInit(150, g_GameTests[i].SettCt);
+		g_GameTests[i].TestFunc();
+		WorldQuit();
+		printf("Ending test %s\n", g_GameTests[i].Name);
+	}
+	goto success;
     quit:
     WorldQuit();
+	success:
+	AIQuit();
     IMG_Quit();
     for(_SysCt = _SysCt - 1;_SysCt >= 0; --_SysCt) {
         Log(ELOG_INFO, "Quitting %s system.", _Systems[_SysCt].Name);

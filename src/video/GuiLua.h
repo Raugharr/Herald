@@ -34,7 +34,7 @@ enum {
 
 //Table indexes used to store callbacks for each type of gui event.
 enum {
-	GUIL_ONHOVER = 1,
+	GUIL_ONHOVER = LUA_OSIZE,
 	GUIL_ONHOVERLOSS,
 	GUIL_ONKEY,
 	GUIL_ONCLICK

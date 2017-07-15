@@ -54,7 +54,7 @@ void InsertFamilyObj(struct Object* Obj) {
 	static struct Object* FarmerList;
 	static struct Object* CraftsmanList;
 
-	if(Family->Caste == CASTE_THRALL) {
+	if(Family->Caste == CASTE_THEOW) {
 		if(SlaveList != NULL) {
 			Obj->Prev = SlaveList->Prev;
 			Obj->Next = SlaveList;
@@ -68,14 +68,14 @@ void InsertFamilyObj(struct Object* Obj) {
 			Obj->Next = CraftsmanList;
 			CraftsmanList->Prev = Obj;
 		}
-	} else if(Family->Caste == CASTE_FARMER) {
-		if(SlaveList != NULL) {
+	} //else if(Family->Prof == PROF_FARMER) {
+		//if(SlaveList != NULL) {
 
-		}
-	}
+		//}
+	//}
 }
 
-struct Family* CreateFamily(const char* Name, struct Settlement* Location, struct Family* Parent, int Caste) {
+struct Family* CreateFamily(const char* Name, struct Settlement* Location, struct Family* Parent, uint8_t Caste, uint8_t Prof) {
 	struct Family* Family = (struct Family*) malloc(sizeof(struct Family));
 
 	Family->Name = Name;
@@ -85,15 +85,15 @@ struct Family* CreateFamily(const char* Name, struct Settlement* Location, struc
 	CtorArray(&Family->Animals, 0);
 	Family->HomeLoc = Location;
 	Family->Parent = Parent;
-	Family->Caste = CASTE_THRALL;
 	Family->Faction = FACTION_IDNONE;
 	Family->Food.SlowSpoiled = 0;
 	Family->Food.FastSpoiled = 0;
 	Family->Food.AnimalFood = 0;
 	Family->IsAlive = true;
 	Family->Rations = RATION_FULL;
+	Family->Caste = CASTE_THEOW;
 	FamilySetCaste(Family, Caste);
-	Family->Job = Caste;
+	Family->Prof = Prof;
 	memset(&Family->Spec, 0, sizeof(Family->Spec));
 	CreateObject(&Family->Object, OBJECT_FAMILY);
 	for(int i = 0; i < FAMILY_ANMAX; ++i) {
@@ -106,7 +106,7 @@ struct Family* CreateFamily(const char* Name, struct Settlement* Location, struc
 }
 
 struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Parent, struct Constraint * const * const AgeGroups,
-	 struct Constraint * const * const BabyAvg, struct Settlement* Location, uint8_t Caste) {
+	 struct Constraint * const * const BabyAvg, struct Settlement* Location, uint8_t Caste, uint8_t Prof) {
 	struct Family* Family = NULL;
 
 	Assert(Size > 0);
@@ -115,7 +115,7 @@ struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Paren
 	if(Size >= 2) {
 		struct Person* Wife = NULL;
 
-		Family = CreateFamily(Name, Location, Parent, Caste);
+		Family = CreateFamily(Name, Location, Parent, Caste, Prof);
 		Family->People[HUSBAND] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size - 1)], Random(YEAR(AgeGroups[TEENAGER]->Min), YEAR(AgeGroups[ADULT]->Max)), MALE, NUTRITION_MAX, Family);
 		Wife = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size - 1)], Random(YEAR(AgeGroups[TEENAGER]->Min), YEAR(AgeGroups[ADULT]->Max)), FEMALE, NUTRITION_MAX, Family);
 		Family->People[WIFE] = Wife;
@@ -126,7 +126,7 @@ struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Paren
 			Family->People[Child] = CreatePerson(g_FirstNames->Table[Random(0, g_FirstNames->Size - 1)], Random(0, (Wife->Age.Years - YEAR(AgeGroups[TEENAGER]->Min))), (1 << Random(0, 1)), NUTRITION_MAX, Family);
 			++Family->NumChildren;
 		}
-		//if(Family->Caste == CASTE_FARMER) {
+		//if(Family->Prof == PROF_FARMER) {
 		//	Family->Spec.Farmer.FieldCt = SelectCrops(Family, Family->Spec.Farmer.Fields, Family->Spec.Farmer.FieldCt, FAMILY_FIELDCT);
 		//}
 		Family->Food.SlowSpoiled = ((NUTRITION_REQ * 2) + (NUTRITION_CHILDREQ * Family->NumChildren)) * 2;
@@ -149,7 +149,7 @@ void DestroyFamily(struct Family* Family) {
 		}
 		--Max;
 	}
-	if(Family->Caste == CASTE_FARMER) {
+	if(Family->Prof == PROF_FARMER) {
 		for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
 			Family->HomeLoc->FreeAcres += FieldTotalAcres(Family->Spec.Farmer.Fields[i]);
 			DestroyField(Family->Spec.Farmer.Fields[i]);
@@ -236,7 +236,7 @@ void FamilyObjThink(struct Object* Obj) {
 	struct Object* Front = Obj;
 	struct Family* Family = (struct Family*) Obj;
 	static uint8_t PregChance[CHILDREN_SIZE] = {
-		4, 4, 3, 3, 2, 2, 1, 1
+		4, 4, 3, 3, 2, 1, 1, 1
 	};
 
 	/*
@@ -269,7 +269,7 @@ void FamilyObjThink(struct Object* Obj) {
 			BirthAnimals(Family, PopIdx, List, ListSz);
 			//Shear wool from animals.
 			Family = (struct Family*) Obj;
-			if(Family->Caste != CASTE_FARMER)
+			if(Family->Prof != PROF_FARMER)
 				continue;
 			if(Family->Animals.Size < 1)
 				continue;
@@ -284,6 +284,7 @@ void FamilyObjThink(struct Object* Obj) {
 			CheckGoodTbl(&Family->Goods, "Wool", &g_Goods);	
 		}
 	}
+	/*
 #ifdef DEBUG
 	else if(MONTH(g_GameWorld.Date) == JANURARY && DAY(g_GameWorld.Date) == 0) {
 		struct Animal* Animal = 0;
@@ -303,14 +304,14 @@ void FamilyObjThink(struct Object* Obj) {
 			Assert(Female == true && Male == true);
 		}
 	}
-#endif
+#endif*/
 	/*
 	 *Events for farmers in september.
 	 */
 	if(MONTH(g_GameWorld.Date) == SEPTEMBER && DAY(g_GameWorld.Date) == 0) {
 		for(Obj = Front; Obj != NULL; Obj = Obj->Next) {
 			Family = (struct Family*) Obj;
-			if(Family->Caste != CASTE_FARMER)
+			if(Family->Prof != PROF_FARMER)
 				continue;
 			const struct Population* PopType = NULL;
 			struct Animal* Animal = NULL;
@@ -383,7 +384,7 @@ void FamilyObjThink(struct Object* Obj) {
 			int NutReq = FamilyNutReq(Family) * YEAR_DAYS;
 			int Food = 0;
 
-			//if(Family->Caste == CASTE_FARMER) continue;
+			//if(Family->Prof == PROF_FARMER) continue;
 			Food = Family->Food.SlowSpoiled / 10;
 			Family->Food.SlowSpoiled = Food * 9;
 			Family->HomeLoc->Food.SlowSpoiled += Food;
@@ -398,18 +399,18 @@ void FamilyObjThink(struct Object* Obj) {
 				Family->Food.SlowSpoiled += NutReq;		
 			}
 		}
-	} else if(MONTH(g_GameWorld.Date) < NOVEMBER && MONTH(g_GameWorld.Date) > FEBURARY && DAY(g_GameWorld.Date) % 7 == 0) {
+	} /*else if(MONTH(g_GameWorld.Date) < NOVEMBER && MONTH(g_GameWorld.Date) > FEBURARY && DAY(g_GameWorld.Date) % 7 == 0) {
 		for(Obj = Front; Obj != NULL; Obj = Obj->Next) {
 			struct Family* Family = (struct Family*) Obj;
 
-			if(Family->Caste == CASTE_FARMER) continue;
+			if(Family->Prof == PROF_FARMER) continue;
 			//NOTE: Prototype for hunting.
 			if(RandByte() < 64) {
 				Family->Food.FastSpoiled += 400;
 			}
 		}
 
-	}
+	}*/
 	//Code for every family every month.
 	if(DAY(g_GameWorld.Date) == 0) {
 		for(Obj = Front; Obj != NULL; Obj = Obj->Next) {
@@ -426,19 +427,18 @@ void FamilyObjThink(struct Object* Obj) {
 
 			switch(RationVal) {
 				case 0:
-				if(Family->Caste == CASTE_FARMER) {
-					//for(int i = 0; i < Family->
-				}
 				case 1:
 					NutTake = (NutReq * (YEAR_DAYS / 2));
 					if(NutTake > Family->HomeLoc->Food.SlowSpoiled) NutTake = Family->HomeLoc->Food.SlowSpoiled;
 					Family->HomeLoc->Food.SlowSpoiled -= NutTake;
 					Family->Food.SlowSpoiled += NutTake;
-				//	NewRations = RATION_FOURTH;
-				//	break;
+					if(NutTake < FamilyNutReq(Family) * 30) {
+						NutTake = (NutReq * (YEAR_DAYS / 2));
+						if(NutTake > Family->HomeLoc->Food.FastSpoiled) NutTake = Family->HomeLoc->Food.FastSpoiled;
+						Family->HomeLoc->Food.FastSpoiled -= NutTake;
+						Family->Food.FastSpoiled += NutTake;
+					}
 				case 2:
-					//NewRations = RATION_HALF;
-					//break;
 				case 3:
 					NewRations = RATION_THIRD;
 					break;
@@ -450,20 +450,11 @@ void FamilyObjThink(struct Object* Obj) {
 					NewRations = RATION_FULLFOURTH;
 					break;
 			}
-			if(Family->People[WIFE] != NULL && IsPregnant(Family->People[WIFE]) == false && RandByte() <= PregChance[Family->NumChildren]) { 
+			if(Family->People[WIFE] != NULL && IsPregnant(Family->People[WIFE]) == false && Random(0, 1024) <= PregChance[Family->NumChildren]) { 
 				CreatePregnancy(Family->People[WIFE], DateAddInt(g_GameWorld.Date, Random(PREG_MINDAY, PREG_MAXDAY)), &g_GameWorld);
 				Assert(IsPregnant(Family->People[WIFE]) == true);
 			}
-			/*if(Nut < NutReq * YEAR_DAYS) {
-				NewRations = RATION_THIRD;
-			} else if(Nut < NutReq * (YEAR_DAYS * 3 / 2)) {
-				NewRations = RATION_FULLFOURTH;
-			} else if(Nut < NutReq * (YEAR_DAYS / 2)) {
-				NewRations = RATION_HALF;
-			} else {
-				NewRations = RATION_FULL;
-			}*/
-			if(NewRations != Family->Rations) {
+			//if(NewRations != Family->Rations) {
 				Family->Rations = NewRations;
 				for(int i = 0; i < CHILDREN + Family->NumChildren; ++i) {
 					if(Family->People[i] == NULL)
@@ -471,13 +462,13 @@ void FamilyObjThink(struct Object* Obj) {
 					Family->People[i]->NutRate = PersonRation(Family->People[i]);
 					//Family->People[i]->NutRate = (PersonMature(Family->People[i]) == true) ? (g_AdultRations[NewRations]) : (g_ChildRations[NewRations]);
 				}
-			}
+			//}
 
 
 				
 			if(NutReq / FamilyNutReq(Family) <= 31)
 				PushEvent(EVENT_STARVINGFAMILY, Family, NULL);
-			if(Family->Caste == CASTE_WARRIOR) {
+			if(Family->Prof == PROF_WARRIOR) {
 				struct BigGuy* Guy = RBSearch(&g_GameWorld.BigGuys, Family->People[0]);
 				struct Retinue* Retinue = NULL; 
 
@@ -489,8 +480,8 @@ void FamilyObjThink(struct Object* Obj) {
 
 					//Find a different settlement to live in.
 					if(Random(-5, 5) + Rel->Modifier + ((int)Retinue->Leader->Glory) - Guy->Glory <= 0) {
-						for(struct LnkLst_Node* Itr = g_GameWorld.Settlements.Front; Itr != NULL; Itr = Itr->Next) {
-							struct Settlement* Settlement = Itr->Data;
+						for(int i = 0; i < g_GameWorld.Settlements.Size; ++i) {
+							struct Settlement* Settlement = g_GameWorld.Settlements.Table[i];
 							
 							if(Settlement == Family->HomeLoc) {
 								for(struct Retinue* NewRet = Settlement->Retinues; NewRet != NULL; NewRet = NewRet->Next) {
@@ -521,7 +512,7 @@ void FarmerFamily(struct Family* Family) {
 
 	if(Family->IsAlive == false)
 		return;
-	Assert(Family->Caste == CASTE_FARMER);
+	Assert(Family->Prof == PROF_FARMER);
 	for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
 		Field = Family->Spec.Farmer.Fields[i];
 		if(Field == NULL)
@@ -553,7 +544,8 @@ void FarmerFamily(struct Family* Family) {
 				if(Field->Status == EHARVESTING) {
 					uint32_t Harvest = FieldHarvest((struct Field*)Field, &Family->Goods, HarvestModifier(&Family->HomeLoc->HarvestMod)) / 10;
 
-					Family->Food.SlowSpoiled += Harvest * 10;
+					Family->Food.SlowSpoiled += Harvest;
+				//	Family->Food.SlowSpoiled += Harvest * 10;
 				//	Family->Food.SlowSpoiled += Harvest * 9;
 				//	Family->HomeLoc->Food.SlowSpoiled += Harvest;
 				}
@@ -579,18 +571,23 @@ void FarmerFamily(struct Family* Family) {
 	for(int i = 0; i < Family->Spec.Farmer.FieldCt; ++i) {
 		FallowFood += Family->Spec.Farmer.Fields[i]->UnusedAcres * CropAcreHarvest(Hay) / 180;
 	}
-	/*for(int i = 0; i < Family->Animals.Size; ++i) {
-		struct Animal* Animal = Family->Animals.Table[i];
-		int EatAmt = Animal->PopType->Nutrition;
+	/*if((MONTH(g_GameWorld.Date) >= SEPTEMBER || MONTH(g_GameWorld.Date) <= MARCH) && DAY(g_GameWorld.Date) == 0) {
+		int EatAmt = 0;
 
-		if(FallowFood >= EatAmt) {
-			Animal->Nutrition += EatAmt;
-			FallowFood -= EatAmt;
-		}
-		if(Animal->Nutrition <= 0) {
-			FamilyRemoveAnimal(Family, i);
-			DestroyAnimal(Animal);
-		}
+	for(int i = 0; i < Family->Animals.Size; ++i) {
+		struct Animal* Animal = Family->Animals.Table[i];
+
+		EatAmt += AnimalNutReq(Animal);
+	}
+	while(EatAmt > Family->Food.AnimalFood) {
+		int Idx = Random(0, Family->Animals.Size - 1);
+		struct Animal* Animal = Family->Animals.Table[Idx];
+
+		FamilyRemoveAnimal(Family, Idx);
+		EatAmt -= AnimalNutReq(Animal);
+		DestroyAnimal(Animal);
+	}
+		Family->Food.AnimalFood -= EatAmt;
 	}*/
 	Family->Food.FastSpoiled += ((double)ToGallon(Milk)) * MILK_NUT;
 	return;
@@ -602,8 +599,8 @@ void FamilyThink(struct Object* Obj) {
 
 	if(Family->IsAlive == false)
 		return;
-	switch(Family->Caste) {
-		case CASTE_FARMER:
+	switch(Family->Prof) {
+		case PROF_FARMER:
 			FarmerFamily(Family);
 			break;
 	}
@@ -617,17 +614,15 @@ void FamilyThink(struct Object* Obj) {
 		if(Family->People[j] == NULL)
 			continue;
 		Person = Family->People[j];
-		if(IsChild(Person) == 1) {
-			if(Family->Food.FastSpoiled > g_ChildRations[Family->Rations] / 2) {
-				MaxFastFood = g_ChildRations[Family->Rations] / 2;
-			} else {
+		if(IsChild(Person) == true) {
+			MaxFastFood = g_AdultRations[Family->Rations];
+			if(MaxFastFood > Family->Food.FastSpoiled) {
 				MaxFastFood = Family->Food.FastSpoiled;
 			}
-			MaxSlowFood = g_ChildRations[Family->Rations] - MaxFastFood;
+			MaxSlowFood = g_AdultRations[Family->Rations] - MaxFastFood;
 		} else {
-			if(Family->Food.FastSpoiled > g_AdultRations[Family->Rations] / 2) {
-				MaxFastFood = g_AdultRations[Family->Rations] / 2;
-			} else {
+			MaxFastFood = g_AdultRations[Family->Rations];
+			if(MaxFastFood > Family->Food.FastSpoiled) {
 				MaxFastFood = Family->Food.FastSpoiled;
 			}
 			MaxSlowFood = g_AdultRations[Family->Rations] - MaxFastFood;
@@ -642,7 +637,7 @@ void FamilyThink(struct Object* Obj) {
 }
 
 void FamilySetCasteSlave(struct Family* Family, struct Family* Owner) {
-	if(Family->Caste == CASTE_THRALL) {
+	if(Family->Caste == CASTE_THEOW) {
 		ArrayRemoveC(&Family->HomeLoc->Slaves, (void*) Family->Spec.Slave.Owner, ObjectCmp);
 	}
 	ArrayInsertSort_S(&Family->HomeLoc->Slaves, Owner, ObjectCmp);
@@ -659,18 +654,9 @@ int FamilySize(const struct Family* Family) {
 	return Size;
 }
 
-void Marry(struct Person* Male, struct Person* Female) {
-	assert(Gender(Male) == MALE && Gender(Female) == FEMALE);
-	struct Family* Family = CreateFamily(Male->Family->Name, FamilyGetSettlement(Male->Family), Male->Family, Male->Family->Caste);
-
-	Family->People[HUSBAND] = Male;
-	Family->People[WIFE] = Female;
-
-}
-
 /*void FamilySetCaste(struct Family* Family, const char* Caste) {
 	if(strcmp(Caste, "Serf") == 0) {
-		Family->Caste = CASTE_THRALL;
+		Family->Caste = CASTE_THEOW;
 	} else if(strcmp(Caste, "Peasant") == 0) {
 		Family->Caste = CASTE_FARMER;
 	} else if(strcmp(Caste, "Craftsman") == 0) {
@@ -711,14 +697,14 @@ void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, str
 				return (void) luaL_error(State, "Family type has invalid caste.");
 			}
 			Caste = lua_tostring(State, -1);
-			if(strcmp(Caste, "Serf") == 0) {
-				Family->Caste = CASTE_THRALL;
-			} else if(strcmp(Caste, "Peasant") == 0) {
-				Family->Caste = CASTE_FARMER;
-			} else if(strcmp(Caste, "Craftsman") == 0) {
-				Family->Caste = CASTE_CRAFTSMAN;
-			} else if(strcmp(Caste, "Warrior") == 0) {
-				Family->Caste = CASTE_NOBLE;
+			if(strcmp(Caste, "Theow") == 0) {
+				Family->Caste = CASTE_THEOW;
+			} else if(strcmp(Caste, "Gebur") == 0) {
+				Family->Caste = CASTE_GEBUR;
+			} else if(strcmp(Caste, "Geneat") == 0) {
+				Family->Caste = CASTE_GENEAT;
+			} else if(strcmp(Caste, "Thegn") == 0) {
+				Family->Caste = CASTE_THEGN;
 			}
 			lua_pop(State, 1);
 
@@ -726,8 +712,6 @@ void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, str
 			lua_pushnil(State);
 			while(lua_next(State, -2) != 0) {
 				Obj = LuaCheckClass(State, -1, LOBJ_GOOD);
-				//((struct Good*)Obj)->Pos.x = X;
-				//((struct Good*)Obj)->Pos.y = Y;
 				ArrayInsertSort_S(&Family->Goods, Obj, GoodCmp);
 				lua_pop(State, 1);
 			}
@@ -745,16 +729,6 @@ void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, str
 				lua_pop(State, 1);
 			}
 			lua_pop(State, 1);
-
-			/*lua_getfield(State, -1, "Buildings");
-			lua_pushnil(State);
-			while(lua_next(State, -2) != 0) {
-				if((Obj = (struct Building*) LuaToObject(State, -1, LOBJ_BUILDING))!= NULL)
-					Family->Buildings[Family->BuildingCt++] = Obj;
-					//ArrayInsertSort_S(&Family->Buildings, Obj, ObjectCmp);
-				lua_pop(State, 1);
-			}
-			lua_pop(State, 1);*/
 
 			lua_getfield(State, -1, "Animals");
 			lua_pushnil(State);
@@ -776,9 +750,14 @@ void FamilyAddGoods(struct Family* Family, int FamilySize, lua_State* State, str
 					lua_pop(State, 3);
 					continue;
 				}
-				for(int j = 0; j < Quantity; ++j)
-					ArrayInsertSort_S(&Family->Animals, CreateAnimal(Population, Random(0, Population->Ages[AGE_DEATH]->Max), 0), AnimalCmp);
-				lua_pop(State, 3);
+				{
+					struct Animal** AnList = alloca(sizeof(struct Animal*) * Quantity);
+
+					for(int j = 0; j < Quantity; ++j)
+							AnList[j] = CreateAnimal(Population, Random(0, Population->Ages[AGE_DEATH]->Max), 0);
+					FamilyInsertAnimalArr(Family, AnList, Quantity);
+					lua_pop(State, 3);
+				}
 			}
 			lua_pop(State, 1);
 			lua_getfield(State, -1, "AI");
@@ -861,7 +840,7 @@ int FamilyCountAnimalTypes(const struct Family* Family) {
 	return TypeCt;
 }
 
-void FamilySlaughterAnimals(struct Family* Family) {
+/*void FamilySlaughterAnimals(struct Family* Family) {
 	const struct Population* PopType = NULL;
 	struct Animal* Animal = NULL;
 	int MaleCt = 0;
@@ -896,7 +875,7 @@ void FamilySlaughterAnimals(struct Family* Family) {
 			}
 		}
 	}
-}
+}*/
 
 void FamilyShearAnimals(struct Family* Family) {
 	struct Animal* Animal = NULL;
@@ -942,7 +921,6 @@ int FamilyWorkModifier(const struct Family* Family) {
 			continue;
 		WorkMod = WorkMod + PersonWorkMult(Family->People[i]);
 	}
-	//WorkMod += (Family->Slave != NULL) ? (FamilyWorkModifier(Family->Slave)) : (0);
 	return WorkMod;
 }
 
@@ -1016,10 +994,8 @@ bool FamilyAddPerson(struct Family* Family, struct Person* Person) {
 	return true;
 }
 
-void CreateFarmerFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg) {
+void CreateFarmerFamilies(struct Settlement* Settlement, int Families, struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
 	uint8_t AcresPerFarmer = FAMILY_ACRES;
-	uint16_t MaxFarmers = (Settlement->FreeAcres / AcresPerFarmer) / 4;
-	uint16_t MaxFamilies = MaxFarmers;//(MaxFarmers / 10) + ((MaxFarmers % 10) != 0);
 	uint8_t AnimalTypes = 3;
 	uint8_t CropTypes = 1;
 	const struct Crop* Crops[CropTypes];
@@ -1031,7 +1007,7 @@ void CreateFarmerFamilies(struct Settlement* Settlement, struct Constraint * con
 	struct Good* Good = NULL;
 	struct Animal** AnList = NULL;
 	uint16_t AnListSz = 0;
-	uint32_t FamAb = Settlement->Meadow.MonthNut / MaxFarmers; //Family animal nutrition budget.
+	uint32_t FamAb = Settlement->Meadow.MonthNut / Families; //Family animal nutrition budget.
 	uint8_t AnimalUsed = 0;
 	const struct Population* Animals[AnimalTypes];
 	int AnimalTypeCt[AnimalTypes];
@@ -1043,8 +1019,8 @@ void CreateFarmerFamilies(struct Settlement* Settlement, struct Constraint * con
 	AnimalTypeCt[1] = CropAcreHarvest(Hay) * (AcresPerFarmer / 2) / (Animals[1]->Nutrition * 180);
 	Animals[2] = HashSearch(&g_Populations, "Pig");
 	AnimalTypeCt[2] = CropAcreHarvest(Hay) * (AcresPerFarmer / 2) / (Animals[2]->Nutrition * 180);
-	for(int i = 0; i < MaxFamilies; ++i) {
-		Parent = CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_FARMER);
+	for(int i = 0; i < Families; ++i) {
+		Parent = CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_GENEAT, PROF_FARMER);
 		/*
 		 * Add animals
 		 */
@@ -1060,6 +1036,7 @@ void CreateFarmerFamilies(struct Settlement* Settlement, struct Constraint * con
 		AnList[1]->Gender = FEMALE;
 		for(int i = 2; i < AnimalTypeCt[AnimalUsed]; ++i) {
 			AnList[i] = CreateAnimal(Animals[AnimalUsed], Random(0, Animals[AnimalUsed]->Ages[AGE_DEATH]->Max), 0);	
+			Parent->Food.AnimalFood += AnimalNutReq(AnList[i]) * (YEAR_DAYS / 2);
 		}
 		FamilyInsertAnimalArr(Parent, AnList, AnListSz);
 		/*
@@ -1097,7 +1074,7 @@ void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * co
 	MeleeWeapons[1] = HashSearch(&g_Goods, "Sword");
 	MeleeWeapons[0] = HashSearch(&g_Goods, "Spear");
 	for(int i = 0; i < MaxFamilies; ++i) {
-		Parent = CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_FARMER);
+		Parent = CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_THEGN, PROF_WARRIOR);
 		Good = CreateGood(MeleeWeapons[0]);
 		Good->Quantity = 1; 
 		ArrayInsert(&Parent->Goods, Good);
@@ -1105,6 +1082,28 @@ void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * co
 		Good->Quantity = 1; 
 		ArrayInsert(&Parent->Goods, Good);
 	}
+}
+
+void CreateCrafterFamilies(struct Settlement* Settlement, int Families, struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
+	uint8_t MaxChildren = 4;
+/*	struct Family* Family = NULL;
+	uint8_t JobCt[CRAFT_SIZE] = {0};
+
+	switch(Families) {
+		case 1:
+			JobCt[CRAFT_MILLER] = 1;
+			break;
+		case 2:
+			JobCt[CRAFT_BUTCHER] = 1;
+			break;
+	}
+	for(int i = 0; i < CRAFT_SIZE; ++i) {
+		for(int j = 0; j < JobCt[i]; ++j) {
+			Family = CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_CRAFTSMAN);
+			Family->Spec.Crafter.Prof = i;
+		}
+	}*/
+	CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_GENEAT, PROF_MILLER);
 }
 
 void FamilyInsertAnimalArr(struct Family* Family, struct Animal** Animals, uint8_t AnSize) {
@@ -1205,7 +1204,7 @@ void FamilyDivideAnimals(struct Family* To, struct Family* From, int Divide) {
 	struct Animal* Animal = NULL;
 	struct Animal** AnList = alloca(sizeof(struct Animal*) * From->Animals.Size);
 	int CurrAn = 0;
-	int Idx = 0;
+	int Offset = 0;
 	int TotalCt = 0;
 	int MaxMale = 0;
 	int MaxFemale = 0;
@@ -1223,28 +1222,28 @@ void FamilyDivideAnimals(struct Family* To, struct Family* From, int Divide) {
 		MaleCt = 0;
 		FemaleCt = 0;
 		for(int i = 0; i < From->AnPopSize[AnType]; ++i) {
-			Animal = From->Animals.Table[Idx];
+			Animal = From->Animals.Table[Offset + i];
 			if(Animal->Gender == MALE) {
 				if(MaleCt < MaxMale) {
 					AnList[CurrAn++] = Animal;
 					 ++MaleCt;
-					FamilyRemoveAnimal(From, Idx);
+					FamilyRemoveAnimal(From, Offset + i);
 				}
 			} else {
 				if(FemaleCt < MaxFemale) {
 					++FemaleCt;
 					AnList[CurrAn++] = Animal;
-					FamilyRemoveAnimal(From, Idx);
+					FamilyRemoveAnimal(From, Offset + i);
 				}
 			}
 		}
-		++Idx;
+		Offset += From->AnPopSize[AnType];
 		FamilyInsertAnimalArr(To, AnList, FemaleCt + MaleCt);
 	}
 }
 
 void SlaughterAnimal(struct Family* Family, const struct Population* PopType, int AnIdx) {
 	Family->HomeLoc->Meadow.NutRem += AnimalNutReq(Family->Animals.Table[AnIdx]);
+	Family->Food.FastSpoiled += AnMeat(PopType, Family->Animals.Table[AnIdx]);
 	DestroyAnimal(FamilyRemoveAnimal(Family, AnIdx));
-	Family->Food.FastSpoiled += PopType->Meat;
 }

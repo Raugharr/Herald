@@ -46,6 +46,14 @@ enum EFine {
 	FINE_SIZE
 };
 
+enum {
+	SET_HAMLET,
+	SET_VILLAGE,
+	SET_TOWN,
+	SET_CITY,
+	SET_SIZE
+};
+
 enum EFineL {
 	FINE_LLIGHT,
 	FINE_LNORMAL,
@@ -114,10 +122,8 @@ struct Settlement {
 	//Number of farming acres in use.
 	uint16_t UsedAcres;
 	uint16_t NumPeople;
-	uint16_t StarvingFamilies;
 	uint16_t CasteCount[CASTE_SIZE];
 	uint8_t Stats[BGSKILL_SIZE];
-	uint8_t CasteHappiness[CASTE_SIZE];
 	uint8_t HarvestYear;
 	struct {
 		const struct Crop* Crop; //What crop is growing in the meadow.
@@ -197,4 +203,10 @@ void InitPersonSelector(struct PersonSelector* Selector);
 struct Person** QueryPeople(struct Person** const InList, uint32_t InListSz, const struct PersonSelector* Selector, uint32_t* OutListSz);
 struct Settlement** QuerySettlement(const struct SettlementSelector* Selector, uint32_t* OutListSz);
 bool LocationCreateField(struct Family* Family, int Acres);
+static inline int SettlementType(const struct Settlement* Settlement) {
+	if(Settlement->NumPeople < 100) return SET_HAMLET;
+	else if (Settlement->NumPeople < 500) return SET_VILLAGE;
+	else if(Settlement->NumPeople < 1000) return SET_TOWN;
+	return SET_CITY;
+}
 #endif

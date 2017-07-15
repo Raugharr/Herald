@@ -25,7 +25,7 @@ struct Policy;
 
 struct Government;
 
-typedef struct BigGuy*(*GovernmentSuccession)(const struct BigGuy*, uint8_t Gender);
+typedef struct BigGuy*(*GovernmentSuccession)(const struct BigGuy*, const struct Government*);
 
 enum {
 	GOVREL_NONE,
@@ -33,28 +33,50 @@ enum {
 };
 
 enum {
+	GOVRANK_SETTLEMENT = 0, //Controls a single settlement.
+	GOVRANK_COUNTY = 1, //Controls several settlements.
+	GOVRANK_PROVINCE = 2, //Controls several counties.
+	GOVRANK_KINGDOM = 4, //Controls several provinces.
+	GOVRANK_EMPIRE = 8, //Controls several kingdoms.
+	GOVRANK_ALL = 15
+};
+
+enum {
+	GOVARMY_NO,
+	GOVARMY_ASK,
+	GOVARMY_YES
+};
+
+enum {
+	GOVGEN_MALE,
+	GOVGEN_BOTH,
+	GOVGEN_MALEPERF,
+	GOVGEN_FEMALE
+};
+
+enum {
 	GOVRULE_ELECTIVE = (1 << 0),
 	GOVRULE_MONARCHY = (1 << 1),
 	GOVRULE_MASK = GOVRULE_ELECTIVE | GOVRULE_MONARCHY,
-	GOVTYPE_ABSOLUTE = (1 << 2),
-	GOVTYPE_CONSTITUTIONAL = (1 << 3),
-	GOVTYPE_REPUBLIC = (1 << 4),
-	GOVTYPE_DEMOCRATIC = (1 << 5),
-	GOVTYPE_THEOCRATIC = (1 << 6),
-	GOVTYPE_CONSENSUS = (1 << 7),
-	GOVTYPE_MASK =  GOVTYPE_ABSOLUTE | GOVTYPE_CONSTITUTIONAL | GOVTYPE_REPUBLIC | GOVTYPE_DEMOCRATIC |
-	GOVTYPE_THEOCRATIC | GOVTYPE_CONSENSUS,
-	GOVSTCT_TRIBAL = (1 << 8),
-	GOVSTCT_CONFEDERACY = (1 << 9),
-	GOVSTCT_HEGOMONY = (1 << 10),
-	GOVSTCT_FEDERATION = (1 << 11),
-	GOVSTCT_FEUDAL = (1 << 12),
-	GOVSTCT_DESPOTIC = (1 << 13),
-	GOVSTCT_CHIEFDOM = (1 << 14),
-	GOVSTCT_CLAN = (1 << 15),
-	GOVSTCT_MASK = GOVSTCT_TRIBAL | GOVSTCT_CONFEDERACY | GOVSTCT_HEGOMONY |
-	GOVSTCT_FEDERATION | GOVSTCT_FEUDAL | GOVSTCT_DESPOTIC | GOVSTCT_CHIEFDOM | GOVSTCT_CLAN,
-	GOVTYPE_SIZE = 15
+	GOVTYPE_ABSOLUTE = (1 << 2), //Leader determines all the rules.
+	GOVTYPE_CONSTITUTIONAL = (1 << 3), //Leader enacts rules, 
+	GOVTYPE_REPUBLIC = (1 << 4), //People vote for who to create rules.
+	GOVTYPE_DEMOCRATIC = (1 << 5), //Every eligible person is allowed a vote.
+	GOVTYPE_THEOCRATIC = (1 << 6), //Ruler must be religious
+	GOVTYPE_MASK =  GOVTYPE_ABSOLUTE | GOVTYPE_CONSTITUTIONAL | GOVTYPE_REPUBLIC | GOVTYPE_DEMOCRATIC | GOVTYPE_THEOCRATIC,
+	GOVSTCT_CONFEDERACY = (1 << 7),
+	GOVSTCT_HEGOMONY = (1 << 8),
+	GOVSTCT_FEDERATION = (1 << 9),
+	GOVSTCT_FEUDAL = (1 << 10),
+	GOVSTCT_DESPOTIC = (1 << 11),
+	GOVSTCT_CLAN = (1 << 12),	
+	GOVSTCT_MASK = GOVSTCT_CONFEDERACY | GOVSTCT_HEGOMONY |
+	GOVSTCT_FEDERATION | GOVSTCT_FEUDAL | GOVSTCT_DESPOTIC | GOVSTCT_CLAN,
+	GOVMIX_CONCENSUS = (1 << 13),
+	GOVMIX_TRIBAL = (1 << 14),
+	GOVMIX_CHIEFDOM = (1 << 15),
+	GOVMIX_MASK = GOVMIX_CONCENSUS | GOVMIX_TRIBAL | GOVMIX_CHIEFDOM,
+	GOVTYPE_SIZE = 16
 };
 
 /*
@@ -75,38 +97,37 @@ enum {
 	GOVSTAT_SIZE
 };
 
-
 struct Government {
 	struct Object Object;
 	uint16_t GovType;
-	uint16_t  GovRank;
+	uint16_t GovRank;
 	struct Settlement* Location;
 	struct BigGuy* Leader;
 	struct BigGuy* NextLeader;
 	struct Government* Owner;
 	struct Relation* Relations;
-	struct LinkedList SubGovernments;
+	struct Array SubGovernments;
 	struct LinkedList Advisors;
 	struct LinkedList PolicyList;
 	uint8_t TaxRate;//Percent from 0 to 100
-	uint8_t RulerGender;
-	uint8_t AllowedSubjects;
+	//uint8_t AllowedSubjects;
 	uint8_t AllowedMilLeaders;
 	int8_t* PolicyPop; //How popular a specific policy is. Determines the effective percentage of bets.
 	int8_t* PolicyOp; //How unpopular a specific policy is. Determines the effective percentage of bets against a policy.
+	uint8_t GenderLaw : 4;
+	uint8_t ArmyLaw : 4;
 	SDL_Color ZoneColor;
 };
 
-struct RepublicGovernment {
-	int GovType;
-	int GovRank;
-	struct BigGuy* Leader;
-	struct LinkedList SubGovernments;
-	int NextElection;
+struct Treaty {
+	int Type;
+	uint32_t Year : 27;
+	uint32_t Month : 5;
+	struct Government* Target;
+	struct Government* From;
 };
 
-
-struct Government* CreateGovernment(int GovType, int GovRank, struct Settlement* Settlement);
+struct Government* CreateGovernment(struct Settlement* Settlement, uint32_t GovRule, uint32_t GovStruct, uint32_t GovType, uint32_t GovMix, uint32_t GovRank);
 void DestroyGovernment(struct Government* Gov);
 
 void GovernmentThink(struct Government* Gov);
@@ -115,21 +136,21 @@ const char* GovernmentTypeToStr(int GovType, int Mask);
  * Sets Gov's government rank to NewRank. If Gov cannot contain all of its subjects because of its new rank they will be
  * popped from its SubGovernment list and then placed into ReleasedSubjects.
  */
-void GovernmentLowerRank(struct Government* Gov, int NewRank, struct LinkedList* ReleasedSubjects);
+//void GovernmentLowerRank(struct Government* Gov, int NewRank, struct LinkedList* ReleasedSubjects);
 
 /*
  * Sets Subject as a subject government of Parent.
  * If Subject's government rank is equal to or higher than Parent's rank GovernmentLowerRank will be called
  * and the released subjects added to Parent's subjects.
  */
-void GovernmentLesserJoin(struct Government* Parent, struct Government* Subject, int Relation);
+void GovernmentLesserJoin(struct Government* Parent, struct Government* Subject);
 
 /**
  * Find the first adult male that is a child of Guy to replace him creating a Big Guy if necessary.
  */
-struct BigGuy* MonarchyNewLeader(const struct BigGuy* Guy, uint8_t Gender);
-struct BigGuy* ElectiveNewLeader(const struct BigGuy* Guy, uint8_t Gender);
-struct BigGuy* ElectiveMonarchyNewLeader(const struct BigGuy* Guy, uint8_t Gender);
+struct BigGuy* MonarchyNewLeader(const struct BigGuy* Guy, const struct Government* Gov);
+struct BigGuy* ElectiveNewLeader(const struct BigGuy* Guy, const struct Government* Gov);
+struct BigGuy* ElectiveMonarchyNewLeader(const struct BigGuy* Guy, const struct Government* Gov);
 /*
  * Returns the top most parent of Gov.
  */
@@ -141,5 +162,8 @@ void GovernmentRemovePolicy(struct Government* Gov, const struct Policy* Policy)
 void GovernmentUpdatePolicy(struct Government* Gov, struct ActivePolicy* OldPolicy, const struct ActivePolicy* Policy);
 int GovernmentHasPolicy(const struct Government* Gov, const struct Policy* Policy);
 struct BigGuy* CreateNewLeader(struct Government* Gov);
+const char* GovernmentRankStr(const struct Government* Gov);
+void GovernmentRaiseArmy(struct Government* Gov);
+bool CanGovern(const struct Government* Gov, const struct Person* Person);
 
 #endif

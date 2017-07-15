@@ -354,7 +354,6 @@ struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t
 		Gender = MALE;
 	} else
 		Gender = FEMALE;
-	CreateObject(&Animal->Object, OBJECT_ANIMAL);
 	Animal->Age.Years = Years;
 	Animal->Age.Months = Months;
 	Animal->Gender = Gender;
@@ -362,12 +361,7 @@ struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t
 	return Animal;
 }
 
-int AnimalCmp(const void* One, const void* Two) {
-	return ((struct Animal*)One)->Object.Id - ((struct Animal*)Two)->Object.Id;
-}
-
 void DestroyAnimal(struct Animal* Animal) {
-	DestroyObject(&Animal->Object);
 	free(Animal);
 }
 

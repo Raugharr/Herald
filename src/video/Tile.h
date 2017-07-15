@@ -59,7 +59,7 @@ void DestroyTile(struct Tile* _Tile);
  * Fills _Offset with the absolute position of the tile facing _Direction away from _Tile.
  */
 void TileAdjTileOffset(const struct SDL_Point* _Tile, int _Direction, SDL_Point* _Offset);
-int TileGetDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End);
+int TileDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End);
 static inline int CubeDistance(const struct CubeCoord* One, const struct CubeCoord* Two) {
 	return (abs(One->q - Two->q) + abs(One->r - Two->r) + abs(One->s - Two->s)) / 2;
 }

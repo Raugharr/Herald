@@ -75,24 +75,25 @@ struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, stru
 	TableEnd = World->Pregnancies.End;//& PREGTABLE_SZ;
 	EventHook(EVENT_DEATH, PregOnDeath, Person, Pregnancy, NULL);
 	//Look for the entry in World->Pregnancies that has a BirthDay equal to BirthDay. Each BirthDay in World->Pregnancies should be ordered in ascending order.
-	while(TableEnd != World->Pregnancies.Start && World->Pregnancies.Table[TableEnd - 1]->BirthDay > BirthDay) {
+	while(TableEnd != World->Pregnancies.Start && World->Pregnancies.Table[(TableEnd - 1) & PREGTABLE_MASK]->BirthDay > BirthDay) {
 		//If the below code is executed that must mean BirthDay is not the biggest BirthDay and does not exist.
-		if(BirthDay < World->Pregnancies.Table[TableEnd - 1]->BirthDay) {
-			World->Pregnancies.Table[World->Pregnancies.End] = &World->Pregnancies.AllocTable[(World->Pregnancies.AllocIdx++) & PREGTABLE_SZ];
+		if(BirthDay < World->Pregnancies.Table[(TableEnd - 1) & PREGTABLE_MASK]->BirthDay) {
+			World->Pregnancies.Table[World->Pregnancies.End] = &World->Pregnancies.AllocTable[(World->Pregnancies.AllocIdx++) & PREGTABLE_MASK];
 			Pregnancy->Front = World->Pregnancies.Table[World->Pregnancies.End];
 			World->Pregnancies.Table[World->Pregnancies.End]->Data = Pregnancy;
 			World->Pregnancies.Table[World->Pregnancies.End]->BirthDay = BirthDay;//DateAddInt(World->Date, BirthDay);
 			//ILL_CREATE(World->Pregnancies.Table[World->Pregnancies.End]->Data, Pregnancy);
 			goto insert_entry;
 		}
-		TableEnd = (TableEnd - 1);
+		TableEnd = (TableEnd - 1) & PREGTABLE_MASK;
 	}
 	if(World->Pregnancies.End == TableEnd) {
-		World->Pregnancies.Table[TableEnd] = &World->Pregnancies.AllocTable[(World->Pregnancies.AllocIdx++) & PREGTABLE_SZ];
+		World->Pregnancies.Table[TableEnd] = &World->Pregnancies.AllocTable[(World->Pregnancies.AllocIdx++) & PREGTABLE_MASK];
 		World->Pregnancies.Table[TableEnd]->Data = Pregnancy;
 		World->Pregnancies.Table[TableEnd]->BirthDay = BirthDay;
-		++World->Pregnancies.End;
-		if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
+		World->Pregnancies.End = (World->Pregnancies.End + 1) & PREGTABLE_MASK;
+		//++World->Pregnancies.End;
+		//if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
 	} else {
 		ILL_CREATE(World->Pregnancies.Table[TableEnd]->Data, Pregnancy);
 	}
@@ -101,8 +102,9 @@ struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, stru
 	return Pregnancy;
 	insert_entry:
 	//Move everything from EndTable to End one space over and fill in the gap with BirthDay and Pregnancy.	
+	Assert(TableEnd > 0);
 	--TableEnd;
-	for(uint16_t Idx = World->Pregnancies.End - 1;; Idx = (Idx - 1)) {
+	for(uint16_t Idx = (World->Pregnancies.End - 1) & PREGTABLE_MASK;; Idx = (Idx - 1)) {
 		uint16_t NextIdx = Idx + 1;
 		struct PregElem* Temp = World->Pregnancies.Table[NextIdx];
 
@@ -111,8 +113,8 @@ struct Pregnancy* CreatePregnancy(struct Person* Person, uint16_t BirthDay, stru
 		if(Idx == TableEnd)
 			break;
 	}
-	World->Pregnancies.End = World->Pregnancies.End + 1;
-	if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
+	World->Pregnancies.End = (World->Pregnancies.End + 1) & PREGTABLE_MASK;
+	//if(World->Pregnancies.End > PREGTABLE_SZ) World->Pregnancies.End = 0;
 	Assert(Pregnancy->Front != NULL);
 	return Pregnancy;
 }
@@ -154,13 +156,12 @@ struct Person* CreatePerson(const char* Name, int Age, int Gender, int Nutrition
 	Person->Family = Family;
 	Person->Location = Family->HomeLoc->Object.Id;
 	Person->NutRate = PersonRation(Person);
-	//Person->NutRate = (PersonMature(Person) == true) ? (Person->Nutrition / NUTRITION_DIV) : (Person->Nutrition / (NUTRITION_DIV * 2));
 	SettlementAddPerson(Person->Family->HomeLoc, Person);
 	return Person;
 }
 
 void DestroyPerson(struct Person* Person) {
-	struct Family* Family = Person->Family;
+	//struct Family* Family = Person->Family;
 
 	FamilyRemovePerson(Person->Family, Person);
 	//for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
@@ -289,7 +290,7 @@ struct Person* GetFather(struct Person* Person) {
 
 uint16_t PersonWorkMult(const struct Person* Person) {
 //	float Modifier = Person->Nutrition / ((float) NUTRITION_MAX);
-	uint32_t Modifier = (Person->Nutrition * 100) / NUTRITION_MAX;
+	uint32_t Modifier = (Person->Family->Rations * 25);
 	int WorkRate = MAX_WORKRATE;
 
 	if(Person->Age.Years < ADULT_AGE) {

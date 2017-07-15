@@ -48,6 +48,7 @@ START_TEST(RBDeleteManyTest) {
 	ck_assert_ptr_eq(RBSearchNode(&_Tree, &_Table[49]), NULL);
 	RBInsert(&_Tree, &_Table[49]);
 	for(int i = 99; i >= 0; --i) {
+	//	ck_assert_ptr_ne(RBSearchNode(&_Tree, &_Table[i]), NULL);
 		RBDelete(&_Tree, &_Table[i]);
 		ck_assert_int_eq(_Tree.Size, i);
 	}

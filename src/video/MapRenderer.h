@@ -28,6 +28,11 @@ enum {
 	MAPRENDER_LAYERS
 };
 
+struct InfScore {
+	uint32_t SetId : 24;
+	uint32_t Score : 8;
+};
+
 struct TileSheet {
 	const struct Resource* TileFile;
 	SDL_Texture* Tiles;
@@ -87,6 +92,10 @@ void MapDrawColorOverlay(const struct MapRenderer* Renderer, const SDL_Point* Po
 struct Army* MapGetUnit(struct MapRenderer* Renderer, const SDL_Point* Point);
 int MapUnitCanMove(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point);
 int MapMoveUnit(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point);
+void MapZeroArea(uint8_t* Map, uint16_t Width, int32_t Posx, int32_t Posy);
+uint8_t MapGravBest(uint8_t* Map, uint16_t Width, int32_t Posx, int32_t Posy, int32_t* Bestx, int32_t* Besty);
+
+void CenterScreen(struct MapRenderer* Renderer, uint32_t x, uint32_t y);
 
 void MapDrawSettlementOverlay(struct MapRenderer* Renderer, const struct Settlement* Settlement);
 static inline void TileNeighbor(int Direction, const SDL_Point* Tile, SDL_Point* Out) {
@@ -113,4 +122,5 @@ static inline void TileToPos(const struct MapRenderer* Map, const struct Tile* T
 static inline uint32_t TileToIndex(const struct MapRenderer* Map, const struct Tile* Tile) {
 	return (Tile - &Map->Tiles[0]);
 }
+struct InfScore* CalcInfluence(const struct Settlement** SetList, uint32_t GovSz, struct MapRenderer* Renderer);
 #endif

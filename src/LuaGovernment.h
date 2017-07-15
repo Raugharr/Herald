@@ -24,6 +24,7 @@ int LuaGovernmentGetTaxRate(lua_State* State);
 int LuaGovernmentPolicyGetPolicyApproval(lua_State* State);
 int LuaGovernmentGetRelation(lua_State* State);
 int LuaGovernmentCreateRelation(lua_State* State);
+int LuaGovernmentRankStr(lua_State* State);
 
 int LuaFactionGetName(lua_State* State);
 int LuaFactionGetLeader(lua_State* State);

@@ -28,6 +28,7 @@ static const luaL_Reg g_LuaFuncsGovernment[] = {
 	{"PolicyApproval", LuaGovernmentPolicyGetPolicyApproval},
 	{"GetRelation", LuaGovernmentGetRelation},
 	{"CreateRelation", LuaGovernmentCreateRelation},
+	{"RankStr", LuaGovernmentRankStr},
 	{NULL, NULL}
 };
 
@@ -163,6 +164,13 @@ int LuaGovernmentCreateRelation(lua_State* State) {
 		return 1;
 	}
 	Relation = CreateRelation(Owner, Target, &Owner->Relations);
+	return 1;
+}
+
+int LuaGovernmentRankStr(lua_State* State) {
+	struct Government* Owner = LuaCheckClass(State, 1, LOBJ_GOVERNMENT);
+
+	lua_pushstring(State, GovernmentRankStr(Owner));
 	return 1;
 }
 

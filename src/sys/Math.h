@@ -21,6 +21,11 @@
 #ifndef clz
 #define clz(_Int) __builtin_clz(_Int)
 #endif
+
+#ifndef ctz
+#define ctz(Int) __builtin_ctz(Int)
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif

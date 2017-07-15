@@ -84,16 +84,13 @@ static struct GameOnClick g_GameOnClick = {0};
 static struct Crop* g_PastureCrop = NULL;
 
 const char* g_CasteNames[CASTE_SIZE] = {
-	"Thrall",
-	"Farmer",
-	"Craftsman",
-	"Low noble",
-	"Priest",
-	"Warrior",
-	"Noble"
+	"Theow",
+	"Gebur",
+	"Geneat",
+	"Thegn"
+	"Eldorman",
 };
 
-struct TaskPool* g_TaskPool = NULL;
 int g_TemperatureList[] = {32, 33, 41, 46, 56, 61, 65, 65, 56, 51, 38, 32};
 int g_Temperature = 0;
 
@@ -167,18 +164,19 @@ void ManorSetFactions(struct Settlement* Settlement) {
 	}
 }
 
-void PopulateManor(struct Settlement* Settlement, struct FamilyType** FamilyTypes,
+void PopulateManor(struct Settlement* Settlement, int Families, struct FamilyType** FamilyTypes,
 	struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg) {
 	//int Count = 0;
 	struct BigGuy* Warlord = NULL;
 	struct BigGuy* Chief = NULL;
 	struct Retinue* Retinue = NULL;
-//	double CastePercent[CASTE_SIZE] = {0, 0.50, 0.10, 0, 0, 0.40, 0.0};
-	double CastePercent[CASTE_SIZE] = {0, 1.00, 0.10, 0, 0, 0.00, 0.0};
+	double CastePercent[CASTE_SIZE] = {0, 0.00, 0.95, 0.05, 0};
 	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 
-	//Settlement = CreateSettlement(X, Y, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
-	CreateFarmerFamilies(Settlement, AgeGroups, BabyAvg);
+	//CreateFarmerFamilies(Settlement, Families * CastePercent[CASTE_FARMER], AgeGroups, BabyAvg);
+	//CreateCrafterFamilies(Settlement, Families * CastePercent[CASTE_CRAFTSMAN], AgeGroups, BabyAvg);
+	CreateFarmerFamilies(Settlement, Families - 1, AgeGroups, BabyAvg);
+	CreateCrafterFamilies(Settlement, 1, AgeGroups, BabyAvg);
 	RandTable(CastePercent, &CasteCount, CASTE_SIZE, Settlement->NumPeople);
 	TribalCreateBigGuys(Settlement, CastePercent);
 	ManorSetFactions(Settlement);
@@ -194,12 +192,12 @@ void PopulateManor(struct Settlement* Settlement, struct FamilyType** FamilyType
 	for(struct LnkLst_Node* Itr = Settlement->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
 		struct BigGuy* Guy = Itr->Data;
 
-		if(Guy->Person->Family->Caste == CASTE_WARRIOR && Guy->Person->Family->Faction == FACTION_IDRETINUE) {
+		if(Guy->Person->Family->Caste == CASTE_THEGN && Guy->Person->Family->Faction == FACTION_IDRETINUE) {
 			Warlord = Guy;
 			Warlord->Glory = BGRandRes(Warlord, BGSKILL_COMBAT) / 10;
 			//goto found_warlord;
 		}
-		if(Chief == NULL && Guy->Person->Family->Caste == CASTE_NOBLE) {
+		if(Chief == NULL && Guy->Person->Family->Caste == CASTE_THEGN) {
 			Chief = Guy;
 		}
 	}
@@ -209,14 +207,14 @@ void PopulateManor(struct Settlement* Settlement, struct FamilyType** FamilyType
 		for(int i = 0; i < Settlement->Factions.Bosses[FACTION_IDGOVERN].Size; ++i) {
 			Guy = Settlement->Factions.Bosses[FACTION_IDGOVERN].Table[i];
 
-			if(Guy->Person->Family->Caste == CASTE_FARMER) {
-				Guy->Person->Family->Caste = CASTE_NOBLE;
+			if(Guy->Person->Family->Caste == CASTE_GENEAT) {
+				Guy->Person->Family->Caste = CASTE_THEGN;
 				Chief = Guy;
 				goto found_chief;
 			}
 		}
 		Guy = Settlement->Factions.Bosses[FACTION_IDGOVERN].Table[0];
-		Guy->Person->Family->Caste = CASTE_NOBLE;
+		Guy->Person->Family->Caste = CASTE_THEGN;
 		Chief = Guy;
 	}
 	found_chief:
@@ -225,14 +223,14 @@ void PopulateManor(struct Settlement* Settlement, struct FamilyType** FamilyType
 		struct BigGuy* Guy = NULL;
 		for(int i = 0; i < Settlement->Factions.Bosses[FACTION_IDRETINUE].Size; ++i) {
 			Guy = Settlement->Factions.Bosses[FACTION_IDRETINUE].Table[i];
-			if(Guy->Person->Family->Caste == CASTE_FARMER) {
-				Guy->Person->Family->Caste = CASTE_WARRIOR;
+			if(Guy->Person->Family->Caste == CASTE_GENEAT) {
+				Guy->Person->Family->Caste = CASTE_THEGN;
 				Warlord = Guy;
 				goto found_warlord;
 			}
 		}
 		Guy = Settlement->Factions.Bosses[FACTION_IDRETINUE].Table[0];
-		Guy->Person->Family->Caste = CASTE_WARRIOR;
+		Guy->Person->Family->Caste = CASTE_THEGN;
 		Warlord= Guy;
 	}
 	found_warlord:
@@ -240,7 +238,7 @@ void PopulateManor(struct Settlement* Settlement, struct FamilyType** FamilyType
 	for(struct LnkLst_Node* Itr = Settlement->Families.Front; Itr != NULL; Itr = Itr->Next) {
 		struct Family* Family = Itr->Data;
 
-		if(Family->Caste == CASTE_WARRIOR && Family != Warlord->Person->Family)
+		if(Family->Prof == PROF_WARRIOR && Family != Warlord->Person->Family)
 			RetinueAddWarrior(Retinue, Family->People[0]);
 	}
 	GovernmentSetLeader(Settlement->Government, Chief);
@@ -281,12 +279,18 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 	struct Constraint* const * ManorSize = NULL;
 	struct Settlement* Settlement = NULL;
 	const char* Temp = NULL;
-	int ManorMin = 0;
-	int ManorMax = 0;
-	int ManorInterval = 0;
+	//int ManorMin = 0;
+	//int ManorMax = 0;
+	//int ManorInterval = 0;
+	uint8_t* SetScore = NULL;
 	int Idx = 0;
-	int x[] = {4, 12, 16};
-	int y[] = {6, 12, 8};
+	int32_t x = 0;
+	int32_t y = 0;
+	uint8_t SetChance[SET_SIZE] = {20, 70, 8, 2};
+	uint8_t SetType = 0;
+	uint8_t SetRand = 0;
+	struct Constraint PopVals[SET_SIZE] = {{50, 99}, {100, 499}, {500, 999}, {1000, 1999}};
+	struct InfScore* SetInf = NULL;
 
 	if(LuaLoadFile(g_LuaState, "std.lua", NULL) != LUA_OK) {
 		goto end;
@@ -297,7 +301,7 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 	if(LuaLoadFile(g_LuaState, "policies.lua", NULL) != LUA_OK) {
 		goto end;
 	}
-	lua_getglobal(g_LuaState, "ManorConstraints");
+	/*lua_getglobal(g_LuaState, "ManorConstraints");
 	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
 		Log(ELOG_ERROR, "ManorConstraints is not defined.");
 		goto end;
@@ -312,6 +316,7 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 	LuaGetInteger(g_LuaState, -1, &ManorInterval);
 	lua_pop(g_LuaState, 2);
 	ManorSize = CreateConstrntLst(NULL, ManorMin, ManorMax, ManorInterval);
+	*/
 	lua_getglobal(g_LuaState, "FamilyTypes");
 	if(lua_type(g_LuaState, -1) != LUA_TTABLE) {
 		Log(ELOG_ERROR, "FamilyTypes is not defined.");
@@ -352,18 +357,64 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 	lua_pop(g_LuaState, 4);
 	FamilyTypes[Idx] = NULL;
 	SDL_SetEventFilter(FilterGameEvents, NULL);
-	ScoreSetLoc(&g_GameWorld);
-	Settlement = CreateSettlement(4, 6, "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
-	PopulateManor(Settlement, FamilyTypes, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+	SetScore = ScoreSetLoc(&g_GameWorld);
+
+	x = Random(0, g_GameWorld.MapRenderer->TileLength - 1);
+	y = Random(0, g_GameWorld.MapRenderer->TileLength - 1);
+	MapZeroArea(SetScore, g_GameWorld.MapRenderer->TileLength, x, y);
+	Settlement = CreateSettlement(x, y, "Test Settlement", (GOVMIX_TRIBAL | GOVMIX_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVSTCT_CLAN | GOVMIX_CONCENSUS));
+	SetRand = Random(1, 100);
+	for(int i = 0; i < SET_SIZE; ++i) {
+		if(SetChance[i] < SetRand) {
+			 SetRand -= SetChance[i];
+			 continue;
+		}
+		SetType = i;
+		break;
+	}
+	PopulateManor(Settlement, Random(PopVals[SetType].Min, PopVals[SetType].Max) / 6, FamilyTypes, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
 	g_GameWorld.Player = PickPlayer();
+	CenterScreen(g_GameWorld.MapRenderer, x, y);
 #define USR_CHIEF
 #ifdef USR_CHIEF
 	GovernmentSetLeader(Settlement->Government, g_GameWorld.Player);
 #endif
 	for(int i = 1; i < SettCt; ++i) {
-		Settlement = CreateSettlement(x[i], y[i], "Test Settlement", (GOVSTCT_TRIBAL | GOVSTCT_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVTYPE_CONSENSUS));
-		PopulateManor(Settlement, FamilyTypes, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
+		x = Random(0, g_GameWorld.MapRenderer->TileLength - 1);
+		y = Random(0, g_GameWorld.MapRenderer->TileLength - 1);
+
+		MapGravBest(SetScore, g_GameWorld.MapRenderer->TileLength, x, y, &x, &y);
+		MapZeroArea(SetScore, g_GameWorld.MapRenderer->TileLength, x, y);
+		Settlement = CreateSettlement(x, y, "Test Settlement", (GOVMIX_TRIBAL | GOVMIX_CHIEFDOM | GOVRULE_ELECTIVE | GOVTYPE_DEMOCRATIC | GOVSTCT_CLAN | GOVMIX_CONCENSUS));
+		SetRand = Random(1, 100);
+		for(int i = 0; i < SET_SIZE; ++i) {
+			if(SetChance[i] < SetRand) {
+				 SetRand -= SetChance[i];
+				 continue;
+			}
+			SetType = i;
+			break;
+		}
+		PopulateManor(Settlement, Random(PopVals[SetType].Min, PopVals[SetType].Max) / 6, FamilyTypes, g_GameWorld.AgeGroups, g_GameWorld.BabyAvg);
 	}
+	//Create governments.
+	SetInf = CalcInfluence((const struct Settlement**)g_GameWorld.Settlements.Table, g_GameWorld.Settlements.Size, g_GameWorld.MapRenderer);
+	for(int i = 0; i < g_GameWorld.Settlements.Size; ++i) {
+		struct Settlement* Parent = NULL;
+		struct Government* Gov = NULL;
+
+		if(SetInf[i].SetId == 0 && SetInf[i].Score == 0) continue;
+		Parent = g_GameWorld.Settlements.Table[SetInf[i].SetId];
+		if(Parent->Government->Owner == NULL) {
+			Gov = CreateGovernment(NULL,GOVRULE_ELECTIVE, GOVTYPE_DEMOCRATIC, GOVSTCT_CONFEDERACY, GOVMIX_CONCENSUS, 1);	
+			
+			GovernmentLesserJoin(Gov, Parent->Government);
+		} else {
+			Gov = Parent->Government->Owner;
+		}
+		GovernmentLesserJoin(Gov, ((struct Settlement*)g_GameWorld.Settlements.Table[i])->Government);
+	}
+	free(SetInf);
 	SDL_SetEventFilter(NULL, NULL);
 	DestroyConstrntBnds((struct Constraint**)ManorSize);
 	return 1;
@@ -373,7 +424,7 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 }
 
 struct BigGuy* PickPlayer() {
-	struct Settlement* Settlement = g_GameWorld.Settlements.Front->Data;
+	struct Settlement* Settlement = g_GameWorld.Settlements.Table[0];
 	struct BigGuy* Player = NULL;
 	struct Agent* Agent = NULL;
 
@@ -492,7 +543,7 @@ void GameWorldInit(struct GameWorld* GameWorld, int Area) {
 	GameWorld->SettlementMap.BoundingBox.w = Area * Area;
 	GameWorld->SettlementMap.BoundingBox.h = Area * Area;
 
-	ConstructLinkedList(&GameWorld->Settlements);
+	CtorArray(&GameWorld->Settlements, 512);
 	GameWorld->BigGuys.Table = NULL;
 	GameWorld->BigGuys.Size = 0;
 	GameWorld->BigGuys.ICallback = (RBCallback) BigGuyIdInsert;
@@ -705,7 +756,7 @@ void WorldInit(uint32_t Area, uint32_t SettCt) {
 }
 
 void WorldQuit() {
-	LnkLstClear(&g_GameWorld.Settlements);
+	DtorArray(&g_GameWorld.Settlements);
 	DestroyArray(g_GameWorld.AnFoodDeps);
 	DestroyRBTree(g_GameWorld.GoodDeps);
 	for(int i = 0; i < GOOD_SIZE; ++i)
@@ -747,7 +798,7 @@ uint32_t GameFyrdClick(const struct Object* One, const struct Object* Two, uint3
 		if(GovernmentTop(Settlement->Government) != GovernmentTop(((const struct Settlement*) Two)->Government) && IsPlayerGovernment(&g_GameWorld, (struct Settlement*) Two) == 0) {
 			struct ArmyGoal Goal;
 
-			CreateArmy(Settlement, Settlement->Government->Leader, ArmyGoalRaid(&Goal, ((struct Settlement*)Two), Context));
+			CreateArmy((struct Settlement*) Settlement, Settlement->Government->Leader, ArmyGoalRaid(&Goal, ((struct Settlement*)Two), Context));
 			return WORLDACT_DEFAULT;
 		}
 	}
@@ -774,6 +825,8 @@ void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World)
 		uint32_t Size = 0;
 
 		ScreenToHex(&State->MousePos, &TilePos);
+		TilePos.x += g_GameWorld.MapRenderer->Screen.x;
+		TilePos.y += g_GameWorld.MapRenderer->Screen.y;
 		Tile = MapGetTile(World->MapRenderer, &TilePos);
 		if(Tile == NULL)
 			return;
@@ -787,28 +840,36 @@ void GameWorldEvents(const struct KeyMouseState* State, struct GameWorld* World)
 
 void GameWorldDraw(const struct GameWorld* World) {
 	struct Tile* Tile = NULL;
-	struct LnkLst_Node* Settlement = NULL;
+	struct Settlement* Settlement = NULL;
 	struct SDL_Point Pos;
 	struct SDL_Point TilePos;
+	uint32_t TableSz = 0;
+	struct Sprite** SpriteList = NULL;
+	uint32_t ListSize = 0;
 
 	if(World->MapRenderer->IsRendering == 0)
 		return;
 	GetMousePos(&Pos);
 	ScreenToHex(&Pos, &TilePos);
 	Tile = &World->MapRenderer->Tiles[TilePos.y * World->MapRenderer->TileLength + TilePos.x];
-	Settlement = g_GameWorld.Settlements.Front;
+	Settlement = g_GameWorld.Settlements.Table[0];
 	MapRenderAll(g_Renderer, g_GameWorld.MapRenderer);
 	if(Tile != NULL) {
 		SDL_Rect SpritePos = {TilePos.x * TILE_WIDTH, TilePos.y * TILE_HEIGHT_THIRD, TILE_WIDTH, TILE_HEIGHT};
 		
-		if((TilePos.y & 1) == 1)
-			SpritePos.x += (TILE_WIDTH / 2);
+		//if((TilePos.y & 1) == 1)
+		//	SpritePos.x += (TILE_WIDTH / 2);
+		SpritePos.x += ((TILE_WIDTH / 2) * (TilePos.y & 1));
 		SDL_RenderCopy(g_Renderer, ResourceGetData(g_GameWorld.MapRenderer->Selector), NULL, &SpritePos);
 	}
-	while(Settlement != NULL) {
-		SettlementDraw(g_GameWorld.MapRenderer, (struct Settlement*)Settlement->Data);
-		Settlement = Settlement->Next;
-	}
+	TableSz = FrameSizeRemain() / sizeof(struct Sprite*);
+	SpriteList = SAlloc(TableSz * sizeof(struct Sprite*));
+	ListSize = 0;
+
+	MapObjectsInRect(World->MapRenderer, MAPRENDER_SETTLEMENT, &World->MapRenderer->Screen, (void**)SpriteList, &ListSize, TableSz);
+	for(int i = 0; i < ListSize; ++i)
+		SettlementDraw(g_GameWorld.MapRenderer, Settlement);
+	SFree(sizeof(void*) * TableSz);
 }
 
 int World_Tick() {
@@ -865,6 +926,7 @@ int World_Tick() {
 			}
 			g_GameWorld.Pregnancies.Table[g_GameWorld.Pregnancies.Start]->Data = NULL;
 			++g_GameWorld.Pregnancies.Start;
+			if(g_GameWorld.Pregnancies.Start >= PREGTABLE_SZ) g_GameWorld.Pregnancies.Start = 0;
 		}
 		NextDay(&g_GameWorld.Date);
 		++g_GameWorld.Tick;
@@ -931,7 +993,7 @@ static inline uint8_t ScoreTile(const struct Tile* Tile) {
 }
 
 //Scores each tile in the world for how diserable it is for a family to live in.
-void ScoreSetLoc(const struct GameWorld* World) {
+uint8_t* ScoreSetLoc(const struct GameWorld* World) {
 	uint8_t* Score = malloc(sizeof(uint8_t) * World->MapRenderer->TileLength * World->MapRenderer->TileLength);
 	const struct Tile* Tile = NULL;
 	struct Tile* AdjTile[TILE_SIZE];
@@ -955,6 +1017,7 @@ void ScoreSetLoc(const struct GameWorld* World) {
 				Score[(y * World->MapRenderer->TileLength) + x] = CurrScore;
 		}
 	}
+	return Score;
 }
 
 const struct Crop* PastureCrop() {

@@ -71,7 +71,7 @@ void LogCloseFile();
 
 void Log(int _Category, const char* _Text, ...);
 int LogLua(lua_State* _State);
-static inline void Assert(bool Cond) {
+static inline void Assert(_Bool Cond) {
 	_Assert(Cond);
 }
 #endif

@@ -74,7 +74,7 @@ void BigGuyDeath(struct BigGuy* Guy) {
 			LogNoMem();
 			return;
 		}
-		struct BigGuy* NewLeader = MonarchyNewLeader(g_GameWorld.Player, MALE);
+		struct BigGuy* NewLeader = MonarchyNewLeader(g_GameWorld.Player, g_GameWorld.Player->Person->Family->HomeLoc->Government);
 
 		//strcpy(Str, g_GameWorld.Player->Person->Name);
 		//strcat(Str, " has been killed.");
@@ -236,49 +236,32 @@ int BGRandRes(const struct BigGuy* Guy, int Stat) {
  */
 void GenerateStats(uint8_t Caste, uint8_t (*Stats)[BGSKILL_SIZE]) {
 	int Points = Random(BG_MINGENSTATS, BG_MAXGENSTATS);
+	double SkillPer[CASTE_SIZE][BGSKILL_SIZE] = {
+		{0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10},
+		{0.05, 0.20, 0.25, 0.15, 0.10, 0.15, 0.10}, 
+		{0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10}, 
+		{0.05, 0.10, 0.10, 0.10, 0.20, 0.25, 0.20}, 
+		{0.25, 0.15, 0.15, 0.15, 0.10, 0.10, 0.10}, 
+	};
 
 	switch(Caste) {
-		case CASTE_THRALL:
+		case CASTE_THEOW:
 			Points -= Points / 4;
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10);
-			return;	
-		case CASTE_FARMER:
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10); 
-			return;	
-		case CASTE_CRAFTSMAN:
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.05, 0.20, 0.25, 0.15, 0.10, 0.15, 0.10); 
-			return;	
-		case CASTE_LOWNOBLE:
+			break;
+		case CASTE_GEBUR:
+			break;
+		case CASTE_GENEAT:
+			break;
+		case CASTE_THEGN:
 			Points += Points / 10; 
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10); 
-			return;	
-		case CASTE_PRIEST:
+			break;
+		case CASTE_EALDORMAN:
 			Points += Points / 10; 
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.05, 0.10, 0.10, 0.10, 0.20, 0.25, 0.20); 
-			return;	
-		case CASTE_WARRIOR:
-			Points += Points / 10; 
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.25, 0.15, 0.15, 0.15, 0.10, 0.10, 0.10); 
-			return;	
-		case CASTE_NOBLE:
-			Points += Points / 4;
-			BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
-				&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
-				0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10); 
-			return;	
+			break;
 	}
+	BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+		&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+		SkillPer[Caste][0], SkillPer[Caste][1], SkillPer[Caste][2], SkillPer[Caste][3], SkillPer[Caste][4], SkillPer[Caste][5], SkillPer[Caste][6]); 
 }
 
 struct Trait* RandomTrait(struct Trait** Traits, uint8_t TraitCt, struct HashItr* Itr) {
@@ -326,6 +309,7 @@ struct Trait** BGRandTraits(uint8_t* TraitCt) {
 	for(uint8_t i = 0; i < *TraitCt; ++i) {
 		if((Trait = RandomTrait(Traits, i, Itr)) == NULL) {
 			Traits[i] = NULL;
+			*TraitCt = i;
 			break;
 		}
 		Traits[i] = Trait;
@@ -337,8 +321,7 @@ struct Trait** BGRandTraits(uint8_t* TraitCt) {
 
 int HasTrait(const struct BigGuy* BigGuy, const struct Trait* Trait) {
 	for(int i = 0; i < BigGuy->TraitCt; ++i) {
-		if(BigGuy->Traits[i]
-			 == Trait)
+		if(BigGuy->Traits[i] == Trait)
 			return 1;
 	}
 	return 0;

@@ -58,6 +58,12 @@ struct Array;
 
 extern lua_State* g_LuaState;
 
+enum LuaObjectIds {
+	LUA_OCLASS = 1,
+	LUA_OSELF,
+	LUA_OSIZE
+};
+
 enum LuaObjectsEnum {
 	LUA_BASECLASS = 0,
 	LOBJ_NONE,

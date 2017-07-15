@@ -11,7 +11,6 @@
 
 #define ArrayInsertSort(Array, Data, Callback) ArrayInsert((Array), (Data)); InsertionSortPtr((Array)->Table, (Array)->Size, Callback)
 #define ArrayInsertSort_S(Array, Data, Callback) ArrayInsert_S((Array), (Data)); InsertionSortPtr((Array)->Table, (Array)->Size, Callback)
-#define QuickSort(Table, Count, Callback) QuickSort_Aux((Table), (Callback), ((Count) - 1))
 #define ArrayResize(Array) ArrayGrow((Array), (Array)->TblSize * 2)
 #define ArrayRandom(Array) CArrayRandom((Array)->Table, (Array)->Size)
 
@@ -48,7 +47,7 @@ void CArrayRandom(void* Table, uint32_t Size);
 
 void InsertionSort(void* Table, int Count, CompCallback Callback, int SizeOf);
 void InsertionSortPtr(void* Table[], size_t Count, CompCallback Callback);
-void QuickSort_Aux(void* Table, CompCallback Callback, int Size);
+void QuickSort(void** Table, int Size, CompCallback Callback);
 /**
  * Returns the size of a NULL terminated array.
  */
@@ -56,5 +55,6 @@ int ArrayLen(const void* Table);
 int NArrayCount(const void** restrict TblOne, const void** restrict TblTwo);
 int NArrayExists(const void** restrict Tbl, const void* restrict Ptr);
 void* BinarySearch(const void* Data, void* Table, int Size, CompCallback Callback);
+int BinarySearchIdx(const void* Data, void* Table, int Size, CompCallback Callback);
 void* LinearSearch(const void* Data, void* Table, int Size, CompCallback Callback);
 #endif

@@ -24,10 +24,10 @@
  * and the peasant faction will get 5 of every 8 farmers on average.
  */
 static uint8_t g_FactionWeights[FACTION_IDSIZE * CASTE_SIZE] = {
-	0, 0, 0, 0, 0, 1, 7,
-	5, 5, 2, 2, 1, 0, 3,
-	3, 3, 1, 2, 9, 0, 1,
-	1, 1, 7, 4, 1, 0, 1
+	0, 0, 0, 0, 0,
+	5, 5, 2, 2, 1,
+	3, 3, 1, 2, 9,
+	1, 1, 7, 4, 1,
 };
 
 const char* g_FactionGoalNames[FACTION_GSIZE] = {

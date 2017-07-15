@@ -756,8 +756,8 @@ const struct GoodBase* GoodPayInKind(const struct Family* Buyer, int Cost, const
 	const struct Good* Good = NULL;
 	int Value = 0;
 
-	switch(Buyer->Caste) {
-		case CASTE_FARMER:
+	switch(Buyer->Prof) {
+		case PROF_FARMER:
 			for(int i = 0; i < Buyer->Goods.Size; ++i) {
 				Good = Buyer->Goods.Table[i];
 				if(strcmp(Good->Base->Name, "Flour") == 0) {

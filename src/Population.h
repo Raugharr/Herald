@@ -56,7 +56,6 @@ struct Population {
 };
 
 struct Animal {
-	struct Object Object;
 	const struct Population* const PopType;
 	struct {
 		uint8_t Years;
@@ -83,7 +82,6 @@ void DestroyPopulation(struct Population* Population);
 struct Population* PopulationLoad(lua_State* State, int Index);
 
 struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t Months);
-int AnimalCmp(const void* One, const void* Two);
 void DestroyAnimal(struct Animal* Animal);
 void AnimalObjThink(struct Object* Obj);
 void AnimalThink(struct Object* Object);
@@ -102,6 +100,9 @@ static inline bool AnimalMature(const struct Animal* Animal) {
 }
 static inline int AnimalNutReq(const struct Animal* Animal) {
 	return (AnimalMature(Animal) == true) ? (Animal->PopType->Nutrition) : (Animal->PopType->ChildNut);
+}
+static inline uint16_t AnMeat(const struct Population* const PopType, const struct Animal* const Animal) {
+	return (AnimalMature(Animal) == true) ? (PopType->Meat) : (PopType->Meat / 2);
 }
 
 #endif

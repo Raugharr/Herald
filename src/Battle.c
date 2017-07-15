@@ -132,30 +132,21 @@ void BattleDistPrestige(struct BattleSide* Side, int TotalPrestige) {
 	struct Warband* Warband = Army->Warbands;
 	struct Warrior* Warrior = NULL;
 	struct LnkLst_Node* Itr = NULL;
-	struct LinkedList List = LinkedList(); 
-	struct Warrior* Ptr = NULL;
 	struct BigGuy* Guy = NULL;
 	int CasteWarriorCt = 0;
 
 	while(Warband != NULL) { 
 		for(int i = 0; i < Warband->Warriors.Size; ++i) {
 			Warrior = Warband->Warriors.Table[i];
-			if(PERSON_CASTE(Warrior->Person) != CASTE_NOBLE) {
+			if(PersonProf(Warrior->Person) != PROF_WARRIOR) {
 				continue;
 			}
-			Ptr = Warrior;
-			LnkLstPushBack(&List, Ptr);
+			if((Guy = RBSearch(&g_GameWorld.BigGuys, ((struct Warrior*)Itr->Data)->Person)) != NULL) {
+			} else 
 			++CasteWarriorCt;
 		}
 		Warband = Warband->Next;
 	}
-	Itr = List.Front;
-	while(Itr != NULL) {
-		if((Guy = RBSearch(&g_GameWorld.BigGuys, ((struct Warrior*)Itr->Data)->Person)) != NULL) {
-		} else 
-		Itr = Itr->Next;
-	}
-	LnkLstClear(&List);
 }
 
 void BattleEnd(int Victor, struct Battle* Battle) {

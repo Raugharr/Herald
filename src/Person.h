@@ -27,6 +27,7 @@
 #define NUTRITION_DAILY (NUTRITION_REQ / YEAR_DAYS)
 #define NUTRITION_CHILDDAILY (NUTRITION_DAILY / 2)
 #define PERSON_CASTE(Person) ((Person)->Family->Caste)
+#define PersonProf(Person) ((Person)->Family->Prof)
 #define PersonGetGovernment(Person) ((Person)->Family->HomeLoc->Government)
 #define IsPregnant(Person) (((Person)->Flags & PREGNANT) == PREGNANT)
 #define IsAlive(Person) (((Person)->Flags & DEAD) != DEAD)

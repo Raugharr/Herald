@@ -54,7 +54,6 @@ int LuaFieldGetStatus(lua_State* State);
 int LuaFieldGetStatusTime(lua_State* State);
 int LuaFieldStatusCompletion(lua_State* State);
 
-int LuaAnimalGetId(lua_State* State);
 int LuaAnimalIsMale(lua_State* State);
 int LuaAnimalGetGender(lua_State* State);
 int LuaAnimalGetNutrition(lua_State* State);

@@ -78,7 +78,7 @@ int PopulationInputReqCmp(const void* _One, const void* _Two) {
 }
 
 int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	return (_Family->Caste == CASTE_FARMER) ? (_Family->Spec.Farmer.FieldCt > 0) : (0);
+	return (_Family->Prof == PROF_FARMER) ? (_Family->Spec.Farmer.FieldCt > 0) : (0);
 }
 
 int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {

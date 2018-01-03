@@ -5,190 +5,238 @@
 
 #include "HashTable.h"
 
+#include "Log.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-unsigned int Hash(const char* _Key) {
-	int _Hash = 0;
-	int _One = 63689;
-	int _Two = 378551;
+uint32_t HashFunc(const char* Key) {
+	int Hash = 0;
+	int One = 63689;
+	int Two = 378551;
 
-	for(int i = 0; _Key[i] != '\0'; ++i) {
-		_Hash = _Hash * _One + _Key[i];
-		_One *= _Two;
+	for(int i = 0; Key[i] != '\0'; ++i) {
+		Hash = Hash * One + Key[i];
+		One *= Two;
 	}
 
-	return (_Hash & 0x7FFFFFFF);
+	return (Hash & 0x7FFFFFFF);
 }
 
-struct HashTable* CreateHash(int _Size) {
-	struct HashTable* _Hash = (struct HashTable*) malloc(sizeof(struct HashTable));
-
-	_Hash->Table = calloc(_Size, sizeof(void*));
-	_Hash->TblSize = _Size;
-	_Hash->Size = 0;
-	return _Hash;
+void CtorHashTable(struct HashTable* Hash, uint32_t Size) {
+	Hash->Table = calloc(Size, sizeof(void*));
+	Hash->TblSize = Size;
+	Hash->Size = 0;
 }
 
-void DestroyHash(struct HashTable* _Hash) {
-	for(int i = 0; i < _Hash->TblSize; ++i) 
-		if(_Hash->Table[i] != NULL) {
-			free(_Hash->Table[i]->Key);
-			free(_Hash->Table[i]);
+
+struct HashTable* CreateHash(uint32_t Size) {
+	struct HashTable* Hash = (struct HashTable*) malloc(sizeof(struct HashTable));
+	
+	CtorHashTable(Hash, Size);
+	return Hash;
+}
+
+void DestroyHash(struct HashTable* Hash) {
+	for(int i = 0; i < Hash->TblSize; ++i) 
+		if(Hash->Table[i] != NULL) {
+			free(Hash->Table[i]->Key);
+			free(Hash->Table[i]);
 		}
-	free(_Hash->Table);
-	free(_Hash);
+	free(Hash->Table);
+	free(Hash);
 }
 
-struct HashNode* HashSearchNode(const struct HashTable* _Hash, const char* _Key) {
-	int _FirstIndex = 0;
-	struct HashNode* _Node = NULL;
-	int _Index;
+struct HashNode* HashSearchNode(const struct HashTable* Hash, const char* Key) {
+	int FirstIndex = 0;
+	struct HashNode* Node = NULL;
+	int Index;
 
-	if(_Key == NULL)
+	if(Key == NULL)
 		return NULL;
-	if(_Hash->TblSize == 0)
+	if(Hash->TblSize == 0)
 		return NULL;
-	_FirstIndex = Hash(_Key) % _Hash->TblSize;
-	_Node = _Hash->Table[_FirstIndex];
-	if(_Node == NULL)
+	FirstIndex = HashFunc(Key) % Hash->TblSize;
+	Node = Hash->Table[FirstIndex];
+	if(Node == NULL)
 		return NULL;
-	_Index = _FirstIndex;
-	while(_Node != NULL && strcmp(_Node->Key, _Key) != 0) {
-		++_Index;
-		if(_Index >= _Hash->TblSize)
-			_Index = 0;
-		_Node = _Hash->Table[_Index];
-		if(_Index == _FirstIndex)
+	Index = FirstIndex;
+	while(Node != NULL && strcmp(Node->Key, Key) != 0) {
+		++Index;
+		if(Index >= Hash->TblSize)
+			Index = 0;
+		Node = Hash->Table[Index];
+		if(Index == FirstIndex)
 			return NULL;
 	}
-	if(_Node == NULL)
+	if(Node == NULL)
 		return NULL;
-	return _Node;
+	return Node;
 }
 
-void* HashSearch(const struct HashTable* _Hash, const char* _Key) {
-	struct HashNode* _Node = HashSearchNode(_Hash, _Key);
+void* HashSearch(const struct HashTable* Hash, const char* Key) {
+	struct HashNode* Node = HashSearchNode(Hash, Key);
 
-	if(_Node == NULL)
+	if(Node == NULL)
 		return NULL;
-	return _Node->Pair;
+	return Node->Pair;
 }
 
-void HashInsert(struct HashTable* _Hash, const char* _Key, void* _Pair) {
-	char* _Str = NULL;
-	int _HashVal = 0;
-	int i;
-	struct HashNode* _Node = NULL;
+static inline void HashInsertNode(struct HashTable* Hash, struct HashNode* Node, uint32_t Idx) {
+	uint32_t i = 0;
 
-	if(_Key == NULL || _Hash->TblSize <= _Hash->Size)
-		return;
-	_Str = (char*) calloc(strlen(_Key) + 1, sizeof(char));
-	_HashVal = Hash(_Key) % _Hash->TblSize;
-	strcpy(_Str, _Key);
-	i = _HashVal;
-	while(_Hash->Table[i] != NULL) {
+	i = Idx;
+	while(Hash->Table[i] != NULL) {
 		++i;
-		if(i >= _Hash->TblSize)
+		if(i >= Hash->TblSize)
 			i = 0;
-		if(i == _HashVal)
+		if(i == Idx)
 			return;
 	}
-	_Node = (struct HashNode*) malloc(sizeof(struct HashNode));
-	_Node->Key = _Str;
-	_Node->Pair = _Pair;
-	_Hash->Table[i] = _Node;
-	++_Hash->Size;
+	Hash->Table[i] = Node;
+	++Hash->Size;
+}
+
+void HashInsert(struct HashTable* Hash, const char* Key, void* Pair) {
+	char* Str = NULL;
+	int HashVal = 0;
+	struct HashNode* Node = NULL;
+	
+	if(Hash->TblSize == 0 || Key == NULL) return;
+	if(Hash->TblSize <= Hash->Size) {
+		struct HashNode** NewHash = calloc(Hash->TblSize * 2, sizeof(struct HashNode**));
+		struct HashNode** OldHash = Hash->Table;
+		uint32_t Size = Hash->TblSize;
+
+		Hash->Size = 0;
+		Hash->Table = NewHash;
+		Hash->TblSize *= 2;
+		for(int i = 0; i < Size; ++i) {
+			if(OldHash[i] == NULL) continue;
+			HashVal = HashFunc(OldHash[i]->Key) % Hash->TblSize;
+			HashInsertNode(Hash, Node, HashVal);
+		}
+		free(OldHash);
+	}
+	HashVal = HashFunc(Key) % Hash->TblSize;
+	Node = (struct HashNode*) malloc(sizeof(struct HashNode));
+	Str = (char*) calloc(strlen(Key) + 1, sizeof(char));
+	Node->Key = Str;
+	Node->Pair = Pair;
+	strcpy(Str, Key);
+	HashInsertNode(Hash, Node, HashVal);
 }
 
 //FIXME: Does not free any memory.
-void HashClear(struct HashTable* _Hash) {
-	memset(_Hash->Table, 0, _Hash->TblSize);
-	_Hash->Size = 0;
+void HashClear(struct HashTable* Hash) {
+	memset(Hash->Table, 0, Hash->TblSize);
+	Hash->Size = 0;
 }
 
-int HashDelete(struct HashTable* _Hash, const char* _Key) {
-	int _HashVal = 0;
+void HashResize(struct HashTable* Hash) {
+	uint32_t OldTblSz = Hash->TblSize;
+	struct HashNode** OldTbl = Hash->Table;
+	uint32_t HashVal = 0;
+
+	if(Hash->Table == NULL) {
+		Hash->Table = calloc(64, sizeof(struct HashNode*));
+		Hash->TblSize = 64;
+		Hash->Size = 0;
+		return;
+	}
+	Hash->Table = calloc(OldTblSz * 2, sizeof(struct HashNode*));
+	Hash->TblSize = OldTblSz * 2;
+
+	for(uint32_t i = 0; i < OldTblSz; ++i) {
+		if(OldTbl[i] != NULL) {
+			HashVal = HashFunc(OldTbl[i]->Key) % Hash->TblSize;
+			HashInsertNode(Hash, OldTbl[i], HashVal);
+		}
+	}
+}
+
+int HashDelete(struct HashTable* Hash, const char* Key) {
+	int HashVal = 0;
 	int i;
 
-	if(_Key == NULL)
+	if(Key == NULL)
 		return 0;
-	_HashVal = Hash(_Key) % _Hash->TblSize;
-	i = _HashVal;
+	HashVal = HashFunc(Key) % Hash->TblSize;
+	i = HashVal;
 
-	while(_Hash->Table[i] == NULL ||
-			strcmp(_Key, _Hash->Table[i]->Key) != 0) {
-		if(i >= _Hash->TblSize)
+	while(Hash->Table[i] == NULL ||
+			strcmp(Key, Hash->Table[i]->Key) != 0) {
+		if(i >= Hash->TblSize)
 			i = 0;
 		++i;
-		if(i == _HashVal)
+		if(i == HashVal)
 			return 0;
 	}
-	free(_Hash->Table[i]->Key);
-	free(_Hash->Table[i]);
-	_Hash->Table[i] = NULL;
-	--_Hash->Size;
+	free(Hash->Table[i]->Key);
+	free(Hash->Table[i]);
+	Hash->Table[i] = NULL;
+	--Hash->Size;
 	return 1;
 }
 
-void HashDeleteAll(struct HashTable* _Hash, void(*_Callback)(void*)) {
-	for(int i = 0; i < _Hash->Size; ++i) {
-		if(_Hash->Table[i] == NULL)
+void HashDeleteAll(struct HashTable* Hash, void(*Callback)(void*)) {
+	for(int i = 0; i < Hash->Size; ++i) {
+		if(Hash->Table[i] == NULL)
 			continue;
-		_Callback(_Hash->Table[i]->Pair);
-		_Hash->Table[i] = NULL;
+		Callback(Hash->Table[i]->Pair);
+		Hash->Table[i] = NULL;
 	}
-	_Hash->Size = 0;
+	Hash->Size = 0;
 }
 
-struct HashItr* HashCreateItr(struct HashTable* _Hash) {
-	struct HashItr* _Itr = NULL;
+struct HashItr* HashCreateItr(struct HashTable* Hash) {
+	struct HashItr* Itr = NULL;
 
-	for(int i = 0; i < _Hash->TblSize; ++i) {
-		if(_Hash->Table[i] != NULL) {
-			_Itr = (struct HashItr*) malloc(sizeof(struct HashItr));
-			_Itr->Index = i;
-			_Itr->Node = _Hash->Table[i];
-			return _Itr;
+	for(int i = 0; i < Hash->TblSize; ++i) {
+		if(Hash->Table[i] != NULL) {
+			Itr = (struct HashItr*) malloc(sizeof(struct HashItr));
+			Itr->Index = i;
+			Itr->Node = Hash->Table[i];
+			return Itr;
 		}
 	}
 	return NULL;
 }
 
-void HashDeleteItr(struct HashItr* _Itr) {
-	free(_Itr);
+void HashDeleteItr(struct HashItr* Itr) {
+	free(Itr);
 }
 
-struct HashItr* HashNext(struct HashTable* _Hash, struct HashItr* _Itr) {
-	for(int i = _Itr->Index + 1; i < _Hash->TblSize; ++i) {
-		if(_Hash->Table[i] != NULL) {
-			_Itr->Index = i;
-			_Itr->Node = _Hash->Table[i];
-			return _Itr;
+struct HashItr* HashNext(struct HashTable* Hash, struct HashItr* Itr) {
+	for(int i = Itr->Index + 1; i < Hash->TblSize; ++i) {
+		if(Hash->Table[i] != NULL) {
+			Itr->Index = i;
+			Itr->Node = Hash->Table[i];
+			return Itr;
 		}
 	}
 	return NULL;
 }
 
-void HashItrRestart(struct HashTable* _Hash, struct HashItr* _Itr) {
-	for(int i = 0; i < _Hash->TblSize; ++i) {
-		if(_Hash->Table[i] != NULL) {
-			_Itr->Index = i;
-			_Itr->Node = _Hash->Table[i];
+void HashItrRestart(struct HashTable* Hash, struct HashItr* Itr) {
+	for(int i = 0; i < Hash->TblSize; ++i) {
+		if(Hash->Table[i] != NULL) {
+			Itr->Index = i;
+			Itr->Node = Hash->Table[i];
 			return;
 		}
 	}
 }
-void* HashItrData(const struct HashItr* _Itr) {
-	return _Itr->Node->Pair;
+void* HashItrData(const struct HashItr* Itr) {
+	return Itr->Node->Pair;
 }
 
-struct HashItrCons* HashCreateItrCons(const struct HashTable* _Hash) {
-	return (struct HashItrCons*)HashCreateItr((struct HashTable*)_Hash);
+struct HashItrCons* HashCreateItrCons(const struct HashTable* Hash) {
+	return (struct HashItrCons*)HashCreateItr((struct HashTable*)Hash);
 }
-void HashDeleteItrCons(struct HashItrCons* _Itr) {
-	free(_Itr);
+void HashDeleteItrCons(struct HashItrCons* Itr) {
+	free(Itr);
 }
-struct HashItrCons* HashNextCons(const struct HashTable* _Hash, struct HashItrCons* _Itr) {
-	return (struct HashItrCons*)HashNext((struct HashTable*)_Hash, (struct HashItr*)_Itr);
+struct HashItrCons* HashNextCons(const struct HashTable* Hash, struct HashItrCons* Itr) {
+	return (struct HashItrCons*)HashNext((struct HashTable*)Hash, (struct HashItr*)Itr);
 }

@@ -93,10 +93,13 @@ struct BehaviorNode* LuaBhvCreateNode(lua_State* _State) {
 	_Temp.Name = luaL_checkstring(_State, 1);
 	if((_Action = bsearch(&_Temp, g_BhvActions, g_BhvActionsSz, sizeof(struct LuaBhvAction), LuaBaCmp)) == NULL) {
 		lua_pushfstring(_State, ERRMSG_BHV, _Temp.Name);
-		return (struct BehaviorNode*) luaL_argerror(_State, 1, lua_tostring(_State, -1));
+		luaL_argerror(_State, 1, lua_tostring(_State, -1));
+		return NULL;
 	}
-	if(_Args != _Action->Arguments)
-		return (struct BehaviorNode*) luaL_error(_State, "Behavior %s requires %d arguments but provided with %d.", _Temp.Name, _Action->Arguments, _Args);
+	if(_Args != _Action->Arguments) {
+		luaL_error(_State, "Behavior %s requires %d arguments but provided with %d.", _Temp.Name, _Action->Arguments, _Args);
+		return NULL;
+	}
 	_Behavior = CreateBehaviorNode(_Action->Action, _Args);
 	for(int i = 0; i < _Args; ++i)
 		LuaToPrimitive(_State, 2 + i, &_Behavior->Arguments[i]);

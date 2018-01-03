@@ -5,182 +5,346 @@
 
 #include "Array.h"
 
+#include "Math.h"
+
 #include <stdlib.h>
 #include <string.h>
+#include <alloca.h>
 
-struct Array* CreateArray(int _Size) {
-	struct Array* _Array = (struct Array*) malloc(sizeof(struct Array));
+struct Array* CreateArray(int Size) {
+	struct Array* Array = (struct Array*) malloc(sizeof(struct Array));
 
-	ConstructArray(_Array, _Size);
-	return _Array;
+	CtorArray(Array, Size);
+	return Array;
 }
 
-void ConstructArray(struct Array* _Array, int _Size) {
-	_Array->Table = (_Size == 0) ? (NULL) : (calloc(_Size, sizeof(void*)));
-	_Array->TblSize = _Size;
-	_Array->Size = 0;
+void CtorArray(struct Array* Array, int Size) {
+	Array->Table = (Size == 0) ? (NULL) : (calloc(Size, sizeof(void*)));
+	Array->TblSize = Size;
+	Array->Size = 0;
 }
 
-struct Array* CopyArray(const struct Array* _Array) {
-	struct Array* _New = CreateArray(_Array->Size);
-	int i;
-
-	for(i = 0; i < _Array->Size; ++i)
-		_New->Table[i] = _Array->Table[i];
-	_New->Size = _Array->Size;
-	return _New;
+void DtorArray(struct Array* Array) {
+	free(Array->Table);
 }
 
-void DestroyArray(struct Array* _Array) {
-	free(_Array);
+struct Array* CopyArray(const struct Array* Array) {
+	struct Array* New = CreateArray(Array->Size);
+
+	for(int i = 0; i < Array->Size; ++i)
+		New->Table[i] = Array->Table[i];
+	New->Size = Array->Size;
+	return New;
 }
 
-void ArrayInsert_S(struct Array* _Array, void* _Data) {
-	if(_Array->Size >= _Array->TblSize) {
-		ArrayResize(_Array);
-	}
-	_Array->Table[_Array->Size++] = _Data;
-}
-
-void ArrayRemove(struct Array* _Array, int _Index) {
-	if(_Index < 0 || _Index >= _Array->TblSize)
+void DestroyArray(struct Array* Array) {
+	if(Array == NULL)
 		return;
-	if(_Array->Size > 1)
-		_Array->Table[_Index] = _Array->Table[_Array->Size - 1];
-	else
-		_Array->Table[_Index] = NULL;
-	_Array->Table[_Array->Size - 1] = NULL;
-	--_Array->Size;
+	DtorArray(Array);
+	free(Array);
 }
 
-void ArrayResize(struct Array* _Array) {
-	int _Size = 0;
-	void* _Temp = NULL;
-	
-	if(_Array->Table == NULL) {
-		_Size = 4;	
-		_Temp = calloc(_Size, sizeof(void*));
+void ArrayInsert_S(struct Array* Array, void* Data) {
+	if(Array->Size >= Array->TblSize) {
+		ArrayResize(Array);
+	}
+	Array->Table[Array->Size++] = Data;
+}
+
+void ArraySet_S(struct Array* Array, void* Data, uint32_t Idx) {
+	while(Array->Size >= Idx) {
+		ArrayResize(Array);	
+	}
+	if(Array->Table[Idx] != NULL) ++Array->Size;
+	Array->Table[Idx] = Data;
+}
+
+void ArrayRemove(struct Array* Array, int Index) {
+	if(Index < 0 || Index >= Array->Size) return;
+	if(Array->Size > 1) {
+		Array->Table[Index] = Array->Table[Array->Size - 1];
+		Array->Table[Array->Size - 1] = NULL;
 	} else {
-		_Size = _Array->TblSize * 2;
-		_Temp = realloc(_Array->Table, _Size * sizeof(void*));
+		Array->Table[Index] = NULL;
 	}
-
-	if(_Temp == NULL)
-		return;
-	//free(_Array->Table);
-	_Array->Table = _Temp;
-	_Array->TblSize = _Size;
+	--Array->Size;
 }
 
-void InsertionSort(void* _Table, int _Count, CompCallback _Callback, int _SizeOf) {
+void ArrayRemoveC(struct Array* Array, void* Elem, CompCallback Callback) {
+	int Min = 0;
+	int Max = Array->Size - 1;
+	int Mid = 0;
+	int Result = 0;
+	void* Table = Array->Table;
+
+	if(Elem == NULL) return;
+	while(Max >= Min) {
+		Mid = Min + ((Max - Min) / 2);
+		Result = Callback(Elem, *(void**)(Table + sizeof(void*) * Mid));
+		if(Result < 0)
+			Max = Mid - 1;
+		else if(Result > 0)
+			Min = Mid + 1;
+		else 
+			return ArrayRemove(Array, Mid);
+	}
+}
+
+void ArrayGrow(struct Array* Array, uint32_t Size) {
+	void* Temp = NULL;
+	
+	Size = Array->TblSize + Size;
+	if(Array->Table == NULL) {
+		Temp = calloc(Size, sizeof(void*));
+	} else {
+		Temp = realloc(Array->Table, Size * sizeof(void*));
+	}
+
+	if(Temp == NULL)
+		return;
+	//free(Array->Table);
+	Array->Table = Temp;
+	Array->TblSize = Size;
+}
+
+void CArrayRandom(void* Table, uint32_t Size) {
+	void* Temp = NULL;
+	uint32_t Rand = 0;
+	void** VTable = (void**)Table;
+
+	for(int i = Size; i > 1; --i) {
+		Rand = Random(0, i - 1);
+		Temp = VTable[Rand];
+		VTable[Rand] = VTable[i - 1];
+		VTable[i - 1] = Temp;
+	}
+}
+
+/*void InsertionSort(void* Table, int Count, CompCallback Callback, int SizeOf) {
 	int j;
-	int* _Node[_SizeOf];
-	int** _Off;
+	void* Node = alloca(SizeOf);
+	void* Off = alloca(SizeOf);
 
-	if(_Count <= 1)
+	if(Count <= 1)
 		return;
-	for(int _Base = 1; _Base < _Count; ++_Base) {
-		memcpy(_Node, (int**)(_Table + _SizeOf * _Base), _SizeOf);
-		j = _Base - 1;
-		while(j > 0 && _Callback(_Node, (void**)(_Table + _SizeOf * j)) < 0) {
-			_Off = _Table + _SizeOf * (j + 1);
-			memcpy(_Off,  (int**)(_Table + _SizeOf * j), _SizeOf);
+	for(int Base = 1; Base < Count; ++Base) {
+		memcpy(Node, (int**)(Table + SizeOf * Base), SizeOf);
+		j = Base - 1;
+		while(j >= 0 && Callback(Node, (void**)(Table + SizeOf * j)) < 0) {
+			Off = Table + SizeOf * (j + 1);
+			memcpy(Off,  (int**)(Table + SizeOf * j), SizeOf);
 			--j;
 		}
-		_Off = _Table + _SizeOf * (j + 1);
-		memcpy(_Off,  _Node, _SizeOf);
+		Off = Table + SizeOf * (j + 1);
+		memcpy(Off,  Node, SizeOf);
+	}
+}*/
+
+#define Offset(Base, Size, Idx) ((Base) + (Size) * (Idx))
+void InsertionSort(void* Table, int Count, CompCallback Callback, int SizeOf) {
+	int j;
+	void* Swap = alloca(SizeOf);
+
+	if(Count <= 1)
+		return;
+	for(int Base = 1; Base < Count; ++Base) {
+		memcpy(Swap, Offset(Table, SizeOf, Base), SizeOf);
+		j = Base;
+		while(j > 0 && Callback(Offset(Table, SizeOf, j - 1), Swap) > 0) {
+			memcpy(Offset(Table, SizeOf, j), Offset(Table, SizeOf, j - 1), SizeOf);
+			--j;
+		}
+		memcpy(Offset(Table, SizeOf, j), Swap, SizeOf);
 	}
 }
 
-void QuickSort_Aux(void* _Table, CompCallback _Callback, int _Size) {
-	/*
-	int i = _Left;
-	int j = _Right;
-	const void* _Node = NULL;
-	const void** _Swap = NULL;
+void InsertionSortPtr(void* Table[], size_t Count, CompCallback Callback) {
+	int j;
+	void* Swap = NULL;
 
-	if(_Left >= _Right)
+	if(Count <= 1)
 		return;
-	_Node = *(const void**)(_Table + sizeof(int*) * (_Left));
-	do {
-		while(_Callback(*((const void**)(_Table + sizeof(int*) * j)), _Node) >= 0 && i < j)
-			--j;
-		if(i != j) {
-			_Swap = (const void**)(_Table + sizeof(int*) * i);
-			*_Swap = *(const void**)(_Table + sizeof(int*) * j);
-			++i;
-		}
-		while(_Callback(*((const void**)(_Table + sizeof(int*) * i)), _Node) <= 0 && i < j)
-			++i;
-		if(i != j) {
-			_Swap = (const void**)(_Table + sizeof(int*) * j);
-			*_Swap = *(const void**)(_Table + sizeof(int*) * i);
+	for(int Base = 1; Base < Count; ++Base) {
+		Swap = Table[Base];
+		j = Base;
+		while(j > 0 && Callback(Table[j - 1], Swap) > 0) {
+			Table[j] =  Table[j - 1];
 			--j;
 		}
-	} while(i < j);
-	_Swap = (const void**)(_Table + sizeof(int*) * i);
-	*_Swap = _Node;
- 	QuickSort_Aux(_Table, _Callback, _Left, i - 1);
-	QuickSort_Aux(_Table, _Callback, i + 1, _Right);
-	*/
+		Table[j] = Swap;
+	}
+
 }
 
-int ArrayLen(const void* _Table) {
-	int _Size = 0;
+int QuickSortPartition(void** Table, int Size, void* Pivot, CompCallback Callback) {
+    int Left = 0;
+    int Right = Size - 1;
+    void* Temp = NULL;
 
-	if(_Table == NULL)
+    /**
+     * Find all elements that are greater than the pivot and
+     * put them on the right side of the pivot, and find all
+     * elements on the right side of the pivot index that are less than
+     * the pivot and put them on the left side of the pivot.
+     */
+    while(1) {
+        while(Callback(Table[Left], Pivot) < 0) {
+            ++Left;
+        }
+        while(Callback(Table[Right], Pivot) > 0) {
+            --Right;
+        }
+        if(Left >= Right)
+            return Left;
+        Temp = Table[Left];
+        Table[Left] = Table[Right];
+        Table[Right] = Temp;
+    }
+}
+
+void* MedianPivot(void** Table, int Size) {
+    int Mid = Size / 2;
+    void* Temp = NULL;
+
+    //Sort the three points.
+    if(Table[Size - 1] < Table[0]) {
+        Temp = Table[Size - 1];
+        Table[Size - 1] = Table[0];
+        Table[0] = Temp;
+    }
+    if(Table[Mid] < Table[0]) {
+        Temp = Table[Mid];
+        Table[Mid] = Table[0];
+        Table[0] = Temp;
+    }
+    if(Table[Size - 1] < Table[Mid]) {
+        Temp = Table[Size - 1];
+        Table[Size - 1] = Table[Mid];
+        Table[Mid] = Temp;
+    }
+    return Table[Mid];
+}
+
+
+void QuickSort(void** Table, int Size, CompCallback Callback) {
+	void* Pivot = NULL;
+	int PivotIdx = 0;
+
+    //A table consisting of one element is always sorted.
+    if(Size <= 1)
+        return;
+    /**
+     * Find the pivot, then put all elements that are less than the pivot on the left of its
+     * and all elements that are greater on the right of the pivot, then subdivde the table
+     * in to two and repeat.
+     */
+    Pivot = MedianPivot(Table, Size);
+    PivotIdx = QuickSortPartition(Table, Size, Pivot, Callback);
+    QuickSort(Table, Size - (Size - PivotIdx), Callback);
+    QuickSort(Table + PivotIdx, (Size - PivotIdx), Callback);
+}
+
+int ArrayLen(const void* Table) {
+	int Size = 0;
+
+	if(Table == NULL)
 		return 0;
 
-	while(*((void**)_Table) != NULL) {
-		_Table += sizeof(void*);
-		++_Size;
+	while(*((void**)Table) != NULL) {
+		Table += sizeof(void*);
+		++Size;
 	}
-	return _Size;
+	return Size;
 }
 
-int ArrayCount(const void** restrict _TblOne, const void** restrict _TblTwo) {
-	int _Count = 0;
+int ArrayCount(const void** restrict TblOne, const void** restrict TblTwo) {
+	int Count = 0;
 
-	for(int i = 0; _TblOne[i] != NULL; ++i) {
-		for(int j = 0; _TblTwo[j] != NULL; ++j) {
-			_Count += (_TblOne[i] == _TblTwo[j]);
+	for(int i = 0; TblOne[i] != NULL; ++i) {
+		for(int j = 0; TblTwo[j] != NULL; ++j) {
+			Count += (TblOne[i] == TblTwo[j]);
 		}
 	}
-	return _Count;
+	return Count;
 }
 
-int NArrayExists(const void** restrict _Tbl, const void* restrict _Ptr) {
-	for(int i = 0; _Tbl[i] != NULL; ++i) {
-		if(_Tbl[i] == _Ptr)
+int NArrayExists(const void** restrict Tbl, const void* restrict Ptr) {
+	for(int i = 0; Tbl[i] != NULL; ++i) {
+		if(Tbl[i] == Ptr)
 			return 1;
 	}
 	return 0;
 }
 
-void* BinarySearch(const void* _Data, void* _Table, int _Size, CompCallback _Callback) {
-	int _Min = 0;
-	int _Max = _Size - 1;
-	int _Mid = 0;
-	int _Result = 0;
+void* BinarySearch(const void* Data, void* Table, int Size, CompCallback Callback) {
+	int Min = 0;
+	int Max = Size - 1;
+	int Mid = 0;
+	int Result = 0;
 
-	while(_Max >= _Min) {
-		_Mid = _Min + ((_Max - _Min) / 2);
-		_Result = _Callback(_Data, *(void**)(_Table + sizeof(void*) * _Mid));
-		if(_Result < 0)
-			_Max = _Mid - 1;
-		else if(_Result > 0)
-			_Min = _Mid + 1;
+	while(Max >= Min) {
+		Mid = Min + ((Max - Min) / 2);
+		Result = Callback(Data, *(void**)(Table + sizeof(void*) * Mid));
+		if(Result < 0)
+			Max = Mid - 1;
+		else if(Result > 0)
+			Min = Mid + 1;
 		else
-			return *(void**)(_Table + sizeof(void*) * _Mid);
+			return *(void**)(Table + sizeof(void*) * Mid);
 	}
 	return NULL;
 }
 
-void* LinearSearch(const void* _Data, void* _Table, int _Size, CompCallback _Callback) {
-	for(int i = 0; i < _Size; ++i) {
-		if(_Callback(_Data, *(void**)_Table) == 0)
-			return *(void**)_Table;
-		_Table = (void**)(_Table + sizeof(void*));
+int BinarySearchIdx(const void* Data, void* Table, int Size, CompCallback Callback) {
+	int Min = 0;
+	int Max = Size - 1;
+	int Mid = 0;
+	int Result = 0;
+
+	while(Max >= Min) {
+		Mid = Min + ((Max - Min) / 2);
+		Result = Callback(Data, *(void**)(Table + sizeof(void*) * Mid));
+		if(Result < 0)
+			Max = Mid - 1;
+		else if(Result > 0)
+			Min = Mid + 1;
+		else
+			return Mid;
+	}
+	return -1;
+}
+
+void* LinearSearch(const void* Data, void* Table, int Size, CompCallback Callback) {
+	for(int i = 0; i < Size; ++i) {
+		if(Callback(Data, *(void**)Table) == 0)
+			return *(void**)Table;
+		Table = (void**)(Table + sizeof(void*));
 	}
 	return NULL;
 }
+void ArrRmDup(void* Arr, uint32_t* Size) {
+	void** Table = Arr;
+
+	if((*Size) == 0) return;
+	for(int i = 0; i < (*Size) - 1; ++i) {
+		for(int j = 1; j < (*Size);) {
+			if(Table[i] == Table[j]) {
+				Table[j] = Table[(*Size) - 1];
+				--(*Size);
+				continue;
+			}
+			++j;
+		}
+	}
+}
+
+void ArrayInsertAt(struct Array* Array, void* Data, uint32_t Idx) {
+	if(Idx >= Array->Size) return (void) ArrayInsert(Array, Data);	
+	++Array->Size;
+	if(Array->Size >= Array->TblSize) ArrayGrow(Array, Array->TblSize * 2);
+	for(int i = Array->Size - 1; i >= (int)Idx; --i) {
+		Array->Table[i + 1] = Array->Table[i];
+	}
+	Array->Table[Idx] = Data;
+}
+

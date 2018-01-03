@@ -24,7 +24,7 @@
 #define STATEOPCODE_BITS (8)
 #define STATEOPCODE_MAX (0xFF)
 
-typedef unsigned int /*int64_t*/ WorldState_t;
+typedef uint32_t /*int64_t*/ WorldState_t;
 typedef uint8_t WorldStateAtom_t;
 
 enum {
@@ -108,3 +108,4 @@ int WorldStateTruthAtom(const struct WorldState* _Input, const struct WorldState
 int WSDntCrCmp(const struct WorldState* _One, const struct WorldState* _Two);
 int WSDntCrComp(const struct WorldState* _State);
 #endif
+

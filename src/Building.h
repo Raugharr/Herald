@@ -6,6 +6,8 @@
 #ifndef __BUILDING_H
 #define __BUILDING_H
 
+#include "Herald.h"
+
 #include <inttypes.h>
 
 #include <SDL2/SDL.h>
@@ -35,11 +37,7 @@ enum {
 };
 
 struct Building {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	SDL_Point Pos;
 	const struct BuildMat* Walls;
 	const struct BuildMat* Floor;

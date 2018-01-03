@@ -19,7 +19,7 @@ struct FileTableEntry;
 struct Folder;
 struct Resource;
 
-#define FILETABLEHEADER_NAMESIZE (42)
+#define FILETABLEHEADER_NAMESIZE (60)
 #define FILETABLE_NAMESIZE (64)
 #define FILETABLE_SIGSZ (6)
 #if WINDOWS
@@ -108,6 +108,6 @@ struct FileTableEntry* NextFile(DIR* _Dir);*/
 void DestroyResource(struct Resource* _Resource);
 struct Resource* ResourceGet(const char* _FilePath);
 int ResourceExists(const char* _FilePath);
-void* ResourceGetData(struct Resource* _Res);
+void* ResourceGetData(const struct Resource* _Res);
 
 #endif

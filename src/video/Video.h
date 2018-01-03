@@ -11,8 +11,8 @@
 #include <SDL2/SDL.h>
 
 #define SDL_CAPTION "Herald"
-#define SDL_HEIGHT (768)
-#define SDL_WIDTH (1024)
+#define SDL_HEIGHT (1000)
+#define SDL_WIDTH (1400)
 #define ChangeFocus(_Focus, _Change) ((_Change < 0) ? (ChangeFocus_Aux(_Focus, -_Change, -1)) : (ChangeFocus_Aux(_Focus, _Change, 1)))
 
 typedef struct lua_State lua_State;
@@ -26,15 +26,6 @@ struct Widget;
 struct Container;
 struct KeyMouseState;
 
-struct Font {
-	TTF_Font* Font;
-	char* Name; //Replace with TTF_FontFaceStyleName.
-	int Size;
-	struct Font* Next;
-	struct Font* Prev;
-	int RefCt;
-};
-
 /*
  *
  * TODO: Remove g_Window, g_Renderer, g_VideoOk, and g_WindowTexture as globals and only allow them to be accessed by Video.c
@@ -43,10 +34,11 @@ extern SDL_Window* g_Window;
 extern SDL_Renderer* g_Renderer;
 extern int g_VideoOk;
 extern SDL_Texture* g_WindowTexture;
+extern SDL_Texture* g_VHex;
 
 int VideoInit(void);
 void VideoQuit(void);
-int NextGUIId(void);
+uint32_t NextGUIId(void);
 void Draw(void);
 int VideoEvents(const struct KeyMouseState* _State);
 int KeyEventCmp(const struct KeyMouseState* _One, const struct KeyMouseState* _Two);
@@ -58,5 +50,8 @@ void FocusableWidgetNull(void);
 const struct Widget* GetFocusableWidget(void);
 
 void* DownscaleImage(void* _Image, int _Width, int _Height, int _ScaleArea);
+void ZoneColorDefault(SDL_Color* Color);
 void NewZoneColor(SDL_Color* _Color);
+SDL_Surface* CreateRoundRect(SDL_Rect Rect, int r);
+SDL_Surface* CreateRoundRectOut(SDL_Rect Rect, int r);
 #endif

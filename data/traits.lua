@@ -3,66 +3,84 @@ Traits = {
 		Name = "Brave",
 		Likes = {"Loyal"},
 		Dislikes = {"Coward"},
-		Prevents = {"Coward"}
+		Prevents = {"Coward"},
+		Chance = 5
 	},
 	{
 		Name = "Coward",
-		Dislikes = {"Brave", "Loyal"},
 		Likes = {"Coward"},
-		Prevents = {"Brave"}
+		Dislikes = {"Brave", "Loyal"},
+		Prevents = {"Brave"},
+		Chance = 5
 	},
 	{
 		Name = "Greedy",
-		Dislikes = {"Greedy"},
 		Likes = {"Ambitious"},
-		Prevents = {}
+		Dislikes = {"Greedy"},
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Loyal",
 		Likes = {"Loyal", "Brave"},
 		Dislikes = {"Coward"},
-		Prevents = {}
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Ambitious",
-		Dislikes = {"Coward"},
 		Likes = {"Greedy"},
-		Prevents = {}
+		Dislikes = {"Coward"},
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Glutton",
 		Likes = {"Glutton"},
 		Dislikes = {},
-		Prevents = {}
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Honest",
-		Likes = {},
-		Dislikes = {},
-		Prevents = {}
+		Likes = {"Honest", "Kind"},
+		Dislikes = {"Greedy"},
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Lazy",
 		Likes = {},
-		Dislikes = {},
-		Prevents = {}
+		Dislikes = {"Ambitious"},
+		Prevents = {"Ambitious"},
+		Chance = 5
 	},
 	{
 		Name = "Kind",
-		Likes = {},
-		Dislikes = {},
-		Prevents = {}
+		Likes = {"Kind", "Honest"},
+		Dislikes = {"Cruel"},
+		Prevents = {"Cruel"},
+		Chance = 5
+	},
+	{
+		Name = "Cruel",
+		Likes = {"Cruel", "Greedy"},
+		Dislikes = {"Kind"},
+		Prevents = {},
+		Chance = 5
 	},
 	{
 		Name = "Narcissist",
 		Likes = {},
-		Dislikes = {},
-		Prevents = {}
+		Dislikes = {"Honest", "Narcissist"},
+		Prevents = {},
+		Chance = 2
 	},
 	{
 		Name = "Alcholic",
 		Likes = {"Alcholic"},
 		Dislikes = {},
-		Prevents = {}
+		Prevents = {},
+		Chance = 2
 	}
 }

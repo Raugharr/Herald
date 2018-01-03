@@ -9,69 +9,78 @@
 
 #include "sys/LinkedList.h"
 
+#include <stdint.h>
+
 #define BATTLE_MAXFRONTS (3)
+#define BattleFrontStats(Stat, Front) ((Stat) + WARSTAT_SIZE * (Front))
+
+struct Settlement;
 
 enum {
-	BATTLE_RETREAT,
-	BATTLE_ADVANCE,
-	BATTLE_SKIRMISH,
-	BATTLE_ORGANIZE,
-	BATTLE_CHARGE,
-	BATTLE_ROUT
+	PHASE_SKIRMISH,
+	PHASE_MELEE,
+	PHASE_ROUT
 };
 
 enum {
-	BATTLE_MEETING,
-	BATTLE_RAID
+	BATTLE_ATTACKER,
+	BATTLE_DEFENDER,
+	BATTLE_SIDES
 };
 
-struct FrontSide {
-	struct LinkedList WarbandList;
-	struct UnitStats Stats;
-	int UnitCt;
+enum {
+	BATFLANK_LEFT,
+	BATFLANK_MID,
+	BATFLANK_RIGHT,
+	BATFLANK_SIZE
 };
 
-struct Front {
-	struct FrontSide Attacker;
-	struct FrontSide Defender;
-	int IsAlive;
+enum {
+	COH_ROUT,
+	COH_FRAGMENTED,
+	COH_DISRUPTED,
+	COH_NORMAL
 };
 
 struct BattleSide {
 	struct Army* Army;
-	int StartingSize; //How many soldiers are in the army before the battle starts.
-	int Action;
-	int Pos;
+	struct Array FrontWarbands[BATTLE_MAXFRONTS];
+	int32_t FrontSize[BATTLE_MAXFRONTS];
+	int32_t FrontStartSize[BATTLE_MAXFRONTS];
+	bool FrontRout[BATTLE_MAXFRONTS];
+	//int8_t FrontRange[BATTLE_MAXFRONTS];
+	uint8_t Stats[WARSTAT_SIZE * BATTLE_MAXFRONTS];
+	uint16_t StartingSize; //How many soldiers are in the army before the battle starts.
+	uint8_t Cohesion[BATTLE_MAXFRONTS];
 };
 
 struct Battle {
+//	struct BattleSide Side[BATTLE_SIDES];
 	struct BattleSide Attacker;
 	struct BattleSide Defender;
-	int Range; //How far the armies are away from each other.
-	struct Front Fronts[BATTLE_MAXFRONTS];
 	struct {
-		int AttkBegin; //Beginning attackers man count
-		int AttkCas;
-		int DefBegin;
-		int DefCas;
+		uint32_t AttkCas;
+		uint32_t DefCas;
 	} Stats;
 	struct Battle* Next;
 	struct Battle* Prev;
+	struct Settlement* BattleSite;
+	int8_t Range;
 };
 
-int ArmyBattleDecision(const struct Army* _Army,  struct BattleSide* _Side, int _Range);
-struct Battle* CreateBattle(struct Army* _Attacker, struct Army* _Defender);
-void DestroyBattle(struct Battle* _Battle);
+int ArmyBattleDecision(const struct Army* Army,  struct BattleSide* Side, int Range);
+struct Battle* CreateBattle(struct Army* Attacker, struct Army* Defender);
+void DestroyBattle(struct Battle* Battle);
 
-void BattleEnd(int _Victor, struct Battle* _Battle);
-void BattleSetupSide(struct Army* _Army, struct FrontSide* _Side);
-void BattleGetAction(struct Battle* _Battle, struct BattleSide* _Side);
-void BattleThink(struct Battle* _Battle);
-void BattleMelee(struct Battle* _Battle);
-void BattleIncrRange(struct Battle* _Battle, int _Range);
+void BattleEnd(int Victor, struct Battle* Battle);
+void BattleSetupSide(struct Army* Army, struct BattleSide* Side);
+void BattleGetAction(struct Battle* Battle, struct BattleSide* Side);
+void BattleThink(struct Battle* Battle);
+void BattleMelee(struct Battle* Battle);
+void BattleIncrRange(struct Battle* Battle, int Range);
 
-void BattleSideIncrPos(struct Battle* _Battle, struct BattleSide* _Side, int _Pos);
+void BattleSideIncrPos(struct Battle* Battle, struct BattleSide* Side, int Pos);
 
-void* BattleNext(void* _Battle);
-void* BattlePrev(void* _Battle);
+void* BattleNext(void* Battle);
+void* BattlePrev(void* Battle);
 #endif

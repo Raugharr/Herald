@@ -12,6 +12,9 @@
 #include "sys/Constraint.h"
 #include "sys/LinkedList.h"
 
+#include <stdbool.h>
+#include <inttypes.h>
+
 #define AGE_MATURE (0)
 #define AGE_DEATH (1)
 #define MILK_NUT (3)
@@ -20,19 +23,18 @@ typedef struct lua_State lua_State;
 struct HashTable;
 
 struct Population {
-	int Id;
+	uint32_t Id;
 	char* Name;
-	uint8_t Nutrition; //How much is eaten per day.
-	uint32_t Meat; //How much meat  is generated in pounds when the animal is slaughtered.
-	uint32_t Milk; //Fluid ounces per day.
-	uint32_t FMRatio; //How many females a male can reproduce with per season.
 	double MaleRatio; //Precentage of children that will be male.
+	uint16_t Meat; //How much meat  is generated in pounds when the animal is slaughtered.
+	uint16_t Milk; //Fluid ounces per day.
+	uint32_t FMRatio; //How many females a male can reproduce with per season.
 	uint16_t GestationTime; //How many days it takes to birth a child.
-	uint16_t MaxNutrition;
+	//FIXME: Should be a Constraint* as the amount of contraints is static (young, mature, old).
 	struct Constraint** Ages;
 	struct {
 		uint16_t Min;
-		uint16_t  Max;	
+		uint16_t Max;	
 	} ReproduceRate; 
 	struct Good** Outputs; //Contains struct Good*.
 	struct FoodBase** Eats;
@@ -48,50 +50,59 @@ struct Population {
 	} Hair;
 	uint8_t EatsSize;
 	uint8_t SpaceReq;
+	uint8_t Wealth; //How much wealth an animal is worth 100 is equal to 1 wealth.
+	uint8_t Nutrition; //How much is eaten per day.
+	uint8_t ChildNut; //How much a child eats per day.
 };
 
 struct Animal {
-	int Id;
-	int Type;
-	void (*Think)(struct Object*);
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
-	SDL_Point Pos;
-	int Gender;
-	int Nutrition;
-	DATE Age;
-	struct ActorJob* Action;
 	const struct Population* const PopType;
+	struct {
+		uint8_t Years;
+		uint8_t Months;
+	} Age;
+	uint8_t Gender;
 };
 
 struct AnimalDep {
 	struct FoodBase** Tbl;
-	struct Array* Animals;
-	int Nutrition;
+	struct Array Animals;
+	uint16_t Nutrition;
+	uint8_t TblSz;
 };
 
-struct Population* CreatePopulation(const char* _Name, int _Nutrition, int _Meat, int _Milk, struct Constraint** _Ages,
-	 double _MaleRatio, int _FMRatio, double _ReproduceMin, double _ReproduceMax, int _SpaceReq);
-struct Population* CopyPopulation(const struct Population* _Population);
-int PopulationCmp(const void* _One, const void* _Two);
-int PopulationFoodCmp(const void* _One, const void* _Two);
-void DestroyPopulation(struct Population* _Population);
+struct Population* CreatePopulation(const char* Name, int Nutrition, int Meat, int Milk, struct Constraint** Ages,
+	 double MaleRatio, int FMRatio, double ReproduceMin, double ReproduceMax, int SpaceReq, uint8_t Wealth);
+struct Population* CopyPopulation(const struct Population* Population);
+int PopulationCmp(const void* One, const void* Two);
+int AnimalGenderCmp(const void* One, const void* Two);
+int PopulationFoodCmp(const void* One, const void* Two);
+void DestroyPopulation(struct Population* Population);
 
-struct Population* PopulationLoad(lua_State* _State, int _Index);
+struct Population* PopulationLoad(lua_State* State, int Index);
 
-struct Animal* CreateAnimal(const struct Population* _Pop, int _Age,  int _Nutrition, int _X, int _Y);
-int AnimalCmp(const void* _One, const void* _Two);
-void DestroyAnimal(struct Animal* _Animal);
-void AnimalThink(struct Animal* _Animal);
+struct Animal* CreateAnimal(const struct Population* Pop, uint8_t Years, uint8_t Months);
+void DestroyAnimal(struct Animal* Animal);
+void AnimalObjThink(struct Object* Obj);
+void AnimalThink(struct Object* Object);
 /*!
- * Returns a power set that contains all FoodBase*'s that are eaten by Population*'s in _Table.
+ * Returns a power set that contains all FoodBase*'s that are eaten by Population*'s in Table.
  */
-struct Array* AnimalFoodDep(const struct HashTable* _Table);
-struct InputReq** AnimalTypeCount(const struct Array* _Animals, int* _Size);
-void AnimalArrayInsert(struct Array* _Array, struct Animal* _Animal);
-struct Animal* AnimalArrayRemove(struct Array* _Array, int _Index);
+struct Array* AnimalFoodDep(const struct HashTable* Table);
+struct InputReq** AnimalTypeCount(const struct Array* Animals, int* Size);
+//void AnimalArrayInsert(struct Array* Array, struct Animal* Animal);
+//struct Animal* AnimalArrayRemove(struct Array* Array, int Index);
 
-int CountAnimal(const struct Population* _PopType, const struct Animal** _List, size_t _ListSz);
-int AnimalsReproduce(const struct Population* _Population, int _MaleCt, int _FemaleCt);
+int CountAnimal(const struct Population* PopType, const struct Animal** List, size_t ListSz);
+int AnimalsReproduce(const struct Population* Population, int MaleCt, int FemaleCt);
+static inline bool AnimalMature(const struct Animal* Animal) {
+	return Animal->Age.Years >= Animal->PopType->Ages[AGE_MATURE]->Min;	
+}
+static inline int AnimalNutReq(const struct Animal* Animal) {
+	return (AnimalMature(Animal) == true) ? (Animal->PopType->Nutrition) : (Animal->PopType->ChildNut);
+}
+static inline uint16_t AnMeat(const struct Population* const PopType, const struct Animal* const Animal) {
+	return (AnimalMature(Animal) == true) ? (PopType->Meat) : (PopType->Meat / 2);
+}
 
 #endif

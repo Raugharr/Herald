@@ -1,16 +1,80 @@
-function GUI.Init()
-	GUI.SetFont(GUI.GetFont("Timeless.ttf", 18))
-	--GUI.SetFocusColor(101, 101, 101)
-	--GUI.SetFocusColor(0, 255, 0);
-	GUI.SetFocusColor(50, 50, 50)
-	GUI.SetUnfocusColor(169, 169, 169)
-	--GUI.BackgroundColor(245, 62, 5)
-	GUI.SetMenu("MainMenu")
+function Gui.Init()
+	Gui.SetMenu("MainMenu")
 end
 
---[[GUI.Theme {
+Gui.LoadSkin {
 	Name = "Default",
-	Font = Font("Timeless.ttf", 18),
-	FocusColor = Color(0, 163, 118),
-	UnfocusColor = Color(169, 169, 169)
-}--]]
+	Default = {
+		Font = Gui.Font("Timeless.ttf", 14),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		--Background = Gui.Color(36, 24, 14),
+		Background = Gui.Color(102, 89, 79),
+	},
+	Button = {
+		Font = Gui.Font("Timeless.ttf", 16),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(102, 89, 79),
+		Margins = {8, 8, 8, 8},
+		Padding = {16, 0, 8, 0}
+	},
+	Label = {
+		Font = Gui.Font("Timeless.ttf", 16),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(36, 24, 14),
+		Margins = {4, 4, 4, 4}
+	},
+	Container = {
+		Font = Gui.Font("Timeless.ttf", 15),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(36, 24, 14),
+		Margins = {4, 4, 4, 4},
+		BorderColor = Gui.Color(179, 151, 0),
+		BorderWidth = 3
+	},
+	DefaultSkin = true
+}
+
+Gui.LoadSkin {
+	Name = "Big",
+	Default = {
+		Font = Gui.Font("Timeless.ttf", 20),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(36, 24, 14),
+		Margins = {4, 4, 4, 4}
+	},
+	Button = {
+		Font = Gui.Font("Timeless.ttf", 18),
+		FocusColor = Gui.Color(255, 215, 0),
+		UnfocusColor = Gui.Color(230, 194, 0),
+		Background = Gui.Color(102, 89, 79),
+		--Background = Gui.Color(170, 149, 133),
+		Padding = {8, 0, 16, 0},
+		Margins = {6, 10, 12, 6}
+	}
+}
+
+Gui.LoadSkin { 
+	Name = "Header",
+	Default = {
+		Font = Gui.Font("Plain Germanica.ttf", 17),
+		FocusColor = Gui.Color(31, 31, 107),
+		UnfocusColor = Gui.Color(255, 255, 255),
+		Background = Gui.Color(36, 24, 14)
+	}
+}
+
+Gui.LoadSkin { 
+	Name = "Title",
+	Default = {
+		Font = Gui.Font("Plain Germanica.ttf", 38),
+		FocusColor = Gui.Color(31, 31, 107),
+		UnfocusColor = Gui.Color(255, 255, 255),
+		Margins = {8, 8, 8, 8},
+		Background = Gui.Color(36, 24, 14)
+	}
+}

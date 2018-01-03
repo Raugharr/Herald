@@ -57,20 +57,38 @@ int PrimitiveToBoolean(struct Primitive* _Primitive) {
 	return 0;
 }
 
-void PrimitivePrint(const struct Primitive* _Primitive) {
-	switch(_Primitive->Type) {
+void PrimitiveToStr(const struct Primitive* Prim, char* restrict  Buffer, uint32_t BufSz) {
+	switch(Prim->Type) {
 		case PRIM_FLOAT:
-			Log(ELOG_INFO, "%f", _Primitive->Value.Float);
+			snprintf(Buffer, BufSz, "%f", Prim->Value.Float);
 			break;
 		case PRIM_INTEGER:
 		case PRIM_BOOLEAN:
-			Log(ELOG_INFO, "%i", _Primitive->Value.Int);
+			snprintf(Buffer, BufSz, "%i", Prim->Value.Int);
 			break;
 		case PRIM_PTR:
-			Log(ELOG_INFO, "%X", _Primitive->Value.Ptr);
+			snprintf(Buffer, BufSz, "%p", Prim->Value.Ptr);
 			break;
 		case PRIM_STRING:
-			Log(ELOG_INFO, "%s", _Primitive->Value.String);
+			snprintf(Buffer, BufSz, "%s", Prim->Value.String);
+			break;
+	}
+}
+
+void PrimitivePrint(const struct Primitive* _Primitive) {
+	switch(_Primitive->Type) {
+		case PRIM_FLOAT:
+			printf("%f", _Primitive->Value.Float);
+			break;
+		case PRIM_INTEGER:
+		case PRIM_BOOLEAN:
+			printf("%i", _Primitive->Value.Int);
+			break;
+		case PRIM_PTR:
+			printf("%p", _Primitive->Value.Ptr);
+			break;
+		case PRIM_STRING:
+			printf("%s", _Primitive->Value.String);
 			break;
 	}
 }
@@ -97,9 +115,10 @@ void PrimitiveSetFloat(struct Primitive* _Primitive, float _Float) {
 	_Primitive->Type = PRIM_FLOAT;
 }
 
-void PrimitiveSetPtr(struct Primitive* _Primitive, void* _Ptr) {
+void PrimitiveSetPtr(struct Primitive* _Primitive, void* _Ptr, uint16_t Class) {
 	_Primitive->Value.Ptr = _Ptr;
 	_Primitive->Type = PRIM_PTR;
+	_Primitive->Class = Class;
 }
 
 void PrimitiveSetStr(struct Primitive* _Primitive, const char* _Str) {

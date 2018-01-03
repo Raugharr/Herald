@@ -9,13 +9,12 @@
 #include "Family.h"
 #include "World.h"
 #include "Location.h"
-#include "Feud.h"
 #include "Good.h"
 #include "Government.h"
 #include "Trait.h"
 #include "Mission.h"
 #include "Plot.h"
-#include "BigGuyRelation.h"
+#include "Relation.h"
 #include "Retinue.h"
 
 #include "AI/Agent.h"
@@ -26,16 +25,13 @@
 #include "sys/RBTree.h"
 #include "sys/Event.h"
 #include "sys/LinkedList.h"
+#include "video/GuiLua.h"
 
 #include <stdlib.h>
 #include <assert.h>
 
 const char* g_BGMission[BGACT_SIZE] = {
-		"Improve Relations"
-};
-
-const char* g_CrisisStateStr[CRISIS_SIZE] = {
-	"WarDeath"
+	"Improve Relations"
 };
 
 int g_BGActCooldown[BGACT_SIZE] = {
@@ -47,504 +43,409 @@ int g_BGActCooldown[BGACT_SIZE] = {
 	180
 };
 
-int BigGuyIdInsert(const struct BigGuy* _One, const struct BigGuy* _Two) {
-	return _One->Person->Id - _Two->Person->Id;
+int BigGuyIdInsert(const struct BigGuy* One, const struct BigGuy* Two) {
+	return One->Person->Object.Id - Two->Person->Object.Id;
 }
 
-int BigGuyIdCmp(const int* _Two, const struct BigGuy* _BigGuy) {
-	return (*_Two) - _BigGuy->Person->Id;
+int BigGuyIdCmp(const int* Two, const struct BigGuy* BigGuy) {
+	return (*Two) - BigGuy->Person->Object.Id;
 }
 
-int BigGuyMissionCmp(const struct BigGuy* _BigGuy, const struct Mission* _Mission) {
+int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission) {
 	return 0;
 }
 
-void BigGuyActionImproveRel(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
-	struct BigGuyRelation* _Relation = NULL;
-	int _Mod = _Action->Modifier;
+void BigGuyDeath(struct BigGuy* Guy) {
+	struct LinkedList* List = &FamilyGetSettlement(Guy->Person->Family)->BigGuys;
+	struct LnkLst_Node* Itr = List->Front;
 
-	if(_Mod > 0 && Random(BIGGUYSTAT_MIN, BIGGUYSTAT_MAX) > _Guy->Stats[BGSKILL_CHARISMA])
-		--_Mod;
-	if((_Relation = BigGuyGetRelation(_Action->Target, _Guy)) == NULL) {
-		//_Relation = CreateBigGuyRelation(_Action->Target, _Guy);
-		//CreateBigGuyOpinion(_Relation, OPINION_SMALL, _Mod);
-		//BigGuyRelationUpdate(_Relation);
-	} else if(_Relation->Relation < BGREL_LIKE) {
-		//BigGuyAddRelation(_Relation, OPINION_SMALL, _Mod, );
-	}
-}
-
-void BigGuyActionGift(struct BigGuy* _Guy, const struct BigGuyAction* _Action) {
-	struct Family* _Family = _Action->Target->Person->Family;
-	struct GoodBase* _Base = (struct GoodBase*) _Action->Data;
-
-	for(int i = 0; i < _Family->Goods.Size; ++i)
-		if(_Base == ((struct Good*)_Family->Goods.Table[i])->Base) {
-			struct Good* _Taken = FamilyTakeGood(_Family, i, _Action->Modifier);
-
-			FamilyGetGood(_Guy->Person->Family, _Taken, _Taken->Quantity);
+	while(Itr != NULL) {
+		if(Itr->Data == Guy) {
+			LnkLstRemove(List, Itr);
+			break;
 		}
+		Itr = Itr->Next;
+	}
+	if(g_GameWorld.Player == Guy) {
+		char* Str = NULL;
+		if((Str = SAlloc(1024)) == NULL) {
+			LogNoMem();
+			return;
+		}
+		struct BigGuy* NewLeader = MonarchyNewLeader(g_GameWorld.Player, g_GameWorld.Player->Person->Family->HomeLoc->Government);
+
+		//strcpy(Str, g_GameWorld.Player->Person->Name);
+		//strcat(Str, " has been killed.");
+		if(NewLeader != NULL) {
+		//	strcat(Str, " You will now play as ");
+		//	strcat(Str, NewLeader->Person->Name);
+		//	strcat(Str, " ");
+		//	strcat(Str, NewLeader->Person->Family->Name);
+		//	strcat(Str, ".");
+			if(RBSearch(&g_GameWorld.Agents, NewLeader) != NULL)
+				RBDelete(&g_GameWorld.Agents, NewLeader);
+			g_GameWorld.Player = NewLeader;
+		} else {
+			//strcat(Str, " There is no one left to inherit your lands.");
+			g_GameWorld.Player = NULL;
+		}
+		//MessageBox(Str);
+	} else 
+		RBDelete(&g_GameWorld.Agents, Guy);
+	RBDelete(&g_GameWorld.BigGuys, Guy->Person);
+	if(Guy->Agent != NULL)
+		DestroyAgent(Guy->Agent);
+	ObjectDie(&Guy->Object);
+	//DestroyBigGuy(Guy);
 }
 
-struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action) {
-	struct BigGuyActionHist* _Hist = (struct BigGuyActionHist*) malloc(sizeof(struct BigGuyActionHist));
+void BGOnTargetDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct BigGuy* Guy = Data->One;
 
-	_Hist->Owner = _Owner;
-	_Hist->ActionType = _Action;
-	_Hist->DayDone = g_GameWorld.Date;
-	return _Hist;
-}
-
-int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two) {
-	int _Diff = _One->Owner - _Two->Owner;
-	
-	if(_Diff != 0)
-		return _Diff;
-	return _One->ActionType - _Two->ActionType;
-}
-
-void DestroyBGActionHist(struct BigGuyActionHist* _Hist) {
-	free(_Hist);
-}
-
-struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy) {
-	struct Crisis* _Crisis = NULL;
-	struct BigGuy* _Ruler = _Guy->Person->Family->HomeLoc->Government->Leader;
-
-	if(_Guy == _Ruler)
-		return NULL;
-	_Crisis = (struct Crisis*) malloc(sizeof(struct Crisis));
-	WorldStateClear(&_Crisis->State);
-	WorldStateSetAtom(&_Crisis->State, _Type, 1);
-	_Crisis->Guy = _Guy;
-	_Crisis->TriggerMask = 0;
-	PushEvent(EVENT_CRISIS, _Guy, _Ruler);
-	//FIXME: If a crisis already exists then this current crisis will not be recorded.
-	if(RBSearch(&g_GameWorld.Crisis, &_Guy->Id) == NULL)
-		RBInsert(&g_GameWorld.Crisis, _Crisis);
-	return _Crisis;
-}
-
-void DestroyCrisis(struct Crisis* _Crisis) {
-	free(_Crisis);
-}
-
-int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two) {
-	//if(_One->BigGuyId - _Two->BigGuyId == 0)
-	//	return _One->Type - _Two->Type;
-	return _One->Guy->Id - _Two->Guy->Id;
-}
-
-int CrisisInsert(const int* _One, const struct Crisis* _Two) {
-	return ((*_One) - _Two->Guy->Id);
-}
-
-void BGOnDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct BigGuy* _Guy = _Data->One;
-	struct Person* _Person = _Data->OwnerObj;
-
-	EventHookRemove(_Data->EventType, _Guy, _Person, NULL);
-	RBDelete(&g_GameWorld.Agents, _Guy);
-	DestroyBigGuy(_Guy);
-	DestroyPerson(_Person);
-	DestroyAgent(_Guy->Agent);
-}
-
-void BGOnTargetDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct BigGuy* _Guy = _Data->One;
-
-	EventHookRemove(_Data->EventType, _Guy, _Data->OwnerObj, NULL);
-	_Guy->Action.Type = BGACT_NONE;
-	_Guy->ActionFunc = NULL;
-	_Guy->Action.Target = NULL;
+	EventHookRemove(Data->EventType, Guy, Data->OwnerObj, NULL);
 }
 
 /*
-void BGOnNewPlot(const struct EventData* _Data, void* _Extra1) {
-	struct BigGuy* _Guy = _Data->One;
-	struct Plot* _Plot = _Extra1;
-	int _LeaderRel = 0; 
-	int _TargetRel = 0;
+void BGOnNewPlot(const struct EventData* Data, void* Extra1) {
+	struct BigGuy* Guy = Data->One;
+	struct Plot* Plot = Extra1;
+	int LeaderRel = 0; 
+	int TargetRel = 0;
 
-	if(_Guy == PlotLeader(_Plot) || _Guy == PlotTarget(_Plot))
+	if(Guy == PlotLeader(Plot) || Guy == PlotTarget(Plot))
 		return;
-	_LeaderRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotLeader(_Plot))); 
-	if(PlotTarget(_Plot) != NULL) {
-		_TargetRel = BigGuyRelation(BigGuyGetRelation(_Guy, PlotTarget(_Plot)));
+	LeaderRel = BigGuyRelation(BigGuyGetRelation(Guy, PlotLeader(Plot))); 
+	if(PlotTarget(Plot) != NULL) {
+		TargetRel = BigGuyRelation(BigGuyGetRelation(Guy, PlotTarget(Plot)));
 	}
-	if(_LeaderRel >= BGREL_LIKE && _TargetRel < BGREL_LIKE) {
-		PlotJoin(_Plot, PLOT_ATTACKERS, _Guy);	
-	} else if(_LeaderRel < BGREL_LIKE && _TargetRel >= BGREL_LIKE) {
-		PlotJoin(_Plot, PLOT_DEFENDERS, _Guy);
+	if(LeaderRel >= BGREL_LIKE && TargetRel < BGREL_LIKE) {
+		PlotJoin(Plot, PLOT_ATTACKERS, Guy);	
+	} else if(LeaderRel < BGREL_LIKE && TargetRel >= BGREL_LIKE) {
+		PlotJoin(Plot, PLOT_DEFENDERS, Guy);
 	}
 }*/
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation) {
-	struct BigGuy* _BigGuy = (struct BigGuy*) malloc(sizeof(struct BigGuy));
+struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE], int Motivation) {
+	struct BigGuy* BigGuy = CreateObject(OBJECT_BIGGUY); 
 
-	_BigGuy->Person = _Person;
-	_BigGuy->Authority = 0;
-	_BigGuy->Prestige = 0;
-	_BigGuy->IsDirty = 1;
-	_BigGuy->Relations = NULL;
-	memcpy(&_BigGuy->Stats, _Stats, sizeof(uint8_t) * BGSKILL_SIZE);
-	_BigGuy->ActionFunc = NULL;
-	_BigGuy->TriggerMask = 0;
-	_BigGuy->Motivation = _Motivation;
-	_BigGuy->Agent = CreateAgent(_BigGuy);
-	_BigGuy->Popularity = BGRandPopularity(_BigGuy);
-	_BigGuy->PopularityDelta = 0;
-	RBInsert(&g_GameWorld.BigGuys, _BigGuy);
-	RBInsert(&g_GameWorld.BigGuyStates, _BigGuy);
-	RBInsert(&g_GameWorld.Agents, _BigGuy->Agent);
-	LnkLstPushBack(&FamilyGetSettlement(_Person->Family)->BigGuys, _BigGuy);
-	EventHook(EVENT_DEATH, BGOnDeath, _Person, _BigGuy, NULL);
-	//EventHook(EVENT_NEWPLOT, BGOnNewPlot, BigGuyHome(_BigGuy), _BigGuy, NULL);
-	CreateObject((struct Object*)_BigGuy, OBJECT_BIGGUY, (ObjectThink) BigGuyThink);
+	Assert(IsBigGuy(Person) == false);
+	Person->Flags |= BIGGUY;
+	BigGuy->Person = Person;
+	BigGuy->IsDirty = 1;
+	BigGuy->Relations = NULL;
+	memcpy(&BigGuy->Stats, Stats, sizeof(uint8_t) * BGSKILL_SIZE);
+	BigGuy->Action = BGACT_NONE;
+	BigGuy->Agent = CreateAgent(BigGuy);
+	BigGuy->Popularity = BGRandRes(BigGuy, BGSKILL_CHARISMA);
+	BigGuy->Glory = BGRandRes(BigGuy, BGSKILL_COMBAT);
+	BigGuy->PopularityDelta = 0;
+	RBInsert(&g_GameWorld.BigGuys, BigGuy);
+	RBInsert(&g_GameWorld.Agents, BigGuy->Agent);
 
-	_BigGuy->Feuds.Size = 0;
-	_BigGuy->Feuds.Front = NULL;
-	_BigGuy->Feuds.Back = NULL;
-	ConstructLinkedList(&_BigGuy->PlotsAgainst);
-	_BigGuy->Personality = Random(0, BIGGUY_PERSONALITIES - 1);
-	_BigGuy->Traits = BGRandTraits(&_BigGuy->TraitCt);
-	return _BigGuy;
-}
+	ConstructLinkedList(&BigGuy->PlotsAgainst);
+	BigGuy->Traits = BGRandTraits(&BigGuy->TraitCt);
+	BigGuy->Action = BGACT_NONE;
+	for(struct LnkLst_Node* Itr = Person->Family->HomeLoc->BigGuys.Front; Itr != NULL; Itr = Itr->Next) {
+		struct BigGuy* Target = Itr->Data;
 
-void DestroyBigGuy(struct BigGuy* _BigGuy) {
-	struct LinkedList* _List = &FamilyGetSettlement(_BigGuy->Person->Family)->BigGuys;
-	struct LnkLst_Node* _Itr = _List->Front;
-
-	while(_Itr != NULL) {
-		if(_Itr->Data == _BigGuy) {
-			LnkLstRemove(_List, _Itr);
-			break;
-		}
-		_Itr = _Itr->Next;
+		CreateBigGuyRelation(BigGuy, Target);
+		CreateBigGuyRelation(Target, BigGuy);
 	}
-	LnkLstClear(&_BigGuy->Feuds);
-	RBDelete(&g_GameWorld.BigGuys, _BigGuy->Person);
-	RBDelete(&g_GameWorld.BigGuyStates, _BigGuy);
-	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(_BigGuy), _BigGuy, NULL);
-	DestroyObject((struct Object*)_BigGuy);
-	free(_BigGuy->Traits);
-	free(_BigGuy);
+	LnkLstPushBack(&FamilyGetSettlement(Person->Family)->BigGuys, BigGuy);
+	return BigGuy;
 }
 
-void BigGuyThink(struct BigGuy* _Guy) {
-	_Guy->Popularity -= g_GameWorld.DecayRate[(int)_Guy->Popularity] / YEAR_DAYS;
-	if(_Guy->ActionFunc != NULL)
-		_Guy->ActionFunc(_Guy, &_Guy->Action);
+void DestroyBigGuy(struct BigGuy* BigGuy) {
+	//EventHookRemove(EVENT_NEWPLOT, BigGuyHome(BigGuy), BigGuy, NULL);
+	free(BigGuy->Traits);
+	DestroyObject(&BigGuy->Object);
+}
 
-	for(struct BigGuyRelation* _Relation = _Guy->Relations; _Relation != NULL; _Relation = _Relation->Next) {
-		BigGuyRelationUpdate(_Relation);
+void BigGuyThink(struct BigGuy* Guy) {
+	Guy->Popularity -= g_GameWorld.DecayRate[(int)Guy->Popularity] / YEAR_DAYS;
+	//_Guy->Glory -= g_GameWorld.DecayRate[(int)Guy->Glory] / YEAR_DAYS;
+	for(struct Relation* Relation = Guy->Relations; Relation != NULL; Relation = Relation->Next) {
+		RelUpdate(Relation);
 	}
 }
 
-void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value) {
-	//WorldStateSetAtom(&_Guy->State, _State, _Value);
-	_Guy->IsDirty = 1;
+void BigGuySetState(struct BigGuy* Guy, int State, int Value) {
+	//WorldStateSetAtom(&Guy->State, State, Value);
+	Guy->IsDirty = 1;
 }
 
-struct BigGuy* BigGuyLeaderType(struct Person* _Person) {
-	while(_Person != NULL) {
-		if(_Person->Gender == EMALE && DateToDays(_Person->Age) > ADULT_AGE) {
-			uint8_t _Stats[BGSKILL_SIZE];
+/*struct BigGuy* BigGuyLeaderType(struct Person* Person) {
+	while(Person != NULL) {
+		if(Gender(Person) == MALE && Person->Age.Years > ADULT_AGE) {
+			uint8_t Stats[BGSKILL_SIZE];
 
-			BGStatsWarlord(&_Stats, 50);
-			return CreateBigGuy(_Person, &_Stats, BGMOT_RULE); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
+			BGStatsWarlord(&Stats, 50);
+			return CreateBigGuy(Person, &Stats, BGMOT_RULE); //NOTE: Make sure we aren't making a big guy when the person is already a big guy.
 		}
-		_Person = _Person->Next;
+		Person = Person->Next;
 	}
 	return NULL;
-}
+}*/
 
-void BGStatsRandom(int _Points, int _StatCt, ...) {
-	va_list _Valist;
-	uint8_t* _Stats[_StatCt];
-	uint8_t* _Temp = NULL;
-	int _Rand = 0;
-	int _Result = 0;
-	int _PointsLeft = _Points;
-	double _StatDist[_StatCt];
+void BGStatsRandom(int Points, int StatCt, ...) {
+	va_list Valist;
+	uint8_t* Stats[StatCt];
+	uint8_t* Temp = NULL;
+	int Rand = 0;
+	int Result = 0;
+	int PointsLeft = Points;
+	double StatDist[StatCt];
 
-	va_start(_Valist, _StatCt);
-	for(int i = 0; i < _StatCt; ++i)
-		_Stats[i] = va_arg(_Valist, uint8_t*);
-	for(int i = 0; i < _StatCt; ++i)
-		_StatDist[i] = va_arg(_Valist, double);
-	for(int i = 0; i < _StatCt; ++i) {
-		_Temp = _Stats[i];
-		_Rand = Random(0, _StatCt - 1);
-		_Stats[i] = _Stats[_Rand];
-		_Stats[_Rand] = _Temp;
+	va_start(Valist, StatCt);
+	for(int i = 0; i < StatCt; ++i)
+		Stats[i] = va_arg(Valist, uint8_t*);
+	for(int i = 0; i < StatCt; ++i)
+		StatDist[i] = va_arg(Valist, double);
+#ifdef DEBUG
+	double StatCheck = 0;
+
+	for(int i = 0; i < StatCt; ++i)
+		StatCheck += StatDist[i];
+	Assert(StatCheck == 1.0);
+#endif
+	for(int i = 0; i < StatCt; ++i) {
+		Temp = Stats[i];
+		Rand = Random(0, StatCt - 1);
+		Stats[i] = Stats[Rand];
+		Stats[Rand] = Temp;
 	}
-	for(int i = 0; i < _StatCt; ++i) {
-		_Result = ceil(_Points * _StatDist[i]);
-		if(_Result > BIGGUYSTAT_MAX)
-			_Result = BIGGUYSTAT_MAX;
-		if(_PointsLeft < _Result)
-			_Result = _PointsLeft;
-		*_Stats[i] = _Result;
-		_PointsLeft -= _Result;
+	for(int i = 0; i < StatCt; ++i) {
+		Result = ceil(Points * StatDist[i]);
+		if(Result > STAT_MAX)
+			Result = STAT_MAX;
+		if(PointsLeft < Result)
+			Result = PointsLeft;
+		*Stats[i] = Result;
+		PointsLeft -= Result;
 	}
-	va_end(_Valist);
+	va_end(Valist);
 }
 
-int BGRandPopularity(const struct BigGuy* _Guy) {
-	return (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
-/*	int _PopPer = (_Guy->Stats[BGSKILL_CHARISMA] + Random(1, 100)) / 2;
-	int _AdultPop = SettlementAdultPop(_Guy->Person->Family->HomeLoc) - SettlementBigGuyCt(_Guy->Person->Family->HomeLoc);
+int BGRandRes(const struct BigGuy* Guy, int Stat) {
+	int Val = 0;
 
-	return (_AdultPop * _PopPer) / 100; //Divide like this to prevent using floting point numbers.*/
+	if(Guy->Stats[Stat] < 30) {
+		return Guy->Stats[Stat] + Random(1, 10) - 5;	
+	} else if(Guy->Stats[Stat] < 40) {
+		return Guy->Stats[Stat] + Random(1, 20) - 5;
+	}
+	Val = Guy->Stats[Stat] + Random(1, 25);
+	return (Val >= 100) ? (99) : (Stat);
 }
 
-void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points) {
-	int _WarPoints = (_Points <= 400) ? (_Points / 2) : (240);
-	int _RemainPoints = _Points - _WarPoints;
+/*
+ * Generates a stat block based on a caste.
+ */
+void GenerateStats(uint8_t Caste, uint8_t (*Stats)[BGSKILL_SIZE]) {
+	int Points = Random(BG_MINGENSTATS, BG_MAXGENSTATS);
+	double SkillPer[CASTE_SIZE][BGSKILL_SIZE] = {
+		{0.05, 0.25, 0.25, 0.15, 0.10, 0.10, 0.10},
+		{0.05, 0.20, 0.25, 0.15, 0.10, 0.15, 0.10}, 
+		{0.20, 0.15, 0.15, 0.15, 0.10, 0.15, 0.10}, 
+		{0.05, 0.10, 0.10, 0.10, 0.20, 0.25, 0.20}, 
+		{0.25, 0.15, 0.15, 0.15, 0.10, 0.10, 0.10}, 
+	};
 
-	/*
-	 * TODO: The percentages given to each stat should be randomized slightly.
-	 */
-	BGStatsRandom(_WarPoints, 3, &(*_Stats)[BGSKILL_COMBAT], &(*_Stats)[BGSKILL_STRENGTH], &(*_Stats)[BGSKILL_TOUGHNESS], 0.36, 0.32, 0.32);
-	BGStatsRandom(_RemainPoints, 4, &(*_Stats)[BGSKILL_AGILITY], &(*_Stats)[BGSKILL_WIT],
-		&(*_Stats)[BGSKILL_CHARISMA], &(*_Stats)[BGSKILL_INTELLIGENCE], 0.25, 0.25, 0.25, 0.25);
+	switch(Caste) {
+		case CASTE_THEOW:
+			Points -= Points / 4;
+			break;
+		case CASTE_GEBUR:
+			break;
+		case CASTE_GENEAT:
+			break;
+		case CASTE_THEGN:
+			Points += Points / 10; 
+			break;
+		case CASTE_EALDORMAN:
+			Points += Points / 10; 
+			break;
+	}
+	BGStatsRandom(Points, BGSKILL_SIZE, &(*Stats)[BGSKILL_COMBAT], &(*Stats)[BGSKILL_STRENGTH], &(*Stats)[BGSKILL_TOUGHNESS],
+		&(*Stats)[BGSKILL_AGILITY], &(*Stats)[BGSKILL_WIT], &(*Stats)[BGSKILL_CHARISMA], &(*Stats)[BGSKILL_INTELLIGENCE],
+		SkillPer[Caste][0], SkillPer[Caste][1], SkillPer[Caste][2], SkillPer[Caste][3], SkillPer[Caste][4], SkillPer[Caste][5], SkillPer[Caste][6]); 
 }
 
-void BGSetAuthority(struct BigGuy* _Guy, float _Authority) {
-	_Guy->Authority = _Authority;
-	_Guy->IsDirty = 1;
-}
-
-void BGSetPrestige(struct BigGuy* _Guy, float _Prestige) {
-	_Guy->Prestige = _Prestige;
-	_Guy->IsDirty = 1;
-}
-
-struct Trait* RandomTrait(struct Trait** _Traits, uint8_t _TraitCt, struct HashItr* _Itr) {
-	int _Rand = Random(0, g_Traits.Size - 1);
-	int _Ct = 0;
-	int _FirstPick = _Rand;
+struct Trait* RandomTrait(struct Trait** Traits, uint8_t TraitCt, struct HashItr* Itr) {
+	int Rand = Random(0, g_Traits.Size - 1);
+	int Ct = 0;
+	int FirstPick = Rand;
 
 	loop_top:
 	//Pick a random trait.
-	while(_Itr != NULL && _Ct < _Rand) {
-		_Itr = HashNext(&g_Traits, _Itr);
-		++_Ct;
+	while(Itr != NULL && Ct < Rand) {
+		Itr = HashNext(&g_Traits, Itr);
+		++Ct;
 	}
 	//Determine if trait is a valid option.
-	for(int i = 0; i < _TraitCt; ++i) {
+	for(int i = 0; i < TraitCt; ++i) {
 		//Same trait is picked, pick another if there is another valid trait to be picked.
-		if(_Traits[i] == HashItrData(_Itr))
+		if(Traits[i] == HashItrData(Itr))
 			goto repick_trait;
-		for(int j = 0; _Traits[i]->Prevents[j] != NULL; ++j) {
+		for(int j = 0; Traits[i]->Prevents[j] != NULL; ++j) {
 			//One of the already picked traits prevents this trait from being chosen.
-			if(_Traits[i]->Prevents[j] == HashItrData(_Itr))
+			if(Traits[i]->Prevents[j] == HashItrData(Itr))
 				goto repick_trait;
 		}
 	}
-	return (struct Trait*) HashItrData(_Itr);
+	return (struct Trait*) HashItrData(Itr);
 	repick_trait:
-	++_Rand;
-	if(_Rand >= g_Traits.Size) {
-		_Rand = 0;	
-		HashItrRestart(&g_Traits, _Itr);
+	++Rand;
+	if(Rand >= g_Traits.Size) {
+		Rand = 0;	
+		HashItrRestart(&g_Traits, Itr);
 	}
 	//No more valid traits to be picked from
-	if(_Rand == _FirstPick)
+	if(Rand == FirstPick)
 		return NULL;
 	goto loop_top;
 }
 
-struct Trait** BGRandTraits(uint8_t* _TraitCt) {
-	struct HashItr* _Itr = HashCreateItr(&g_Traits);
-	struct Trait** _Traits = calloc(*_TraitCt, sizeof(struct Trait*));
-	struct Trait* _Trait = NULL;
+struct Trait** BGRandTraits(uint8_t* TraitCt) {
+	struct HashItr* Itr = HashCreateItr(&g_Traits);
+	struct Trait** Traits = NULL; 
+	struct Trait* Trait = NULL;
 
-	*_TraitCt = Random(1, 3);
-	for(uint8_t i = 0; i < *_TraitCt; ++i) {
-		if((_Trait = RandomTrait(_Traits, i, _Itr)) == NULL) {
-			_Traits[i] = NULL;
+	*TraitCt = Random(1, 3);
+	Traits = calloc(*TraitCt, sizeof(struct Trait*));
+	for(uint8_t i = 0; i < *TraitCt; ++i) {
+		if((Trait = RandomTrait(Traits, i, Itr)) == NULL) {
+			Traits[i] = NULL;
+			*TraitCt = i;
 			break;
 		}
-		_Traits[i] = _Trait;
-		HashItrRestart(&g_Traits, _Itr);	
+		Traits[i] = Trait;
+		HashItrRestart(&g_Traits, Itr);	
 	}
-	HashDeleteItr(_Itr);
-	return _Traits;
+	HashDeleteItr(Itr);
+	return Traits;
 }
 
-int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait) {
-	for(int i = 0; i < _BigGuy->TraitCt; ++i) {
-		if(_BigGuy->Traits[i] == _Trait)
+int HasTrait(const struct BigGuy* BigGuy, const struct Trait* Trait) {
+	for(int i = 0; i < BigGuy->TraitCt; ++i) {
+		if(BigGuy->Traits[i] == Trait)
 			return 1;
 	}
 	return 0;
 }
 
-void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data) {
-	struct RBNode* _Node = NULL;
-	struct BigGuyActionHist* _Hist = NULL;
-	struct BigGuyActionHist _Search = {_Guy, _Action, 0};
+void BigGuySetAction(struct BigGuy* Guy, int Action, struct BigGuy* Target, void* Data) {
+//	struct RBNode* Node = NULL;
+//	struct BigGuyActionHist* Hist = NULL;
+//	struct BigGuyActionHist Search = {_Guy, Action, 0};
 
-	_Guy->Action.Target = _Target;
-	_Guy->Action.Data = _Data;
-	_Guy->Action.Type = _Action;
-	if((_Node = RBSearchNode(&g_GameWorld.ActionHistory, &_Search)) != NULL) {
-		_Hist = (struct BigGuyActionHist*) _Node->Data;
-		if(DaysBetween(_Hist->DayDone, g_GameWorld.Date) >= g_BGActCooldown[_Hist->ActionType]) {
-			_Hist->DayDone = g_GameWorld.Date;
-			RBDeleteNode(&g_GameWorld.ActionHistory, _Node);	
-			RBInsert(&g_GameWorld.ActionHistory, _Hist);
-			//free(_Hist);
-			//EventHookRemove(EVENT_DEATH, _Target->Person, _Guy, NULL);
+	/*
+	Guy->Action.Target = Target;
+	Guy->Action.Data = Data;
+	Guy->Action.Type = Action;
+	if((Node = RBSearchNode(&g_GameWorld.ActionHistory, &Search)) != NULL) {
+		Hist = (struct BigGuyActionHist*) Node->Data;
+		if(DaysBetween(Hist->DayDone, g_GameWorld.Date) >= g_BGActCooldown[Hist->ActionType]) {
+			Hist->DayDone = g_GameWorld.Date;
+			RBDeleteNode(&g_GameWorld.ActionHistory, Node);	
+			RBInsert(&g_GameWorld.ActionHistory, Hist);
 		} else {
 			return;
 		}
 	} else {
-		_Hist = malloc(sizeof(struct BigGuyActionHist));
-		_Hist->Owner = _Guy;
-		_Hist->ActionType = _Action;
-		_Hist->DayDone = g_GameWorld.Date;
-		RBInsert(&g_GameWorld.ActionHistory, _Hist);
-		EventHook(EVENT_DEATH, BGOnTargetDeath, _Target->Person, _Guy, NULL);
+		Hist = malloc(sizeof(struct BigGuyActionHist));
+		Hist->Owner = Guy;
+		Hist->ActionType = Action;
+		Hist->DayDone = g_GameWorld.Date;
+		RBInsert(&g_GameWorld.ActionHistory, Hist);
+		EventHook(EVENT_DEATH, BGOnTargetDeath, Target->Person, Guy, NULL);
 	}
-	switch(_Action) {
-	case BGACT_IMRPOVEREL:
-		_Guy->ActionFunc = BigGuyActionImproveRel;
-		//_Guy->Action.Modifier = RELATIONS_PER_TICK;
-		break;
+	*/
+	//FIXME: Add a way to store the target.
+	/*switch(Action) {
 	case BGACT_SABREL:
-		MissionAction("RUMOR.1", _Guy, _Target);
+		MissionAction("RUMOR.1", Guy, Target);
 		break;
-	case BGACT_GIFT:
-		_Guy->ActionFunc = BigGuyActionGift;
-		_Guy->Action.Modifier = 1;
-		break;
-	case BGACT_STEALCATTLE:
-		MissionAction("STLCT.1", _Guy, _Target);
+	case BGACT_STEAL:
+		MissionAction("STLCT.1", Guy, Target);
 		break;
 	case BGACT_DUEL:
-		MissionAction("DUEL.2", _Target, _Guy);
+		MissionAction("DUEL.2", Target, Guy);
 		break;
 	case BGACT_MURDER:
-		MissionAction("MURDR.1", _Target, _Guy);
-		break;
-	case BGACT_DISSENT:
-		MissionAction("DISNT.1", _Target, _Guy);
-		break;
-	case BGACT_CONVINCE:
-		MissionAction("REL.2", _Guy, _Target);
+		MissionAction("MURDR.1", Target, Guy);
 		break;
 	case BGACT_PLOTOVERTHROW:
-		CreatePlot(PLOT_OVERTHROW, NULL, _Guy, _Target);
+		CreatePlot(PLOT_OVERTHROW, NULL, Guy, Target);
 		break;
 	default:
-		_Guy->ActionFunc = NULL;
+		//_Guy->ActionFunc = NULL;
 		return;
-	}
+	}*/
+	Guy->Action = Action;
+	Guy->ActionTarget = Target;
 }
 
-void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud) {
-	LnkLstPushBack(&_Guy->Feuds, _Feud);
+struct Settlement* BigGuyHome(struct BigGuy* Guy) {
+	return Guy->Person->Family->HomeLoc;
 }
 
-struct Settlement* BigGuyHome(struct BigGuy* _Guy) {
-	return _Guy->Person->Family->HomeLoc;
+int BigGuyOpposedCheck(const struct BigGuy* One, const struct BigGuy* Two, int Skill) {
+	assert(Skill >= 0 && Skill < BGSKILL_SIZE);
+	return ((Random(1, 100) + One->Stats[Skill]) - (Random(1, 100) + Two->Stats[Skill])) / 10;
 }
 
-int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
-	switch(_Guy->Personality) {
-	case 0:
-	case 1:
-		if(_Target->Personality > 1)
-			return 0;
-		return 1;
-	case 2:
-	case 3:
-		if(_Target->Personality < 2)
-			return 0;
-		return 1;
-	}
-	return 0;
+int BigGuySkillCheck(const struct BigGuy* Guy, int Skill, int PassReq) {
+	assert(Skill >= 0 && Skill < BGSKILL_SIZE);
+	return ((Random(1, 100) + Guy->Stats[Skill]) >= PassReq);
 }
 
-double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target) {
-	static double _TableMod[][4] = {{2, 1.5, 1, .5}, {1.5, 2, .5, 1}, {.5, 1, 2, 1.5}, {1, .5, 1.5, 2}};
+int BigGuySuccessMargin(const struct BigGuy* Guy, int Skill, int PassReq) {
+	int Margin = 0;
 
-	return _TableMod[_Guy->Personality][_Target->Personality];
-}
-
-int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill) {
-	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
-	return ((Random(1, 100) + _One->Stats[_Skill]) - (Random(1, 100) + _Two->Stats[_Skill])) / 10;
-}
-
-int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq) {
-	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
-	return ((Random(1, 100) + _Guy->Stats[_Skill]) >= _PassReq);
-}
-
-int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq) {
-	int _Margin = 0;
-
-	assert(_Skill >= 0 && _Skill < BGSKILL_SIZE);
-	_Margin = Random(1, 100) + _Guy->Stats[_Skill] - _PassReq;
-	if(_Margin >= 0)
-		_Margin = _Margin / 10 + 1;
+	assert(Skill >= 0 && Skill < BGSKILL_SIZE);
+	Margin = Random(1, 100) + Guy->Stats[Skill] - PassReq;
+	if(Margin >= 0)
+		Margin = Margin / 10 + 1;
 	else 
-		_Margin = _Margin / 10 - 1;
-	return _Margin;
+		Margin = Margin / 10 - 1;
+	return Margin;
 }
 
-int BigGuyPopularity(const struct BigGuy* _Guy) {
-	int _BGPop = 0;
-	struct BigGuyRelation* _Relation = _Guy->Relations;
+int BigGuyPopularity(const struct BigGuy* Guy) {
+	return Guy->Popularity;
+}
 
-	while(_Relation != NULL) {
-		if(_Relation->Relation > BGREL_NEUTURAL)
-			_BGPop++; 
-		_Relation = _Relation->Next;
+
+int BigGuyPlotPower(const struct BigGuy* Guy) {
+	return Guy->Stats[BGSKILL_WIT];
+}
+
+struct Retinue* BigGuyRetinue(const struct BigGuy* Leader, const struct GameWorld* GameWorld) {
+	return IntSearch(&GameWorld->PersonRetinue, Leader->Person->Object.Id);
+}
+
+bool LeadsRetinue(const struct BigGuy* Leader, const struct GameWorld* GameWorld) {
+	struct Retinue* Retinue = BigGuyRetinue(Leader, GameWorld);
+
+	if(Retinue == NULL) return false;
+	return (Retinue->Leader == Leader);
+}
+
+void BigGuyPlotTarget(struct BigGuy* Guy, struct Plot* Plot) {
+	LnkLstPushBack(&Guy->PlotsAgainst, Plot);
+}
+
+void CreateBigGuyRelation(struct BigGuy* Owner, struct BigGuy* Target) {
+	struct Relation* Relation = CreateRelation(Owner, Target, &Owner->Relations);
+
+	for(uint8_t i = 0; i < Owner->TraitCt; ++i) {
+		for(uint8_t j = 0; j < Target->TraitCt; ++j) {
+			if(TraitDislikes(Owner->Traits[i], Target->Traits[j]) != 0) {
+				ChangeRelation(Relation, ACTTYPE_TRAIT, -(REL_TRAIT), OPNLEN_FOREVER, OPINION_STATIC);
+			} else if(TraitLikes(Owner->Traits[i], Target->Traits[j])) {
+				ChangeRelation(Relation, ACTTYPE_TRAIT, REL_TRAIT, OPNLEN_FOREVER, OPINION_STATIC);
+			}
+		}
 	}
-	return _BGPop + _Guy->Popularity;
 }
-
-int BigGuyPlotPower(const struct BigGuy* _Guy) {
-	return _Guy->Stats[BGSKILL_WIT];
-}
-
-/*void BigGuyRecruit(struct BigGuy* _Leader, struct Person* _Warrior) {
-	if(PERSON_CASTE(_Warrior) != CASTE_WARRIOR)
-		return;
-	for(struct LnkLst_Node* _Itr = PersonHome(_Leader->Person); _Itr != NULL; _Itr = _Itr->Next) {
-		struct Retinue* _Retinue = _Itr->Data;
-
-		if(_Retinue->Leader != _Leader)
-			continue;
-		RetinueAddWarrior(_Retinue, _Warrior);
-		return;
-	}
-	BigGuyAddRetinue(_Leader, _Warrior);
-}*/
-
-void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot) {
-	LnkLstPushBack(&_Guy->PlotsAgainst, _Plot);
-}
-
-struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader, struct Settlement* _Settlement) {
-	for(struct LnkLst_Node* _Itr = _Settlement->Retinues.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		struct Retinue* _Retinue = _Itr->Data;
-
-		if(_Retinue->Leader == _Leader)
-			return _Retinue;
-	}
-	return NULL;
-}
-
-/*void BigGuyAddRetinue(struct BigGuy* _Leader, struct Person* _Person) {
-	struct Settlement* _Home = PersonHome(_Leader->Person);
-	struct Retinue* _Retinue = CreateRetinue(_Leader);
-
-	RetinueAddWarrior(_Retinue, _Person);
-	LnkLstPushBack(&_Home->Retinues, _Retinue);
-}*/

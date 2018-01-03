@@ -14,53 +14,68 @@
 
 #include <stdlib.h>
 
-struct Sprite* CreateSprite(struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
-	struct Sprite* _Sprite = (struct Sprite*) malloc(sizeof(struct Sprite));
+struct Sprite* CtorSprite(struct Sprite* Sprite, struct Resource* Image, int Layer, const SDL_Point* TilePos) {
+	SDL_Texture* Texture = ResourceGetData(Image);
 
-	return ConstructSprite(_Sprite, _Image, _Layer, _TilePos);
-}
-
-struct Sprite* ConstructSprite(struct Sprite* _Sprite, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
-	SDL_Texture* _Texture = ResourceGetData(_Image);
-
-	if(_Texture == NULL) {
-		free(_Sprite);
+	Sprite->TilePos = *TilePos;
+	Sprite->Rect.x = 0;
+	Sprite->Rect.y = 0;
+	Sprite->Rect.w = 0;
+	Sprite->Rect.h = 0;
+	Sprite->SpritePos.w = Sprite->Rect.w;
+	Sprite->SpritePos.h = Sprite->Rect.h;
+	Sprite->Image = Image;
+	Sprite->Layer = Layer;
+	if(Texture == NULL) {
+	//	free(Sprite);
+		Log(ELOG_ERROR, "Error: Sprite cannot load texture.");
 		return NULL;
 	}
-	_Sprite->Image = _Image;
-	_Sprite->TilePos = *_TilePos;
-	_Sprite->Rect.x = 0;
-	_Sprite->Rect.y = 0;
-	SDL_QueryTexture(_Texture, NULL, NULL, &_Sprite->Rect.w, &_Sprite->Rect.h);
-	_Sprite->SpritePos.w = _Sprite->Rect.w;
-	_Sprite->SpritePos.h = _Sprite->Rect.h;
-	return _Sprite;
+	SDL_QueryTexture(Texture, NULL, NULL, &Sprite->Rect.w, &Sprite->Rect.h);
+	return Sprite;
 }
 
-void DestroySprite(struct Sprite* _Sprite) {
-	DestroyResource(_Sprite->Image);
-	free(_Sprite);
+#include "../World.h"
+
+void DtorSprite(struct Sprite* Sprite) {
+	QTRemoveNode(&g_GameWorld.MapRenderer->RenderArea[Sprite->Layer], &Sprite->TilePos, (void(*)(const void*, SDL_Point*))SpriteGetTilePos, Sprite);
+	if(Sprite->Image) DestroyResource(Sprite->Image);
 }
 
-struct Sprite* CreateGameObject(struct MapRenderer* _Renderer, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
-	struct Sprite* _Sprite = (struct Sprite*) malloc(sizeof(struct Sprite));
+struct Sprite* CreateSprite(struct Resource* Image, int Layer, const SDL_Point* TilePos) {
+	struct Sprite* Sprite = (struct Sprite*) malloc(sizeof(struct Sprite));
 
-	return ConstructGameObject(_Sprite, _Renderer, _Image, _Layer, _TilePos);
+	return CtorSprite(Sprite, Image, Layer, TilePos);
 }
 
-struct Sprite* ConstructGameObject(struct Sprite* _Sprite, struct MapRenderer* _Renderer, struct Resource* _Image, int _Layer, const SDL_Point* _TilePos) {
-	if(ConstructSprite(_Sprite, _Image, _Layer, _TilePos) == NULL)
+void DestroySprite(struct Sprite* Sprite) {
+	DtorSprite(Sprite);
+	free(Sprite);
+}
+
+struct Sprite* CreateGameObject(struct MapRenderer* Renderer, struct Resource* Image, int Layer, const SDL_Point* TilePos) {
+	struct Sprite* Sprite = (struct Sprite*) malloc(sizeof(struct Sprite));
+
+	return ConstructGameObject(Sprite, Renderer, Image, Layer, TilePos);
+}
+
+struct Sprite* ConstructGameObject(struct Sprite* Sprite, struct MapRenderer* Renderer, struct Resource* Image, int Layer, const SDL_Point* TilePos) {
+	if(CtorSprite(Sprite, Image, Layer, TilePos) == NULL)
 		return NULL;
-	MapTileRenderRect(_Renderer, &_Sprite->TilePos, &_Sprite->SpritePos);
-	QTInsertPoint(&_Renderer->RenderArea[_Layer], _Sprite, &_Sprite->TilePos);
-	return _Sprite;
+	MapTileRenderRect(Renderer, &Sprite->TilePos, &Sprite->SpritePos);
+	QTInsertPoint(&Renderer->RenderArea[Layer], Sprite, &Sprite->TilePos);
+	return Sprite;
 }
 
-int SpriteOnDraw(const struct Sprite* _Sprite) {
-	return SDL_RenderCopy(g_Renderer, ResourceGetData(_Sprite->Image), &_Sprite->Rect, &_Sprite->SpritePos);
+void SpriteOnDraw(SDL_Renderer* Renderer, const struct Sprite* Sprite, uint16_t ScreenX, uint16_t ScreenY) {
+	SDL_Rect Pos = {Sprite->SpritePos.x - ScreenX, Sprite->SpritePos.y - ScreenY, Sprite->SpritePos.w, Sprite->SpritePos.h};
+
+	if(SDL_RenderCopy(Renderer, ResourceGetData(Sprite->Image), &Sprite->Rect, &Pos) != 0) {
+		Log(ELOG_ERROR, "%s", SDL_GetError());
+	}
 }
 
-void SpriteSetTilePos(struct Sprite* _Sprite, const struct MapRenderer* _Renderer, const SDL_Point* _TilePos) {
-	MapTileRenderRect(_Renderer, _TilePos, &_Sprite->SpritePos);
-	_Sprite->TilePos = *_TilePos;
+void SpriteSetTilePos(struct Sprite* Sprite, const struct MapRenderer* Renderer, const SDL_Point* TilePos) {
+	MapTileRenderRect(Renderer, TilePos, &Sprite->SpritePos);
+	Sprite->TilePos = *TilePos;
 }

@@ -19,7 +19,6 @@ typedef struct SDL_mutex SDL_mutex;
 
 struct MemPoolNode {
 	struct MemPoolNode* Next;
-	struct MemPoolNode* Prev;
 };
 
 struct MemoryPool {
@@ -34,9 +33,10 @@ struct MemoryPool {
 	SDL_mutex* Lock;
 };
 
-struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity);
-void DestroyMemoryPool(struct MemoryPool* _MemPool);
-void* MemPoolAlloc(struct MemoryPool* _MemPool);
-void MemPoolFree(struct MemoryPool* _MemPool, void* _Ptr);
+struct MemoryPool* CreateMemoryPool(int SizeOf, int Quantity);
+void CtorMemoryPool(struct MemoryPool* MemPool, int SizeOf, int Quantity);
+void DestroyMemoryPool(struct MemoryPool* MemPool);
+void* MemPoolAlloc(struct MemoryPool* MemPool);
+void MemPoolFree(struct MemoryPool* MemPool, void* Ptr);
 
 #endif

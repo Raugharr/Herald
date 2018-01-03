@@ -1,201 +1,138 @@
-Menu.__savestate = false
 Menu.moveable = true
+Menu.Width = 500
+Menu.Height = 650
 
 require("BigGuyAux")
 
-function DisplayPlotMenu(Menu, Left, Right)
-	local Actions = {}
+function DisplayPlots(Menu, Owner)
+	local Retinue = Owner:GetPerson():Retinue()
 
-	Left:Clear()
-	Left:CreateLabel("Current threat: " .. tostring(Menu.Plot:GetThreat()))
-	Left:CreateLabel("Warscore: " .. tostring(Menu.Plot:GetScore()))
-	Left:CreateButton("Show Plotters", 
-		function()
-			DisplayPlotters(Menu, Left, Right)
+	if Retinue ~= nil and Retinue:Leader():Equal(Owner) then
+		Menu:CreateButton("Takeover Retinue",
+			function()
+			Plot.Create(World.GetPlayer(), Owner, Plot.Type.ControlRetinue)
 		end)
-	Left:CreateButton("Show Defenders", 
-		function()
-			DisplayPlotDefenders(Menu, Left, Right)
-		end)
-	Left:CreateButton("Show History",
-		function()
-			Right:Clear()
-			for i, Action in ipairs(Menu.Plot:PrevMonthActions()) do
-				Right:CreateLabel(Action:Describe())	
-			end
-		end)
-	Actions[#Actions + 1] = Left:CreateButton("Prevent Damage",
-		function()
-			Menu.Plot:AddAction(Plot.Prevent,  World.GetPlayer(), Menu.Guy)			
-		end)
-	Actions[#Actions + 1] = Left:CreateButton("Double Damage",
-		function()
-			Menu.Plot:AddAction(Plot.DoubleDamage,  World.GetPlayer(), nil)			
-		end)
-	Actions[#Actions + 1] = Left:CreateButton("Double Attack",
-		function()
-			Menu.Plot:AddAction(Plot.DoubleAttack,  World.GetPlayer(), nil)			
-		end)
-	Left:CreateButton("Back", function()
-		DisplayViewPerson(Menu, Left, Right)
-	end)
+	end
 end
 
-function NonPlayerActions(Menu, Left, Right)
+function NonPlayerActions(Menu)
 	local Person = Menu.Guy
 
-	Right:CreateButton("Influence", 
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Influence, Person)
-		end)
-	Right:CreateButton("Sabotage",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Sabotage, Person)
-		end)
-	Right:CreateButton("Duel",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Duel, Person)
-		end)
-	Right:CreateButton("Steal Cattle",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.StealCattle, Person)
-		end)
-	Right:CreateButton("Murder",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Murder, Person)
-		end)
-	Right:CreateButton("Cause Dissent",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Dissent, Person)
-		end)
-	Right:CreateButton("Convince",
-		function()
-			World.GetPlayer():SetAction(BigGuy.Action.Convince, Person)
-		end)
-	Right:CreateButton("Back",
-		function()
-			Right:Clear()
-			DisplayViewPerson(Menu, Left, Right)
-		end)
+	GeneralActions(Menu, World.GetPlayer(), Person)
 end
 
-function DisplayPlotDefenders(Menu, Left, Right)
-	local List = {}
-	local PersonList = {} 
-
-	Right:Clear()
-	List = FillList(Menu.Plot:Defenders().Front, Menu.Plot:Defenders())
-	for k, v in ipairs(List) do
-		PersonList[#PersonList + 1] = v:GetPerson()
-	end
-	FillPersonTable(CreatePersonTable(Right, #PersonList), PersonList, Menu.Plot:Defenders()) 
-end
-
-function DisplayPlotters(Menu, Left, Right)
-	local List = {}
-	local PersonList = {} 
-
-	Right:Clear()
-	List = FillList(Menu.Plot:Plotters().Front, Menu.Plot:Plotters())
-	for k, v in ipairs(List) do
-		PersonList[#PersonList + 1] = v:GetPerson()
-	end
-	FillPersonTable(CreatePersonTable(Right, #PersonList), PersonList, Menu.Plot:Plotters())
-end
-
-function DisplayPlotsAgainst(Menu, Left, Right)
-	Left:Clear()
-	for Elem in Menu.Guy:PlotsAgainst():Front() do
-		Left:CreateButton(Elem:TypeStr(),
+function DisplayPlotsAgainst(Menu, Owner)
+	for Elem in Owner:PlotsAgainst():Front() do
+		Menu:CreateLabel("Plot")
+		--[[Menu:CreateButton(Elem:TypeStr(),
 			function()
 				Menu.Plot = Elem
 				DisplayPlotMenu(Menu, Left, Right)
-			end)
+			end)--]]
 	end
-	Left:CreateButton("Back", 
-		function()
-			DisplayViewPerson(Menu, Left, Right)
-		end)
 end
 
-function DisplayManageHousehold(Menu, Left, Right)
-	Left:CreateButton("Agriculture",
-		function()
-			if(Right~= nil) then
-				Right:Destroy()
-			end
-			Right = Left:CreateTable(5, 16)	
-			Right:SetX(401)
-			Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-			
-			Right:CreateLabel("Name"):SetFocus(false)
-			Right:CreateLabel("Yield"):SetFocus(false)
-			Right:CreateLabel("Acres"):SetFocus(false)
-			Right:CreateLabel("Status"):SetFocus(false)
-			Right:CreateLabel("StatusTime"):SetFocus(false)
-			for k, Field in ipairs(Menu.Person:GetFamily():GetFields()) do	
-				Right:CreateLabel(Field:GetCrop().Name)
-				Right:CreateLabel(Field:GetYield())
-				Right:CreateLabel(Field:GetAcres())
-				Right:CreateLabel(Field:GetStatus())
-				Right:CreateLabel(tostring(Field:StatusCompletion()) .. " days")
-			end
-		end)
-	Left:CreateButton("Goods",
-		function()
-			if(Right ~= nil) then
-				Right:Destroy()
-			end
-			Right = Left:CreateTable(2, 16)
-			Right:SetX(401)
-			Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-			Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
-			Right:CreateLabel("Name"):SetFocus(false)
-			Right:CreateLabel("Quantity"):SetFocus(false)
-			for val in Menu.Person:GetFamily():GetGoods():Next() do
-				Right:CreateLabel(val:GetBase().Name)
-				Right:CreateLabel(val:GetQuantity())
-			end
-		end)
-	Left:CreateButton("Animals",
-		function()
-			Right:Clear()
-			Table = CreateAnimalTable(Right, 16)
-			for An in Menu.Person:GetFamily():GetAnimals():Next() do
-				Table:CreateLabel(An:GetBase().Name)
-				Table:CreateLabel(An:GetNutrition())
-				Table:CreateLabel(PrintYears(An:GetAge()))
-				Table:CreateLabel(GenderName(An))
-			end
-		end)
-	Left:CreateButton("Buildings",
+function DisplayFamilyFields(Menu) 
+	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	local Table = Container:CreateTable(5, 16)	
+	local Skin = Container:GetSkin()
+	local Font = Skin:Table():GetFont()
+
+	Container:CreateLabel("Fields")
+	Table:SetCellWidth(Font:Width() * 8)
+	Table:SetCellHeight(Font:Height())
+	
+	Table:CreateLabel("Name"):SetFocus(false)
+	Table:CreateLabel("Yield"):SetFocus(false)
+	Table:CreateLabel("Acres"):SetFocus(false)
+	Table:CreateLabel("Status"):SetFocus(false)
+	Table:CreateLabel("StatusTime"):SetFocus(false)
+	for k, Field in ipairs(Menu.Person:GetFamily():GetFields()) do	
+	--	Table:CreateLabel(Field:GetCrop().Name)
+		Table:CreateLabel("Foo")
+		Table:CreateLabel(Field:GetYield())
+		Table:CreateLabel(Field:GetAcres())
+		Table:CreateLabel(Field:GetStatus())
+		Table:CreateLabel(tostring(Field:StatusCompletion()) .. " days")
+	end
+	Table:Shrink()
+	Container:Shrink()
+	return Container
+end
+
+function DisplayFamilyGoods(Menu) 
+	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	local Table = Container:CreateTable(2, 16)	
+	local Skin = Container:GetSkin()
+	local Font = Skin:Table():GetFont()
+
+	Container:CreateLabel("Goods")
+	Table:SetCellWidth(Font:Width() * 8)
+	Table:SetCellHeight(Font:Height())
+
+	Table:CreateLabel("Name"):SetFocus(false)
+	Table:CreateLabel("Quantity"):SetFocus(false)
+	for val in Menu.Person:GetFamily():GetGoods():Next() do
+		Table:CreateLabel(val:GetBase().Name)
+		Table:CreateLabel(val:GetQuantity())
+	end
+	Container:Shrink()
+	return Container
+end
+
+function DisplayFamilyAnimals(Menu)
+	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	local Table = CreateAnimalTable(Container, 16)	
+	local Skin = Container:GetSkin()
+	local Font = Skin:Table():GetFont()
+
+	Container:CreateLabel("Animals")
+	for An in Menu.Person:GetFamily():GetAnimals():Next() do
+		Table:CreateLabel(An:GetBase().Name)
+		Table:CreateLabel(An:GetNutrition())
+		Table:CreateLabel(An:GetAge())
+		Table:CreateLabel(GenderName(An))
+	end
+	Container:Shrink()
+	return Container
+end
+
+function DisplayManageHousehold(Menu)
+	Menu:Clear()	
+	Menu.Agriculture = DisplayFamilyFields(Menu)
+	Menu.Goods = DisplayFamilyGoods(Menu)
+	Menu.Animals = DisplayFamilyAnimals(Menu)
+	--[[Left:CreateButton("Buildings",
 	 function()
 		if(Right ~= nil) then
 			Right:Destroy()
 		end
 		Right = Left:CreateTable(3, 16)
 		Right:SetX(401)
-		Right:SetCellWidth(GUI.GetDefaultFont():FontWidth() * 8)
-		Right:SetCellHeight(GUI.GetDefaultFont():FontHeight())
+		Right:SetCellWidth(Gui.GetDefaultFont():FontWidth() * 8)
+		Right:SetCellHeight(Gui.GetDefaultFont():FontHeight())
 		Right:CreateLabel("Width"):SetFocus(false)
 		Right:CreateLabel("Length"):SetFocus(false)
-	end)
-	Left:CreateButton("Back",
-		function()
-			Left:Clear()
-			if(Right ~= nil) then
-				Right:Clear()
-			end
-		DisplayViewPerson(Menu, Left, Right)
+	end)--]]
+	Menu:CreateButton("Back",
+		function(Widget)
+		Menu:Clear()
+		DisplayViewPerson(Menu)
 	end)
 end
 
 
-function DisplayPersonStats(Menu, Left, Right)
+function DisplayPersonStats(Menu, Guy)
 	local Person = Menu.Guy
+	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	local Skin = Container:GetSkin()
 
-	Right:AddChild(BGStatsContainer(Menu.Guy))
+	Container:SetSkin(Gui.GetSkin("Header"))
+	Container:CreateLabel("Stats")
+	Container:SetSkin(Skin)
+	BGStatsContainer(Container, Guy)
+	Container:Shrink()
+	return Container
 end
 
 function DisplayFriends(Menu, Left, Right)
@@ -230,34 +167,48 @@ function DisplayEnemies(Menu, Left, Right)
 	FillPersonTable(Table, List)
 end
 
-function DisplayFamily(Menu, Left, Right)
+function DisplayFamily(Menu, Family)
 	local Table = nil
 	local PersonTable = nil
 	local Guy = Menu.Guy
+	local Label = nil 
+	local Table = nil
+	--local Container = Gui.VerticalContainer(0, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
+	--local TempSkin = Container:GetSkin()
 
-	Right:Clear()
-	PersonTable = Menu.Person:GetFamily():GetPeople() 
-	FillPersonTable(CreatePersonTable(Right, #PersonTable), PersonTable)
+	--Container:SetSkin(Gui.GetSkin("Header"))
+	--Label = Container:CreateLabel("Family")
+	--Container:SetSkin(TempSkin);
+	PersonTable = Family:GetPeople() 
+	Table = CreatePersonTable(Menu, #PersonTable)
+	FillPersonTable(Table, PersonTable)
+	--Label:SetX(Table:GetWidth() / 2 - Label:GetWidth() / 2)
+	--Container:Shrink()
+	--return Container
+	return Table
 end
 
-function DisplayRecruitStats(Menu, Left, Right)
+function DisplayRecruitStats(Menu)
 	local Guy = Menu.Guy	
-	local RetinueTable = Guy:GetRetinueTable()
-
-	Right:Clear()
-	Right:Paragraph("You currently have " .. Guy:RetinueSize() .. " warriors in your retinue.")
-	if Guy:IsRecruiting() == false then
-		Right:CreateButton("Start recruiting",
-			function()
-				Guy:Recruit()
-			end)
-		else
-			Right:CreateButton("Stop recruiting",
-				function()
-					Guy:Recruit()
-				end)
+	local Person = Guy:GetPerson()
+	local Retinue = Person:Retinue()
+	local Warriors = nil 
+	local Branches = Retinue:GetBranches()
+	if Retinue == nil then
+		return	
 	end
-	FillPersonTable(CreatePersonTable(Right, #RetinueTable), RetinueTable)
+	Warriors = Retinue:Warriors()
+	Menu:Clear()
+	Menu:Paragraph("You currently have " .. Warriors:GetSize() .. " warriors in your retinue.")
+	Menu:Paragraph("The leader of the retinue is " .. Retinue:Leader():GetPerson():GetName() .. " and has " .. Retinue:Leader():Glory() .. " glory.")
+	for Val in ipairs(Branches) do
+		Menu:CreateButton(Val:Leader():GetPerson():GetName(),
+			function(Widget)
+				DisplayRecruitStats(Menu)
+			end)
+		Menu:CreateLabel("Troops: " .. Val:TroopCt())
+	end
+	FillWarriorTable(CreateWarriorTable(Right, Warriors:GetSize()), Warriors)
 end
 
 function DisplayRelation(Menu, Left, Right)
@@ -269,73 +220,121 @@ function DisplayRelation(Menu, Left, Right)
 	FillRelationList(CreateRelationTable(Right, #List), List)
 end
 
-function DisplayViewPerson(Menu, Left, Right)
+function EstimateHarvest(Fields)
+	local Estimate = 0
+
+	for k, Field in ipairs(Fields) do 
+		local Crop = Field:GetCrop()
+
+		Estimate = Estimate + (Field:GetAcres() * Crop.PerAcre * (Crop.YieldMult - 1))
+	end
+	return Estimate / 365
+end
+
+function DisplayGeneral(Menu, Guy) 
+	local Skin = Menu:GetSkin()
+	local Font = Skin:Table():GetFont()
+	local Container = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	local Table = nil 
+	local Family = Guy:GetPerson():GetFamily()
+	local Acres = 1
+
+	for k, Field in ipairs(Family:GetFields()) do
+		Acres = Acres + Field:GetAcres() +  Field:GetUnusedAcres()
+	end
+	Container:SetSkin(Gui.GetSkin("Header"))
+	Container:CreateLabel("General")
+	Container:SetSkin(Skin)
+	Table = Container:CreateTable(2, 7)
+	Table:SetCellWidth(Font:Width() * 8)
+	Table:SetCellHeight(Font:Height())
+	Table:CreateLabel("Age")
+	Table:CreateLabel(Guy:GetPerson():GetAge())
+	Table:CreateLabel("Caste")
+	Table:CreateLabel(Family:GetCasteName()) 
+	Table:CreateLabel("Popularity")
+	Table:CreateLabel(Guy:Popularity()) 
+	Table:CreateLabel("Glory")
+	Table:CreateLabel(Guy:Glory()) 
+	Table:CreateLabel("Stored")
+	Table:CreateLabel(string.format("%0.2f", Family:GetNutrition() / (Family:GetNutritionReq() * 365)))
+	--if Guy:GetFamily():Job():GetName() == "Farmer" then
+		Table:CreateLabel("Harvest")
+		Table:CreateLabel(string.format("%0.2f", EstimateHarvest(Family:GetFields()))) 
+		Table:CreateLabel("Acres")
+		Table:CreateLabel(Acres) 
+	--end
+	Table:Shrink()
+	Container:Shrink()
+	return Container
+end
+
+function DisplayViewPerson(Menu)
 	local Guy = Menu.Guy
+	local Skin = Menu:GetSkin()
+	local Font = Skin:Table():GetFont()
 
-	Left:Clear()
-	Right:Clear()
-	Left:Paragraph(Menu.Description)
-	Left:CreateLabel("Owns " .. Menu.OxCount .. " cows.")
-	Left:CreateLabel("Skills")
-	Left:CreateButton("Manage household",
-		function()
-			Left:Clear()
-			DisplayManageHousehold(Menu, Left, Right)
-		end
-	)
-	--FIXME: change class comparason to comapre their __self parameters insead of checking the table address.
-	if World.GetPlayer() ~= Guy then
-		Left:CreateButton("Actions",
-			function()
-				Right:Clear()
-				NonPlayerActions(Menu, nil, Right)
-			end)
-		Left:CreateButton("Recruit",
-			function()
-				DisplayRecruitStats(Menu, Left, Right)
-			end)
-	end
+	Menu:OnNewChild(Container.Vertical)
+	Menu:SetSkin(Gui.GetSkin("Header"))
+	Menu.PersonName = Menu:CreateLabel(Menu.Person:GetName())
+	Menu:SetSkin(Skin)
+	Menu.Info = Gui.HorizontalContainer(Menu, Menu:GetWidth(), Menu:GetHeight()) 
+	Menu.Info.Stats = DisplayPersonStats(Menu.Info, Menu.Guy)
+	Menu.Info.General = DisplayGeneral(Menu.Info, Menu.Guy)
+	Menu.Info:Shrink()
 
-	Left:CreateButton("Stats", 
-		function()
-			Right:Clear()
-			DisplayPersonStats(Menu, Left, Right)
+	Menu.Traits = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	Menu.Traits:SetSkin(Gui.GetSkin("Header"))
+	Menu.Traits:CreateLabel("Traits")
+	Menu.Traits:SetSkin(Skin)
+	Menu.Traits.List = Gui.HorizontalContainer(Menu.Traits, Menu.Traits:GetWidth(), Menu.Traits:GetHeight())
+	for k in Menu.Guy:TraitList() do 
+		Menu.Traits.List:CreateLabel(k:GetName())
+	end	
+	Menu.Traits.List:Shrink()
+	Menu.Traits:Shrink()
+	Menu:CreateButton("Actions",
+		function(Widget)
+			Gui.CreateWindow("ActionMenu", {Owner = World.GetPlayer(), Target = Menu.Guy})
 		end)
-	Left:CreateButton("Family",
-		function()
-			DisplayFamily(Menu, Left, Right)
+	Menu.Views = Gui.VerticalContainer(Menu, Menu:GetWidth(), Menu:GetHeight())
+	Menu.Views.Buttons = Gui.HorizontalContainer(Menu.Views, Menu.Views:GetWidth(), Menu.Views:GetHeight())
+	local Foo = Menu.Views.Buttons:CreateButton("Family",
+		function(Widget)
+			if Menu.Views.Context ~= nil then
+				Menu.Views.Context:Destroy()
+			end
+			Menu.Views.Context = DisplayFamily(Menu.Views, Menu.Person:GetFamily())
 		end)
-	Left:CreateButton("Friends",
-		function()
-			DisplayFriends(Menu, Left, Right)
+	--[[Menu.Views.Buttons:CreateButton("Household",
+		function(Widget)
+			DisplayManageHousehold(Menu.Views)
+		end)--]]
+	Menu.Views.Buttons:CreateButton("Big Guys",
+		function(Widget)
+			if Menu.Views.Context ~= nil then
+				Menu.Views.Context:Destroy()
+			end
+			Menu.Views.Context = DisplayBigGuys(Menu.Views, Menu.Guy)
 		end)
-	Left:CreateButton("Enemies",
-		function()
-			DisplayEnemies(Menu, Left, Right)
+	Menu.Views.Buttons:CreateButton("Plots",
+		function(Widget)
+			if Menu.Views.Context ~= nil then
+				Menu.Views.Context:Destroy()
+			end
+			if Menu.Guy ~= World.GetPlayer() then
+				Menu.Views.Context = DisplayPlots(Menu.Views, Menu.Guy)
+			else
+				Menu.Views.Context = DisplayPlotsAgainst(Menu.Views, Menu.Guy)
+			end
 		end)
-	if World:GetPlayer() ~= Menu.Guy then
-		Left:CreateButton("View Relation",
-			function()
-				DisplayRelation(Menu, Left, Right)
-			end)
-	end
-	if World.GetPlot(Guy) ~= nil then
-		Menu.Plot = World.GetPlot(Guy)
-		Left:CreateButton("Plots", 
-			function()
-				DisplayPlotMenu(Menu, Left, Right)
-			end)
-	else
-		Left:CreateLabel("Plots")
-	end 
-	Left:CreateButton("Plots Against",
-		function()
-			DisplayPlotsAgainst(Menu, Left, Right)
+	Menu.Views.Buttons:Shrink()
+	Menu.Views:SetHeight(Menu.Views:GetHeight() - 25)
+	Menu:CreateButton("Close",
+		function(Widget)
+			Widget:GetParent():Close()
 		end)
-	Left:CreateButton("Back",
-		function()
-			GUI.PopMenu()
-		end)
+
 end
 
 function Menu.Init(Menu, Person)
@@ -343,14 +342,6 @@ function Menu.Init(Menu, Person)
 	local Family = Person.Person:GetFamily()
 
 	Menu.Person = Person.Person
-	Menu.MenuBar = GUI.VerticalContainer(0, 0, 400, Menu:GetHeight(), Menu)
-	Menu.Display = GUI.VerticalContainer(401, 0, Menu:GetWidth(), Menu:GetHeight(), Menu) 
-	Menu.Description = Guy:GetName() .. " is of the family " .. Family:GetName() .. ". "
-		 .. "He owns " .. Family:GetBuildingCt() .. " buildings and " .. Family:GetAnimalCt() .. " animals."
-		.. "This family can currently feed itself for "
-		 .. tostring(math.floor(Family:GetNutrition() / Family:GetNutritionReq())) .. " days"
-	Menu.OxCount = Family:CountAnimal("Ox")
-	
 	Menu.Guy = Guy
 	if World.GetPlayer():GetPerson() ~= Person and Guy ~= nil then
 		local Rel = Guy:GetRelation(World.GetPlayer())
@@ -359,9 +350,8 @@ function Menu.Init(Menu, Person)
 		else
 			Rel = Rel:GetOpinion()
 		end
-		Menu.Description = Menu.Description.. " Their opinion of us is " .. Rel
 	end
-	DisplayViewPerson(Menu, Menu.MenuBar, Menu.Display)
+	DisplayViewPerson(Menu)
 end
 
 function Menu.Think(Menu)

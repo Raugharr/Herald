@@ -109,3 +109,4 @@ void AnimationStop(struct Animation* _Animation) {
 	_Animation->IsPlaying = 0;
 	_Animation->IsRepeating = 0;
 }
+

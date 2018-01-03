@@ -5,6 +5,8 @@
 #ifndef __RULE_H
 #define __RULE_H
 
+#include <stdint.h>
+
 struct Rule;
 
 typedef struct lua_State lua_State;
@@ -34,6 +36,7 @@ enum {
 enum {
 	RULE_NONE,
 	RULE_BOOLEAN,
+	RULE_EQUAL,
 	RULE_GREATERTHAN,
 	RULE_LESSTHAN,
 	RULE_LUACALL,
@@ -48,14 +51,15 @@ enum {
 
 union UPrimitive {
 	float Float;
-	int Int;
+	int32_t Int;
 	void* Ptr;
 	char Byte;
 	char* String;
 };
 
 struct Primitive {
-	int Type;
+	uint16_t Type;
+	uint16_t Class;//Class of pointer should use LOBJ_* as values.
 	union UPrimitive Value;
 };
 
@@ -137,11 +141,12 @@ struct Primitive* CreatePrimitive();
 void DestroyPrimitive(struct Primitive* _Primitive);
 
 void PrimitiveSetInt(struct Primitive* _Primitive, int _Int);
-void PirmitiveSetFloat(struct Primitive* _Primitive, float _Float);
-void PirmitiveSetPtr(struct Primitive* _Primitive, void* _Ptr);
-void PirmitiveSetString(struct Primitive* _Primitive, const char* _Str);
+void PrimitiveSetFloat(struct Primitive* _Primitive, float _Float);
+void PrimitiveSetPtr(struct Primitive* _Primitive, void* _Ptr, uint16_t Class);
+void PrimitiveSetString(struct Primitive* _Primitive, const char* _Str);
 
 int PrimitiveToBoolean(struct Primitive* _Primitive);
+void PrimitiveToStr(const struct Primitive* Prim, char* restrict  Buffer, uint32_t BufSz);
 void PrimitivePrint(const struct Primitive* _Primitive);
 
 struct Rule* CreateRule(int _Type, void(*_Destroy)(struct Rule*));

@@ -1,27 +1,37 @@
-Menu.__savestate = false;
 Menu.moveable = false;
 
 function Menu.Init(Menu, Data)
-	GUI.BackgroundColor(0, 0, 0)
-	for k,v in pairs(Menu) do print(k, v) end
-	Menu.TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth(), 30, Menu):SetFocus(false)
+	Menu.TitleCon = Gui.HorizontalContainer(Menu, Menu:GetWidth(), 50):SetFocus(false)
+	Menu.TitleCon:SetSkin(Gui.GetSkin("Title"))
 	Menu.Title = Menu.TitleCon:CreateLabel("Herald")
 	Menu.Title:SetFocus(false)
 	Menu.Title:SetX(Menu.TitleCon:GetHorizontalCenter(Menu.Title))
-	Menu.ButList = GUI.VerticalContainer(0, 100, 100, 500, Menu)
+	Menu.ButList = Gui.VerticalContainer(Menu, 100, 500)
+	Menu.ButList:SetSkin(Gui.GetSkin("Big"))
 	Menu.ButList:SetY(100)
 	Menu.ButList:CreateButton("New",
-	function()
-			GUI.SetMenu("GameMenu")
-		end)
-	Menu.ButList:CreateLabel("Load")
+	function(Widget)
+			Gui.SetMenu("GameMenu")
+		end):SetWidth(60)
+	Menu.ButList:CreateButton("Load",
+		function(Widget)
+		end):SetWidth(60)
 	Menu.ButList:CreateButton("Exit",
-		function() 
-			GUI.Close()
-		end)	
-	Menu.ButList:CreateImage(Video.CreateSprite("grass.png"))
-	Menu.ButList:CreateImage(Video.CreateSprite("Grass2.png"))
-	Menu.ButList:CreateTextBox();
+		function(Widget) 
+			Gui.Close()
+		end):SetWidth(60)
+	--Menu.ButList:CreateImage(Video.CreateSprite("grass.png"))
+	--Menu.ButList:CreateImage(Video.CreateSprite("Grass2.png"))
+	--Menu.ButList:CreateTextBox();
+	--[[local Stack = Menu:CreateStack(300, 300)
+
+	local a = Stack:AddTab("One")
+	local b = a:CreateLabel("Hello")
+	Stack:AddTab("Two")
+	Stack:AddTab("Three")
+	
+	Stack:SetX(400)
+	Stack:SetY(400)--]]
 end
 
 function Menu.Think(Menu)

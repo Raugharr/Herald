@@ -15,6 +15,7 @@
 START_TEST(MathRandTest) {
 	int _Table[100] = {0};
 	
+	MathInit();
 	for(int i = 0; i < RAND_CT; ++i)
 		_Table[Random(0, 9999999) / 100000]++;
 	for(int i = 0; i < RAND_CT / 10000; ++i) {

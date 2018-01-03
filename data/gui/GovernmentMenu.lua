@@ -1,16 +1,17 @@
-Menu.__savestate = false;
+Menu.Width = 500
+Menu.Height = 600
 Menu.moveable = true;
 
 function DisplayPolicyOptions(Menu, Right, Pol)
 	Right:Clear()
 	for k, Cat in ipairs(Pol:Options()) do
-		local CatCont = GUI.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
-		local CatPol = GUI.HorizontalContainer(0, 0, Right:GetWidth(), 30, Menu.Right)
+		local CatCont = Gui.HorizontalContainer(Right:GetWidth(), 30, Menu.Right)
+		local CatPol = Gui.HorizontalContainer(Right:GetWidth(), 30, Menu.Right)
 		CatCont:CreateLabel(Cat.Name)
 		for j, Opt in ipairs(Cat) do
 			if Menu.Government:GetPolicyCategory(Pol, k) ~= j then
 				CatPol:CreateButton(Opt:Name(),
-					function()
+					function(Widget)
 						Plot.Create(Menu.Government:GetLeader(), nil, Plot.Type.ChangePolicy, {Pol, k, j})
 					end)
 			else
@@ -20,101 +21,124 @@ function DisplayPolicyOptions(Menu, Right, Pol)
 	end
 end
 
-function DisplayPolicyCategory(Menu, Right, Category)
-	Right:Clear()
+function DisplayPolicyCategory(Menu, DescCont, Government, Category)
 	for k, Pol in pairs(World.Policies()) do
 		if Pol:Category() == Category then
-			if Menu.Government:HasPolicy(Pol) ~= true then
-			Right:CreateButton(Pol:Name(), 
-				function()
-					Plot.Create(Menu.Government:GetLeader(), nil, Plot.Type.NewPolicy, Pol)
+			Menu:CreateButton(Pol:GetName(), 
+				function(Widget)
+						if DescCont.Text ~= nil then
+							DescCont:DestroyChildren()
+						end
+						DescCont.Text = DescCont:CreateLabel(Pol:GetDescription())
+						DescCont.Support = DescCont:CreateLabel("Support " .. Government:PolicyApproval(Pol) .."%")
+						DescCont.Support:Below(DescCont.Text)
+						local PassBut = DescCont:CreateButton("Pass Policy",
+							function(Widget)
+							end)
+						local SupportBut = DescCont:CreateButton("Increase Support",
+						function(Widget)
+							World.GetPlayer():GetFaction():SetPolicyInfluence(Pol)
+						end)
+						PassBut:Below(DescCont.Support)
+						SupportBut:RightOf(PassBut)
 				end)
-			else
-				Right:CreateButton(Pol:Name(),
-					function()
-						DisplayPolicyOptions(Menu, Right, Pol)
-					end)
-			end
 		end
 	end
 end
 
-function DisplayPolicyList(Menu, Left, Right)
-	Left:Clear()
-	Right:Clear()
-	Left:CreateButton("Economy",
-		function()
-			DisplayPolicyCategory(Menu, Right, Policy.Economy)
-		end)
-	Left:CreateButton("Law",
-		function()
-			DisplayPolicyCategory(Menu, Right, Policy.Law)
-		end)
-
-	Left:CreateButton("Military",
-		function()
-			DisplayPolicyCategory(Menu, Right, Policy.Military)
-		end)
-	Left:CreateButton("Back",
-		function()
-			DisplayGovernment(Menu, Left, Right)
-		end)
+function PolicyListOnClick(Widget, Parent, DescCont, Government, PolicySelected, Category)
+	if PolicySelected == true then
+		Parent:DestroyChildren()
+	end
+	DisplayPolicyCategory(Parent, DescCont, Government, Category)
 end
 
-function DisplayAppointments(Menu, Left, Right)
-	local Judge = "None"
-	local Marshall = "None"
-	local Steward = "None"
-	local Temp = nil
-
-	Right:Clear()
-	Temp = Menu.Government:GetJudge()
-	if Null(Temp) == false then
-		Judge = Temp:GetName()	
-	end
-
-	Temp = Menu.Government:GetMarshall()
-	if(Null(Temp) == false) then
-		Marshall = Temp:GetName()	
-	end
-
-	Temp = Menu.Government:GetSteward()
-	if(Null(Temp) == false) then
-		Steward = Temp:GetName()	
-	end
-	Right:CreateLabel("Judge: " .. Judge)
-	Right:CreateLabel("Marshall: " .. Marshall)
-	Right:CreateLabel("Steward: " .. Steward) 
+function DisplayPolicyList(Menu, Government)
+	local ListCont = Menu:CreateContainer(Menu:GetWidth(), Menu:GetHeight(), Container.Horizontal)
+	local PolicyCont = nil
+	local DescCont = nil
+	
+	ListCont.PolicySelected = false
+	ListCont:CreateButton("Economy",
+		function(Widget)
+			PolicyListOnClick(Widget, PolicyCont, DescCont, Government, ListCont.PolicySelected, Policy.Economy)
+			ListCont.PolicySelected = true 
+		end)
+	ListCont:CreateButton("Law",
+		function(Widget)
+			PolicyListOnClick(Widget, PolicyCont, DescCont, Government, ListCont.PolicySelected, Policy.Law)
+			ListCont.PolicySelected = true 
+		end)
+	ListCont:CreateButton("Military",
+		function(Widget)
+			PolicyListOnClick(Widget, PolicyCont, DescCont, Government, ListCont.PolicySelected, Policy.Military)
+			ListCont.PolicySelected = true 
+		end)
+	ListCont:Shrink()
+	PolicyCont = Menu:CreateContainer(Menu:GetWidth(), Menu:GetHeight() - 420, Container.Vertical)
+	DescCont = Menu:CreateContainer(Menu:GetWidth(), 100, Container.Fixed)
+	print(DescCont:GetY())
 end
 
-function DisplayGovernment(Menu, Left, Right)
-	Left:Clear()
-	Right:Clear()
+function Menu.ShowOptions(Menu)
+	local PlayerGov = World.GetPlayer():GetSettlement():GetGovernment()
 
-	local TitleCon = GUI.HorizontalContainer(0, 0, Menu:GetWidth() / 2, 30, Menu.Left)
-	local Title = TitleCon:CreateLabel("Government")
-
-	TitleCon:SetFocus(false)
-	Title:SetFocus(false)
-	Title:SetX(TitleCon:GetHorizontalCenter(Title))
-
-	Left:CreateLabel(Menu.Government:Rule() .. " " .. Menu.Government:Structure() .. " " .. Menu.Government:Type()):SetFocus(false)
-	Left:CreateButton("View Policies",
-		function()
-			DisplayPolicyList(Menu, Left, Right)
+	Menu:CreateButton("Become Independent",
+		function(Widget)
+			PlayerGov:LesserRemove()
 		end)
-	Left:CreateButton("View Appointments",
-		function()
-			DisplayAppointments(Menu, Left, Right)
-		end)
-	Menu.Left:CreateButton("Back", GUI.PopMenu)
 end
 
 function Menu.Init(Menu, Data)
-	Menu.Government = Data["Settlement"]
-	Menu.Left = GUI.VerticalContainer(0, 0, Menu:GetWidth() / 2, Menu:GetHeight(), Menu)
-	Menu.Right = GUI.VerticalContainer(Menu:GetWidth() / 2, 0, Menu:GetWidth(), Menu:GetHeight(), Menu)
-	DisplayGovernment(Menu, Menu.Left, Menu.Right)	
+	local Table = Menu:CreateTable(1, 5)	
+	local Skin = Menu:GetSkin()
+	local Font = Skin:Table():GetFont()
+
+	Menu:OnNewChild(Container.Vertical)
+
+	Menu.Government = Data.Settlement
+
+	Table:SetCellWidth(Font:Width() * 8)
+	Table:SetCellHeight(Font:Height())
+	Table:CreateLabel("Leader " .. Menu.Government:GetLeader():GetName())
+	Table:CreateLabel("Rule " .. Menu.Government:Rule()):SetFocus(false)
+	Table:CreateLabel("Structure " .. Menu.Government:Structure() .. " " .. Menu.Government:Type() .. " " .. Menu.Government:RankStr())
+	if Menu.Government:IsPlayerOwned() == false then
+		Menu:CreateButton("Diplomancy",
+			function(Widget)
+				Menu:Close()
+				Gui.CreateWindow("Diplomancy", {Government = Data.Settlement})
+			end)
+	else
+		Menu:CreateButton("Diplomancy",
+			function(Widget)
+				Menu:ShowOptions()
+			end)
+	end
+
+	--[[Menu.Tabs = Menu:CreateContainer(Menu:GetWidth(), Menu:GetHeight() - 420, Container.Horizontal)
+	Menu.Tabs:CreateButton("Clients",
+		function(Widget)
+		end)
+	Menu.Tabs:CreateButton("Treaties", 
+		function(Widget)
+		end)
+	--DisplayPolicyList(Menu, Menu.Government)
+	Menu:CreateButton("Close",
+		function(Widget)
+			Menu:Close()
+		end)--]]
+	Menu.Tabs = Menu:CreateStack(Menu:GetWidth(), Menu:GetHeight() - 420)
+	local Clients = Menu.Tabs:AddTab("Clients")
+	local Treaties = Menu.Tabs:AddTab("Treaties")
+	Menu:CreateButton("Close",
+		function(Widget)
+			Menu:Close()
+		end)
+end
+
+function TreatyOptions(Menu, TarGov)
+	local PlayerGov = World.GetPlayer():GetGovernment()	
 end
 
 function Menu.Think(Menu)

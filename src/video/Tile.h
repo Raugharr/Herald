@@ -5,13 +5,20 @@
 #ifndef __TILE_H
 #define __TILE_H
 
+#include "../sys/Log.h"
+
 #include <SDL2/SDL.h>
 
 typedef struct SDL_Texture SDL_Texture;
+typedef uint16_t TileAx;
 struct Resource;
 struct MapRenderer;
 
-enum {
+extern const SDL_Point g_TileEvenOffsets[];
+extern const SDL_Point g_TileOddOffsets[];
+extern const SDL_Point g_TileOffsets[];
+
+enum ETileDir {
 	TILE_NORTHWEST,
 	TILE_NORTHEAST,
 	TILE_EAST,
@@ -21,37 +28,86 @@ enum {
 	TILE_SIZE
 };
 
-struct Tile {
-	struct Resource* Image;
-	SDL_Rect Rect; //Area of sprite to render.
-	SDL_Rect SpritePos;//Where to render sprite.
-	SDL_Point TilePos;
-	float Forest;
-	float Unbuildable;
-	int Temperature;
+enum ETileTerrain {
+	TILE_TGRASS,
+	TILE_TBOG,
+	TILE_TFOREST,
+	TILE_THILL,
+	TILE_TMOUNTAIN,
+	TILE_TSIZE
 };
 
-struct Tile* CreateTile(struct MapRenderer* _Renderer, struct Resource* _Image, int _X, int _Y);
+struct TilePoint {
+	TileAx x;
+	TileAx y;
+};
+
+struct TileBase {
+    uint8_t MoveCost;
+};
+
+struct Tile {
+	uint8_t Soil;//How fertile the soil is. Number is between 1-100.
+	uint8_t TileVar; //Which variation the will render.
+	uint8_t TileSheet;
+	uint8_t Terrain;
+	uint32_t Trees;
+};
+
+struct CubeCoord {
+	int32_t q;
+	int32_t r;
+	int32_t s;
+};
+
+struct Tile* CreateTile(struct MapRenderer* _Renderer, uint8_t _TileSheet, uint8_t _TileVar, int _X, int _Y);
 void DestroyTile(struct Tile* _Tile);
-void GetAdjPos(const SDL_Point* _Pos, SDL_Point* _Adj, int _TileDir);
-struct Tile* GetAdjTile(struct MapRenderer* _Map, const struct Tile* _Tile, int _TileDir);
-/**
- * Fills _AdjTiles will every adjacent tile of _Tile. _AdjTiles should be an array of struct Tile* that is TILE_SIZE in length.
- */
-void TileGetAdjTiles(struct MapRenderer* _Renderer, const struct Tile* _Tile, struct Tile** _AdjTiles);
 /**
  * Fills _Offset with the absolute position of the tile facing _Direction away from _Tile.
  */
 void TileAdjTileOffset(const struct SDL_Point* _Tile, int _Direction, SDL_Point* _Offset);
-int TileGetDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End);
-/*
- * Fills _Adj with the next point in the ring and returns the direction of _Adj in relation to _Point.
- * _Point the current point in the ring.
- * _Adj the point that will be filled with the next point in the ring.
- * _RingUsed how much of the current ring have been iterated over already.
- * _Radius how far this ring is from the center of the spiral ring.
- */
-int TileNextInRing(const SDL_Point* _Point, SDL_Point* _Adj, int _RingUsed, int _Radius);
-int TileNextRing(const SDL_Point* _Point, SDL_Point* _New, int _Radius);
+int TileDistance(const struct SDL_Point* _Start, const struct SDL_Point* _End);
+static inline int CubeDistance(const struct CubeCoord* One, const struct CubeCoord* Two) {
+	return (abs(One->q - Two->q) + abs(One->r - Two->r) + abs(One->s - Two->s)) / 2;
+}
+static inline void OffsetToCubeCoord(uint32_t x, uint32_t y, int32_t* q, int32_t* r, int32_t* s) {
+	(*q) = y - (x - (x & 1)) / 2;
+	(*r) = x;
+	(*s) = -(*q) -(*r);
+	Assert((*q) + (*r) + (*s) == 0);
+}
 
+static inline void HexToTile(uint32_t* x, uint32_t* y, const struct CubeCoord* Hex) {
+	*x = Hex->q + (Hex->r - (Hex->r & 1)) / 2;
+	*y = Hex->r;
+}
+
+static inline void HexMult(struct CubeCoord* Hex, int32_t Mult) {
+	Hex->q *= Mult;
+	Hex->r *= Mult;
+	Hex->s *= Mult;	
+}
+
+static inline void TileNeighbor(int Direction, const SDL_Point* Tile, SDL_Point* Out) {
+	SDL_Point Off = g_TileOffsets[Direction + (((Tile->y & 1) == 1) * 6)];
+	Assert(Direction < TILE_SIZE);
+	
+	Out->x = Tile->x + Off.x;	
+	Out->y = Tile->y + Off.y;	
+	/*if((Tile->y & 1) == 0) {
+		Out->x = Tile->x + g_TileEvenOffsets[Direction].x;	
+		Out->y = Tile->y + g_TileEvenOffsets[Direction].y;	
+	} else {
+		Out->x = Tile->x + g_TileOddOffsets[Direction].x;	
+		Out->y = Tile->y + g_TileOddOffsets[Direction].y;	
+	}*/
+}
+
+static inline void TileOffset(int Direction, const SDL_Point* Tile, SDL_Point* Out) {
+	SDL_Point Off = g_TileOffsets[((Tile->y & 1) == 0) * 6];
+	
+	Out->x = Off.x;	
+	Out->y = Off.y;	
+
+}
 #endif

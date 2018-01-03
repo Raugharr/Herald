@@ -6,127 +6,61 @@
 #include "Stack.h"
 
 #include <stdlib.h>
+#include <string.h>
 
-struct Stack* CreateStack() {
-	struct Stack* _Stack = (struct Stack*) malloc(sizeof(struct Stack));
+struct Stack* CreateStack(uint32_t Size) {
+	struct Stack* Stack = (struct Stack*) malloc(sizeof(struct Stack));
 
-	_Stack->Top = NULL;
-	_Stack->Size = 0;
-	return _Stack;
+	Stack->Size = 0;
+	Stack->MaxSize = Size;
+	Stack->Top = calloc(sizeof(void*), Size);
+	return Stack;
 }
 
-struct Stack* CopyStack(struct Stack* _Stack) {
-	struct Stack* _NewStack = (struct Stack*) malloc(sizeof(struct Stack));
-	struct StackNode* _StackNode = _Stack->Top;
-	struct StackNode* _PrevNode = NULL;
-	struct StackNode* _Node = NULL;
+void DestroyStack(struct Stack* Stack) {
+	free(Stack->Top);
+	free(Stack);
+}
 
-	_NewStack->Top = NULL;
-	_NewStack->Size = _Stack->Size;
-	if(_StackNode == NULL)
-		return _NewStack;
-	_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
-	_Node->Prev = NULL;
-	_Node->Data = _StackNode->Data;
-	_StackNode = _StackNode->Prev;
-	while(_StackNode != NULL) {
-		_PrevNode = (struct StackNode*) malloc(sizeof(struct StackNode));
-		_PrevNode->Prev = NULL;
-		_PrevNode->Data = _StackNode->Data;
-		_Node->Prev = _PrevNode;
-		_Node = _PrevNode;
-		_StackNode = _StackNode->Prev;
+void StackPush(struct Stack* Stack, void* Data) {
+	if(Stack->Size >= Stack->MaxSize) {
+		if(Stack->MaxSize == 0) {
+			Stack->MaxSize = 16;
+			Stack->Top = calloc(sizeof(void*), 16);
+		} else {
+			void* Temp = NULL;
+
+			Stack->MaxSize = Stack->MaxSize * 2;
+			Temp = realloc(Stack->Top, Stack->MaxSize * sizeof(void*));
+			if(Temp == NULL) {
+				/*calloc(sizeof(void*), Stack->MaxSize);
+				memcpy(Temp, Stack->Top, sizeof(void*) * Stack->MaxSize);
+				free(Stack->Top);
+				Stack->Top = Temp;*/
+				return;
+			}
+			Stack->Top = Temp;
+		}
 	}
-	return _NewStack;
-}
-void DestroyStack(struct Stack* _Stack) {
-	struct StackNode* _Node = _Stack->Top;
-	struct StackNode* _Temp = NULL;
-
-	while(_Node != NULL) {
-		_Temp = _Node;
-		_Node = _Temp->Prev;
-		free(_Temp);
-	}
-	free(_Stack);
+	Stack->Top[Stack->Size++] = Data;
 }
 
-void StackPush(struct Stack* _Stack, void* _Data) {
-	struct StackNode* _Node = (struct StackNode*) malloc(sizeof(struct StackNode));
-
-	_Node->Data = _Data;
-	_Node->Prev = _Stack->Top;
-	_Stack->Top = _Node;
-	++_Stack->Size;
-}
-
-void* StackPop(struct Stack* _Stack) {
-	void* _Data = NULL;
-	struct StackNode* _Temp = NULL;
-
-	if(_Stack->Top == NULL)
+void* StackPop(struct Stack* Stack) {
+	if(Stack->Size <= 0)
 		return NULL;
-	_Temp = _Stack->Top;
-	_Data = _Temp->Data;
-	_Stack->Top = _Temp->Prev;
-	--_Stack->Size;
-	free(_Temp);
-	return _Data;
+	--Stack->Size;
+	return Stack->Top[Stack->Size];
 }
 
-void* StackGet(struct Stack* _Stack, int _Index) {
-	struct StackNode* _Node = _Stack->Top;
-	int i;
-
-	if(_Index > 0) {
-		if(_Index > _Stack->Size)
+void* StackGet(struct Stack* Stack, int Index) {
+	if(Index > 0) {
+		if(Index >= Stack->Size)
 			return NULL;
-		i = _Stack->Size - _Index;
-		while(i >= _Index) {
-			if(_Node == NULL)
-				return NULL;
-			_Node = _Node->Prev;
-			--i;
-		}
-		return _Node->Data;
-	} else if(_Index < 0) {
-		if(_Index > -(_Stack->Size))
+		return Stack->Top[Index];
+	} else if(Index < 0) {
+		if(Stack->Size + Index < 0)
 			return NULL;
-		i = 0;
-		while(i > _Index) {
-			if(_Node == NULL)
-				return NULL;
-			_Node = _Node->Prev;
-			--i;
-		}
+		return Stack->Top[Stack->Size + Index];
 	}
 	return NULL;
-}
-
-int StackNodeLen(const struct StackNode* _Node) {
-	int _Size = 0;
-
-	if(_Node == NULL)
-		return 0;
-	while(_Node != NULL) {
-		++_Size;
-		_Node = _Node->Prev;
-	}
-	return _Size;
-}
-
-struct StackNode* StackNodeConcat(struct StackNode* _Stack, const struct StackNode* _Cat) {
-	struct StackNode* _Node = NULL;
-	struct StackNode* _Prev = _Stack;
-
-	if(_Cat == NULL)
-		return _Stack;
-	do {
-		_Node = (struct StackNode*) malloc(sizeof(struct StackNode));
-		_Node->Data = _Cat->Data;
-		_Node->Prev = _Prev;
-		_Prev = _Node;
-		_Cat = _Cat->Prev;
-	} while(_Cat != NULL);
-	return _Node;
 }

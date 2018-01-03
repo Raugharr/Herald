@@ -31,3 +31,4 @@ extern int g_BhvActionsSz;
 extern struct GOAPPlanner g_Goap;
 
 #endif
+

@@ -1,5 +1,6 @@
-Menu.__savestate = false
 Menu.moveable = true
+Menu.Width = 400
+Menu.Height = 300
 
 function Menu.Init(Menu, Data)
 	Menu.TextBox = Data["Text"]

@@ -11,56 +11,72 @@
 #include "video/Sprite.h"
 #include "video/QuadTree.h"
 
-void ArmyGoalDisbandThink(struct Army* _Army) {
-	struct Settlement* _Settlement = (struct Settlement*) _Army->Goal.Data;
+void ArmyGoalDisbandThink(struct Army* Army) {
+	struct Settlement* Settlement = (struct Settlement*) Army->Goal.Data;
 
-	if(_Army->Sprite.TilePos.x == _Settlement->Pos.x && _Army->Sprite.TilePos.y == _Settlement->Pos.y) {
-		struct Warband* _Warband = _Army->Warbands;
-		struct Warband* _Temp = NULL;
+	if(Army->Sprite.TilePos.x == Settlement->Pos.x && Army->Sprite.TilePos.y == Settlement->Pos.y) {
+		for(int i = 0; i < Army->Warbands.Size; ++i) {
+			struct Warband* Warband = Army->Warbands.Table[i];
 
-		while(_Warband != NULL) {
-			_Temp = _Warband->Next;
-			DisbandWarband(_Warband);
-			_Warband = _Temp;
+			DisbandWarband(Warband);
 		}
-		ArmyClearPath(_Army);
+		ArmyClearPath(Army);
 		return;
 	}
-	if(_Army->Path.Path.Next == NULL)
-		ArmyAddPath(_Army, _Settlement->Pos.x, _Settlement->Pos.y);
+	if(Army->Path.Path.Next == NULL && Army->CalcPath == false) {
+//		Army->CalcPath = true;
+		ArmyAddPath(Army, Settlement->Pos.x, Settlement->Pos.y);
+	}
 }
 
-void ArmyGoalRaidThink(struct Army* _Army) {
-	struct Settlement* _Settlement = (struct Settlement*) _Army->Goal.Data;
+void ArmyGoalRaidThink(struct Army* Army) {
+	struct Settlement* Settlement = (struct Settlement*) Army->Goal.Data;
 
-	if(PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0) {
-		_Army->Goal.Type = AGOAL_DISBAND;
-		_Army->Goal.Data = _Army->Warbands[0].Settlement;
-		_Army->Goal.Think = ArmyGoalDisbandThink;
+	if(PointEqual(&Army->Sprite.TilePos, &Settlement->Pos) != 0) {
+		Army->Goal.Type = AGOAL_DISBAND;
+		Army->Goal.Data = ((struct Warband*)Army->Warbands.Table[0])->Settlement;
+		Army->Goal.Think = ArmyGoalDisbandThink;
 		return;
 	}
-	if(PointEqual(&_Army->Sprite.TilePos, &_Settlement->Pos) != 0)
+	if(PointEqual(&Army->Sprite.TilePos, &Settlement->Pos) != 0)
 		return;
-	if(_Army->Path.Path.Next == NULL)
-		ArmyAddPath(_Army, _Settlement->Pos.x, _Settlement->Pos.y);
+	if(Army->Path.Path.Next == NULL && Army->CalcPath == false) {
+//		Army->CalcPath = true;
+		ArmyAddPath(Army, Settlement->Pos.x, Settlement->Pos.y);
+	}
 }
 
-void ArmyGoalDefendThink(struct Army* _Army) {
+void ArmyGoalJoinThink(struct Army* Army) {
 
 }
 
-struct ArmyGoal* ArmyGoalRaid(struct ArmyGoal* _Goal, const struct Settlement* _Settlement) {
-	_Goal->Type = AGOAL_RAID;
-	_Goal->Data = _Settlement;
-	_Goal->Think = ArmyGoalRaidThink;
-	_Goal->IsRaid = 1;
-	return _Goal;
+void ArmyGoalDefendThink(struct Army* Army) {
+	DestroyArmy(Army);
 }
 
-struct ArmyGoal* ArmyGoalDefend(struct ArmyGoal* _Goal, const struct Settlement* _Settlement) {
-	_Goal->Type = AGOAL_DEFEND;
-	_Goal->Data = _Settlement;
-	_Goal->Think = ArmyGoalDefendThink;
-	_Goal->IsRaid = 0;
-	return _Goal;
+struct ArmyGoal* ArmyGoalRaid(struct ArmyGoal* Goal, const struct Settlement* Settlement, uint8_t RaidType) {
+	Goal->Type = AGOAL_RAID;
+	Goal->Data = Settlement;
+	Goal->Think = ArmyGoalRaidThink;
+	Goal->IsRaid = 1;
+	Goal->RaidType = RaidType;
+	return Goal;
+}
+
+struct ArmyGoal* ArmyGoalDefend(struct ArmyGoal* Goal, const struct Settlement* Settlement) {
+	Goal->Type = AGOAL_DEFEND;
+	Goal->Data = Settlement;
+	Goal->Think = ArmyGoalDefendThink;
+	Goal->IsRaid = 0;
+	Goal->RaidType = ARMYGOAL_NONE;
+	return Goal;
+}
+
+struct ArmyGoal* ArmyGoalJoin(struct ArmyGoal* Goal, struct Army* Army) {
+	Goal->Type = AGOAL_JOIN;
+	Goal->Data = Army;
+	Goal->Think = ArmyGoalJoinThink;
+	Goal->IsRaid = 0;
+	Goal->RaidType = ARMYGOAL_NONE;
+	return Goal;
 }

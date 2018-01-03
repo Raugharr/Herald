@@ -21,4 +21,7 @@ void* FrameAllocGuard(size_t _Block, size_t _MemGuard);
  */
 void FrameFree();
 void FrameReduce(uint32_t _Size);
+uint32_t FrameSizeRemain();
+void FrameSet(void* Ptr);
 #endif
+

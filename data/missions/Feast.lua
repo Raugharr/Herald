@@ -1,4 +1,4 @@
-Mission.Load {
+--[[Mission.Load {
 	Name = "Harvest feast.",
 	Description = "NoDesc.",
 	OnTrigger = function(Frame)
@@ -14,7 +14,7 @@ Mission.Load {
 	NoMenu = true,
 	Event = Event.OnSpring,
 	Id = "FEAST.1"
-}
+}--]]
 
 Mission.Load {
 	Name = "Fight",
@@ -41,6 +41,23 @@ Mission.Load {
 	OnlyTriggered = false
 }
 
---Mission.Load {
---	
---}
+Mission.Load {
+	Name = "Bedding a maiden.",
+	Description = "NoDesc",
+	Options = {
+		{
+			Text = "Keep it a secret.",
+			Trigger = function(Frame) end,
+			AIUtility = function(Frame) end
+		},
+		{
+			Text = "Give compensation to the father.",
+			Trigger = function(Frame) end,
+			AIUtility  = function(Frame) end
+		}
+	},
+	Event = Event.OnSpring,
+	EventChance = 0.25,
+	--EventChance = 0.01,
+	Id = "FEAST.3"	
+}

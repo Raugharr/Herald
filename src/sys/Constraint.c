@@ -8,112 +8,112 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-struct Constraint* CreateConstraint(int _Min, int _Max) {
-	struct Constraint* _Constraint = (struct Constraint*) malloc(sizeof(struct Constraint));
+struct Constraint* CreateConstraint(int Min, int Max) {
+	struct Constraint* Constraint = (struct Constraint*) malloc(sizeof(struct Constraint));
 
-	_Constraint->Min = _Min;
-	_Constraint->Max = _Max;
-	return _Constraint;
+	Constraint->Min = Min;
+	Constraint->Max = Max;
+	return Constraint;
 }
 
-struct Constraint* CopyConstraint(struct Constraint* _Constrnt) {
-	return CreateConstraint(_Constrnt->Min, _Constrnt->Max);
+struct Constraint* CopyConstraint(struct Constraint* Constrnt) {
+	return CreateConstraint(Constrnt->Min, Constrnt->Max);
 }
 
-struct Constraint** CopyConstraintBnds(struct Constraint** _Constrnt) {
-	int _Size = ConstrntLen(_Constrnt);
-	struct Constraint** _New = calloc(_Size + 1, sizeof(struct Constraint*));
+struct Constraint** CopyConstraintBnds(struct Constraint** Constrnt) {
+	int Size = ConstrntLen(Constrnt);
+	struct Constraint** New = calloc(Size + 1, sizeof(struct Constraint*));
 	int i;
 
-	for(i = 0; i < _Size; ++i)
-		_New[i] = CopyConstraint(_Constrnt[i]);
-	_New[i] = NULL;
-	return _New;
+	for(i = 0; i < Size; ++i)
+		New[i] = CopyConstraint(Constrnt[i]);
+	New[i] = NULL;
+	return New;
 }
 
-void DestroyConstraint(struct Constraint* _Constraint) {
-	free(_Constraint);
+void DestroyConstraint(struct Constraint* Constraint) {
+	free(Constraint);
 }
 
-void DestroyConstrntBnds(struct Constraint** _Constraint) {
-	struct Constraint** _Array = _Constraint;
+void DestroyConstrntBnds(struct Constraint** Constraint) {
+	struct Constraint** Array = Constraint;
 
-	if(_Constraint == NULL)
+	if(Constraint == NULL)
 		return;
-	while((*_Constraint) != NULL) {
-		free(*_Constraint);
-		++_Constraint;
+	while((*Constraint) != NULL) {
+		free(*Constraint);
+		++Constraint;
 	}
-	free(_Array);
+	free(Array);
 }
 
-struct Constraint** CreateConstrntLst(int* _Size, int _Min, int _Max, int _Interval) {
-	int _CurrMin = _Min;
-	int _CurrMax = _Min + _Interval;
-	int _SizeCt = 0;
-	struct Constraint** _List = NULL;
+struct Constraint** CreateConstrntLst(int* Size, int Min, int Max, int Interval) {
+	int CurrMin = Min;
+	int CurrMax = Min + Interval;
+	int SizeCt = 0;
+	struct Constraint** List = NULL;
 	int i;
 
-	_SizeCt = (_Max - _Min) / _Interval;
-	if(_Interval * _SizeCt < _Max)
-		++_SizeCt;
-	_List = (struct Constraint**) malloc(sizeof(struct Constraint) * _SizeCt);
-	for(i = 0; i < _SizeCt; ++i) {
-		if(_CurrMax >= _Max) {
-			_List[i] = CreateConstraint(_CurrMin, _Max);
+	SizeCt = (Max - Min) / Interval;
+	if(Interval * SizeCt < Max)
+		++SizeCt;
+	List = (struct Constraint**) malloc(sizeof(struct Constraint) * (SizeCt + 1));
+	for(i = 0; i < SizeCt; ++i) {
+		if(CurrMax >= Max) {
+			List[i] = CreateConstraint(CurrMin, Max);
 			break;
 		}
-		_List[i] = CreateConstraint(_CurrMin, _CurrMax - 1);
-		_CurrMin += _Interval;
-		_CurrMax += _Interval;
+		List[i] = CreateConstraint(CurrMin, CurrMax - 1);
+		CurrMin += Interval;
+		CurrMax += Interval;
 	}
-	_List[i + 1] = NULL;
-	if(_Size != NULL)
-		*_Size = _SizeCt;
-	return _List;
+	List[i + 1] = NULL;
+	if(Size != NULL)
+		*Size = SizeCt;
+	return List;
 }
 
-struct Constraint** CreateConstrntBnds(int _Size, ...) {
-	va_list _Valist;
-	struct Constraint** _List = NULL;
+struct Constraint** CreateConstrntBnds(int Size, ...) {
+	va_list Valist;
+	struct Constraint** List = NULL;
 
-	va_start(_Valist, _Size);
-	_List = CreateConstrntVaBnds(_Size + 1, _Valist);
-	_List[_Size] = NULL;
-	va_end(_Valist);
-	return _List;
+	va_start(Valist, Size);
+	List = CreateConstrntVaBnds(Size + 1, Valist);
+	List[Size] = NULL;
+	va_end(Valist);
+	return List;
 }
 
-struct Constraint** CreateConstrntVaBnds(int _Size, va_list _List) {
-	int _CurrMin = -1;
-	int _CurrMax = -1;
+struct Constraint** CreateConstrntVaBnds(int Size, va_list List) {
+	int CurrMin = -1;
+	int CurrMax = -1;
 	int i;
-	struct Constraint** _Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (_Size));
+	struct Constraint** Constrnt = (struct Constraint**) malloc(sizeof(struct Constraint) * (Size));
 
-	--_Size;
-	_CurrMin = va_arg(_List, int);
-	_CurrMax = va_arg(_List, int);
-	for(i = 0; i < _Size; ++i) {
-		_Constrnt[i] = CreateConstraint(_CurrMin, _CurrMax);
-		_CurrMin = _CurrMax + 1;
-		_CurrMax = va_arg(_List, int);
+	--Size;
+	CurrMin = va_arg(List, int);
+	CurrMax = va_arg(List, int);
+	for(i = 0; i < Size; ++i) {
+		Constrnt[i] = CreateConstraint(CurrMin, CurrMax);
+		CurrMin = CurrMax + 1;
+		CurrMax = va_arg(List, int);
 	}
-	_Constrnt[_Size] = NULL;
-	return _Constrnt;
+	Constrnt[Size] = NULL;
+	return Constrnt;
 }
 
-int Fuzify(struct Constraint* const * _List, int _Value) {
-	for(int i = 0; *_List != NULL; ++i, ++_List)
-		if((*_List)->Min <= _Value && (*_List)->Max >= _Value)
+int Fuzify(struct Constraint* const * List, int Value) {
+	for(int i = 0; *List != NULL; ++i, ++List)
+		if((*List)->Min <= Value && (*List)->Max >= Value)
 			return i;
 	return -1;
 }
 
-int ConstrntLen(struct Constraint** _List) {
+int ConstrntLen(struct Constraint** List) {
 	int i;
-	int _Size = 0;
+	int Size = 0;
 
-	for(i = 0; _List[i] != NULL; ++i)
-		++_Size;
-	return _Size;
+	for(i = 0; List[i] != NULL; ++i)
+		++Size;
+	return Size;
 }

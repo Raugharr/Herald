@@ -1,6 +1,6 @@
 ManorConstraints = {Min = 100, Max = 400, Interval = 50}
 BabyAvg = {0, 624, 1349, 2599, 4999, 6249, 7499, 8749, 9999}
-AgeGroups = {0, 2190, 4745, 5659, 21900, 36500}
+AgeGroups = {0, 3072, 6656, 9216, 30720, 51200}
 FamilyTypes = {{0.84, "Farmer"}, {0.05, "Herder"}, {0.09, "Hunter"}, {0.01, "Metalsmith"}, {0.01, "Miller"}}
 
 function CopyTable(Old)

@@ -5,100 +5,94 @@
 
 #include "MemoryPool.h"
 
+#include "Log.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <SDL2/SDL.h>
+
+#define MEMPOOL_BLOCKSZ(SizeOf) ((SizeOf) * (sizeof(char) * 8))
+
+struct MemoryPool* CreateMemoryPool(int SizeOf, int Quantity) {
+	struct MemoryPool* MemPool = (struct MemoryPool*) malloc(sizeof(struct MemoryPool));
+
+	CtorMemoryPool(MemPool, SizeOf, Quantity);
+	return MemPool;
+}
+
+void CtorMemoryPool(struct MemoryPool* MemPool, int SizeOf, int Quantity) {
+	struct MemPoolNode* Node = NULL;
+	//int Offset = ceil((sizeof(struct MemPoolNode) + SizeOf) / ((double)8));
+	intptr_t Offset = sizeof(struct MemPoolNode) + SizeOf;
+	struct MemPoolNode* Last = NULL;
+
+	MemPool->BlockPool = (struct MemPoolNode*) calloc(Quantity, MEMPOOL_BLOCKSZ(Offset));
+	MemPool->FreeBlocks = MemPool->BlockPool;
+	MemPool->AllocatedBlocks = NULL;
+	MemPool->Lock = SDL_CreateMutex();
 #ifdef DEBUG
-#include <assert.h>
+	memset(MemPool->BlockPool, 0, (MEMPOOL_BLOCKSZ(Offset) * Quantity));
 #endif
+	MemPool->BlockSize = SizeOf;
+	Node = MemPool->BlockPool;
 
-#define MEMPOOL_BLOCKSZ(_SizeOf) ((_SizeOf) * (sizeof(char) * 8))
-
-struct MemoryPool* CreateMemoryPool(int _SizeOf, int _Quantity) {
-	struct MemoryPool* _MemPool = (struct MemoryPool*) malloc(sizeof(struct MemoryPool));
-	struct MemPoolNode* _Node = NULL;
-	int _Offset = ceil((sizeof(struct MemPoolNode) + _SizeOf) / ((double)(sizeof(char) * 8)));
-	struct MemPoolNode* _Last = NULL;
-
-	_MemPool->BlockPool = (struct MemPoolNode*) calloc(_Quantity, MEMPOOL_BLOCKSZ(_Offset));
-	_MemPool->FreeBlocks = _MemPool->BlockPool;
-	_MemPool->AllocatedBlocks = NULL;
-	_MemPool->Lock = SDL_CreateMutex();
-#ifdef DEBUG
-	memset(_MemPool->BlockPool, 0, (MEMPOOL_BLOCKSZ(_Offset) * _Quantity));
-#endif
-	_MemPool->BlockSize = _SizeOf;
-	_Node = _MemPool->BlockPool;
-
-	for(int i = 0; i < _Quantity; ++i) {
-		_Node->Next = _Node + _Offset;
-		_Node->Prev = _Node - _Offset;
-		_Node = _Node->Next;
+	for(int i = 0; i < Quantity; ++i) {
+		Node->Next = (void*)((intptr_t)Node + Offset);
+		Node = Node->Next;
 	}
-	_Last = ((struct MemPoolNode*)(_MemPool->BlockPool + ((_Quantity - 1) * _Offset)));
-	_Last->Next = NULL;
-	_Last->Prev = _Node;
-	_MemPool->BlockPool->Prev = NULL;
+	Last = ((struct MemPoolNode*)(MemPool->BlockPool + ((Quantity - 1) * Offset)));
+	Last->Next = NULL;
 #ifdef DEBUG
-	_MemPool->MaxSize = _Quantity;
-	_MemPool->Size = _MemPool->MaxSize;
+	MemPool->MaxSize = Quantity;
+	MemPool->Size = MemPool->MaxSize;
 #endif
-	return _MemPool;
 }
-void DestroyMemoryPool(struct MemoryPool* _MemPool) {
-#ifdef DEBUG
-	if(_MemPool != NULL)
-		assert(_MemPool->MaxSize == _MemPool->Size);
-#endif
-	free(_MemPool->BlockPool);
-	SDL_DestroyMutex(_MemPool->Lock);
-	free(_MemPool);
-}
-void* MemPoolAlloc(struct MemoryPool* _MemPool) {
-	struct MemPoolNode* _Node = NULL;
 
-	SDL_LockMutex(_MemPool->Lock);
-	if(_MemPool->FreeBlocks == NULL)
-		return NULL;
-	_Node = _MemPool->FreeBlocks;
-	_MemPool->FreeBlocks = _Node->Next;
-	_Node->Prev = NULL;
-	if(_MemPool->AllocatedBlocks != NULL)
-		_MemPool->AllocatedBlocks->Prev = _Node;
-	_Node->Next = _MemPool->AllocatedBlocks;
-	_MemPool->AllocatedBlocks = _Node;
+void DestroyMemoryPool(struct MemoryPool* MemPool) {
 #ifdef DEBUG
-	if(_MemPool->FreeBlocks < _MemPool->BlockPool && _MemPool->FreeBlocks >= (_MemPool->BlockPool + _MemPool->BlockSize * _MemPool->MaxSize))
-		return NULL;
-	--_MemPool->Size;
+	//if(MemPool != NULL)
+	//	Assert(MemPool->MaxSize == MemPool->Size);
 #endif
-	SDL_UnlockMutex(_MemPool->Lock);
-	return (void*)((char*)_Node + sizeof(struct MemPoolNode));
+	free(MemPool->BlockPool);
+	SDL_DestroyMutex(MemPool->Lock);
+	free(MemPool);
 }
-void MemPoolFree(struct MemoryPool* _MemPool, void* _Ptr) {
-	struct MemPoolNode* _Node = NULL;
+void* MemPoolAlloc(struct MemoryPool* MemPool) {
+	struct MemPoolNode* Node = NULL;
 
-	SDL_LockMutex(_MemPool->Lock);
+	SDL_LockMutex(MemPool->Lock);
+	if(MemPool->FreeBlocks == NULL)
+		return NULL;
+	Node = MemPool->FreeBlocks;
+	MemPool->FreeBlocks = Node->Next;
+	//if(MemPool->AllocatedBlocks != NULL)
+	//	MemPool->AllocatedBlocks->Prev = Node;
+	Node->Next = MemPool->AllocatedBlocks;
+	MemPool->AllocatedBlocks = Node;
 #ifdef DEBUG
-	if(_Ptr < (void*)_MemPool->BlockPool && _Ptr >= (void*)(_MemPool->BlockPool + _MemPool->BlockSize * _MemPool->MaxSize))
+	if(MemPool->FreeBlocks < MemPool->BlockPool && MemPool->FreeBlocks >= (MemPool->BlockPool + MemPool->BlockSize * MemPool->MaxSize))
+		return NULL;
+	--MemPool->Size;
+#endif
+	SDL_UnlockMutex(MemPool->Lock);
+	return (void*)((char*)Node + sizeof(struct MemPoolNode));
+}
+void MemPoolFree(struct MemoryPool* MemPool, void* Ptr) {
+	struct MemPoolNode* Node = NULL;
+
+	SDL_LockMutex(MemPool->Lock);
+#ifdef DEBUG
+	if(Ptr < (void*)MemPool->BlockPool && Ptr >= (void*)(MemPool->BlockPool + MemPool->BlockSize * MemPool->MaxSize))
 		return;
 #endif
-	if(_Ptr == NULL)
+	if(Ptr == NULL)
 		return;
-	_Node = _Ptr - sizeof(struct MemPoolNode);
-	if(_MemPool->FreeBlocks == NULL) {
-		_MemPool->FreeBlocks = _Node;
-		_Node->Next = NULL;
-		_Node->Prev = NULL;
-	} else {
-		_Node->Prev = NULL;
-		_Node->Next = _MemPool->FreeBlocks;
-		_MemPool->FreeBlocks->Prev = _Node;
-		_MemPool->FreeBlocks = _Node;
-	}
+	Node = Ptr - sizeof(struct MemPoolNode);
+	Node->Next = MemPool->FreeBlocks;
+	MemPool->FreeBlocks = Node;
 #ifdef DEBUG
-	++_MemPool->Size;
+	++MemPool->Size;
 #endif
-	SDL_UnlockMutex(_MemPool->Lock);
+	SDL_UnlockMutex(MemPool->Lock);
 }

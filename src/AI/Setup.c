@@ -55,13 +55,14 @@ void BGSetup(struct GOAPPlanner* _Planner, const char** _Atoms, int _AtomSz, Age
 	for(int i = 0; i < _GoalSetSize; ++i) {
 		const char* _Name = g_GoapGoalSetList[i][0];
 		struct GoapGoalSet* _GoalSet = malloc(sizeof(struct GoapGoalSet));
-		int _GoalCt = 1;
+		//int _GoalCt = 1;
+		int _GoalCt = 0;
 
 		GoapGSClear(_GoalSet);
 		_GoalSet->Name = _Name;
-		memset(_GoalSet->Goals, GOAPGS_GOALMAX, sizeof(struct GoapGoal*));
-		for(;g_GoapGoalSetList[i][_GoalCt] != NULL && (_GoalCt - 1) < GOAPGS_GOALMAX; ++_GoalCt) {
-			_GoalSet->Goals[_GoalCt - 1] = GoapGetGoal(_Planner, g_GoapGoalSetList[i][_GoalCt]);
+		//memset(_GoalSet->Goals, GOAPGS_GOALMAX, sizeof(struct GoapGoal*));
+		for(;g_GoapGoalSetList[i][_GoalCt] != NULL && (_GoalCt) < GOAPGS_GOALMAX; ++_GoalCt) {
+			_GoalSet->Goals[_GoalCt] = GoapGetGoal(_Planner, g_GoapGoalSetList[i][_GoalCt]);
 		}
 
 		_Planner->GoalSets[i] = _GoalSet;
@@ -82,3 +83,4 @@ void AIInit(lua_State* _State) {
 void AIQuit() {
 	GoapQuit();
 }
+

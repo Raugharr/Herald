@@ -5,8 +5,9 @@
 
 #include "StackAllocator.h"
 
+#include "Log.h"
+
 #include <stdlib.h>
-#include <assert.h>
 
 void* StackAllocNew(struct StackAllocator* _Alloc, size_t _Size) {
 	void* _Block = NULL;
@@ -52,5 +53,5 @@ void* LifoAlloc(struct LifoAllocator* _Alloc, size_t _Size) {
 
 void LifoFree(struct LifoAllocator* _Alloc, size_t _Size) {
 	_Alloc->ArenaTop = (void*) (_Alloc->ArenaTop - _Size);
-	assert(_Alloc->ArenaBot <= _Alloc->ArenaTop);
+	Assert(_Alloc->ArenaBot <= _Alloc->ArenaTop);
 }

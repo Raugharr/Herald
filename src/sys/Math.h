@@ -11,55 +11,83 @@
 #include <stdint.h>
 
 #ifndef ffs
-#define ffs(_Int) __builtin_ffs(_Int)
+#define ffs(Int) __builtin_ffs(Int)
 #endif
 
 #ifndef bsc //bit set count
-#define bsc(_Int) __builtin_popcount(_Int)
+#define bsc(Int) __builtin_popcount(Int)
 #endif
 
 #ifndef clz
-#define clz(_Int) __builtin_clz(_Int)
+#define clz(Int) __builtin_clz(Int)
 #endif
+
+#ifndef ctz
+#define ctz(Int) __builtin_ctz(Int)
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-#define IsPowTwo(_Pow) (_Pow) > 0 && !((_Pow) & ((_Pow) - 1))
-#define IsNeg(_Int) ((_Int) < 0)
-//_Int becomes _Num more integers away from 0.
-#define AbsAdd(_Int, _Num) ((+1 | ((_Int) >> sizeof(int) * (CHAR_BIT - 1))) * (_Num))
-#define IntSignedness(_Val) (((_Val) != 0) | -(int)((unsigned int)((int) (_Val)) >> (sizeof(int) * CHAR_BIT - 1)))
+#define IsPowTwo(Pow) (Pow) > 0 && !((Pow) & ((Pow) - 1))
+#define IsNeg(Int) ((Int) < 0)
+//_Int becomes Num more integers away from 0.
+#define AbsAdd(Int, Num) ((+1 | ((Int) >> sizeof(int) * (CHAR_BIT - 1))) * (Num))
+#define IntSignedness(Val) (((Val) != 0) | -(int)((unsigned int)((int) (Val)) >> (sizeof(int) * CHAR_BIT - 1)))
+#define sqrt3 (1.732050807568877)
+#define RND_TWIST
+#ifdef RND_TWIST
+#define MATH_RAND_MAX (UINT32_MAX)
+#else
+#define MATH_RAND_MAX (UINT64_MAX)
+#endif
+
+typedef struct SDL_Point SDL_Point;
 
 void MathInit();
 
-uint64_t Random(uint64_t _Min, uint64_t _Max);
+double NormalRandom(void);
+uint64_t Random(uint64_t Min, uint64_t Max);
 uint64_t Rand();
-void Srand(int _Seed);
+uint8_t RandByte();
+void Srand(int Seed);
 
-int min(int _One, int _Two);
-int max(int _One, int _Two);
-int Abs(int _Num);
-static inline int NumberIsInt(double _Number) {
-	return _Number == (int)_Number;
+int min(int One, int Two);
+int max(int One, int Two);
+int Abs(int Num);
+static inline int NumberIsInt(double Number) {
+	return Number == (int)Number;
 }
 
+void NormalizeTable(double* Table, int TableSz);
 /**
- * \brief Takes a table _Table that contains _TableSz elements who's sum is equal to 1.
- * Each element of _Table is multiplied by _Amount and the result is placed into _IntTable.
+ * \brief Takes a table Table that contains TableSz elements who's sum is equal to 1.
+ * Each element of Table is multiplied by Amount and the result is placed into IntTable.
  * If the sum of the multiplication is a number and not an integer a random number between 0
  * and 100 is generated, if the percentile of the number is less than the generated integer 
  * the number is ceiled. Example 3 -> 3, 3.6 has a 60% chance of becomming 4.
- * \param _Table an array that is of _TableSz length and who's elements are summed to 1.
- * \param _IntTable an array of _TableSize that will be filled with the returning values.
- * \param _TableSz The size of both _Table and _IntTable.
- * \param _Amount The sum of the elements that are contained in _IntTable.
+ * \param Table an array that is of TableSz length and who's elements are summed to 1.
+ * \param IntTable an array of TableSize that will be filled with the returning values.
+ * \param TableSz The size of both Table and IntTable.
+ * \param Amount The sum of the elements that are contained in IntTable.
  */ 
-void RandTable(double* _Table, int** _IntTable, int _TableSz, int _Amount);
-double Normalize(int _Num, int _Min, int _Max);
-int NextPowTwo(int _Num);
-int PrevPowTwo(int _Num);
+void RandTable(double* Table, int** IntTable, int TableSz, int Amount);
+double Normalize(int Num, int Min, int Max);
+int NextPowTwo(int Num);
+int PrevPowTwo(int Num);
 int64_t Ipow(int64_t base, uint8_t exp);
-static inline double NormalDistribution(double _Var, uint32_t _Variance, uint32_t _Mean) {
-	return pow(((double)1) / (sqrt(2 * _Variance * M_PI)), (-pow(_Var - _Mean, 2)) / (2 * _Variance));
+uint32_t Isqrt(uint32_t num);
+static inline double NormalDistribution(double Var, uint32_t Variance, uint32_t Mean) {
+	return pow(((double)1) / (sqrt(2 * Variance * M_PI)), (-pow(Var - Mean, 2)) / (2 * Variance));
 }
+
+static inline double Quadratic(uint32_t Num, uint32_t Min, uint32_t Max) {
+	uint32_t Mult = (Num - Min);
+	uint32_t MaxMult = (Max - Min);
+	Mult *= Mult;
+	MaxMult *= MaxMult;
+	return Mult / ((double)MaxMult);
+}
+
+void Centroid(const SDL_Point** Arr, int ArrSz, SDL_Point* Center);
 #endif

@@ -1,0 +1,8 @@
+<<<<<<< HEAD
+SetImage("grass.png")
+SetSpeed(50)
+=======
+SetImage("grass.png")
+SetSpeed(50)
+>>>>>>> origin/backup
+CreateFrames(21, 24, 2, "Anim1")

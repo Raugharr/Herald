@@ -24,91 +24,114 @@ const char* g_BGStateStr[BGBYTE_SIZE] = {
 		"Influence"
 };
 
-void AgentSetState(struct Agent* _Agent, int _State);
+void AgentSetState(struct Agent* Agent, int State);
 
-int AgentICallback(const struct Agent* _One, const struct Agent* _Two) {
-	return _One->Agent->Id - _Two->Agent->Id;
+int AgentICallback(const struct Agent* One, const struct Agent* Two) {
+	return One->Agent->Object.Id - Two->Agent->Object.Id;
 }
 
-int AgentSCallback(const struct BigGuy* _One, const struct Agent* _Two) {
-	return _Two->Agent->Id - _One->Id;
+int AgentSCallback(const struct BigGuy* One, const struct Agent* Two) {
+	return One->Object.Id - Two->Agent->Object.Id;
 }
 
-int BigGuyStateInsert(const struct Agent* _One, const struct Agent* _Two) {
-	return WorldStateCmp(&_One->State, &_Two->State);
+int BigGuyStateInsert(const struct Agent* One, const struct Agent* Two) {
+	return WorldStateCmp(&One->State, &Two->State);
 }
 
-void AgentOnNewPlot(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct Agent* _Agent = _Data->One;
+void AgentOnNewPlot(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Agent* Agent = Data->One;
 
-	_Agent->Update(_Agent, EVENT_NEWPLOT, _Extra2);	
+	Agent->Update(Agent, EVENT_NEWPLOT, Extra2);	
 }
 
-void AgentOnEndPlot(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct Agent* _Agent = _Data->One;
+void AgentOnEndPlot(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Agent* Agent = Data->One;
 
-	_Agent->Update(_Agent, EVENT_ENDPLOT, _Extra1);	
+	Agent->Update(Agent, EVENT_ENDPLOT, Extra1);	
 }
 
-struct Agent* CreateAgent(struct BigGuy* _Guy) {
-	struct Agent* _Agent = (struct Agent*) malloc(sizeof(struct Agent));
+struct Agent* CreateAgent(struct BigGuy* Guy) {
+	struct Agent* Agent = (struct Agent*) malloc(sizeof(struct Agent));
 
-	WorldStateClear(&_Agent->State);
-	WorldStateCare(&_Agent->State);
-	_Agent->Agent = _Guy;
-	_Agent->PlanIdx = AGENT_NOPLAN;
-	_Agent->PlanSz = AGENT_PLANSZ;
-	_Agent->CurrGoal = NULL;
+	WorldStateClear(&Agent->State);
+	WorldStateCare(&Agent->State);
+	Agent->Agent = Guy;
+	Agent->PlanIdx = AGENT_NOPLAN;
+	Agent->PlanSz = AGENT_PLANSZ;
+	Agent->CurrGoal = NULL;
+	Agent->Honor = Random(0, 0xFF);
+	Agent->Greed = Random(0, 0xFF);
 	for(int i = 0; i < AGENT_PLANSZ; ++i)
-		_Agent->Plan[i] = NULL;
-	_Agent->GoalSet = g_Goap.GoalSets[_Guy->Motivation];
-	Assert(_Guy->Motivation < g_Goap.GoalSetCt);
-	InitBlackboard(&_Agent->Blackboard);
-	EventHook(EVENT_NEWPLOT, AgentOnNewPlot, BigGuyHome(_Agent->Agent), _Agent, NULL);
-	EventHook(EVENT_ENDPLOT, AgentOnEndPlot, BigGuyHome(_Agent->Agent), _Agent, NULL);
-	AgentSetState(_Agent, AGENT_SIDLE);
-	return _Agent;
+		Agent->Plan[i] = NULL;
+	//_Agent->GoalSet = g_Goap.GoalSets[Guy->Motivation];
+	Agent->GoalSet = g_Goap.GoalSets[0];
+	InitBlackboard(&Agent->Blackboard);
+	EventHook(EVENT_NEWPLOT, AgentOnNewPlot, BigGuyHome(Agent->Agent), Agent, NULL);
+	EventHook(EVENT_ENDPLOT, AgentOnEndPlot, BigGuyHome(Agent->Agent), Agent, NULL);
+	AgentSetState(Agent, AGENT_SIDLE);
+	return Agent;
 }
-void DestroyAgent(struct Agent* _Agent) {
-	free(_Agent);
+void DestroyAgent(struct Agent* Agent) {
+	EventHookRemove(EVENT_NEWPLOT, BigGuyHome(Agent->Agent), Agent, NULL);
+	EventHookRemove(EVENT_ENDPLOT, BigGuyHome(Agent->Agent), Agent, NULL);
+	free(Agent);
 }
 
-void AgentIdleNewPlot(struct Agent* _Agent, struct Plot* _Plot) {
-	struct BigGuy* _Guy = _Agent->Agent;
-	const struct BigGuyRelation* _LeaderRel = NULL; 
-	const struct BigGuyRelation* _TargetRel = NULL;
+uint16_t ScorePlotLeader(const struct BigGuy* const From, const struct BigGuy* const Leader) {
+	const struct Relation* Rel = GetRelation(From->Relations, Leader); 
+	uint16_t Score = 100;
 
-	if(_Guy == PlotLeader(_Plot) || _Guy == PlotTarget(_Plot))
+	if(Rel == NULL)
+		return Score;
+	Score += Rel->Modifier;
+	Score += Leader->Glory * 2;
+	return Score;
+}
+
+void AgentIdleNewPlot(struct Agent* Agent, struct Plot* Plot) {
+	struct BigGuy* Guy = Agent->Agent;
+	uint16_t Scores[PLOT_SIDES];
+	uint8_t HighScore = PLOT_ATTACKERS;
+
+	if(Plot == NULL) return;
+	if(Guy == PlotLeader(Plot) || Guy == PlotTarget(Plot))
 		return;
-	_LeaderRel = BigGuyGetRelation(_Guy, PlotLeader(_Plot)); 
-	if(PlotTarget(_Plot) != NULL) {
-		_TargetRel = BigGuyGetRelation(_Guy, PlotTarget(_Plot));
+	Scores[PLOT_ATTACKERS] = ScorePlotLeader(Agent->Agent, PlotLeader(Plot));
+	Scores[PLOT_DEFENDERS] = ScorePlotLeader(Agent->Agent, PlotTarget(Plot));
+	if(Scores[PLOT_ATTACKERS] < Scores[PLOT_DEFENDERS])
+		HighScore = PLOT_DEFENDERS;
+	if(Scores[HighScore] * 0.9 <= Scores[(~HighScore) & 1])
+		return;
+	PlotJoin(Plot, HighScore, Guy);
+	/*_LeaderRel = BigGuyGetRelation(Guy, PlotLeader(Plot)); 
+	if(PlotTarget(Plot) != NULL) {
+		TargetRel = BigGuyGetRelation(Guy, PlotTarget(Plot));
 	}
-	if(BigGuyRelAtLeast(_LeaderRel, BGREL_LIKE) != 0 && BigGuyRelAtMost(_TargetRel, BGREL_LIKE) != 0) {
-		PlotJoin(_Plot, PLOT_ATTACKERS, _Guy);	
-	} else if(BigGuyRelAtMost(_LeaderRel, BGREL_DISLIKE) != 0 && BigGuyRelAtLeast(_TargetRel, BGREL_LIKE) != 0) {
-		PlotJoin(_Plot, PLOT_DEFENDERS, _Guy);
-	}
+	if(BigGuyRelAtLeast(LeaderRel, BGREL_LIKE) == true && BigGuyRelAtMost(TargetRel, BGREL_LIKE) == true) {
+		PlotJoin(Plot, PLOT_ATTACKERS, Guy);	
+	} else if(BigGuyRelAtMost(LeaderRel, BGREL_DISLIKE) == true && BigGuyRelAtLeast(TargetRel, BGREL_LIKE) == true) {
+		PlotJoin(Plot, PLOT_DEFENDERS, Guy);
+	}*/
 }
 
-void AgentIdleUpdate(struct Agent* _Agent, int _Event, void* _Data) {
-	if(_Event == EVENT_NEWPLOT)
-		AgentIdleNewPlot(_Agent, _Data);
+void AgentIdleUpdate(struct Agent* Agent, int Event, void* Data) {
+	if(Event == EVENT_NEWPLOT)
+		AgentIdleNewPlot(Agent, Data);
 }
 
-void AgentIdleThink(struct Agent* _Agent) {
+void AgentIdleThink(struct Agent* Agent) {
 
 }
 
-void AgentSetState(struct Agent* _Agent, int _State) {
-	switch(_State) {
+void AgentSetState(struct Agent* Agent, int State) {
+	switch(State) {
 		case AGENT_SACTION:
-			_Agent->GoalState = _State;
-			_Agent->Update = _Agent->CurrGoal->Update;
+			Agent->GoalState = State;
+			Agent->Update = Agent->CurrGoal->Update;
 			break;
 		case AGENT_SIDLE:
-			_Agent->GoalState = _State;
-			_Agent->Update = AgentIdleUpdate;
+			Agent->GoalState = State;
+			Agent->Update = AgentIdleUpdate;
 			break;
 	}
 }
@@ -117,45 +140,45 @@ void AgentSetState(struct Agent* _Agent, int _State) {
  * Every day try to make a plan, if we cannot make a plan then switch our state to
  * AGENT_SIDLE otherwise make our state AGENT_SACTION.
  */
-void AgentThink(struct Agent* _Agent) {
-	if(_Agent->Blackboard.ShouldReplan == 1) {
-		AgentPlan(&g_Goap, _Agent);
+void AgentThink(struct Agent* Agent) {
+/*	if(Agent->Blackboard.ShouldReplan == 1) {
+		AgentPlan(&g_Goap, Agent);
 	}
-	if(_Agent->PlanIdx != -1 && GoapPathDoAction(&g_Goap, _Agent->Plan[_Agent->PlanIdx], &_Agent->State, _Agent) == 1) {
-		const struct GoapAction* _Action = GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
+	if(Agent->PlanIdx != -1 && GoapPathDoAction(&g_Goap, Agent->Plan[Agent->PlanIdx], &Agent->State, Agent) == 1) {
+		const struct GoapAction* Action = Agent->Plan[Agent->PlanIdx]->Action;
 
-		AgentSetState(_Agent, AGENT_SACTION);
-		if(_Action != NULL) {
-			if(_Action->IsComplete(_Agent, _Agent->Plan[_Agent->PlanIdx]->Data) == 0) {
+		AgentSetState(Agent, AGENT_SACTION);
+		if(Action != NULL) {
+			if(Action->IsComplete(Agent, Agent->Plan[Agent->PlanIdx]->Data) == 0) {
 				return;
 			}
-			if(_Action->Destroy != NULL)
-				_Action->Destroy(_Agent);
-			++_Agent->PlanIdx;
-			if(_Agent->PlanIdx >= _Agent->PlanSz) {
-				_Agent->PlanIdx = AGENT_NOPLAN;
-				_Agent->PlanSz = AGENT_PLANSZ;
+			if(Action->Destroy != NULL)
+				Action->Destroy(Agent);
+			++Agent->PlanIdx;
+			if(Agent->PlanIdx >= Agent->PlanSz) {
+				Agent->PlanIdx = AGENT_NOPLAN;
+				Agent->PlanSz = AGENT_PLANSZ;
 			}
 		}
 	} else {
-		AgentSetState(_Agent, AGENT_SIDLE);
-		_Agent->Blackboard.ShouldReplan = 1;
-		AgentIdleThink(_Agent);
-	}
+		AgentSetState(Agent, AGENT_SIDLE);
+		Agent->Blackboard.ShouldReplan = 1;
+		AgentIdleThink(Agent);
+	}*/
 }
 
-const struct GoapAction* AgentGetAction(const struct Agent* _Agent) {
-	if(_Agent->PlanIdx == AGENT_NOPLAN)
+const struct GoapAction* AgentGetAction(const struct Agent* Agent) {
+	if(Agent->PlanIdx == AGENT_NOPLAN)
 		return NULL;
-	return GoapPathGetAction(_Agent->Plan[_Agent->PlanIdx]);
+	return Agent->Plan[Agent->PlanIdx]->Action;
 }
 
-void SensorTargetStrong(struct AgentSensor* _Sensor, struct Agent* _Agent) {
-	if(_Agent->Blackboard.Target == NULL)
+void SensorTargetStrong(struct AgentSensor* Sensor, struct Agent* Agent) {
+	if(Agent->Blackboard.Target == NULL)
 		return;
 }
 
-void ConstructSensorTargetStrong(struct AgentSensor* _Sensor) {
-	_Sensor->Update = SensorTargetStrong;
-	_Sensor->TickMax = 10;	
+void ConstructSensorTargetStrong(struct AgentSensor* Sensor) {
+	Sensor->Update = SensorTargetStrong;
+	Sensor->TickMax = 10;	
 }

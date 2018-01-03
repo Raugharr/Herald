@@ -1,6 +1,6 @@
 /**
- * Author: David Brotz
  * File: Retinue.h
+ * Author: David Brotz
  */
 
 #ifndef __RETINUE_H
@@ -15,35 +15,40 @@
 
 struct BigGuy;
 struct Person;
+struct GameWorld;
 
 struct Retinue {
+	struct Object Object;
 	struct BigGuy* Leader;
 	struct Array Warriors;
-	int16_t  Happiness; //How happy the warriors are with their leader.
-	int16_t RecruitMod;
-	int16_t FamilySz;//The number of people in all the families of the retinue minus the leader.
+	struct Array Children;//Retinues that pay homage to this one.
+	struct Array EquipNeed;
+	struct Settlement* Home;
+	struct Retinue* Parent;
 	int8_t IsRecruiting;
 };
 
+void RetinueGetPos(const void* One, SDL_Point* Pos);
 /**
- *\note Should be added to a settlement by calling SettlementAddRetinue.
+ * Creates a retinue and adds it to the World list of retinues.
  */
-struct Retinue* CreateRetinue(struct BigGuy* _Leader);
-void DestroyRetinue(struct Retinue* _Retinue);
+struct Retinue* CreateRetinue(struct BigGuy* Leader, struct GameWorld* World);
+void DestroyRetinue(struct Retinue* Retinue, struct GameWorld* World);
 
 /**
- *\brief Determines if _Warrior is already in _Retinue.
- *\return a positive non-zero integer if _Warrior is in the retinue and 0 if he is not.
+ *\brief Determines if Warrior is already in Retinue.
+ *\return a positive non-zero integer if Warrior is in the retinue and 0 if he is not.
  */
-static inline int RetinueIsWarrior(const struct Retinue* _Retinue, const struct Person* _Warrior) {
-	return (BinarySearch(_Warrior, _Retinue->Warriors.Table, _Retinue->Warriors.Size, ObjectCmp) != 0);
+static inline int RetinueIsWarrior(const struct Retinue* Retinue, const struct Person* Warrior) {
+	return (BinarySearch(Warrior, Retinue->Warriors.Table, Retinue->Warriors.Size, ObjectCmp) != 0);
 }
 /**
- * \brief Adds _Warrior to _Retinue if they are of the warrior caste and not
+ * \brief Adds Warrior to Retinue if they are of the warrior caste and not
  * already in this retinue.
  */
-void RetinueAddWarrior(struct Retinue* _Retinue, const struct Person* _Warrior);
-void RetinuePayWarriors(struct Retinue* _Retinue);
-void RetinueThink(struct Retinue* _Retinue);
-
+void RetinueAddWarrior(struct Retinue* Retinue, struct Person* Warrior);
+void RetinueRemoveWarrior(struct Retinue* Retinue, struct Person* Warrior);
+void RetinuePayWarriors(struct Retinue* Retinue);
+void RetinueThink(struct Retinue* Retinue);
+void RetinueAddChild(struct Retinue* Parent, struct Retinue* Child);
 #endif

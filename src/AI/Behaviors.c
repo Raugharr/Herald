@@ -14,8 +14,8 @@
 #include "../sys/Math.h"
 
 #include "../BigGuy.h"
-#include "../Actor.h"
 #include "../Population.h"
+#include "../Profession.h"
 #include "../Building.h"
 #include "../Good.h"
 #include "../Crop.h"
@@ -59,218 +59,218 @@ struct LuaBhvAction g_BhvActions[] = {
 
 int g_BhvActionsSz = 0;
 
-int SortBhvActions(const struct LuaBhvAction* _One, const struct LuaBhvAction* _Two) {
-	return strcmp(_One->Name, _Two->Name);
+int SortBhvActions(const struct LuaBhvAction* One, const struct LuaBhvAction* Two) {
+	return strcmp(One->Name, Two->Name);
 }
 
-int BehaviorsInit(lua_State* _State) {
+int BehaviorsInit(lua_State* State) {
 
 	g_BhvActionsSz = LuaActionLen(g_BhvActions);
 	InsertionSort(g_BhvActions, g_BhvActionsSz, (CompCallback) SortBhvActions, sizeof(struct LuaBhvAction));
 	return 1;
 }
 
-int LuaBaCmp(const void* _One, const void* _Two) {
-	return strcmp(((struct LuaBhvAction*)_One)->Name, ((struct LuaBhvAction*)_Two)->Name);
+int LuaBaCmp(const void* One, const void* Two) {
+	return strcmp(((struct LuaBhvAction*)One)->Name, ((struct LuaBhvAction*)Two)->Name);
 }
 
-int PopulationInputReqCmp(const void* _One, const void* _Two) {
-	return ((struct Population*)_One)->Id - ((struct Population*)((struct InputReq*)_Two)->Req)->Id;
+int PopulationInputReqCmp(const void* One, const void* Two) {
+	return ((struct Population*)One)->Id - ((struct Population*)((struct InputReq*)Two)->Req)->Id;
 }
 
-int PAIHasField(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	return (_Family->FieldCt > 0);
+int PAIHasField(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	return (Family->Prof == PROF_FARMER) ? (Family->Farmer.FieldCt > 0) : (0);
 }
 
-int PAIHasHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	for(int i = 0; i < _Family->BuildingCt; ++i)
-		if((_Family->Buildings[i]->ResidentType & ERES_HUMAN) == ERES_HUMAN)
-			return 1;
+int PAIHasHouse(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	//for(int i = 0; i < Family->BuildingCt; ++i)
+	//	if((Family->Buildings[i]->ResidentType & ERES_HUMAN) == ERES_HUMAN)
+	//		return 1;
 	return 0;
 }
 
-int PAIBuildHouse(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+int PAIBuildHouse(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
 	return 1;
 }
 
-int PAICanFarm(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Array = &_Family->Goods;
-	struct GoodBase* _Good = NULL;
-	int _Tools = 0;
+int PAICanFarm(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	struct Array* Array = &Family->Goods;
+	struct GoodBase* Good = NULL;
+	int Tools = 0;
 
-	if(!PAIHasField(_Family, _Vars, _Args, _ArgSize))
+	if(!PAIHasField(Family, Vars, Args, ArgSize))
 		return 0;
-	for(int i = 0; i < _Array->Size; ++i) {
-		_Good = _Array->Table[i];
-		if(_Good->Category == GOOD_TOOL)
-			_Tools |= ((struct ToolBase*)_Good)->Function;
+	for(int i = 0; i < Array->Size; ++i) {
+		Good = Array->Table[i];
+		if(Good->Category == GOOD_TOOL)
+			Tools |= ((struct ToolBase*)Good)->Function;
 	}
-	return ((_Tools & (ETOOL_PLOW | ETOOL_REAP)) == (ETOOL_PLOW | ETOOL_REAP)) ? (1) : (0);
+	return ((Tools & (ETOOL_PLOW | ETOOL_REAP)) == (ETOOL_PLOW | ETOOL_REAP)) ? (1) : (0);
 }
 
-int PAIHasPlow(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Goods = &_Family->Goods;
-	const struct GoodBase* _Good = NULL;
+int PAIHasPlow(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	struct Array* Goods = &Family->Goods;
+	const struct GoodBase* Good = NULL;
 
-	for(int i = 0; i < _Goods->Size; ++i) {
-		_Good = ((struct Good*)_Goods->Table[i])->Base;
-		if(_Good->Category == GOOD_TOOL)
-			if(((struct ToolBase*)_Good)->Function == ETOOL_PLOW)
+	for(int i = 0; i < Goods->Size; ++i) {
+		Good = ((struct Good*)Goods->Table[i])->Base;
+		if(Good->Category == GOOD_TOOL)
+			if(((struct ToolBase*)Good)->Function == ETOOL_PLOW)
 				return 1;
 	};
 	return 0;
 }
 
-int PAIMakeGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	const struct GoodBase* _Good = NULL;
+int PAIMakeGood(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	const struct GoodBase* Good = NULL;
 
-	if(_Args[0].Type != PRIM_STRING && _Args[1]. Type != PRIM_INTEGER)
+	if(Args[0].Type != PRIM_STRING && Args[1]. Type != PRIM_INTEGER)
 		return 0;
-	_Good = HashSearch(&g_Goods, _Args[0].Value.String);
-	GoodMake(_Good, _Args[1].Value.Int, &_Family->Goods, _Family->HomeLoc->Pos.x, _Family->HomeLoc->Pos.y);
+	Good = HashSearch(&g_Goods, Args[0].Value.String);
+	GoodMake(Good, Args[1].Value.Int, &Family->Goods);
 	return 1;
 }
 
-int PAIHasReap(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	struct Array* _Goods = &_Family->Goods;
-	struct GoodBase* _Good = NULL;
+int PAIHasReap(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	struct Array* Goods = &Family->Goods;
+	struct GoodBase* Good = NULL;
 
-	for(int i = 0; i < _Goods->Size; ++i) {
-		_Good = (struct GoodBase*)_Goods->Table[i];
-		if(_Good->Category == GOOD_TOOL)
-			if(((struct ToolBase*)_Good)->Function == ETOOL_REAP)
+	for(int i = 0; i < Goods->Size; ++i) {
+		Good = (struct GoodBase*)Goods->Table[i];
+		if(Good->Category == GOOD_TOOL)
+			if(((struct ToolBase*)Good)->Function == ETOOL_REAP)
 				return 1;
 	}
 	return 0;
 }
 
-int PAIHasAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	if(_Family->Animals.Size > 0)
+int PAIHasAnimals(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	if(Family->Animals.Size > 0)
 		return 1;
 	return 0;
 }
 
-int PAIConstructBuild(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+int PAIConstructBuild(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
 	return 1;
 }
 
-int PAIHasShelter(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	int i;
-	struct Array* _Array = &_Family->Buildings;
-	void** _PerTbl = _Array->Table;
+int PAIHasShelter(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+/*	int i;
+	struct Array* Array = &Family->Buildings;
+	void** PerTbl = Array->Table;
 
-	for(i = 0; i < _Array->Size; ++i)
-		if((((struct Building*)_PerTbl[i])->ResidentType & ERES_ANIMAL) == ERES_ANIMAL)
-			return 1;
+	for(i = 0; i < Array->Size; ++i)
+		if((((struct Building*)PerTbl[i])->ResidentType & ERES_ANIMAL) == ERES_ANIMAL)
+			return 1;*/
 	return 0;
 }
 
-int PAIFeedAnimals(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	int i;
+int PAIFeedAnimals(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	/*int i;
 	int j;
 	int k;
-	int _AnSize = 0;
-	int _TotalNut = 0;
-	struct StackNode _Stack;
-	struct InputReq** _AnimalCt = AnimalTypeCount(&_Family->Animals, &_AnSize);
-	struct InputReq* _Req = NULL;
-	struct Food* _Food = NULL;
-	struct AnimalDep* _Dep = NULL;
+	int AnSize = 0;
+	int TotalNut = 0;
+	struct StackNode Stack;
+	struct InputReq** AnimalCt = AnimalTypeCount(&Family->Animals, &AnSize);
+	struct InputReq* Req = NULL;
+	struct Food* Food = NULL;
+	struct AnimalDep* Dep = NULL;
 
-	if(_AnSize == 0)
+	if(AnSize == 0)
 		return 1;
 
-	_Stack.Prev = NULL;
-	_Stack.Data = NULL;
+	Stack.Prev = NULL;
+	Stack.Data = NULL;
 	for(i = 0; i < g_GameWorld.AnFoodDeps->Size; ++i) {
 		for(j = 0; ((struct AnimalDep*)g_GameWorld.AnFoodDeps->Table[i])->Animals->Size; ++j) {
-			_Dep = ((struct AnimalDep*)g_GameWorld.AnFoodDeps->Table[i]);
-			if((_Req = BinarySearch(_Dep->Animals->Table[j], _AnimalCt, _AnSize, PopulationInputReqCmp)) == NULL)
+			Dep = ((struct AnimalDep*)g_GameWorld.AnFoodDeps->Table[i]);
+			if((Req = BinarySearch(Dep->Animals->Table[j], AnimalCt, AnSize, PopulationInputReqCmp)) == NULL)
 				continue;
-			_TotalNut += _Req->Quantity * ((struct Population*)_Req->Req)->Nutrition;
-			if(_Food->Quantity >= _TotalNut) {
+			TotalNut += Req->Quantity * ((struct Population*)Req->Req)->Nutrition;
+			if(Food->Quantity >= TotalNut) {
 				//TODO: We can do better than this.
-				for(k = 0; k < _Family->Animals.Size; ++k) {
-					if(PopulationCmp(_Family->Animals.Table[k], _Req->Req) == 0)
-						ActorFeed(_Family->Animals.Table[k], ((struct Animal*)_Family->Animals.Table[k])->PopType->Nutrition);
+				for(k = 0; k < Family->Animals.Size; ++k) {
+					if(PopulationCmp(Family->Animals.Table[k], Req->Req) == 0)
+						ActorFeed(Family->Animals.Table[k], ((struct Animal*)Family->Animals.Table[k])->PopType->Nutrition);
 				}
-				_Food->Quantity -= _TotalNut;
+				Food->Quantity -= TotalNut;
 			} else {
-				//struct StackNode _Top;
+				//struct StackNode Top;
 
-				//_Top.Prev = &_Stack;
-				//_Top.Data = _Dep;
+				//_Top.Prev = &Stack;
+				//_Top.Data = Dep;
 			}
 		}
 	}
 	//TODO: Finish below loop.
-	while(_Stack.Prev != NULL) {
-		if((_Req = BinarySearch(_Dep->Animals->Table[j], _AnimalCt, _AnSize, PopulationInputReqCmp)) == NULL)
+	while(Stack.Prev != NULL) {
+		if((Req = BinarySearch(Dep->Animals->Table[j], AnimalCt, AnSize, PopulationInputReqCmp)) == NULL)
 			continue;
-		_Stack = *_Stack.Prev;
+		Stack = *Stack.Prev;
 	}
-	for(i = 0; i < _AnSize; ++i)
-		free(_AnimalCt[i]);
-	free(_AnimalCt);
+	for(i = 0; i < AnSize; ++i)
+		free(AnimalCt[i]);
+	free(AnimalCt);*/
 	return 1;
 }
 
-int PAIMakeFood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	FamilyMakeFood(_Family);
+int PAIMakeFood(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	FamilyMakeFood(Family);
 	return 1;
 }
 
-int PAIHasAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	const struct Population* _Pop = NULL;
+int PAIHasAnimal(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	const struct Population* Pop = NULL;
 
-	if(_Args[0].Type != PRIM_STRING)
+	if(Args[0].Type != PRIM_STRING)
 		return 0;
-	_Pop = HashSearch(&g_Populations, _Args[0].Value.String);
-	for(int i = 0; i < _Family->Animals.Size; ++i) {
-		if(((struct Animal*)_Family->Animals.Table[i])->PopType == _Pop)
+	Pop = HashSearch(&g_Populations, Args[0].Value.String);
+	for(int i = 0; i < Family->Animals.Size; ++i) {
+		if(((struct Animal*)Family->Animals.Table[i])->PopType == Pop)
 			return 1;
 	}
 	return 0;
 }
 
-int PAIBuyAnimal(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+int PAIBuyAnimal(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
 	return 0;
 }
 
-int PAIHasGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	const struct GoodBase* _Base = NULL;
+int PAIHasGood(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	const struct GoodBase* Base = NULL;
 
-	if(_Args[0].Type != PRIM_STRING)
+	if(Args[0].Type != PRIM_STRING)
 		return 0;
-	_Base = HashSearch(&g_Goods, _Args[0].Value.String);
-	for(int i = 0; i < _Family->Goods.Size; ++i) {
-		if(((struct Good*)_Family->Goods.Table[i])->Base == _Base)
+	Base = HashSearch(&g_Goods, Args[0].Value.String);
+	for(int i = 0; i < Family->Goods.Size; ++i) {
+		if(((struct Good*)Family->Goods.Table[i])->Base == Base)
 			return 1;
 	}
 	return 0;
 }
 
-int PAIBuyGood(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
-	const struct GoodBase* _Base = NULL;
+int PAIBuyGood(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
+	const struct GoodBase* Base = NULL;
 
-	if(_Args[0].Type != PRIM_STRING || _Args[1].Type != PRIM_INTEGER)
+	if(Args[0].Type != PRIM_STRING || Args[1].Type != PRIM_INTEGER)
 		return 0;
-	if((_Base = HashSearch(&g_Goods, _Args[0].Value.String)) == NULL) {
-		Log(ELOG_WARNING, "BuyGood: %s is not a good.", _Args[0].Value.String);
+	if((Base = HashSearch(&g_Goods, Args[0].Value.String)) == NULL) {
+		Log(ELOG_WARNING, "BuyGood: %s is not a good.", Args[0].Value.String);
 		return 0;
 	}
-	GoodBuy(_Family, _Base, _Args[1].Value.Int);
+	GoodBuy(Family, Base, Args[1].Value.Int);
 	return 1;
 }
 
-int BHVNothing(struct Family* _Family, struct HashTable* _Vars, const struct Primitive* _Args, int _ArgSize) {
+int BHVNothing(struct Family* Family, struct HashTable* Vars, const struct Primitive* Args, int ArgSize) {
 	return 1;
 }
 
-int LuaActionLen(const struct LuaBhvAction* _Action) {
+int LuaActionLen(const struct LuaBhvAction* Action) {
 	int i = 0;
 
-	while(_Action[i].Name != NULL)
+	while(Action[i].Name != NULL)
 		++i;
 	return i;
 }

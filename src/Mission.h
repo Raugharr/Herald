@@ -24,24 +24,14 @@
 #include "sys/Event.h"
 #include "sys/FrameAllocator.h"
 
+#include "BigGuy.h"
+#include "Crisis.h"
+
 #include <SDL2/SDL.h>
 
 #define MISSION_MAXOPTIONS (6)
-#define MISSION_TYPE(_Cat) ((_Cat) + 1)
-#define MISSION_TYPETOCAT(_Type) ((_Type) - 1)
-
-enum EMissionCategories {
-	MISSIONCAT_BIGGUY,
-	MISSIONCAT_CRISIS,
-	MISSIONCAT_SIZE
-};
-
-enum EMissionFlags {
-	MISSION_FNONE = 0,
-	MISSION_FONLYTRIGGER = (1 << 0),
-	MISSION_FEVENT = (1 << 1),
-	MISSION_FNOMENU = (1 << 2)
-};
+#define MISSION_TYPE(Cat) ((Cat) + 1)
+#define MISSION_TYPETOCAT(Type) ((Type) - 1)
 
 typedef struct lua_State lua_State;
 struct RBTree;
@@ -56,12 +46,25 @@ struct MissionFrame;
 struct LnkLst_Node;
 struct MissionFrame;
 
-typedef uint16_t MLRef;
+typedef int32_t MLRef;
 
 enum MissionEventEnum {
 	MEVENT_SPRING = EVENT_SIZE,
 	MEVENT_FALL,
 	MEVENT_SIZE
+};
+
+enum EMissionCategories {
+	MISSIONCAT_BIGGUY,
+	MISSIONCAT_CRISIS,
+	MISSIONCAT_SIZE
+};
+
+enum EMissionFlags {
+	MISSION_FNONE = 0,
+	MISSION_FONLYTRIGGER = (1 << 0),
+	MISSION_FEVENT = (1 << 1),
+	MISSION_FNOMENU = (1 << 2)
 };
 
 /*
@@ -89,21 +92,22 @@ struct MissionOption {
 struct MissionTextFormat {
 	uint8_t Object;
 	uint8_t Param;
+	uint8_t Extra; //Extra byte for special cases, currently used by MOBJECT_VAR to determine which variable is being referenced.
 };
 
 struct Mission {
 	uint32_t Id;
 	char* Name;
 	char* Description;
+	struct MissionTextFormat* TextFormat;
+	float* MeanMods;
 	double MeanPercent;
 	MLRef Trigger; //Must be true for the mission to be run. Is checked after Trigger is true. //FIXME: Rename to TrigCond. 
 	MLRef OnTrigger;
 	MLRef* MeanModTrig; //Array of Rule* which size is MeanModsSz.
 	struct MissionOption Options[MISSION_MAXOPTIONS];
 	uint32_t TriggerEvent; //List of events that will trigger this mission.
-	float* MeanMods;
-	uint16_t MeanTime;
-	struct MissionTextFormat* TextFormat;
+	uint16_t MeanTime; //FIXME: Only assigned to never read from.
 	uint8_t TextFormatSz;
 	uint8_t OptionCt;
 	uint8_t TriggerType;
@@ -112,57 +116,87 @@ struct Mission {
 };
 
 struct MissionEngine {
+	/**
+	 * FIXME: Instead of using multiple diffenent data structures for ActionMissions and MissionsTrigger,
+	 * simply use a single array where the missions are then sorted if they are an action or a trigger, etc.
+	 * Then store the index where these missions begin and then they can simply be iterated.
+	 */
 	struct RBTree MissionId; //Tree sorted by Mission id.
+	//FIXME: Use array not LinkedList.
 	struct LinkedList MissionsTrigger; //List of all missions that can trigger.
-	struct LinkedList EventMissions[MEVENT_SIZE];
+	struct Mission* ActionMissions[BGACT_SIZE];
+	struct Mission* CrisisMissions[CRISIS_SIZE];
+	struct Array Events[MEVENT_SIZE];
+	struct HashTable Namespaces;
 };
 
-void ConstructMissionEngine(struct MissionEngine* _Engine);
+void ConstructMissionEngine(struct MissionEngine* Engine);
 
-int MissionEngineEvent(const int* _One, const struct LnkLst_Node* _Two);
-void LoadAllMissions(lua_State* _State, struct MissionEngine* _Engine);
-void DestroyMission(struct Mission* _Mission);
-void MissionCheckOption(struct lua_State* _State, struct Mission* _Mission, struct MissionFrame* _Data, int _Option);
-void MissionCall(lua_State* _State, const struct Mission* _Mission, struct BigGuy* _From, struct BigGuy* _Target);
-void MissionAction(const char* _Name, struct BigGuy* _From, struct BigGuy* _Target);
+struct MissionFrame* CreateMissionFrame(struct BigGuy* From, struct BigGuy* Target, const struct Mission* Mission);
+void DestroyMissionFrame(struct MissionFrame* MissionFrame);
 
-void DestroyMissionEngine(struct MissionEngine* _Engine);
-void MissionOnEvent(struct MissionEngine* _Engine, uint32_t _EventType, struct BigGuy* _Guy);
-void MissionEngineThink(struct MissionEngine* _Engine, lua_State* _State, const struct RBTree* _BigGuys);
+int MissionEngineEvent(const int* One, const struct LnkLst_Node* Two);
+void LoadAllMissions(lua_State* State, struct MissionEngine* Engine);
+void DestroyMission(struct Mission* Mission);
+void MissionCheckOption(struct lua_State* State, struct Mission* Mission, struct MissionFrame* Data, int Option);
+void MissionFrameAddVar(struct MissionFrame* Frame, uint8_t VSize, ...);
+void MissionCall(lua_State* State, struct MissionFrame* Frame);
+void MissionAction(const char* Name, struct BigGuy* From, struct BigGuy* Target);
 
-int MissionIdInsert(const int* _One, const struct Mission* _Two);
-int MissionIdSearch(const int* _Id, const struct Mission* _Mission);
-int MissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
-int UsedMissionHeapInsert(const struct QueuedMission* _One, const struct QueuedMission* _Two);
+void DestroyMissionEngine(struct MissionEngine* Engine);
+void MissionOnEvent(struct MissionEngine* Engine, uint32_t EventType, struct BigGuy* Guy, void* Extra);
+void MissionEngineThink(struct MissionEngine* Engine, lua_State* State, const struct RBTree* BigGuys);
+
+int MissionIdInsert(const int* One, const struct Mission* Two);
+int MissionIdSearch(const int* Id, const struct Mission* Mission);
+int MissionHeapInsert(const struct QueuedMission* One, const struct QueuedMission* Two);
+int UsedMissionHeapInsert(const struct QueuedMission* One, const struct QueuedMission* Two);
 /**
- * \brief Searces a string and puts the value of any found format in _FormatOut.
+ * \brief Searces a string and puts the value of any found format in FormatOut.
  * \format used is [Object.Param].
- * \note _FormatOut should be a pointer to a pointer that is an array with a length of _FormatOpsSz.
+ * \note FormatOut should be a pointer to a pointer that is an array with a length of FormatOpsSz.
  */
-const char* MissionFormatText(const char* restrict _FormatIn, const struct MissionTextFormat* _FormatOps, int _FormatOpsSz,
-	const struct MissionFrame* _Frame);
-struct Mission* StrToMission(const char* _Str);
+const char* MissionFormatText(const char* restrict FormatIn, const struct MissionTextFormat* FormatOps, int FormatOpsSz,
+	const struct MissionFrame* Frame);
+struct Mission* MissionStrToId(const char* Str);
 
 //FIXME: These should be seperated into a header for Lua functions.
-int LuaMissionGetOwner(lua_State* _State);
-int LuaMissionGetFrom(lua_State* _State);
-int LuaMissionGetRandomPerson(lua_State* _State);
-int LuaMissionCallById_Aux(lua_State* _State);
-int LuaMissionCallById(lua_State* _State);
-int LuaMissionNormalize(lua_State* _State);
-int LuaMissionFrame(lua_State* _State);
-int LuaMissionAddData(lua_State* _State);
+int LuaMissionGetOwner(lua_State* State);
+int LuaMissionGetFrom(lua_State* State);
+int LuaMissionGetRandomPerson(lua_State* State);
+int LuaMissionQuerySettlement(lua_State* State);
+int LuaMissionCallById_Aux(lua_State* State);
+int LuaMissionCallById(lua_State* State);
+int LuaMissionNormalize(lua_State* State);
+int LuaMissionFrame(lua_State* State);
 
-int LuaMissionLoad(lua_State* _State);
-int LuaMissionFuncWrapper(lua_State* _State);
+int LuaMissionLoad(lua_State* State);
+int LuaMissionFuncWrapper(lua_State* State);
 
-struct GenIterator* CrisisCreateItr(void* _Tree);
+struct GenIterator* CrisisCreateItr(void* Tree);
 
 struct MissionFrame* MissionFrameTop();
-struct BigGuy* MissionFrameOwner(struct MissionFrame* _Data);
-int LuaMissionSetVar(lua_State* _State);
-int LuaMissionGetVar(lua_State* _State);
-const char* MissionParseStr(const char* _Str, uint8_t* _ObjId, uint8_t* _ParamId);
-void InitMissionLua(lua_State* _State);
-int LuaMissionStatUtility(lua_State* _State);
+struct BigGuy* MissionFrameOwner(struct MissionFrame* Data);
+/*
+ * Gets a variable from a Frame's stack.
+ */
+int LuaMissionSetVar(lua_State* State);
+/*
+ * Sets a variable from a Frame's stack.
+ */
+int LuaMissionGetVar(lua_State* State);
+/*
+ * Finds the next valid token in Str. If there is a token found returns the char
+ * immediatly after the found token.
+ * A token is written as either [From.FirstName] or as [FrameVar] where the first
+ * will assume From is a person and get their first name. The second will assume
+ * the token is a variable and output its value as a string.
+ * If a token is given that is incorrect such as [NotaVar] then NULL will be returned
+ * and ObjId and ParamId will be filled with 255.
+ */
+const char* MissionParseStr(const char* Str, struct MissionTextFormat* Format, const struct MissionFrame* Frame);
+void InitMissionLua(lua_State* State);
+int LuaMissionStatUtility(lua_State* State);
+int LuaUtilityLinear(lua_State* State);
+int LuaUtilityQuadratic(lua_State* State);
 #endif

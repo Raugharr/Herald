@@ -26,6 +26,7 @@ void GoapActionAddPrecond(struct GoapAction* _Action, struct GOAPPlanner* _Plann
 
 void GoapActionAddPostcond(struct GoapAction* _Action, struct GOAPPlanner* _Planner, const char* _Atom, int _Value, int _OpCode) {
 	for(int _AtomIdx = 0;_AtomIdx < _Planner->AtomCt; ++_AtomIdx) {
+		//FIXME: No strcmp here.
 		if(strcmp(_Planner->AtomNames[_AtomIdx], _Atom) == 0) {
 			WorldStateSetAtom(&_Action->Postconditions, _AtomIdx, _Value);
 			WorldStateSetOpCode(&_Action->Postconditions, _AtomIdx, _OpCode);

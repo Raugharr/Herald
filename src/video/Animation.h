@@ -56,3 +56,4 @@ void AnimationStart(struct Animation* _Animation, const char* _Name);
 void AnimationStop(struct Animation* _Animation);
 
 #endif
+

@@ -18,21 +18,22 @@ enum CO_STATUS {
 
 struct Coroutine {
 	jmp_buf Jmp; 
-	struct Coroutine* From;
-	int8_t Status;
-	int8_t Stack[CO_STACKSZ];
-	int StackSz; //How much of the stack has been used.
-	int Id;
+	uint32_t Id;
 	void** Args;
-	int ArgCt;
+	int32_t ArgCt;
+	uint16_t StackSz; //How much of the stack has been used.
+	int16_t From;//Id of coroutine this came from
+	int8_t Status;
 	lua_State* LState;
 	Coroutine Routine;
+	int8_t Stack[CO_STACKSZ];
 };
 
 void CoSchedule(Coroutine _Routine);
-int CoSpawn(Coroutine _Routine, int _Argc, ...);
+int CoSpawn(Coroutine _Routine, uint8_t _Argc, ...);
 void CoYield();
 void CoResume(int _Coroutine);
-int CoStackRem();
+uint8_t CoStatus(int _Coroutine);
+uint32_t CoStackRem();
 int CoRunning();
 #endif

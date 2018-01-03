@@ -11,11 +11,13 @@
 
 #define AGENT_PLANSZ (16)
 #define AGENT_NOPLAN (-1)
-#define AgentPlan(_Goap, _Agent) \
+#define AgentPlan(_Goap, Agent) \
+	Agent->PlanSz = 0;																				\
 	GoapPlanUtility(_Goap, (_Agent), &(_Agent)->State, &(_Agent)->PlanSz, (_Agent)->Plan);			\
 	(_Agent)->PlanIdx = 0;																			\
 	(_Agent)->Blackboard.ShouldReplan = 0
 #define AgentHasPlan(_Agent) (_Agent->PlanIdx != AGENT_NOPLAN)
+#define AGENT_MOTSZ (4)
 
 enum {
 	BGBYTE_ISLEADER,
@@ -41,6 +43,17 @@ struct AgentSensor;
 typedef void (*AgentSensorCall)(struct AgentSensor*, struct Agent*);
 typedef void (*AgentStateUpdate)(struct Agent*, int, void*);
 
+//NOTE: Motivations should be used for AI only and should be moved to the AI file.
+struct MotivationRevenge {
+	uint8_t Type;
+	struct Person* Target;
+};
+
+union Motivation {
+	uint8_t Type;
+	struct MotivationRevenge Revenge;
+};
+
 struct AgentSensor {
 	AgentSensorCall Update;
 	int TickTime; //How much time is left before this sensor updates.
@@ -55,26 +68,29 @@ struct AgentInfo {
 struct Agent {
 	struct BigGuy* Agent;
 	void* PlanData;
-	int PlanIdx; //The current plan we are impelenting -1 if none.
-	int PlanSz;
-	int GoalState;
 	AgentStateUpdate Update;
 	const struct GoapGoalSet* GoalSet;
 	const struct GoapGoal* CurrGoal;
 	struct GoapPathNode* Plan[AGENT_PLANSZ];
+	union Motivation* Motivations[AGENT_MOTSZ];
 	struct Blackboard Blackboard;
 	struct AgentSensor Sensors[WorldStateBytes];
 	struct WorldState State;
+	int8_t PlanIdx; //The current plan we are impelenting -1 if none.
+	uint8_t Greed;
+	uint8_t Honor;
+	uint8_t GoalState;
+	uint8_t PlanSz;
 };
 
-int AgentICallback(const struct Agent* _One, const struct Agent* _Two);
-int AgentSCallback(const struct BigGuy* _One, const struct Agent* _Two);
-int BigGuyStateInsert(const struct Agent* _One, const struct Agent* _Two);
+int AgentICallback(const struct Agent* One, const struct Agent* Two);
+int AgentSCallback(const struct BigGuy* One, const struct Agent* Two);
+int BigGuyStateInsert(const struct Agent* One, const struct Agent* Two);
 
-struct Agent* CreateAgent(struct BigGuy* _Guy);
-void DestroyAgent(struct Agent* _Agent);
+struct Agent* CreateAgent(struct BigGuy* Guy);
+void DestroyAgent(struct Agent* Agent);
 
-void AgentThink(struct Agent* _Agent);
-const struct GoapAction* AgentGetAction(const struct Agent* _Agent);
+void AgentThink(struct Agent* Agent);
+const struct GoapAction* AgentGetAction(const struct Agent* Agent);
 
 #endif

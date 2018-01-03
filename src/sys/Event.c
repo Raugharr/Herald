@@ -6,22 +6,19 @@
 #include "Event.h"
 
 #include "MemoryPool.h"
+#include "StackAllocator.h"
 #include "LinkedList.h"
 #include "Queue.h"
 #include "RBTree.h"
 #include "LuaCore.h"
 #include "Log.h"
 
+#include "../World.h"
+#include "../Mission.h"
+
+#include "../video/Gui.h"
 #include "../video/Video.h"
 #include "../video/GuiLua.h"
-
-#include "../Person.h"
-#include "../Family.h"
-#include "../Crop.h"
-#include "../BigGuy.h"
-#include "../Battle.h"
-#include "../Mission.h"
-#include "../Plot.h"
 
 #include <lua/lauxlib.h>
 #include <stdlib.h>
@@ -30,9 +27,9 @@
 #define EVENTPOOL (1024)
 
 static int g_EventTypes[EVENT_SIZE];
-static struct KeyMouseState g_KeyMouseState = {0, 0, 0, 0, 0, 0, {0, 0}, 0};
+static struct KeyMouseState g_KeyMouseState = {0};
 static struct RBTree* g_EventHooks[EVENT_SIZE];
-int g_EventId = 0;
+unsigned int g_EventId = 0;
 const char* g_EventNames[] = {
 		"Crisis",
 		"Feud",
@@ -46,32 +43,34 @@ const char* g_EventNames[] = {
 		NULL
 };
 
-/*int EventCmp(const void** _Vars, const struct EventObserver* _Event) {
-	int _Result = _Vars[0] - _Event->One;
+static EventGeneral g_EventCallbacks [EVENT_SIZE] = {NULL};
 
-	if(_Result != 0)
-		return _Result;
-	if((_Result = _Vars[1] - _Event->Two) != 0)
-		return _Result;
-	return _Result;
+/*int EventCmp(const void** Vars, const struct EventObserver* Event) {
+	int Result = Vars[0] - Event->One;
+
+	if(Result != 0)
+		return Result;
+	if((Result = Vars[1] - Event->Two) != 0)
+		return Result;
+	return Result;
 }*/
 
-int EventCmp(const void* _Owner, const struct EventObserver* _Event) {
-	return _Owner - _Event->OwnerObj;
+int EventCmp(const void* Owner, const struct EventObserver* Event) {
+	return Owner - Event->OwnerObj;
 }
 
-int EventInsert(const struct EventObserver* _One, const struct EventObserver* _Two) {
-	int _Result = _One->EventType - _Two->EventType;
+int EventInsert(const struct EventObserver* One, const struct EventObserver* Two) {
+	int Result = One->EventType - Two->EventType;
 	
-	if(_Result != 0)
-		return _Result;
-	if((_Result = _One->OwnerObj - _Two->OwnerObj) != 0)
-		return _Result;
-	if((_Result = _One->One - _Two->One) != 0)
-		return _Result;
-	if((_Result = _One->Two - _Two->Two) != 0)
-		return _Result;
-	return _Result;
+	if(Result != 0)
+		return Result;
+	if((Result = One->OwnerObj - Two->OwnerObj) != 0)
+		return Result;
+	if((Result = One->One - Two->One) != 0)
+		return Result;
+	if((Result = One->Two - Two->Two) != 0)
+		return Result;
+	return Result;
 }
 
 void EventInit() {
@@ -87,186 +86,169 @@ void EventQuit() {
 		DestroyRBTree(g_EventHooks[i]);
 }
 
-void EventHook(int _EventType, EventCallback _Callback, void* _Owner, void* _Data1, void* _Data2) {
-	struct EventObserver* _New = NULL;
-	struct RBNode* _Node = NULL;
+void EventClear() {
+	for(int i = 0; i < EVENT_SIZE; ++i)
+		RBRemoveAll(g_EventHooks[i], (void(*)(void*))DestroyEventObserver);
+}
 
-	SDL_assert(_EventType >= 0 && _EventType < EVENT_SIZE);
-	_New = CreateEventObserver(_EventType, _Callback, _Owner,  _Data1, _Data2); 
-	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
-		_New->Next = (struct EventObserver*) _Node->Data;
-		_New->Next->Prev = _New;
-		_Node->Data = _New;
+void EventHook(int EventType, EventCallback Callback, void* Owner, void* Data1, void* Data2) {
+	struct EventObserver* New = NULL;
+	struct RBNode* Node = NULL;
+
+	SDL_assert(EventType >= 0 && EventType < EVENT_SIZE);
+	New = CreateEventObserver(EventType, Callback, Owner,  Data1, Data2); 
+	if((Node = RBSearchNode(g_EventHooks[EventType], Owner)) != NULL) {
+		New->Next = (struct EventObserver*) Node->Data;
+		New->Next->Prev = New;
+		Node->Data = New;
 	} else {
-		RBInsert(g_EventHooks[_EventType], _New);
+		RBInsert(g_EventHooks[EventType], New);
 	}
 }
 
-void EventHookRemove(int _EventType, void* _Owner, void* _Data1, void* _Data2) {
-	struct EventObserver* _Obs = NULL;
-	struct RBNode* _Node = NULL;
+void EventHookRemove(int EventType, void* Owner, void* Data1, void* Data2) {
+	struct EventObserver* Obs = NULL;
+	struct RBNode* Node = NULL;
 
-	SDL_assert(_EventType >= 0 && _EventType <=  EVENT_SIZE);
-	if((_Node = RBSearchNode(g_EventHooks[_EventType], _Owner)) != NULL) {
-		_Obs = _Node->Data;
+	Assert(EventType >= 0 && EventType <=  EVENT_SIZE);
+	if((Node = RBSearchNode(g_EventHooks[EventType], Owner)) != NULL) {
+		Obs = Node->Data;
 		do {
 			//One and Two should be equal by definition of being in the RB node.
-			if(_Obs->One == _Data1 && _Obs->Two == _Data2) {
-				ILL_DESTROY(_Node->Data, _Obs);
-				if(_Node->Data == NULL) {
-					RBDeleteNode(g_EventHooks[_EventType], _Node);
-					DestroyEventObserver(_Obs);
+			if(Obs->One == Data1 && Obs->Two == Data2) {
+				struct EventObserver* Next = Obs->Next;
+
+				ILL_DESTROY(Node->Data, Obs);
+				if(Node->Data == NULL) {
+					RBDeleteNode(g_EventHooks[EventType], Node);
+					DestroyEventObserver(Obs);
 					return;
 				}
-				DestroyEventObserver(_Obs);
+				DestroyEventObserver(Obs);
+				Obs = Next;
+				continue;
 			}
-			_Obs = _Obs->Next;
-		} while(_Obs != NULL);
+			Obs = Obs->Next;
+		} while(Obs != NULL);
 	}
 }
 
-void EventHookUpdate(const SDL_Event* _Event) {
-	struct EventObserver* _Obs = NULL;
+void EventHookUpdate(const SDL_Event* Event) {
+	struct EventObserver* Obs = NULL;
 
-	SDL_assert(_Event->type  >= g_EventTypes[0] && _Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
-	_Obs = RBSearch(g_EventHooks[_Event->type - g_EventTypes[0]], _Event->user.data1);
-	while(_Obs != NULL) {
-		_Obs->OnEvent((struct EventData*)_Obs, _Event->user.data1, _Event->user.data2);
-		_Obs = _Obs->Next;
+	SDL_assert(Event->type  >= g_EventTypes[0] && Event->type <=  g_EventTypes[EVENT_SIZE - 1]);
+	Obs = RBSearch(g_EventHooks[Event->type - g_EventTypes[0]], Event->user.data1);
+	while(Obs != NULL) {
+		Obs->OnEvent((struct EventData*)Obs, Event->user.data1, Event->user.data2);
+		Obs = Obs->Next;
 	}
 }
 
-void PushEvent(int _Type, void* _Data1, void* _Data2) {
-	SDL_Event _Event;
+void PushEvent(uint32_t Type, void* Data1, void* Data2) {
+	SDL_Event Event;
 
-	Assert(_Type < EVENT_SIZE);
-	Assert(_Type >= 0);
-	_Event.type = g_EventTypes[_Type];
-	_Event.user.data1 = _Data1;
-	_Event.user.data2 = _Data2;
-	SDL_PushEvent(&_Event);
+	Assert(Type < EVENT_SIZE);
+	Assert(Type >= 0);
+	Event.type = g_EventTypes[Type];
+	Event.user.data1 = Data1;
+	Event.user.data2 = Data2;
+	SDL_PushEvent(&Event);
 }
 
-struct EventObserver* CreateEventObserver(int _EventType, EventCallback _Callback, void* _Owner, void* _One, void* _Two) {
-	struct EventObserver* _Obs = (struct EventObserver*) malloc(sizeof(struct EventObserver));
+struct EventObserver* CreateEventObserver(int EventType, EventCallback Callback, void* Owner, void* One, void* Two) {
+	struct EventObserver* Obs = (struct EventObserver*) malloc(sizeof(struct EventObserver));
 
-	_Obs->EventType = _EventType;
-	_Obs->OnEvent = _Callback;
-	_Obs->OwnerObj = _Owner;
-	_Obs->One = _One;
-	_Obs->Two = _Two;
-	_Obs->Next = NULL;
-	_Obs->Prev = NULL;
-	return _Obs;
+	Obs->EventType = EventType;
+	Obs->OnEvent = Callback;
+	Obs->OwnerObj = Owner;
+	Obs->One = One;
+	Obs->Two = Two;
+	Obs->Next = NULL;
+	Obs->Prev = NULL;
+	return Obs;
 }
-void DestroyEventObserver(struct EventObserver* _EventObs) {
-	free(_EventObs);
+void DestroyEventObserver(struct EventObserver* EventObs) {
+	free(EventObs);
 }
 
 void Events() {
-	SDL_Event _Event;
+	SDL_Event Event;
 
-	GUIMessageCheck(&g_GUIMessageList);
 	KeyMouseStateClear(&g_KeyMouseState);
 	SDL_GetMouseState(&g_KeyMouseState.MousePos.x, &g_KeyMouseState.MousePos.y);
-	while(SDL_PollEvent(&_Event) != 0) {
-		switch(_Event.type) {
+	while(SDL_PollEvent(&Event) != 0) {
+		switch(Event.type) {
 		case SDL_KEYUP:
 		case SDL_KEYDOWN:
-			g_KeyMouseState.KeyboardState = _Event.key.state;
-			g_KeyMouseState.KeyboardButton = _Event.key.keysym.sym;
-			g_KeyMouseState.KeyboardMod = _Event.key.keysym.mod;
+			g_KeyMouseState.KeyboardState = Event.key.state;
+			g_KeyMouseState.KeyboardButton = Event.key.keysym.sym;
+			g_KeyMouseState.KeyboardMod = Event.key.keysym.mod;
 			break;
 		case SDL_MOUSEBUTTONUP:
 		case SDL_MOUSEBUTTONDOWN:
-			g_KeyMouseState.MouseButton = _Event.button.button;
-			g_KeyMouseState.MouseState = _Event.button.state;
-			g_KeyMouseState.MouseClicks = _Event.button.clicks;
-			g_KeyMouseState.MousePos.x = _Event.button.x;
-			g_KeyMouseState.MousePos.y = _Event.button.y;
+			g_KeyMouseState.MouseButton = Event.button.button;
+			g_KeyMouseState.MouseState = Event.button.state;
+			g_KeyMouseState.MouseClicks = Event.button.clicks;
+			g_KeyMouseState.MousePos.x = Event.button.x;
+			g_KeyMouseState.MousePos.y = Event.button.y;
 			break;
 		case SDL_MOUSEMOTION:
 			g_KeyMouseState.MouseMove = 1;
-			g_KeyMouseState.MousePos.x = _Event.motion.x;
-			g_KeyMouseState.MousePos.y = _Event.motion.y;
+			g_KeyMouseState.MousePos.x = Event.motion.x;
+			g_KeyMouseState.MousePos.y = Event.motion.y;
+			break;
+		case SDL_TEXTINPUT:
+			strcpy(g_KeyMouseState.TextBuff, Event.text.text);
+			Assert(g_KeyMouseState.TextBuff[0] != '\0');
+			//VideoTextInput(g_LuaState, Event.text.text, g_KeyMouseState.KeyboardMod);
 			break;
 		}
-		if(_Event.type >= g_EventTypes[0] && _Event.type <= g_EventTypes[EVENT_SIZE - 1]) {
-			EventHookUpdate(&_Event);
-			MissionOnEvent(&g_MissionEngine, _Event.type, _Event.user.data1);
-		}
-		if(_Event.type == g_EventTypes[EVENT_CRISIS]) {
-			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
-				MessageBox("A crisis has occured.");
-		} else if(_Event.type == g_EventTypes[EVENT_FEUD]) {
-			if(((struct BigGuy*)_Event.user.data2) == g_GameWorld.Player)
-				MessageBox("A feud has occured.");
-		} else if(_Event.type == g_EventTypes[EVENT_DEATH]) {
-			if(_Event.user.data1 == g_GameWorld.Player->Person) {
-				MessageBox("You have died.");
-			}
-		} else if(_Event.type == g_EventTypes[EVENT_ENDPLOT]) {
-			struct Plot* _Plot = _Event.user.data1;
-			struct BigGuy* _Loser = _Event.user.data2;
-			struct BigGuy* _Winner = NULL;
-			lua_State* _State = g_LuaState;
+		if(Event.type >= g_EventTypes[0] && Event.type <= g_EventTypes[EVENT_SIZE - 1]) {
+			struct Person* Person = Event.user.data1;
+			struct BigGuy* Guy = RBSearch(&g_GameWorld.BigGuys, Person);
+			int EventId = Event.type - EventUserOffset();
 
-			if(_Loser == (_Winner = PlotLeader(_Plot)))
-				_Winner = PlotTarget(_Plot);
-			if(_Winner == g_GameWorld.Player) {
-				lua_settop(_State, 0);
-				lua_pushstring(_State, "PlotMessage");
-				lua_createtable(_State, 0, 3);
-				lua_pushstring(_State, "Loser");
-				LuaCtor(_State, _Loser, LOBJ_BIGGUY);
-				lua_rawset(_State, -3);
-				lua_pushstring(_State, "Winner");
-				LuaCtor(_State, _Winner, LOBJ_BIGGUY);
-				lua_rawset(_State, -3);
-				lua_pushinteger(g_LuaState, 400);
-				lua_pushinteger(g_LuaState, 300);
-				LuaCreateWindow(_State);
-			} else if(_Loser == g_GameWorld.Player) {
-				char _Buffer[256];
-
-				printf(_Buffer, "%s has suceeded in their plot against you.", _Winner->Person->Name);
-				MessageBox(_Buffer);	
-			}
-			DestroyPlot(_Plot);
-		} else if(_Event.type == g_EventTypes[EVENT_BATTLE]) {
-			struct Battle* _Battle = _Event.user.data1;
-			char _Buffer[256];
-
-			sprintf(_Buffer, "The attacker has lost %i men out of %i. The defender has lost %i men out of %i.",
-					_Battle->Stats.AttkCas, _Battle->Stats.AttkBegin, _Battle->Stats.DefCas, _Battle->Stats.DefBegin);
-			MessageBox(_Buffer);
-			DestroyBattle(_Battle);
-		} else if(_Event.type == g_EventTypes[EVENT_NEWLEADER]) {
-			char _Buffer[256];
-
-			sprintf(_Buffer, "%s has died, all hail %s", ((struct BigGuy*)_Event.user.data1)->Person->Name, ((struct BigGuy*)_Event.user.data2)->Person->Name);
-			MessageBox(_Buffer);
-		} else if(_Event.type == g_EventTypes[EVENT_NEWRECRUIT]) {
-			char _Buffer[256];
-
-			if(_Event.user.data1 == g_GameWorld.Player) {
-				sprintf(_Buffer, "You have recruited %s.", ((struct Person*)_Event.user.data2)->Name);
-				MessageBox(_Buffer);
-			}
+			EventHookUpdate(&Event);
+			if(Guy != NULL)
+				MissionOnEvent(&g_MissionEngine, Event.type - EventUserOffset(), Guy, Event.user.data2);
+			if(g_EventCallbacks[EventId] != NULL) g_EventCallbacks[EventId](Event.user.data1, Event.user.data2);
 		}
 	}
+	//Code to relead a menu.
+	/*
+	if(g_KeyMouseState.KeyboardButton == SDLK_r && g_KeyMouseState.KeyboardState == SDL_RELEASED) {
+		const char* GuiMenu = StackTop(&g_GUIStack);
+		char* Menu = alloca(sizeof(char) * strlen(GuiMenu));
+		char* File = alloca(sizeof(char) * strlen(GuiMenu) + 5);//+ 1 for \0 and 4 for .lua
 
-	if(VideoEvents(&g_KeyMouseState) == 0 && g_GameWorld.IsPaused == 0)
+		chdir("data/gui");
+		strcpy(Menu, GuiMenu);
+		strcpy(File, Menu);
+		strcat(File, ".lua");
+		if(GuiLoadMenu(g_LuaState, File) == true) {
+			lua_settop(g_LuaState, 0);
+			LuaCloseMenu(g_LuaState);
+			lua_settop(g_LuaState, 0);
+			lua_pushstring(g_LuaState, Menu);
+			lua_getglobal(g_LuaState, Menu);
+			lua_pushstring(g_LuaState, "__input");
+			lua_rawget(g_LuaState, -2);
+			lua_remove(g_LuaState, -2);
+			LuaSetMenu(g_LuaState);
+		}
+		chdir("../..");
+	}*/
+	if(VideoEvents(&g_KeyMouseState) == 0)
 		GameWorldEvents(&g_KeyMouseState, &g_GameWorld);
 }
 
-void GetMousePos(struct SDL_Point* _Point) {
-	*_Point = g_KeyMouseState.MousePos;
+void GetMousePos(struct SDL_Point* Point) {
+	*Point = g_KeyMouseState.MousePos;
 }
 
-int StringToEvent(const char* _Str) {
+int StringToEvent(const char* Str) {
 	for(int i = 0; g_EventNames[i] != NULL; ++i) {
-		if(strcmp(_Str, g_EventNames[i]) == 0)
+		if(strcmp(Str, g_EventNames[i]) == 0)
 			return i;
 	}
 	return -1;
@@ -274,4 +256,22 @@ int StringToEvent(const char* _Str) {
 
 int EventUserOffset() {
 	return g_EventTypes[0];
+}
+
+void EventFactionGoalEnd(struct Faction* Faction, uint32_t Goal, lua_State* State) {
+	lua_settop(State, 0);
+	lua_pushstring(State, "FactionBetEnd");
+	lua_createtable(State, 0, 1);
+	lua_pushstring(State, "Faction");
+	LuaCtor(State, Faction, LOBJ_FACTION);
+	lua_rawset(State, -3);
+	lua_pushstring(State, "Goal");
+	lua_pushinteger(State, Goal);
+	lua_rawset(State, -3);
+	LuaCreateWindow(State);	
+}
+
+void EventSetCallback(unsigned int EventId, EventGeneral Callback) {
+	if(EventId >= EVENT_SIZE) return;
+	g_EventCallbacks[EventId] = Callback;
 }

@@ -98,13 +98,13 @@ DATE DateAddInt(DATE _Date, int _Two) {
 	return TO_DATE(_Year, _Month, _Day);
 }
 
-DATE DaysBetween(int _DateOne, int _DateTwo) {
+uint32_t DaysBetween(DATE _DateOne, DATE _DateTwo) {
 	if(_DateTwo < _DateOne)
 		return 0;
 	return DateToDays(_DateTwo) - DateToDays(_DateOne);
 }
 
-int DateToDays(DATE _Date) {
+uint32_t DateToDays(DATE _Date) {
 	int _Total = 0;
 	int _Years = YEAR(_Date);
 	int _Months = MONTH(_Date);
@@ -152,21 +152,14 @@ DATE DaysToDate(int _Days) {
 }
 
 int DateCmp(DATE _One, DATE _Two) {
-	if(YEAR(_One) < YEAR(_Two))
-		return -1;
-	else if(YEAR(_One) > YEAR(_Two))
-		return 1;
+	int16_t _Year = YEAR(_One) - YEAR(_Two);
+	int16_t _Month = MONTH(_One) - MONTH(_Two);
 
-	if(MONTH(_One) < MONTH(_Two))
-		return -1;
-	else if(MONTH(_One) > MONTH(_Two))
-		return 1;
-
-	if(DAY(_One) < DAY(_Two))
-		return -1;
-	else if(DAY(_One) > DAY(_Two))
-		return 1;
-	return 0;
+	if(_Year != 0)
+		return _Year;
+	if(_Month != 0)
+		return _Month;
+	return DAY(_One) - DAY(_Two);
 }
 
 int IsNewMonth(int _Date) {
@@ -178,7 +171,40 @@ void NextDay(DATE* _Date) {
 	int _Month = MONTH(*_Date);
 	int _Year = YEAR(*_Date);
 
-	if((_Month & 1) == 0 || _Month == 7) {
+	switch(_Month) {
+		case 0:
+		case 2:
+		case 4:
+		case 6:
+		case 7:
+		case 8:
+		case 10:
+			if(_Day == 31)
+				goto new_month;
+			break;
+		case 1:
+			if(_Day == 28 || ((_Year % 4) == 0 && _Day == 29))
+				goto new_month;
+		case 11:
+			if(_Day == 30) {
+				++_Year;
+				_Month = 0;
+				_Day = 0;
+				goto end;
+			}
+		default:
+			if(_Day == 30)
+				goto new_month;
+	}
+	++_Day;
+	end:
+	*_Date = TO_DATE(_Year, _Month, _Day);
+	return;
+	new_month:
+	_Day = 0;
+	++_Month;
+	goto end;
+/*	if((_Month & 1) == 0 || _Month == 7) {
 		if(_Day == 31)
 			goto new_month;
 	} else if(_Month == 1) {
@@ -198,6 +224,7 @@ void NextDay(DATE* _Date) {
 	_Day = 0;
 	++_Month;
 	goto end;
+	*/
 }
 
 int YearIsLeap(int _Year) {
@@ -211,4 +238,13 @@ int YearIsLeap(int _Year) {
 		return 1;
 	}
 	return 0;
+}
+
+DATE DateAddMonths(const DATE Date, int Months) {
+	int DateMonths = MONTH(Date) + Months;
+	int Years = YEAR(Date) + DateMonths / MONTHS;
+	int Days = DAY(Date);
+
+	DateMonths = DateMonths % MONTHS;
+	return TO_DATE(Years, DateMonths, Days);
 }

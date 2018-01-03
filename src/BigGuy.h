@@ -8,7 +8,7 @@
 #include "Herald.h"
 #include "WorldState.h"
 #include "World.h"
-#include "BigGuyRelation.h"
+#include "Relation.h"
 #include "Retinue.h"
 
 #include "sys/LinkedList.h"
@@ -20,51 +20,40 @@ struct Person;
 struct Mission;
 struct Trait;
 struct Object;
-struct Feud;
 struct Agent;
 
-#define BIGGUYSTAT_MIN (1)
-#define BIGGUYSTAT_MAX (100)
+#define STAT_MIN (1)
+#define STAT_MAX (100)
 
-#define BG_MINGENSTATS (BGSKILL_SIZE * 60)
-#define BG_MAXGENSTATS (BGSKILL_SIZE * 80)
+#define BG_MINGENSTATS (BGSKILL_SIZE * 45)
+#define BG_MAXGENSTATS (BGSKILL_SIZE * 55)
 #define SKILLCHECK_DEFAULT (100)
 
-#define BigGuyHasPlot(_Guy) (BigGuyGetPlot(_Guy) != NULL)
-
-#define BIGGUY_PERSONALITIES (4)
-
+#define BigGuyHasPlot(Guy) (BigGuyGetPlot(Guy) != NULL)
 
 //These actions should be removed and only GOAP acions should be used instead.
 enum {
 	BGACT_NONE,
-	BGACT_IMRPOVEREL,
+	BGACT_BEFRIEND,
 	BGACT_SABREL,
-	BGACT_GIFT,
-	BGACT_STEALCATTLE,
+	BGACT_STEAL,
 	BGACT_DUEL,
 	BGACT_MURDER,
-	BGACT_DISSENT,
-	BGACT_CONVINCE,
-	BGACT_PLOTOVERTHROW,
+	BGACT_SLANDER,
 	BGACT_SIZE
 };
 
 enum {
 	BGMOT_RULE,
 	BGMOT_WEALTH,
+	BGMOT_REVENGE,
 	BGMOT_SIZE
-};
-
-enum {
-	CRISIS_WARDEATH,
-	CRISIS_SIZE
 };
 
 enum {
 	BGSKILL_COMBAT,
 	BGSKILL_STRENGTH,
-	BGSKILL_TOUGHNESS,
+	BGSKILL_TOUGHNESS, 
 	BGSKILL_AGILITY,
 	BGSKILL_WIT,
 	BGSKILL_CHARISMA,
@@ -72,146 +61,103 @@ enum {
 	BGSKILL_SIZE
 };
 
+//NOTE: Are these two variables used?
 extern const char* g_BGMission[BGACT_SIZE];
-extern const char* g_CrisisStateStr[CRISIS_SIZE];
 extern int g_BGActCooldown[BGACT_SIZE];
 
 struct BigGuyMission {
 	int Type;
 };
 
-struct BigGuyAction {
-	int Type;
-	struct BigGuy* Target;
-	int Modifier;
-	void* Data;
-};
-
-/**
- * Note: Owner and ActionType are declared first to allow an incomplete BigGuyActionHist to 
- * search for a BigGuyActionHist.
- */
-struct BigGuyActionHist {
-	struct BigGuy* Owner;
-	int ActionType;
-	DATE DayDone;
-};
 
 struct BigGuy {
-	int Id;
-	int Type;
-	ObjectThink Think;
-	int LastThink; //In game ticks.
-	struct LnkLst_Node* ThinkObj;
+	struct Object Object;
 	struct Person* Person;
 	struct Agent* Agent;
-	struct BigGuyRelation* Relations;
-	void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
-	int Personality;
-	int Motivation;
-	int TriggerMask; //Mask of all trigger types that have been fired recently.
-	float Authority;
-	float Prestige;
+	struct Relation* Relations;
+	//void(*ActionFunc)(struct BigGuy*, const struct BigGuyAction*);
 	float Popularity; 
-	struct BigGuyAction Action;
-	struct LinkedList Feuds;
+	float Glory;
 	struct LinkedList PlotsAgainst;
 	struct Trait** Traits;
 	int16_t PopularityDelta;
 	uint8_t TraitCt; 
 	uint8_t IsDirty;
 	uint8_t Stats[BGSKILL_SIZE]; //Array of all stats.
+	uint8_t Action;
+	uint8_t ActionTime;//Time to complete.
+	struct BigGuy* ActionTarget;
 };
 
-struct Crisis {
-	struct WorldState State;
-	int TriggerMask;
-	struct BigGuy* Guy;
-};
+void BigGuyDeath(struct BigGuy* Guy);
+struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* Owner, int Action);
+void DestroyBGActionHist(struct BigGuyActionHist* Hist);
+int BigGuyActionHistIS(const struct BigGuyActionHist* One, const struct BigGuyActionHist* Two);
 
-struct BigGuyActionHist* CreateBGActionHist(struct BigGuy* _Owner, int _Action);
-void DestroyBGActionHist(struct BigGuyActionHist* _Hist);
-int BigGuyActionHistIS(const struct BigGuyActionHist* _One, const struct BigGuyActionHist* _Two);
+struct BigGuy* CreateBigGuy(struct Person* Person, uint8_t (*Stats)[BGSKILL_SIZE], int Motivation);
+void DestroyBigGuy(struct BigGuy* BigGuy);
 
-struct Crisis* CreateCrisis(int _Type, struct BigGuy* _Guy);
-void DestroyCrisis(struct Crisis* _Crisis);
+void BigGuyThink(struct BigGuy* Guy);
 
-int CrisisSearch(const struct Crisis* _One, const struct Crisis* _Two);
-int CrisisInsert(const int* _One, const struct Crisis* _Two);
+int BigGuyIdInsert(const struct BigGuy* One, const struct BigGuy* Two);
+int BigGuyIdCmp(const int* Two, const struct BigGuy* BigGuy);
+int BigGuyMissionCmp(const struct BigGuy* BigGuy, const struct Mission* Mission);
+void BigGuySetState(struct BigGuy* Guy, int State, int Value);
 
-struct BigGuy* CreateBigGuy(struct Person* _Person, uint8_t (*_Stats)[BGSKILL_SIZE], int _Motivation);
-void DestroyBigGuy(struct BigGuy* _BigGuy);
-
-void BigGuyThink(struct BigGuy* _Guy);
-
-int BigGuyIdInsert(const struct BigGuy* _One, const struct BigGuy* _Two);
-int BigGuyIdCmp(const int* _Two, const struct BigGuy* _BigGuy);
-int BigGuyMissionCmp(const struct BigGuy* _BigGuy, const struct Mission* _Mission);
-void BigGuySetState(struct BigGuy* _Guy, int _State, int _Value);
-
-struct BigGuy* BigGuyLeaderType(struct Person* _Person);
+//struct BigGuy* BigGuyLeaderType(struct Person* Person);
 
 
 /**
  * Randomly distributes points to the stats that are provided in the variable argument.
- * _StatCt pointers to integers should be supplied to the variable argument followed by
- * _StatCt floats whose cumulative sum is 1. The float numbers represent the percentage of _Points
+ * StatCt pointers to integers should be supplied to the variable argument followed by
+ * StatCt floats whose cumulative sum is 1. The float numbers represent the percentage of Points
  * a random integer will receive.
  */
-void BGStatsRandom(int _Points, int _StatCt, ...);
-int BGRandPopularity(const struct BigGuy* _Guy);
+void BGStatsRandom(int Points, int StatCt, ...);
+int BGRandRes(const struct BigGuy* Guy, int Stat);
 /*
- * Creates a big guy with a stat emphasis on warfare.
+ * Generates a stat block based on a caste.
  */
-void BGStatsWarlord(uint8_t (*_Stats)[BGSKILL_SIZE], int _Points);
+void GenerateStats(uint8_t Caste, uint8_t (*Stats)[BGSKILL_SIZE]);
 
-void BGSetAuthority(struct BigGuy* _Guy, float _Authority);
-void BGSetPrestige(struct BigGuy* _Guy, float _Prestige);
 struct Trait** BGRandTraits();
-int HasTrait(const struct BigGuy* _BigGuy, const struct Trait* _Trait);
+int HasTrait(const struct BigGuy* BigGuy, const struct Trait* Trait);
 
-void BigGuySetAction(struct BigGuy* _Guy, int _Action, struct BigGuy* _Target, void* _Data);
-void BigGuyAddFeud(struct BigGuy* _Guy, struct Feud* _Feud);
-struct Settlement* BigGuyHome(struct BigGuy* _Guy);
-/**
- * Return 1 if _Target's personality is one that _Guy would prefer to have as an acquaintance.
- * Return 0 if _Target's personality is not compatable.
- */
-int BigGuyLikeTrait(const struct BigGuy* _Guy, const struct BigGuy* _Target);
-/**
- * \return A number that exists in [0, 2] that should be used to modify all opinion
- * values that _Guy has of _Target.
- */
-double BigGuyOpinionMod(const struct BigGuy* _Guy, const struct BigGuy* _Target);
+void BigGuySetAction(struct BigGuy* Guy, int Action, struct BigGuy* Target, void* Data);
+struct Settlement* BigGuyHome(struct BigGuy* Guy);
 
 /**
  * \brief
- * Compares  the  _Stat of _One and _Two and returns how sucessful the winner was.
- * If _One has a lower score than _Two a negative value will be returned.
+ * Compares  the  Stat of One and Two and returns how sucessful the winner was.
+ * If One has a lower score than Two a negative value will be returned.
  * If they are equal 0 will be returned.
- * If _Two is greater than _One in the check a positive value will be returned.
+ * If Two is greater than One in the check a positive value will be returned.
  * The value returned will be the diference of the two rolls divided by 10.
  */
-int BigGuyOpposedCheck(const struct BigGuy* _One, const struct BigGuy* _Two, int _Skill); 
+int BigGuyOpposedCheck(const struct BigGuy* One, const struct BigGuy* Two, int Skill); 
 /**
  * \return A positive integer on sucess and zero on failure.
  */
-int BigGuySkillCheck(const struct BigGuy* _Guy, int _Skill, int _PassReq);
+int BigGuySkillCheck(const struct BigGuy* Guy, int Skill, int PassReq);
 /**
- * Similar to BigGuySkillCheck, returns how by how many multiples of 10 _Guy passes or
+ * Similar to BigGuySkillCheck, returns how by how many multiples of 10 Guy passes or
  * fails the skill check by.
  */
-int BigGuySuccessMargin(const struct BigGuy* _Guy, int _Skill, int _PassReq);
+int BigGuySuccessMargin(const struct BigGuy* Guy, int Skill, int PassReq);
 /**
- * \return How many people in _Guy's settlement that currently like him.
+ * \return How many people in Guy's settlement that currently like him.
  */
-int BigGuyPopularity(const struct BigGuy* _Guy);
-void BigGuyPlotTarget(struct BigGuy* _Guy, struct Plot* _Plot);
-int BigGuyPlotPower(const struct BigGuy* _Guy);
+int BigGuyPopularity(const struct BigGuy* Guy);
+void BigGuyPlotTarget(struct BigGuy* Guy, struct Plot* Plot);
+int BigGuyPlotPower(const struct BigGuy* Guy);
+/*
+ * Returns the retinue Leader controls or NULL if Leader does not control a retinue.
+ */ 
+struct Retinue* BigGuyRetinue(const struct BigGuy* Leader, const struct GameWorld* GameWorld);
+bool LeadsRetinue(const struct BigGuy* Leader, const struct GameWorld* GameWorld);
 
-struct Retinue* BigGuyRetinue(const struct BigGuy* _Leader, struct Settlement* _Settlement);
-
-inline static struct Plot* BigGuyGetPlot(struct BigGuy* _Guy) {
-	return RBSearch(&g_GameWorld.PlotList, _Guy);
+inline static struct Plot* BigGuyGetPlot(struct BigGuy* Guy) {
+	return RBSearch(&g_GameWorld.PlotList, Guy);
 }
+void CreateBigGuyRelation(struct BigGuy* Owner, struct BigGuy* Target);
 #endif

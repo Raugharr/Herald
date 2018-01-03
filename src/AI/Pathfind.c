@@ -46,12 +46,12 @@ struct PathData {
 };
 
 struct PathNodeScore {
-	int g;
-	int h;
-	int f;
-	int Direction;
 	const struct Tile* Node;
 	const struct PathNodeScore* Parent;
+	uint16_t g;
+	uint16_t h;
+	uint16_t f;
+	uint8_t Direction;
 };
 
 void PathfindInit() {
@@ -78,6 +78,7 @@ void PathfindQuit() {
 int PathNodeScoreCmp(const void* _One, const void* _Two) {
 	return ((struct PathNodeScore*)_Two)->f - ((struct PathNodeScore*)_One)->f;
 }
+
 
 struct PathNodeScore* CreatePathNodeScore(const struct Tile* _Node, int _g, int _h, int _Direction, struct PathNodeScore* _Parent) {
 	struct PathNodeScore* _NodeScore = (struct PathNodeScore*) MemPoolAlloc(g_PathScorePool);
@@ -185,20 +186,40 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 	struct LnkLst_Node* _Itr = NULL;
 	struct BinaryHeap _OpenList = {NULL, PATHFIND_OPENSIZE, 0, PathNodeScoreCmp};
 	struct PathNodeScore* _Current = NULL;
+	SDL_Point _Pos;
 
 	_OpenList.Table = PathStackNext();
 	BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_StartTile, 0, _Path->Heuristic(_StartTile, _Goal), TILE_SIZE, NULL));
 	while(_OpenList.Size > 0 && _OpenList.Size <= _OpenList.TblSz) {
 		_Current = BinaryHeapTop(&_OpenList);
 		LnkLstPushBack(&_ClosedList, BinaryHeapPop(&_OpenList));
-		if(_Current->Node->TilePos.x == _Goal->TilePos.x && _Current->Node->TilePos.y == _Goal->TilePos.y)
+		if(_Current->Node == _Goal)
 			break;
 		/*
 		 * Fill the open list with _Tile's neighbors.
 		 */
-		TileGetAdjTiles(g_GameWorld.MapRenderer, _Current->Node, _Neighbors);
+		TileToPos(g_GameWorld.MapRenderer, _Current->Node, &_Pos);
+		TileRing(g_GameWorld.MapRenderer, &_Pos, 2, _Neighbors);
 		for(int i = 0; i < TILE_SIZE; ++i) {
 			if(_Neighbors[i] != NULL) {
+				/*
+				 * Check if neighbors are already in open list.
+				 */
+			for(int j = 0; j < _OpenList.Size; ++j)  {
+					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
+					if(_OpenTemp->Node == _Neighbors[i]) {
+						int _gCost = _Current->g + 1;// + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
+						if(_gCost < _OpenTemp->g) {
+							BinaryHeapRemove(&_OpenList, j);
+						//	_OpenTemp->g = _gCost;
+						//	_OpenTemp->f = _OpenTemp->g + _OpenTemp->h;
+						//	BinaryHeapIncrease(&_OpenList, j);
+						goto better_gcost;
+						}
+						goto loop_end;
+					}
+				}
+				better_gcost:;
 				const struct LnkLst_Node* CloseItr = _ClosedList.Front;
 				while(CloseItr != NULL) {
 					const struct PathNodeScore* _Node = (struct PathNodeScore*)CloseItr->Data;
@@ -207,23 +228,9 @@ int PathfindNext(struct PathData* _Path, void* _None) {
 					}
 					CloseItr = CloseItr->Next;
 				}
-				/*
-				 * Check if neighbors are already in open list.
-				 */
-				for(int j = 0; j < _OpenList.Size; ++j)  {
-					struct PathNodeScore* _OpenTemp = (struct PathNodeScore*)_OpenList.Table[j];
-					if(_OpenTemp->Node == _Neighbors[i]) {
-						int _gCost = _Current->g + _Path->Heuristic(_OpenTemp->Node, _Neighbors[i]);
-						if(_gCost < _OpenTemp->g) {
-							_OpenTemp->g = _gCost;
-							BinaryHeapIncrease(&_OpenList, j);
-						}
-						goto loop_end;
-					}
-				}
-					BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
-					loop_end:
-					continue;
+				BinaryHeapInsert(&_OpenList, CreatePathNodeScore(_Neighbors[i], _Current->g + 1, _Path->Heuristic(_Neighbors[i], _Goal), i, _Current));
+				loop_end:
+				continue;
 			}
 		}
 	}
@@ -261,5 +268,6 @@ void Pathfind(int _StartX, int _StartY, int _EndX, int _EndY, struct Path* _Path
 	_PData->Heuristic = _Heuristic;
 	_PData->Callback = _Callback;
 	_PData->Data = _Data;
-	TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (int(*)(void*, void*))PathfindNext, _PData, NULL);
+	PathfindNext(_PData, NULL);
+//	TaskPoolAdd(g_TaskPool, g_TaskPool->Time, (int(*)(void*, void*))PathfindNext, _PData, NULL);
 }

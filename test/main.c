@@ -8,6 +8,8 @@
 #include "RedBlackTest.h"
 #include "IntervalTreeTest.h"
 #include "MathTest.h"
+#include "CoroTest.h"
+#include "GameHarness.h"
 
 #include "../src/sys/LuaCore.h"
 #include "../src/Date.h"
@@ -117,8 +119,10 @@ int main(void) {
 	srunner_add_suite(_Runner, RedBlackSuite());
 	srunner_add_suite(_Runner, IntervalTreeSuite());
 	srunner_add_suite(_Runner, MathSuite());
+	srunner_add_suite(_Runner, CoroSuite());
 	srunner_run_all(_Runner, CK_NORMAL);
 	_FailedCt = srunner_ntests_failed(_Runner);
 	srunner_free(_Runner);
+	GameHarness(0, NULL);
 	return (_FailedCt == 0) ? (EXIT_SUCCESS) : (EXIT_FAILURE);
 }

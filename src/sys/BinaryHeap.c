@@ -33,7 +33,7 @@ void BinaryHeapInsert(struct BinaryHeap* _Heap, void* _Data) {
 	}
 	_Heap->Table[_Heap->Size] = _Data;
 	while(_Parent != _Index) {
-		if(_Heap->Compare(_Data, _Heap->Table[_Parent]) > 0) {
+		if(_Heap->Compare(_Data, _Heap->Table[_Parent]) >= 0) {
 			void* _Temp = _Heap->Table[_Parent];
 
 			_Heap->Table[_Parent] = _Data;
@@ -89,10 +89,6 @@ void* BinaryHeapRemove(struct BinaryHeap* _Heap, int _Index) {
 		_Index = _BestChild;
 	}
 	return _Top;
-}
-
-void* BinaryHeapTop(struct BinaryHeap* _Heap) {
-	return (_Heap->Size > 0) ? (_Heap->Table[0]) : (NULL);
 }
 
 void BinaryHeapIncrease(struct BinaryHeap* _Heap, int _Index) {

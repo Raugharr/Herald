@@ -10,6 +10,7 @@
 #include "Location.h"
 #include "BigGuy.h"
 #include "Policy.h"
+#include "Treaty.h"
 
 #include "video/Video.h"
 
@@ -20,13 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {
-	GOVRANK_MAYOR = 0,
-	GOVRANK_COUNTY = 1,
-	GOVRANK_PROVINCE = 2,
-	GOVRANK_KINGDOM = 4,
-	GOVRANK_ALL = 7
-};
 
 enum {
 	GOVNONE,
@@ -52,7 +46,7 @@ enum {
 	GOVMILLEADER_SIZE
 };
 
-const char* g_GovernmentTypeStr[] = {
+const char* g_GovernmentTypeStr[GOVTYPE_SIZE] = {
 		"Elective",
 		"Monarchy",
 		"Absolute",
@@ -60,15 +54,15 @@ const char* g_GovernmentTypeStr[] = {
 		"Republic",
 		"Democratic",
 		"Theocratic",
-		"Consensus",
-		"Tribal",
 		"Confederacy",
 		"Hegomony",
 		"Federation",
 		"Feudal",
 		"Despotic",
-		"Chiefdom",
-		"Clan"
+		"Clan",
+		"Consensus",
+		"Tribal",
+		"Chiefdom"
 };
 GovernmentSuccession g_GovernmentSuccession[GOVSUCCESSION_SIZE] = {
 		ElectiveNewLeader,
@@ -76,262 +70,466 @@ GovernmentSuccession g_GovernmentSuccession[GOVSUCCESSION_SIZE] = {
 		ElectiveMonarchyNewLeader
 };
 
-void GovOnNewPolicy(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct Government* _Gov = _Data->OwnerObj;
-	struct Policy* _Policy = _Extra2;
+struct BigGuy* CreateNewLeader(struct Government* Gov) {
+	for(int i = 0; i < Gov->Location->People.Size; ++i) {
+		struct Person* Person = Gov->Location->People.Table[i];
+		
+		if((Person->Flags & BIGGUY) != 0 || !IsAlive(Person))
+			continue;
+		if((CanGovern(Gov, Person)) == true) {
+			uint8_t Stats[BGSKILL_SIZE];
 
-	GovernmentAddPolicy(_Gov, _Policy);
+			GenerateStats(Person->Family->Caste, &Stats); 
+			return CreateBigGuy(Person, &Stats, BGMOT_RULE);
+		}
+	}
+	return NULL;
 }
 
-void GovOnChangePolicy(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct Government* _Gov = _Data->OwnerObj;
-	struct ActivePolicy* _Policy = _Extra2;
-	struct ActivePolicy* _OldPolicy = NULL;
+void GovOnRaiseFyrd(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Government* Gov = Data->OwnerObj;
+	struct Army* Army = Extra1;
+	struct ArmyGoal Goal;
+	if(IsPlayer(&g_GameWorld, Gov->Leader)) {
+		//Create window.
+		return;
+	}
+	ArmyGoalJoin(&Goal, Army);
+	GovernmentRaiseArmy(Gov, &Goal);
+}
 
-	for(struct LnkLst_Node* _Itr = _Gov->PolicyList.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		_OldPolicy = _Itr->Data;
-		if(_OldPolicy->Policy != _Policy->Policy)
+void GovOnNewPolicy(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Government* Gov = Data->OwnerObj;
+	struct Policy* Policy = Extra2;
+
+	GovernmentAddPolicy(Gov, Policy);
+}
+
+void GovOnChangePolicy(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Government* Gov = Data->OwnerObj;
+	struct ActivePolicy* Policy = Extra2;
+	struct ActivePolicy* OldPolicy = NULL;
+
+	for(struct LnkLst_Node* Itr = Gov->PolicyList.Front; Itr != NULL; Itr = Itr->Next) {
+		OldPolicy = Itr->Data;
+		if(OldPolicy->Policy != Policy->Policy)
 			continue;
-		GovernmentUpdatePolicy(_Gov, _OldPolicy, _Policy);
+		GovernmentUpdatePolicy(Gov, OldPolicy, Policy);
 		break;
 	}
 }
 
-void GovOnLeaderDeath(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct Government* _Gov = _Data->One;
+void GovOnSucessorDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
+	//struct Person* Person = Extra1;
+	struct Government* Gov = Data->Two;
 
-	EventHookRemove(_Data->EventType, _Data->OwnerObj, _Gov, NULL);
-	_Gov->Leader = _Gov->NextLeader;
-	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
+	if(Gov->Location->People.Size <= 0) {
+		Gov->Object.Flags |= OBJFLAG_DEAD;
+		return;
+	}
+	Gov->NextLeader = g_GovernmentSuccession[(Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](Gov->Leader, Gov);
+	if(Gov->NextLeader == NULL) Gov->NextLeader = CreateNewLeader(Gov); 
+	Assert(Gov->NextLeader != NULL);
+	EventHookRemove(Data->EventType, Data->OwnerObj, Extra1, NULL);
+	EventHook(EVENT_DEATH, GovOnSucessorDeath, Gov->NextLeader->Person, Gov->NextLeader, Gov);
+};
+
+void GovOnLeaderDeath(const struct EventData* Data, void* Extra1, void* Extra2) {
+	struct Government* Gov = Data->Two;//Person->Family->HomeLoc->Government;
+
+	/*if(Gov->NextLeader == NULL) {
+		DestroySettlement(Gov->Location);
+		return;
+	}*/
+	GovernmentSetLeader(Gov, Gov->NextLeader);//g_GovernmentSuccession[(Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](Gov->Leader, Gov->RulerGender));
+	//EventHook(EVENT_DEATH, GovOnLeaderDeath, Guy->Person, Gov, Guy);
 }
 
-void GovOnNewLeader(const struct EventData* _Data, void* _Extra1, void* _Extra2) {
-	struct BigGuy* _NewLeader = _Extra1;
-	struct Government* _Gov = _Data->One;
+struct Government* CreateGovernment(struct Settlement* Settlement, uint32_t GovRule, uint32_t GovStruct, uint32_t GovType, uint32_t GovMix, uint32_t GovRank) {
+	struct Government* Gov = NULL;
 
-	EventHookRemove(_Data->EventType, _Data->OwnerObj, _Gov, NULL);
-	GovernmentSetLeader(_Gov, _NewLeader);
-}
-
-struct Government* CreateGovernment(int _GovType, int _GovRank, struct Settlement* _Settlement) {
-	struct Government* _Gov = NULL;
-
-	if((_GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) == 0) {
+	/*if((GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) == 0) {
 		Log(ELOG_ERROR, "Governement has no rule type.");
 		return NULL;
+	}*/
+	Gov = CreateObject(OBJECT_GOVERNMENT);
+	Gov->GovType = GovRule | GovStruct | GovType | GovMix;
+	Gov->GovRank = (1 << GovRank);
+	Gov->GenderLaw = GOVGEN_MALE;
+	CtorArray(&Gov->SubGovs, 4);
+	ConstructLinkedList(&Gov->PolicyList);
+
+	Gov->Location = Settlement;
+	Gov->Name = "NoName";
+	//Gov->AllowedSubjects = 6;
+	Gov->Owner = NULL;
+	Gov->Leader = NULL;
+	Gov->Relations = NULL;
+	Gov->NextLeader = NULL;
+	Gov->PolicyPop = calloc(g_GameWorld.Policies.Size, sizeof(uint8_t));
+	Gov->PolicyOp = calloc(g_GameWorld.Policies.Size, sizeof(uint8_t));
+
+	//if(GovRank == 0) {
+	ZoneColorDefault(&Gov->ZoneColor);
+	//} else {
+	//	NewZoneColor(&Gov->ZoneColor);
+	//}
+	for(int i = 0; i < g_GameWorld.Policies.Size; ++i) {
+		GovernmentAddPolicy(Gov, g_GameWorld.Policies.Table[i]);
 	}
-	_Gov = (struct Government*) malloc(sizeof(struct Government));
-	_Gov->GovType = _GovType;
-	_Gov->GovRank = (1 << _GovRank);
-	_Gov->RulerGender = EMALE;
-	ConstructLinkedList(&_Gov->SubGovernments);
-	ConstructLinkedList(&_Gov->PolicyList);
-
-	_Gov->AllowedSubjects = 6;
-	_Gov->Owner.Government = NULL;
-	_Gov->Owner.Relation = GOVREL_NONE;
-	_Gov->Leader = NULL;
-	_Gov->NextLeader = NULL;
-
-	_Gov->Location = _Settlement;
-	NewZoneColor(&_Gov->ZoneColor);
-	EventHook(EVENT_NEWPOLICY, GovOnNewPolicy, _Gov, NULL, NULL);
-	EventHook(EVENT_CHANGEPOLICY, GovOnChangePolicy, _Gov, NULL, NULL);
-	return _Gov;
+	EventHook(EVENT_NEWPOLICY, GovOnNewPolicy, Gov, NULL, NULL);
+	EventHook(EVENT_CHANGEPOLICY, GovOnChangePolicy, Gov, NULL, NULL);
+	return Gov;
 }
 
-void DestroyGovernment(struct Government* _Gov) {
-	LnkLstClear(&_Gov->SubGovernments);
-	free(_Gov);
+void DestroyGovernment(struct Government* Gov) {
+	DtorArray(&Gov->SubGovs);
+	free(Gov->PolicyPop);
+	free(Gov->PolicyOp);
+	DestroyObject(&Gov->Object);
 }
 
-void GovernmentThink(struct Government* _Gov) {
+void GovernmentThink(struct Government* Gov) {
 	if(NEWYEAR(g_GameWorld.Date) != 0) {
-		for(int i = 0; i < CASTE_SIZE; ++i)
-			if(_Gov->CastePreference[i] > 0)
-				--_Gov->CastePreference[i];
 	}
 }
 
-void GovernmentLowerRank(struct Government* _Gov, int _NewRank, struct LinkedList* _ReleasedSubjects) {
-	if(_NewRank >= _Gov->GovRank)
+/*void GovernmentLowerRank(struct Government* Gov, int NewRank, struct LinkedList* ReleasedSubjects) {
+	if(NewRank >= Gov->GovRank)
 		return;
-	while(_Gov->SubGovernments.Size > _Gov->AllowedSubjects)
-		LnkLstPushBack(_ReleasedSubjects, LnkLstPopFront(&_Gov->SubGovernments));
-	_Gov->GovRank = _NewRank;
-}
-
-const char* GovernmentTypeToStr(int _GovType, int _Mask) {
-	int _Ct = 0;
-
-	_GovType = _GovType & _Mask;
-	while((_GovType & 1) != 1) {
-		_GovType = _GovType >> 1;
-		++_Ct;
+	while(Gov->SubGovs.Size > Gov->AllowedSubjects) {
+		LnkLstPushBack(ReleasedSubjects, LnkLstPopFront(&Gov->SubGovs));
 	}
-	if(_Ct >= GOVTYPE_SIZE)
-		return "None";
-	return g_GovernmentTypeStr[_Ct];
+	Gov->GovRank = NewRank;
+}*/
+
+const char* GovernmentTypeToStr(int GovType, int Mask) {
+	//int Ct = 0;
+
+	//GovType = ctz(GovType & Mask);
+	//GovType = GovType & Mask;
+	//while((GovType & 1) != 1) {
+	//	GovType = GovType >> 1;
+	//	++Ct;
+	//}
+//	if(Ct >= GOVTYPE_SIZE)
+//		return "None";
+	return g_GovernmentTypeStr[ctz(GovType & Mask)];
 }
 
-void GovernmentLesserJoin(struct Government* _Parent, struct Government* _Subject, int _Relation) {
-	if(_Subject->GovRank >= _Parent->GovRank) {
-		struct LinkedList _List = {0, NULL, NULL};
-		struct LnkLst_Node* _Itr = NULL;
+void GovernmentLesserJoin(struct Government* Parent, struct Government* Subject) {
+	struct GameWorld* World = &g_GameWorld;
+	struct Retinue* Retinue = NULL;
+	struct Retinue* SubRet = NULL;
 
-		GovernmentLowerRank(_Subject, _Parent->GovRank - 1, &_List);
-		_Itr = _List.Front;
-		while(_Itr != NULL) {
-			((struct Government*)_Itr->Data)->Owner.Government = _Parent;
-			LnkLstPushBack(&_Parent->SubGovernments, (struct Government*)_Itr->Data);
-			_Itr = _Itr->Next;
+	Assert(Parent != Subject);
+	if(Parent == Subject) return;
+	if(Subject->Owner == Parent) return;
+	if(Parent->Location != NULL) Retinue = QTGetPoint(World->RetinueLoc, &Parent->Location->Pos, RetinueGetPos);
+	if(Subject->Location != NULL) SubRet = QTGetPoint(World->RetinueLoc, &Subject->Location->Pos, RetinueGetPos);
+	if(Retinue != NULL && SubRet != NULL) {
+		if(SubRet->Warriors.Size == 0) {
+			struct BigGuy* Leader = SubRet->Leader;
+
+			DestroyRetinue(SubRet, World);
+			RetinueAddWarrior(Retinue, Leader->Person);
+		} else {
+			Assert(SubRet->Parent == NULL);
+			RetinueAddChild(Retinue, SubRet);
 		}
-		LnkLstClear(&_List);
 	}
-	_Subject->Owner.Government = _Parent;
-	_Subject->Owner.Relation = _Relation;
-	_Subject->ZoneColor = _Parent->ZoneColor;
+	if(Parent->SubGovs.Size == 0) {
+		NewZoneColor(&Parent->ZoneColor);
+	}
+	ArrayInsert_S(&Parent->SubGovs, Subject);
+	Subject->Owner = Parent;
+	Subject->ZoneColor = Parent->ZoneColor;
 }
 
-struct BigGuy* MonarchyNewLeader(const struct Government* _Gov) {
-	struct Family* _Family = _Gov->Leader->Person->Family;
-	struct BigGuy* _Guy = NULL;
+struct BigGuy* MonarchyNewLeader(const struct BigGuy* Guy, const struct Government* Gov) {
+	struct Family* Family = Guy->Person->Family;
+	struct BigGuy* NewLeader = NULL;
 
-	for(int i = 0; i < FAMILY_PEOPLESZ; ++i)
-		if(_Family->People[i]->Gender == EMALE && _Family->People[i]->Age >= ADULT_AGE) {
-			if((_Guy = RBSearch(&g_GameWorld.BigGuys, _Family->People[i])) == NULL) {
-				uint8_t _BGStats[BGSKILL_SIZE];
+	for(int i = CHILDREN; i < CHILDREN + Family->NumChildren; ++i)
+		if(CanGovern(Gov, Family->People[i]) == true) {
+			if((NewLeader = RBSearch(&g_GameWorld.BigGuys, Family->People[i])) == NULL) {
+				uint8_t Stats[BGSKILL_SIZE];
 
-				BGStatsWarlord(&_BGStats, Random(BG_MINGENSTATS, BG_MAXGENSTATS));
-				return CreateBigGuy(_Family->People[i], &_BGStats, BGMOT_WEALTH);
+
+				GenerateStats(Family->Caste, &Stats);
+				return CreateBigGuy(Family->People[i], &Stats, BGMOT_WEALTH);
 			}
-			return _Guy;	
+			return NewLeader;	
 		}
 	return NULL;
 }
 
-struct BigGuy* ElectiveNewLeader(const struct Government* _Gov) {
-	struct LnkLst_Node* _Itr = _Gov->Location->BigGuys.Front;
-	struct BigGuy* _Guy = NULL;
-	struct Person* _Person = NULL;
-	struct BigGuy* _BestCanidate = NULL;
-	int _BestPopularity = 0;
-	int _Popularity = 0;
+struct BigGuy* ElectiveNewLeader(const struct BigGuy* OldLeader, const struct Government* Gov) {
+	struct LnkLst_Node* Itr = Gov->Location->BigGuys.Front;
+	struct BigGuy* Guy = NULL;
+	struct Person* Person = NULL;
+	struct BigGuy* BestCanidate = NULL;
+	int BestPopularity = 0;
+	int Popularity = 0;
 
-	while(_Itr != NULL) {
-		_Guy = ((struct BigGuy*)_Itr->Data);
-		_Person = _Guy->Person;
-		if(_Gov->Leader->Person != _Person 
-			&& (_Person->Gender &_Gov->RulerGender) != 0 
-			&& _Person->Age >= ADULT_AGE
-			&& (_Popularity = BigGuyPopularity(_Guy)) > _BestPopularity) {
-			_BestCanidate = _Guy;
-			_BestPopularity = _Popularity;
+	while(Itr != NULL) {
+		Guy = ((struct BigGuy*)Itr->Data);
+		Person = Guy->Person;
+		if(CanGovern(Gov, Person) == true 
+			&& (Popularity = BigGuyPopularity(Guy)) > BestPopularity
+			&& Guy != OldLeader) {
+			BestCanidate = Guy;
+			BestPopularity = Popularity;
 		}
-		_Itr = _Itr->Next;
+		Itr = Itr->Next;
 	}
-	return _BestCanidate;
+	return BestCanidate;
 }
 
-struct BigGuy* ElectiveMonarchyNewLeader(const struct Government* _Gov) {
-	struct Settlement* _Settlement = _Gov->Location; 
-	struct LnkLst_Node* _Itr = _Settlement->BigGuys.Front;
-	struct Person* _Person = NULL;
-	_Person = ((struct BigGuy*)_Itr->Data)->Person;
+struct BigGuy* ElectiveMonarchyNewLeader(const struct BigGuy* OldLeader, const struct Government* Gov) {
+	struct Settlement* Settlement = OldLeader->Person->Family->HomeLoc; 
+	struct LnkLst_Node* Itr = Settlement->BigGuys.Front;
+	struct Person* Person = NULL;
+	Person = ((struct BigGuy*)Itr->Data)->Person;
 
-	while(_Itr != NULL) {
-		_Person = ((struct BigGuy*)_Itr->Data)->Person;
-		if(_Person->Family->Id == _Person->Family->Id && _Person->Gender == EMALE && _Person->Age >= ADULT_AGE) {
-			return (struct BigGuy*)_Itr->Data;
+	while(Itr != NULL) {
+		Person = ((struct BigGuy*)Itr->Data)->Person;
+		if(/*(Person->Family->Object.Id == Person->Family->Object.Id) &&*/ CanGovern(Gov, Person) == true) {
+			return (struct BigGuy*)Itr->Data;
 		}
-		_Itr = _Itr->Next;
+		Itr = Itr->Next;
 	}
 	return NULL;
 }
 
-struct Government* GovernmentTop(struct Government* _Gov) {
+struct Government* GovernmentTop(const struct Government* Gov) {
 	do {
-		if(_Gov->Owner.Government != NULL)
-			_Gov = _Gov->Owner.Government;
+		if(Gov->Owner != NULL)
+			Gov = Gov->Owner;
 		else
 			break;
 	} while(1);
-	return _Gov;
+	return Gov;
 }
 
-void GovernmentSetLeader(struct Government* _Gov, struct BigGuy* _Guy) {
-	_Gov->Leader = _Guy;
-	_Gov->NextLeader = g_GovernmentSuccession[(_Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](_Gov);
-	if((_Gov->GovType & GOVSTCT_CHIEFDOM) == GOVSTCT_CHIEFDOM) {
-		_Gov->Appointments.Steward = _Guy;
-		_Gov->Appointments.Judge = _Guy;
-		_Gov->Appointments.Marshall = _Guy;
+void GovernmentSetLeader(struct Government* Gov, struct BigGuy* Leader) {
+	Assert(Leader != NULL);
+	if((Gov->Object.Flags & OBJFLAG_DEAD) == OBJFLAG_DEAD) {
+		return;
 	}
-	EventHook(EVENT_DEATH, GovOnLeaderDeath, _Guy->Person, _Gov, _Guy);
-}
-
-void GovernmentAddPolicy(struct Government* _Gov, const struct Policy* _Policy) {
-	struct ActivePolicy* _ActPol = malloc(sizeof(struct ActivePolicy));
-	int _Idx = 0;
-
-	Assert(_Policy->OptionsSz < POLICY_SUBSZ);
-	_ActPol->Policy = _Policy;
-	for(int i = 0; _Policy->Options.Size[i] > 0 && i < POLICY_SUBSZ; ++i) {
-		for(int j = 0; j < CASTE_SIZE; ++j) {
-			_Gov->CastePreference[j] += _Policy->Options.Options[_Idx].CastePreference[j];
+	if(Gov->Leader != NULL) EventHookRemove(EVENT_DEATH, Gov->Leader->Person, Gov->Leader, Gov); 
+	if(Gov->NextLeader != NULL) EventHookRemove(EVENT_DEATH, Gov->NextLeader->Person, Gov->NextLeader, Gov);
+	Gov->Leader = Leader;
+	Gov->NextLeader = g_GovernmentSuccession[(Gov->GovType & (GOVRULE_ELECTIVE | GOVRULE_MONARCHY)) - 1](Gov->Leader, Gov);
+	//TODO: If NextLeader is NULL then no sutable BigGuy could be found, a new BigGuy should be created.
+	if(Gov->NextLeader == NULL) {
+		Gov->NextLeader = CreateNewLeader(Gov);
+		if(Gov->NextLeader == NULL) {
+			ObjectDie(&Gov->Object);
+			return;
 		}
-		_ActPol->OptionSel[i] = 0;
-		_Idx += _Policy->Options.Size[i];
 	}
-	LnkLstPushBack(&_Gov->PolicyList, _ActPol);
+	EventHook(EVENT_DEATH, GovOnSucessorDeath, Gov->NextLeader->Person, Gov->NextLeader, Gov);
+	EventHook(EVENT_DEATH, GovOnLeaderDeath, Gov->Leader->Person, Gov->Leader, Gov);
 }
 
-void GovernmentRemovePolicy(struct Government* _Gov, const struct Policy* _Policy) {
-	for(struct LnkLst_Node* _Itr = _Gov->PolicyList.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		if(((struct ActivePolicy*)_Itr->Data)->Policy == _Policy) {
-			LnkLstRemove(&_Gov->PolicyList, _Itr);
+void GovernmentAddPolicy(struct Government* Gov, const struct Policy* Policy) {
+	struct ActivePolicy* ActPol = malloc(sizeof(struct ActivePolicy));
+
+	ActPol->Policy = Policy;
+	ActPol->OptionSel = 0;
+	LnkLstPushBack(&Gov->PolicyList, ActPol);
+}
+
+void GovernmentRemovePolicy(struct Government* Gov, const struct Policy* Policy) {
+	for(struct LnkLst_Node* Itr = Gov->PolicyList.Front; Itr != NULL; Itr = Itr->Next) {
+		if(((struct ActivePolicy*)Itr->Data)->Policy == Policy) {
+			LnkLstRemove(&Gov->PolicyList, Itr);
 			return;
 		}
 	}
 }
 
-void GovernmentUpdatePolicy(struct Government* _Gov, struct ActivePolicy* _OldPolicy, const struct ActivePolicy* _Policy) {
-	struct BigGuy* _Guy = NULL;
-	struct BigGuy* _Leader = _Gov->Leader;
-	const struct PolicyOption* _Option = NULL;
-
-	for(int i = 0; i < _OldPolicy->Policy->OptionsSz; ++i) {
-		if(_OldPolicy->OptionSel[i] == _Policy->OptionSel[i] || _Policy->OptionSel[i] == POLICYACT_IGNORE)
-			continue;
-		_Option = PolicyRow(_Policy->Policy, i, _Policy->OptionSel[i]);
-		for(int j = 0; j < CASTE_SIZE; ++j) {
-			_Gov->CastePreference[j] += _Option->CastePreference[j];
-		}
-		for(struct LnkLst_Node* _Itr = _Gov->Location->BigGuys.Front; _Itr != NULL; _Itr = _Itr->Next) {
-			_Guy = _Itr->Data;
-			if(_Guy == _Leader)
-				continue;
-			BigGuyAddOpinion(
-				_Guy,
-				_Leader,
-				ACTTYPE_POLICY,
-				_Option->CastePreference[PERSON_CASTE(_Guy->Person)],
-				OPNLEN_MEDIUM,
-				OPINION_AVERAGE	
-				);
-		}
-		_OldPolicy->OptionSel[i] = _Policy->OptionSel[i];
-		break;
-	}
+void GovernmentUpdatePolicy(struct Government* Gov, struct ActivePolicy* OldPolicy, const struct ActivePolicy* Policy) {
+		OldPolicy->OptionSel = Policy->OptionSel;
 }
 
-int GovernmentHasPolicy(const struct Government* _Gov, const struct Policy* _Policy) {
-	struct ActivePolicy* _ActPol = NULL;
+int GovernmentHasPolicy(const struct Government* Gov, const struct Policy* Policy) {
+	struct ActivePolicy* ActPol = NULL;
 
-	for(struct LnkLst_Node* _Itr = _Gov->PolicyList.Front; _Itr != NULL; _Itr = _Itr->Next) {
-		_ActPol = _Itr->Data;
-		if(_ActPol->Policy == _Policy)
+	for(struct LnkLst_Node* Itr = Gov->PolicyList.Front; Itr != NULL; Itr = Itr->Next) {
+		ActPol = Itr->Data;
+		if(ActPol->Policy == Policy)
 			return 1;
 	}
 	return 0;
+}
+
+const char* GovernmentRankStr(const struct Government* Gov) {
+	switch(Gov->GovRank) {
+		case GOVRANK_SETTLEMENT:
+			return "Clan";
+		case GOVRANK_COUNTY:
+			return "Tribe";
+		case GOVRANK_KINGDOM:
+			return "Kingdom";
+		case GOVRANK_EMPIRE:
+			return "Empire";
+	}
+	return "None";
+}
+
+void GovernmentRaiseArmy(struct Government* Gov, struct ArmyGoal* Goal) {
+	switch(Gov->ArmyLaw) {
+		case GOVARMY_NO:
+			break;	
+		case GOVARMY_ASK:
+			break;
+		case GOVARMY_YES:
+		SettlementRaiseFyrd(Gov->Location, Goal);
+		for(int i = 0; i < Gov->SubGovs.Size; ++i) {
+			//struct Government* Lgov = Gov->SubGovs.Table[i];
+			PushEvent(EVENT_RAISEFYRD, Gov, Goal);
+			//GovernmentRaiseArmy(Lgov, Goal);
+		}
+			break;
+	}
+}
+
+bool CanGovern(const struct Government* Gov, const struct Person* Person) {
+	bool CanGovern = false;
+
+	switch(Gov->GenderLaw) {
+		case GOVGEN_MALEPERF:
+		case GOVGEN_MALE: 
+			CanGovern = (Gender(Person) == MALE);
+			break;
+		case GOVGEN_BOTH: 
+			CanGovern = true;
+			break;
+		case GOVGEN_FEMALE: 
+			CanGovern = (Gender(Person) == FEMALE);
+			break;
+	}
+	if(CanGovern == false) return false;
+	return (PersonMature(Person) == true);
+}
+
+struct Treaties* GovernmentFindTreaties(const struct Government* Owner, const struct Government* Target) {
+	struct Treaties* List = NULL;
+
+	for(int i = 0; i < Owner->Treaties.Size; ++i) {
+		List = Owner->Treaties.Table[i];
+		if(List->Target == Target) return List;
+	}
+	return NULL;
+
+}
+
+int ScoreAlliance(const struct Government* From, const struct Government* Target) {
+	struct Relation* Relation = GetRelation(From->Relations, Target);
+	int Modifier = 0;
+	int Distance = GovernmentGetDistance(From, Target);
+	int SizeDiff = GovernmentCmpPower(From, Target);
+
+	if(Relation != NULL) Modifier = Relation->Modifier;
+	return Modifier + 50 + (20 - Distance) + GovernmentCmpPower(From, Target);
+}
+
+int ScoreFealtyRequest(const struct Government* From, const struct Government* Target) {
+	struct Relation* Relation = GetRelation(From->Relations, Target);
+	int Modifier = 0;
+	int Distance = GovernmentGetDistance(From, Target);
+
+	if(Relation != NULL) Modifier = Relation->Modifier;
+	return Modifier + (20 - Distance) + GovernmentCmpPower(Target, From);
+}
+
+int ScoreFealtyDemand(const struct Government* From, const struct Government* Target) {
+	struct Relation* Relation = GetRelation(From->Relations, Target);
+	int Modifier = 0;
+	int Distance = GovernmentGetDistance(From, Target);
+
+	if(Relation != NULL) Modifier = Relation->Modifier;
+	return Modifier + (20 - Distance) + GovernmentCmpPower(From, Target);
+}
+
+void GovernmentLesserRemove(struct Government* Government) {
+	struct Government* Parent = Government->Owner;
+
+	if(Parent == NULL) return;
+	for(int i = 0; i < Parent->SubGovs.Size; ++i) {
+		struct Government* Child = Parent->SubGovs.Table[i];
+
+		if(Child == Government) {
+			ArrayRemove(&Parent->SubGovs, i);
+		}
+	}
+	if(Parent->SubGovs.Size == 0) {
+		ZoneColorDefault(&Parent->ZoneColor);
+	}
+	
+}
+
+int GovernmentStatus(const struct Government* One, const struct Government* Two) {
+	struct Treaties* Treaties = NULL; 
+
+	if(GovernmentTop(One) == GovernmentTop(Two)) return GOVDIP_ALLIED;
+	Treaties = GovernmentFindTreaties(One, Two);
+	if(Treaties == NULL) return GOVDIP_NETURAL;
+	for(int i = 0; i < Treaties->Treaties.Size; ++i) {
+		struct Treaty* Treaty = Treaties->Treaties.Table[i];
+
+		switch(Treaty->Type) {
+			case TREATY_ALLIANCE: 
+			return GOVDIP_ALLIED;
+			case TREATY_CEASEFIRE:
+			return GOVDIP_NETURAL;
+		}
+	}
+	return GOVDIP_ENEMY;
+}
+
+void GovernmentGetCenter(const struct Government* Government, SDL_Point* Center) {
+	SDL_Point Point = Government->Location->Pos;
+	SDL_Point Result = {0};
+
+	for(int i = 0; i < Government->SubGovs.Size; ++i) {
+		GovernmentGetCenter(Government->SubGovs.Table[i], &Result);
+		Point.x += Result.x;
+		Point.y += Result.y;
+	}
+	Center->x = Point.x / (Government->SubGovs.Size + 1);
+	Center->y = Point.y / (Government->SubGovs.Size + 1);
+}
+
+int GovernmentRequestFealty(const struct Government* Sender, const struct Government* Target) {
+	return GovernmentGetDistance(Sender, Target);
+}
+
+int GovernmentDemandFealty(const struct Government* Sender, const struct Government* Target) {
+	return 0;
+}
+
+int GovernmentGetDistance(const struct Government* One, const struct Government* Two) {
+	SDL_Point OneCenter = {0};
+	SDL_Point TwoCenter = {0};
+
+	GovernmentGetCenter(One, &OneCenter);
+	GovernmentGetCenter(Two, &TwoCenter);
+	return Distance(OneCenter.x, OneCenter.y, TwoCenter.x, TwoCenter.y);
+}
+
+int GovernmentGetPower(const struct Government* Government) {
+	int Power = 0;
+
+	for(int i = 0; i < Government->SubGovs.Size; ++i) {
+		Power += GovernmentGetPower(Government->SubGovs.Table[i]);
+	}
+	Power += Government->Location->People.Size;
+	return Isqrt(Power);
+}
+
+int GovernmentCmpPower(const struct Government* One, const struct Government* Two) {
+	return GovernmentGetPower(One) - GovernmentGetPower(Two);
 }

@@ -9,11 +9,15 @@
 #include "Family.h"
 #include "Crop.h"
 #include "Building.h"
+#include "Government.h"
 #include "BigGuy.h"
 #include "World.h"
 #include "Good.h"
 #include "Population.h"
 #include "Mission.h"
+#include "Warband.h"
+#include "Battle.h"
+#include "Events.h"
 
 #include "AI/BehaviorTree.h"
 #include "AI/Pathfind.h"
@@ -31,7 +35,6 @@
 #include "sys/Rule.h"
 #include "sys/Event.h"
 #include "sys/GenIterator.h"
-#include "sys/StackAllocator.h"
 
 #include "video/Animation.h"
 
@@ -49,6 +52,7 @@
 struct LinkedList g_GoodCats[GOOD_SIZE];
 struct HashTable g_Crops;
 struct HashTable g_Goods;
+struct HashTable g_Profs;
 struct HashTable g_BuildMats;
 struct HashTable g_Populations;
 struct HashTable g_Animations;
@@ -57,11 +61,20 @@ struct HashTable g_Professions;
 struct HashTable g_BhvVars;
 struct Constraint** g_FamilySize;
 struct Constraint** g_AgeConstraints;
-struct LifoAllocator g_StackAllocator;
 
 struct ObjectList {
 	struct RBTree SearchTree;
-	struct LinkedList ThinkList;
+	struct {
+		struct Object* Front;
+		ObjectThink ObjThink; //Think that is called once for every object class.
+		ObjectThink Think; //Think called for every object of this type.
+		size_t Size;
+		uint32_t StartCt;
+		uint32_t ExtendCt;
+		struct MemoryPool Pool;
+		struct Object* DeadPool; //List of objects that need to be cleaned up from the last tick.
+		void (*OnDestroy)(void*);
+	} ObjectList[OBJECT_SIZE];
 };
 
 struct MissionEngine g_MissionEngine;
@@ -69,259 +82,356 @@ struct MissionEngine g_MissionEngine;
 //TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
-	{0, NULL, NULL}
+	{{NULL, PersonObjThink, PersonThink, sizeof(struct Person), 100000, 100000, {0}, NULL, (void(*)(void*))DestroyPerson},
+	{NULL, NULL, (ObjectThink) FieldUpdate, sizeof(struct Field), 25000, 5000, {0}, NULL, (void(*)(void*))DestroyField},
+	{NULL, NULL, (ObjectThink) ArmyThink, sizeof(struct Army), 1000, 500,{0}, NULL, (void(*)(void*))DestroyArmy},
+	{NULL, NULL, NULL, sizeof(struct Battle), 1000, 500, {0}, NULL, (void(*)(void*))DestroyBattle},
+	{NULL, NULL, NULL, sizeof(struct Pregnancy), 50000, 1000, {0}, NULL, (void(*)(void*))DestroyPregnancy},
+	{NULL, SettlementObjThink, (ObjectThink) SettlementThink, sizeof(struct Settlement), 20000, 1000, {0}, NULL, (void(*)(void*))DestroySettlement},
+	{NULL, NULL, (ObjectThink) BigGuyThink, sizeof(struct BigGuy), 10000, 1000, {0}, NULL, (void(*)(void*))DestroyBigGuy},
+	{NULL, FamilyObjThink, FamilyThink, sizeof(struct Family), 25000, 5000, {0}, NULL, (void(*)(void*))DestroyFamily},
+	{NULL, NULL, (ObjectThink) GovernmentThink, sizeof(struct Government), 20000, 1000, {0}, NULL, (void(*)(void*))DestroyGovernment},
+	{NULL, NULL, (ObjectThink) RetinueThink, sizeof(struct Retinue), 20000, 1000, {0}, NULL, (void(*)(void*))DestroyRetinue}
+	}
 };
 
-int g_Id = 0;
+static uint32_t g_Id = 0;
 struct Constraint** g_OpinionMods = NULL;
 
-int IdISCallback(const int* _One, const int* _Two) {
-	return *(_One) - *(_Two);
+int IdISCallback(const int* One, const int* Two) {
+	return *(One) - *(Two);
 }
 
-void SigSev(int _Sig) {
-	void* _Array[16];
-	size_t _Size = 0;
-	char** _Symbols = NULL;
+void SigSev(int Sig) {
+	void* Array[16];
+	size_t Size = 0;
+	char** Symbols = NULL;
 
-	_Size = backtrace(_Array, 16);
-	_Symbols = backtrace_symbols(_Array, _Size);
-	for(int i = 0; i < _Size; ++i) {
-		Log(ELOG_ERROR, _Symbols[i]);
-		free(_Symbols[i]);
+	Size = backtrace(Array, 16);
+	Symbols = backtrace_symbols(Array, Size);
+	for(int i = 2; i < Size; ++i) {
+		Log(ELOG_ERROR, Symbols[i]);
+		//free(Symbols[i]);
 	}
-	free(_Symbols);
+	free(Symbols);
 }
 
 int HeraldInit() {
 	signal(SIGSEGV, SigSev);
 	/*FIXME: Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
 	 */
-	g_Crops.TblSize = 0;
-	g_Crops.Table = NULL;
-	g_Crops.Size = 0;
-
-	g_Goods.TblSize = 0;
-	g_Goods.Table = NULL;
-	g_Goods.Size = 0;
-
-	g_BuildMats.TblSize = 0;
-	g_BuildMats.Table = NULL;
-	g_BuildMats.Size = 0;
-
-	g_Populations.TblSize = 0;
-	g_Populations.Table = NULL;
-	g_Populations.Size = 0;
-
-	g_Animations.TblSize = 0;
-	g_Animations.Table = NULL;
-	g_Animations.Size = 0;
+	CtorHashTable(&g_Crops, 16);
+	CtorHashTable(&g_Goods, 16);
+	CtorHashTable(&g_BuildMats, 16);
+	CtorHashTable(&g_Populations, 16);
+	CtorHashTable(&g_Animations, 16);
+	CtorHashTable(&g_Professions, 16);
 
 	g_BhvVars.TblSize = 0;
 	g_BhvVars.Table = calloc(sizeof(void*), 64);
 	g_BhvVars.Size = 64;
-
-	g_TaskPool = CreateTaskPool();
-
+	InitTaskPool();
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		CtorMemoryPool(&g_Objects.ObjectList[i].Pool, g_Objects.ObjectList[i].Size, g_Objects.ObjectList[i].StartCt); 
+	}
 	g_FamilySize = CreateConstrntBnds(FAMILYSIZE, 2, 10, 20, 40, 75, 100);
 	g_AgeConstraints = CreateConstrntLst(NULL, 0, 1068, 60);
-	g_OpinionMods = CreateConstrntBnds(5, -BIGGUY_RELMAX, -76, -26, 25, 75, BIGGUY_RELMAX);
-	EventInit();
+	g_OpinionMods = CreateConstrntBnds(5, -REL_MAX, -76, -26, 25, 75, REL_MAX);
+	EventInit(g_LuaState);
 	PathfindInit();
 	MathInit();
+	
+	EventSetCallback(EVENT_WARBNDHOME, EventWarbandHome);
+	EventSetCallback(EVENT_CRISIS, EventCrisis);
+	EventSetCallback(EVENT_ENDPLOT, EventEndPlot);
+	EventSetCallback(EVENT_BATTLE, EventBattle);
+	EventSetCallback(EVENT_NEWLEADER, EventNewLeader);
+	EventSetCallback(EVENT_JOINRETINUE, EventJoinRetinue);
 
 	ConstructMissionEngine(&g_MissionEngine);
-
-	g_StackAllocator.ArenaSize = STACKALLOC_SZ;
-	g_StackAllocator.ArenaBot = malloc(g_StackAllocator.ArenaSize);
-	g_StackAllocator.ArenaTop = g_StackAllocator.ArenaBot;
 	return 1;
 }
 
 void HeraldDestroy() {
-	struct HashItr* _Itr = HashCreateItr(&g_Animations);
+	struct HashItr* Itr = HashCreateItr(&g_Animations);
 
-	while(_Itr != NULL) {
-		DestroyAnimation(_Itr->Node->Pair);
-		_Itr = HashNext(&g_Animations, _Itr);
+	while(Itr != NULL) {
+		DestroyAnimation(Itr->Node->Pair);
+		Itr = HashNext(&g_Animations, Itr);
 	}
-	HashDeleteItr(_Itr);
+	HashDeleteItr(Itr);
 	free(g_BhvVars.Table);
-	DestroyTaskPool(g_TaskPool);
+	QuitTaskPool();
 	DestroyConstrntBnds(g_FamilySize);
 	DestroyConstrntBnds(g_AgeConstraints);
 	DestroyConstrntBnds(g_OpinionMods);
 	EventQuit();
 	PathfindQuit();
 	DestroyMissionEngine(&g_MissionEngine);
-	free(g_StackAllocator.ArenaBot);
+}
+
+void ClearObjects() {
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		while(g_Objects.ObjectList[i].Front != NULL) 
+			DestroyObject(g_Objects.ObjectList[i].Front);
+	}
 }
 
 struct InputReq* CreateInputReq() {
-	struct InputReq* _Mat = (struct InputReq*) malloc(sizeof(struct InputReq));
+	struct InputReq* Mat = (struct InputReq*) malloc(sizeof(struct InputReq));
 
-	_Mat->Req = NULL;
-	_Mat->Quantity = 0;
-	return _Mat;
+	Mat->Req = NULL;
+	Mat->Quantity = 0;
+	return Mat;
 }
 
-void DestroyInputReq(struct InputReq* _Mat) {
-	free(_Mat);
+void DestroyInputReq(struct InputReq* Mat) {
+	free(Mat);
 }
 
-int InputReqQtyCmp(const void* _One, const void* _Two) {
-	return (int) ((struct InputReq*)_One)->Quantity - ((struct InputReq*)_Two)->Quantity;
+int InputReqQtyCmp(const void* One, const void* Two) {
+	return (int) ((struct InputReq*)One)->Quantity - ((struct InputReq*)Two)->Quantity;
 }
 
-int InputReqCropCmp(const void* _One, const void* _Two) {
-	return (int) ((struct Crop*)((struct InputReq*)_One)->Req)->Id - ((struct Crop*)((struct InputReq*)_Two)->Req)->Id;
+int InputReqCropCmp(const void* One, const void* Two) {
+	return (int) ((struct Crop*)((struct InputReq*)One)->Req)->Id - ((struct Crop*)((struct InputReq*)Two)->Req)->Id;
 }
 
-struct Array* FileLoad(const char* _File, char _Delimiter) {
-	int _Pos = 0;
-	int _Size = 1;
-	char* _Name = NULL;
-	char _Char = 0;
-	char _Buffer[256];
-	FILE* _FilePtr = fopen(_File, "r");
-	struct Array* _Array = NULL;
+struct Array* FileLoad(const char* File, char Delimiter) {
+	int Pos = 0;
+	int Size = 1;
+	char* Name = NULL;
+	char Char = 0;
+	char Buffer[256];
+	FILE* FilePtr = fopen(File, "r");
+	struct Array* Array = NULL;
 
-	if(_FilePtr == NULL)
+	if(FilePtr == NULL)
 		return NULL;
 
-	while((_Char = fgetc(_FilePtr)) != EOF) {
-		if(_Char == _Delimiter)
-			++_Size;
+	while((Char = fgetc(FilePtr)) != EOF) {
+		if(Char == Delimiter)
+			++Size;
 	}
-	rewind(_FilePtr);
-	_Array = CreateArray(_Size);
-	while((_Char = fgetc(_FilePtr)) != EOF) {
-			if(_Char == _Delimiter && _Pos > 0) {
-				_Buffer[_Pos] = 0;
-				_Name = (char*) malloc(sizeof(char) * _Pos + 1);
-				_Name[0] = 0;
-				strncat(_Name, _Buffer, _Pos);
-				ArrayInsert(_Array, _Name);
-				_Pos = 0;
+	rewind(FilePtr);
+	Array = CreateArray(Size);
+	while((Char = fgetc(FilePtr)) != EOF) {
+			if(Char == Delimiter && Pos > 0) {
+				Buffer[Pos] = 0;
+				Name = (char*) malloc(sizeof(char) * Pos + 1);
+				Name[0] = 0;
+				strncat(Name, Buffer, Pos);
+				ArrayInsert(Array, Name);
+				Pos = 0;
 			} else {
-				if(_Pos >= 256)
-					return _Array;
-				_Buffer[_Pos++] = _Char;
+				if(Pos >= 256)
+					return Array;
+				Buffer[Pos++] = Char;
 			}
 		}
-	return _Array;
+	return Array;
 }
 
-struct Array* ListToArray(const struct LinkedList* _List) {
-	struct Array* _Array = NULL;
-	struct LnkLst_Node* _Itr = _List->Front;
+struct Array* ListToArray(const struct LinkedList* List) {
+	struct Array* Array = NULL;
+	struct LnkLst_Node* Itr = List->Front;
 
-	if(_List->Size < 1)
+	if(List->Size < 1)
 		return NULL;
-	_Array = CreateArray(_List->Size);
-	while(_Itr != NULL) {
-		ArrayInsert(_Array, _Itr->Data);
-		_Itr = _Itr->Next;
+	Array = CreateArray(List->Size);
+	while(Itr != NULL) {
+		ArrayInsert(Array, Itr->Data);
+		Itr = Itr->Next;
 	}
-	return _Array;
+	return Array;
 }
 
-void* PowerSet_Aux(void* _Tbl, int _Size, int _ArraySize, struct StackNode* _Stack) {
-	struct StackNode _Node;
-	void** _Return = NULL;
+//FIXME: We should be able to easily calculate the size of the outgoing table, there should be no need to allocate memory here.
+void* PowerSet_Aux(void* Tbl, int Size, int ArraySize, uint32_t* BrSz, struct StackNode* Stack) {
+	struct StackNode Node;
+	void** Return = NULL;
 	int i;
 
-	if(_Size == 0) {
-		if(_Stack == NULL) {
-			_Return = malloc(sizeof(void*));
-			*((int**)_Return) = 0;
-			goto end;
+	if(Size == 0) {
+		Return = calloc(ArraySize + 1, sizeof(void*));
+		for(i = ArraySize - 1; i >= 0; --i) {
+			Return[i] = Stack->Data;
+			Stack = Stack->Prev;
 		}
-		_Return = calloc(_ArraySize + 1, sizeof(void*));
-		for(i = _ArraySize - 1; i >= 0; --i) {
-			_Return[i] = _Stack->Data;
-			_Stack = _Stack->Prev;
-		}
-		_Return[_ArraySize] = NULL;
+		Return[ArraySize] = NULL;
+		*BrSz = ArraySize + 1;
 	} else {
-		int _Len = 0;
-		void** _Left = NULL;
-		void** _Right = NULL;
+		uint32_t LLen = 0;
+		uint32_t  RLen = 0;
+		void** Left = NULL;
+		void** Right = NULL;
 
-		_Node.Prev = _Stack;
-		_Node.Data = (void*)*(int*)_Tbl;
-		_Left = PowerSet_Aux(_Tbl + sizeof(void*), _Size - 1, _ArraySize, _Stack);
-		_Right = PowerSet_Aux(_Tbl + sizeof(void*), _Size - 1, _ArraySize + 1, &_Node);
+		Node.Prev = Stack;
+		Node.Data = (void*)*(intptr_t*)Tbl;
+		Left = PowerSet_Aux(Tbl + sizeof(void*), Size - 1, ArraySize, &LLen, Stack);
+		Right = PowerSet_Aux(Tbl + sizeof(void*), Size - 1, ArraySize + 1, &RLen, &Node);
 
-		if(_Size == 1) {
-			_Return = calloc(3, sizeof(void*));
-			_Return[0] = _Left;
-			_Return[1] = _Right;
-			_Return[2] = NULL;
-			goto end;
+		//Len = (1 << (Size - 1));
+		Return = calloc(LLen + RLen + 1, sizeof(void*));
+		for(i = 0; i < LLen; ++i) {
+			Return[i] = Left[i];
 		}
-		_Len = ArrayLen(_Left);
-		_Return = calloc(_Len * 2 + 1, sizeof(void*));
-		for(i = 0; i < _Len; ++i) {
-			_Return[i] = _Left[i];
-		}
-		for(i = 0; i < _Len; ++i)
-			_Return[i + _Len] = _Right[i];
-		_Return[_Len * 2] = NULL;
+		for(i = 0; i < RLen; ++i)
+			Return[i + LLen] = Right[i];
+		Return[LLen + RLen] = NULL;
+		if(BrSz != NULL) *BrSz = LLen + RLen + 1;
 	}
-	end:
-	return _Return;
+	//end:
+	return Return;
 }
 
-void CreateObject(struct Object* _Obj, int _Type, ObjectThink _Think) {
-	_Obj->Id = NextId();
-	_Obj->Type = _Type;
-	_Obj->Think = _Think;
-	_Obj->LastThink = 1;
-	RBInsert(&g_Objects.SearchTree, _Obj);
-	if(_Think != NULL) {
-		LnkLstPushBack(&g_Objects.ThinkList, _Obj);
-		_Obj->ThinkObj = g_Objects.ThinkList.Back;
+/* Use a single array to store the power set.
+ * To distinguish the sets and to allow them to be easy to use add an extra Size to the front of the table such that
+ * given {a, b, c} we return the array 
+ * {addr(8), addr(9), addr(11), addr(13), addr(15), addr(18), addr(21), addr(24) 
+ 	NULL,
+	a, NULL,
+	b, NULL,
+	c NULL,
+	a, b, NULL,
+	a c, NULL,
+	b c, NULL,
+	a, b, c, NULL}
+	where addr(x) is the address of the xth elemenet of the array.
+*/
+/*void* PowerSet_Aux(void* Tbl, int Size, int ArraySize, struct StackNode* Stack) {
+	void* Array = calloc(Size << 1, sizeof(void*));
+	uint64_t Mask = 1;
+	uint32_t Set = 1;
+
+	Array[0] = NULL;
+	while(Mask < (Size << 1)) {
+		for(int i = 0; i < Set; ++i) {
+			if(((i << 0) & Set) != (i << 0))
+				continue;
+		}
 	}
+}*/
+
+void* CreateObject(uint8_t Type) {
+	struct Object* Obj = MemPoolAlloc(&g_Objects.ObjectList[Type].Pool);
+
+	memset(Obj, 0, g_Objects.ObjectList[Type].Size); 
+	*(uint32_t*)&Obj->Id = NextId();
+	Obj->Type = Type;
+	Obj->Flags = 0;
+	RBInsert(&g_Objects.SearchTree, Obj);
+	Assert(RBSearch(&g_Objects.SearchTree, Obj));
+	ILL_CREATE(g_Objects.ObjectList[Type].Front, Obj);
+	return Obj;
 }
 
-void DestroyObject(struct Object* _Object) {
-	RBDelete(&g_Objects.SearchTree, _Object);
-	if(_Object->Think != NULL)
-		LnkLstRemove(&g_Objects.ThinkList, _Object->ThinkObj);
+void DestroyObject(struct Object* Obj) {
+	RBDelete(&g_Objects.SearchTree, Obj);
+	//Destroy is called here and in ObjectDie to ensure the object is removed even if ObjectDie is not called.
+	if(ObjectAlive(Obj)) {
+		ILL_DESTROY(g_Objects.ObjectList[Obj->Type].Front, Obj);
+	} else {
+		ILL_DESTROY(g_Objects.ObjectList[Obj->Type].DeadPool, Obj);
+	}
+	MemPoolFree(&g_Objects.ObjectList[Obj->Type].Pool, Obj);
 }
 
 void ObjectsThink() {
-	struct LnkLst_Node* _Itr = g_Objects.ThinkList.Front;
-	struct LnkLst_Node* _Next = NULL;
-	struct Object* _Object = NULL;
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		struct Object* NextObj = NULL;
 
-	while(_Itr != NULL) {
-		_Object = ((struct Object*)_Itr->Data);
-		_Next = _Itr->Next;
-		_Object->Think(_Object);
-		_Itr = _Next;
+		for(struct Object* Obj = g_Objects.ObjectList[i].DeadPool; Obj != NULL; Obj = NextObj) {
+			NextObj = Obj->Next;
+			g_Objects.ObjectList[i].OnDestroy(Obj);
+		}
+		g_Objects.ObjectList[i].DeadPool = NULL;
+	}
+	for(int i = 0; i < OBJECT_SIZE; ++i) {
+		if(g_Objects.ObjectList[i].ObjThink != NULL) {
+			g_Objects.ObjectList[i].ObjThink(g_Objects.ObjectList[i].Front);
+		}
+		struct Object* Obj = g_Objects.ObjectList[i].Front;
+		struct Object* Next = NULL;
+
+		while(Obj != NULL) {
+			Next = Obj->Next;
+			g_Objects.ObjectList[i].Think(Obj);
+			Obj = Next;
+		}
 	}
 }
 
 int NextId() {return g_Id++;}
 
-void BhvHashFree(char* _Str) {
-	free(_Str);
+void BhvHashFree(char* Str) {
+	free(Str);
 }
 
-void BehaviorRun(const struct Behavior* _Tree, struct Family* _Family) {
+void BehaviorRun(const struct Behavior* Tree, struct Family* Family) {
 	HashDeleteAll(&g_BhvVars, (void(*)(void*)) BhvHashFree);
-	BHVRun(_Tree, _Family, &g_BhvVars);
+	BHVRun(Tree, Family, &g_BhvVars);
 }
 
-int ObjectCmp(const void* _One, const void* _Two) {
-	return *((int*)_One) - *((int*)_Two);
+int ObjectCmp(const void* One, const void* Two) {
+	return *((int*)One) - *((int*)Two);
 }
 
-void* SAlloc(size_t _SizeOf) {
-	return LifoAlloc(&g_StackAllocator, _SizeOf);
+struct Object* FindObject(ObjectId Id) {
+	return RBSearch(&g_Objects.SearchTree, &Id);
 }
-void SFree(void* _Ptr) {
-	LifoFree(&g_StackAllocator, 1);
+
+void ObjectDie(struct Object* Obj) {
+	Obj->Flags |= OBJFLAG_DEAD;
+	ILL_DESTROY(g_Objects.ObjectList[Obj->Type].Front, Obj);
+	ILL_CREATE(g_Objects.ObjectList[Obj->Type].DeadPool, Obj);
 }
+/*
+
+void* PowerSet_Aux(void* Tbl, int Size, int ArraySize, struct StackNode* Stack) {
+	struct StackNode Node;
+	void** Return = NULL;
+	int i;
+
+	if(Size == 0) {
+		//No Elements exist in Tbl return set containing NULL.
+		if(Stack == NULL) {
+			Return = malloc(sizeof(void*));
+			*((int**)Return) = 0;
+			goto end;
+		}
+		Return = calloc(ArraySize + 1, sizeof(void*));
+		for(i = ArraySize - 1; i >= 0; --i) {
+			Return[i] = Stack->Data;
+			Stack = Stack->Prev;
+		}
+		Return[ArraySize] = NULL;
+	} else {
+		int Len = 0;
+		void** Left = NULL;
+		void** Right = NULL;
+
+		Node.Prev = Stack;
+		Node.Data = (void*)*(int*)Tbl;
+		Left = PowerSet_Aux(Tbl + sizeof(void*), Size - 1, ArraySize, Stack);
+		Right = PowerSet_Aux(Tbl + sizeof(void*), Size - 1, ArraySize + 1, &Node);
+
+		if(Size == 1) {
+			Return = calloc(3, sizeof(void*));
+			Return[0] = Left;
+			Return[1] = Right;
+			Return[2] = NULL;
+			goto end;
+		}
+		Len = ArrayLen(Left);
+		Return = calloc(Len * 2 + 1, sizeof(void*));
+		for(i = 0; i < Len; ++i) {
+			Return[i] = Left[i];
+		}
+		for(i = 0; i < Len; ++i)
+			Return[i + Len] = Right[i];
+		Return[Len * 2] = NULL;
+	}
+	end:
+	return Return;
+}*/

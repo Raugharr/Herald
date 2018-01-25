@@ -57,6 +57,7 @@ struct Crop {
 	int16_t GrowingDegree;
 	int16_t GrowingBase; //The minimum temperature it must be for this crop to grow.
 	uint8_t SurviveWinter;
+	const struct GoodBase* Base;
 };
 
 struct Field {

@@ -2,9 +2,7 @@ Professions = {
 	{
 		Name = "Blacksmith",
 		Goods = {"Axe", "Spear", "Seax", "Sword", "Iron", "Two-Handed Axe", "Javelin", "Iron Tool"},
-		Selectors = {
-			{Good = "Spear", Rgood = "Sword", Ratio = 3} --3 spears for every sword.
-		},
+		Tools = {{"Iron Tool", 3}}
 	},
 	{
 		Name = "Charcoal Burner",
@@ -17,8 +15,10 @@ Professions = {
 			"Wood Craft",
 			"Wood Tool",
 			"Wood Staff",
-			"Handle"
+			"Handle",
+			"Shield"
 			},
+		Tools = {{"Iron Tool", 2}}
 	},
 	{
 		Name = "Bowyer",
@@ -30,13 +30,20 @@ Professions = {
 	{
 		Name = "Weaver",
 		Goods = {
-			"Wool Cloth"
+			"Wool Yarn"
 		}
 	},
 	{
-		Name = "Clothier",
+		Name = "Tailor",
 		Goods = {
 			"Wool Clothing"
+		}
+	},
+	{
+		Name = "Leatherworker",
+		Goods = {
+			"Leather Good",
+			"Quiver"
 		}
 	}
 }

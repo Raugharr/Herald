@@ -249,9 +249,10 @@ void PopulateManor(struct GameWorld* World, struct Settlement* Settlement, int F
 	double CrafterCastes[CASTE_SIZE] = {0, CastePercent[1] * 0.30, CastePercent[2] * 0.70, 0, 0};
 	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 	int BestGlory = -1;
+	int Failures = 0;
 
-	CreateFarmerFamilies(Settlement, Families - 1, FarmerCastes, AgeGroups, BabyAvg);
-	CreateCrafterFamilies(Settlement, 1, CrafterCastes, AgeGroups, BabyAvg);
+	Failures = CreateFarmerFamilies(Settlement, Families - 1, FarmerCastes, AgeGroups, BabyAvg);
+	Failures += CreateCrafterFamilies(Settlement, 1, CrafterCastes, AgeGroups, BabyAvg);
 	RandTable(CastePercent, &CasteCount, CASTE_SIZE, Settlement->People.Size);
 	TribalCreateBigGuys(Settlement, CastePercent);
 	ManorSetFactions(World, Settlement);
@@ -321,7 +322,7 @@ void PopulateManor(struct GameWorld* World, struct Settlement* Settlement, int F
 	Settlement->Factions.Leader[FACTION_IDGOVERN] = Chief;
 	AssertPtrNeq(Warlord, NULL);
 	AssertPtrNeq(Chief, NULL);
-	UpdateProf(Settlement);
+	//UpdateProf(Settlement);
 #ifdef DEBUG
 	uint32_t SettlementSz = 0;
 
@@ -361,7 +362,7 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 	int Idx = 0;
 	TileAx x = 0;
 	TileAx y = 0;
-	uint8_t SetChance[SET_SIZE] = {30, 60, 10, 0};
+	uint8_t SetChance[SET_SIZE] = {70, 30, 0, 0};
 	uint8_t SetType = 0;
 	uint8_t SetRand = 0;
 	struct Constraint PopVals[SET_SIZE] = {{50, 99}, {100, 499}, {500, 999}, {1000, 1999}};
@@ -449,6 +450,7 @@ int PopulateWorld(struct GameWorld* World, uint32_t SettCt) {
 		break;
 	}
 	PopulateManor(World, Settlement, Random(PopVals[SetType].Min, PopVals[SetType].Max) / 5, FamilyTypes, World->AgeGroups, World->BabyAvg);
+	MerchantGenerate(Settlement);
 	World->Player = PickPlayer(&g_GameWorld);
 	CenterScreen(World->MapRenderer, x, y);
 #define USR_CHIEF
@@ -846,27 +848,57 @@ void WorldInit(struct GameWorld* World, uint32_t Area, uint32_t SettCt) {
 	struct Profession* Profession = NULL;
 	struct HashItrCons* Itr = NULL;
 	const struct GoodBase** GoodList = calloc(2, sizeof(const struct GoodBase*));
-	const struct GoodBase** ToolList = calloc(3, sizeof(const struct GoodBase*));
+	struct ProfTool ToolList[3];
 
 	GoodList[1] = NULL;
-	ToolList[1] = NULL;
 
 	GoodList[0] = NULL;
-	ToolList[0] = CreateProfTool(HashSearch(&g_Goods, "Wood Tool"), 4);
-	Profession = CreateProfession(PROF_FARMER, "Farmer", GoodList, ToolList, NULL, 0);
+	ToolList[0].Good = HashSearch(&g_Goods, "Wood Tool");
+	ToolList[0].Quantity = 4;
+	Profession = CreateProfession(PROF_FARMER, "Farmer", GoodList, 0);
+	ProfessionToolList(Profession, ToolList, 1);
 	HashInsert(&g_Professions, Profession->Name, Profession);
 
-	Profession = CreateProfession(PROF_WARRIOR, "Warrior", GoodList, NULL, NULL, 0);
+	Profession = CreateProfession(PROF_WARRIOR, "Warrior", GoodList, 0);
 	HashInsert(&g_Professions, Profession->Name, Profession);
 
 	GoodList[0] = HashSearch(&g_Goods, "Wood");
-	ToolList[0] = CreateProfTool(HashSearch(&g_Goods, "Axe"), 1);
-	Profession = CreateProfession(PROF_LUMBERJACK, "Lumberjack", GoodList, NULL, NULL, 0);
+	ToolList[0].Good = HashSearch(&g_Goods, "Axe");
+	ToolList[0].Quantity = 1;
+	Profession = CreateProfession(PROF_LUMBERJACK, "Lumberjack", GoodList, 0);
+	ProfessionToolList(Profession, ToolList, 1);
 	HashInsert(&g_Professions, Profession->Name, Profession);
 
 	GoodList[0] = HashSearch(&g_Goods, "Iron Ore");
-	Profession = CreateProfession(PROF_MINER, "Miner", GoodList, NULL, NULL, 0);
+	Profession = CreateProfession(PROF_MINER, "Miner", GoodList, 0);
 	HashInsert(&g_Professions, Profession->Name, Profession);
+
+
+	if(LuaLoadFile(g_LuaState, "castes.lua", NULL) != LUA_OK) {
+		Log(ELOG_ERROR, LUAFILE_FAILED("castes"));
+		return;
+	}
+	lua_getglobal(g_LuaState, "Castes");
+	
+	lua_pushstring(g_LuaState, "Slave");
+	lua_rawget(g_LuaState, -2);
+	LoadCasteGoods(g_LuaState, &World->CasteGoods[CASTE_THEOW], &World->CasteGoodSz[CASTE_THEOW]);	
+	lua_pop(g_LuaState, 1);
+	
+	lua_pushstring(g_LuaState, "Landless");
+	lua_rawget(g_LuaState, -2);
+	LoadCasteGoods(g_LuaState, &World->CasteGoods[CASTE_GEBUR], &World->CasteGoodSz[CASTE_GEBUR]);	
+	lua_pop(g_LuaState, 1);
+
+	lua_pushstring(g_LuaState, "Freeman");
+	lua_rawget(g_LuaState, -2);
+	LoadCasteGoods(g_LuaState, &World->CasteGoods[CASTE_GENEAT], &World->CasteGoodSz[CASTE_GENEAT]);	
+	lua_pop(g_LuaState, 1);
+
+	lua_pushstring(g_LuaState, "Noble");
+	lua_rawget(g_LuaState, -2);
+	LoadCasteGoods(g_LuaState, &World->CasteGoods[CASTE_THEGN], &World->CasteGoodSz[CASTE_THEGN]);	
+	lua_pop(g_LuaState, 2);
 
 
 	CtorHashTable(&World->GoodMakers, g_Goods.Size * 3 / 2);	

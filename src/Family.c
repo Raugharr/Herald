@@ -108,6 +108,7 @@ struct Family* CreateFamily(const char* Name, struct Settlement* Location, struc
 struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Parent, struct Constraint * const * const AgeGroups,
 	 struct Constraint * const * const BabyAvg, struct Settlement* Location, uint8_t Caste, uint8_t Prof) {
 	struct Family* Family = NULL;
+	const struct Profession* Profession = GetProf(Prof);
 
 	Assert(Size > 0);
 	if(Size > FAMILY_PEOPLESZ)
@@ -131,8 +132,14 @@ struct Family* CreateRandFamily(const char* Name, int Size, struct Family* Paren
 		//}
 		Family->Food.SlowSpoiled = ((NUTRITION_REQ * 2) + (NUTRITION_CHILDREQ * Family->NumChildren)) * 2;
 	}
-	FamilyBuyGoods(Family);
 	SettlementPlaceFamily(Location, Family);
+	for(int i = 0; i < Profession->ToolSz; ++i) {
+		const struct ProfTool* Tool = &Profession->Tools[i];
+		struct Good* Good = CheckGoodTbl(&Family->Goods, Tool->Good);
+
+		Good->Quantity += Random(Tool->Quantity / 2, Tool->Quantity);
+	}
+	FamilyBuyGoods(Family);
 	return Family;
 }
 
@@ -145,7 +152,7 @@ void DestroyFamily(struct Family* Family) {
 	}
 	while(Max >= 0) {
 		if(Family->People[Max] != NULL) {
-			DestroyPerson(Family->People[Max]);
+			IsAlive(Family->People[Max]) ? (PersonDeath(Family->People[Max])) : (DestroyPerson(Family->People[Max]));
 			Family->People[Max] = NULL;
 		}
 		--Max;
@@ -157,7 +164,7 @@ void DestroyFamily(struct Family* Family) {
 		}
 	}
 	for(int i = 0; i < Family->HomeLoc->Market.Size; ++i) {
-		struct MarReq* Req = Family->HomeLoc->Market.Table[i];
+		struct Product* Req = Family->HomeLoc->Market.Table[i];
 
 		for(int j = 0; j < Req->Fillers.Size; ++j) {
 			struct MarGood* Good = Req->Fillers.Table[j];
@@ -225,21 +232,27 @@ static inline void BirthAnimals(struct Family* Family, int PopIdx, struct Animal
 	if(NewAnimals > 0) FamilyInsertAnimalArr(Family, List, NewAnimals);
 }
 
+void FamilyBuyTool(struct Family* Family, const struct ProfTool* Tools) {
+	struct Good* Good = CheckGoodTbl(&Family->Goods, Tools->Good); 
+	struct MarGood* MarGood = MarketSearch(Family, &Family->HomeLoc->Market, Good->Base);
+	int Quantity = Tools->Quantity - Good->Quantity; 
+
+	if(Quantity < 1) return;
+	if(MarGood == NULL) {
+		Good->Quantity += GoodBuy(Family, Good->Base, Quantity);
+	} else {
+		MarGood->Quantity = Quantity;
+	}
+}
+
 void FamilyBuyGoods(struct Family* Family) {
 	const struct Profession* Profession = GetProf(Family->Prof);
 
-	for(int i = 0; i < Profession->Tools.Size; ++i) {
-		const struct ProfTool* Tools = Profession->Tools.Table[i];
-		struct Good* Good = CheckGoodTbl(&Family->Goods, Tools->Good->Name, &g_Goods); 
-		struct MarGood* MarGood = MarketSearch(Family, &Family->HomeLoc->Market, Good->Base);
-		int Quantity = Tools->Quantity - Good->Quantity; 
-
-		if(Quantity < 1) continue;
-		if(MarGood == NULL) {
-			Good->Quantity += GoodBuy(Family, Good->Base, Quantity);
-		} else {
-			MarGood->Quantity = Quantity;
-		}
+	for(int i = 0; i < Profession->ToolSz; ++i) {
+		FamilyBuyTool(Family, &Profession->Tools[i]);
+	}
+	for(int i = 0; i < g_GameWorld.CasteGoodSz[Family->Caste]; ++i) {
+		FamilyBuyTool(Family, &g_GameWorld.CasteGoods[Family->Caste][i]);
 	}
 }
 
@@ -406,21 +419,26 @@ void FamilyObjThink(struct Object* Obj) {
 			//Produce goods.
 			if(Family->Prof >= PROF_SIZE) {
 				const struct Profession* Prof = GetProf(Family->Prof);
-				int WkTime = DAYS_EVEN * MAX_WORKRATE + (MAX_WORKRATE / 2);
-				int End = 0;//Family->Craftman.GoodIdx;
+				int WkTime = MONTH_WORKRATE;
+				//int End = 0;//Family->Craftman.GoodIdx;
 				struct Array* ProdArr = Prof->CraftAmt.Table[Family->Craftman.ProdIdx];
 
 				//if(End == 0) End = Prof->CraftAmt.Size - 1;
-				for(int i = 0; i < Family->HomeLoc->Market.Size; ++i) {
-					struct MarReq* Req = Family->HomeLoc->Market.Table[i];
-
-					if(ProfCanMake(Prof, Req->Base) && Req->Quantity < 0) {
-						Family->Craftman.ProdIdx = i;
-						break;
-					}
-				}
-				End = ProdArr->Size - 1;
+				//End = ProdArr->Size - 1;
 				while(WkTime > 0) {
+					if(Family->Craftman.GoodIdx >= ProdArr->Size) { 
+						for(int i = 0; i < Family->HomeLoc->Market.Size; ++i) {
+							struct Product* Req = Family->HomeLoc->Market.Table[i];
+							int CraftIdx = 0;
+
+							if((CraftIdx = ProfCanMake(Prof, Req->Base)) != -1 && Req->Quantity < 0) {
+								Family->Craftman.ProdIdx = CraftIdx;
+								ProdArr = Prof->CraftAmt.Table[Family->Craftman.ProdIdx];
+								break;
+							}
+						}
+						Family->Craftman.GoodIdx = 0;
+					}
 					struct ProdOrder* Order = ProdArr->Table[Family->Craftman.GoodIdx];
 					const struct GoodBase* Base = Order->Good;
 					struct Good* Bought = NULL;
@@ -428,30 +446,38 @@ void FamilyObjThink(struct Object* Obj) {
 
 					switch(Order->Type) {
 						case ORDER_MAKE:
-							if(Base->WkCost > WkTime) break;
+							if(Base->WkCost > WkTime) goto produce_end;
 							Quantity = GoodCanMake(Base, &Family->Goods);
 							if(Quantity * Base->WkCost > WkTime) {
 								Quantity = WkTime / Base->WkCost;
 							}
-							GoodSell(Family, Base, Quantity);
+							if(Quantity <= 0) goto produce_end;
+							if(Family->Craftman.GoodIdx == ProdArr->Size - 1){
+								 GoodSell(Family, Base, Quantity);
+							} else {
+								struct Good* Good = CheckGoodTbl(&Family->Goods, Base);
+
+								Good->Quantity += Quantity;
+							}
 							WkTime -= Quantity * Base->WkCost;
 							break;
 						case ORDER_BUY:
-							Quantity = GoodBuy(Family, Base, Order->Quantity);
-							Bought = CheckGoodTbl(&Family->Goods, Base->Name, &g_Goods);
+							Bought = CheckGoodTbl(&Family->Goods, Prof->InputGoods[Order->GoodIdx]);//, HashSearch(&g_Goods, Base->Name));
+							if(Bought->Quantity >= Order->Quantity) break;
+							Quantity = GoodBuy(Family, Base, Order->Quantity - Bought->Quantity);
 							Bought->Quantity += Quantity;
+							if(Quantity < Order->Quantity) goto produce_end;
 							break;
 					}
 					++Family->Craftman.GoodIdx;
-					if(Family->Craftman.GoodIdx == End) break;
-					if(Family->Craftman.GoodIdx >= ProdArr->Size) Family->Craftman.GoodIdx = 0;
+					//if(Family->Craftman.GoodIdx == End) break;
 				}
 			} else if(Family->Prof == PROF_WARRIOR) {
 				struct Good* Spear = NULL;
 				struct Good* Javalin = NULL;
 				struct Good* Seax = NULL;
 				struct Good* Shield = NULL;
-				struct Array* BuyReqs = &Family->HomeLoc->BuyReqs;
+				struct Array* BuyReqs = &Family->HomeLoc->Market;
 				const struct Culture* Culture = Family->HomeLoc->Culture;
 
 				for(int i = 0; i < Family->Goods.Size; ++i) {
@@ -485,7 +511,12 @@ void FamilyObjThink(struct Object* Obj) {
 				const struct GoodBase* Wood = HashSearch(&g_Goods, "Wood");
 
 				GoodSell(Family, Wood, 350);
+			} else if(Family->Prof == PROF_MINER) {
+				const struct GoodBase* Iron = HashSearch(&g_Goods, "Iron Ore");
+
+				GoodSell(Family, Iron, 16 * 20);
 			}
+			produce_end:
 			switch(RationVal) {
 				case 0:
 				case 1:
@@ -801,10 +832,11 @@ int FamilyNutReq(const struct Family* Family) {
 	for(int i = 0; i < FAMILY_PEOPLESZ; ++i) {
 		if(Family->People[i] == NULL)
 			continue;
-		if(IsChild(Family->People[i]) == 0)
+		Nutrition += NUTRITION_CHILDDAILY + (NUTRITION_CHILDDAILY * (IsChild(Family->People[i]) == 0));
+		/*if(IsChild(Family->People[i]) == 0)
 			Nutrition += NUTRITION_DAILY;
 		else
-			Nutrition += NUTRITION_CHILDDAILY;
+			Nutrition += NUTRITION_CHILDDAILY;*/
 	}
 	return Nutrition;
 }
@@ -1012,7 +1044,7 @@ bool FamilyAddPerson(struct Family* Family, struct Person* Person) {
 	return true;
 }
 
-void CreateFarmerFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
+int CreateFarmerFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
 	uint8_t AcresPerFarmer = FAMILY_ACRES;
 	uint8_t AnimalTypes = 3;
 	uint8_t CropTypes = 1;
@@ -1032,6 +1064,7 @@ void CreateFarmerFamilies(struct Settlement* Settlement, int Families, double Ca
 	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
 	int8_t Caste = CASTE_THEOW;
 	int AnimalMod = 0;
+	int Failures = 0;
 
 	NormalizeTable(CastePercent, CASTE_SIZE);
 	RandTable(CastePercent, &CasteCount, CASTE_SIZE, Families);
@@ -1083,10 +1116,16 @@ void CreateFarmerFamilies(struct Settlement* Settlement, int Families, double Ca
 		 */
 		fields:
 		for(int i = 0; i < CropTypes; ++i) {
-			if(SettlementAllocAcres(Settlement, AcresPerFarmer) != 0) {
+			if(SettlementAllocAcres(Settlement, AcresPerFarmer) == true) {
 				Parent->Farmer.Fields[Parent->Farmer.FieldCt++] = CreateField(NULL, AcresPerFarmer, Parent);
-				Good = CheckGoodTbl(&Parent->Goods, Crops[0]->Name, &g_Goods); 
+				Good = CheckGoodTbl(&Parent->Goods, HashSearch(&g_Goods, Crops[0]->Name)); 
 				Good->Quantity = ToOunce(Crops[0]->SeedsPerAcre) * AcresPerFarmer * 2;
+			} else {
+				if(i == 0) { 
+					DestroyFamily(Parent);
+					++Failures;
+					goto create_family;
+				}
 			}
 		}
 	//	Parent->Buildings[Parent->BuildingCt] = CreateBuilding(ERES_HUMAN | ERES_ANIMAL, 
@@ -1111,10 +1150,12 @@ void CreateFarmerFamilies(struct Settlement* Settlement, int Families, double Ca
 				ArrayInsert(&Parent->Goods, Good);
 			}
 		}
+		create_family:;
 	}
+	return Failures;
 }
 
-void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg) {
+int CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg) {
 	uint16_t MaxFamilies = 5;
 	uint8_t MaxChildren = 5;
 	struct GoodBase* MeleeWeapons[3] = {NULL};
@@ -1138,12 +1179,13 @@ void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * co
 		Good->Quantity = Random(1, 3);
 		ArrayInsert(&Parent->Goods, Good);
 	}
+	return 0;
 }
 
-void CreateCrafterFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
+int CreateCrafterFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg) {
 	int* CasteCount = alloca(sizeof(int) * CASTE_SIZE);
-	int8_t Caste = CASTE_THEOW;
-	int Prof = PROF_LUMBERJACK;
+	//int8_t Caste = CASTE_THEOW;
+	//int Prof = PROF_LUMBERJACK;
 	int Trees = 0;
 	SDL_Point Point = {Settlement->Pos.x, Settlement->Pos.y};
 	int Radius = SettlementGetTiles(g_GameWorld.MapRenderer, Settlement);
@@ -1178,6 +1220,7 @@ void CreateCrafterFamilies(struct Settlement* Settlement, int Families, double C
 		}
 	}*/
 	//CreateRandFamily("Bar", Random(0, MaxChildren) + 2, NULL, AgeGroups, BabyAvg, Settlement, CASTE_GENEAT, PROF_MILLER);
+	return 0;
 }
 
 void FamilyInsertAnimalArr(struct Family* Family, struct Animal** Animals, uint8_t AnSize) {
@@ -1334,9 +1377,12 @@ void SetProfession(struct Family* Family, uint8_t Prof) {
 		}
 	}
 
+	SettlementChangeProf(Settlement, Family, Prof);
 	Family->Prof = Prof;
 
-	if(IsCraftsman(Family)) {
+	if(IsMerchant(Family)) {
+		CtorArray(&Family->Merchant.Nodes, 8);
+	} else if(IsCraftsman(Family)) {
 		Family->Craftman.ProdIdx = 0;
 		Family->Craftman.GoodIdx = 0;
 	}
@@ -1346,4 +1392,26 @@ void MerchantCreatePath(struct Family* Family) {
 	Assert(Family->Prof == PROF_MERCHANT);
 
 
+}
+
+void LoadCasteGoods(lua_State* State, struct ProfTool** Tools, int* Size) {
+	int Idx = lua_absindex(State, -1);
+	int Len = lua_rawlen(State, Idx);
+	const char* ToolName = NULL;
+
+	*Tools = calloc(Len, sizeof(struct ProfTool));
+	for(int i = 1; i <= Len; ++i) {
+		lua_rawgeti(State, -1, i);
+		if(lua_type(State, -1) != LUA_TTABLE) {
+			lua_pop(State, 1);
+			continue;
+		}
+		lua_rawgeti(State, -1, 1);
+		ToolName = lua_tostring(State, -1);
+		(*Tools)[i - 1].Good = HashSearch(&g_Goods, ToolName);
+		lua_rawgeti(State, -2, 2);
+		(*Tools)[i - 1].Quantity = lua_tointeger(State, -1);
+		lua_pop(State, 3);
+	}
+	*Size = Len;
 }

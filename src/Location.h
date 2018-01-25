@@ -72,8 +72,8 @@ struct PersonSelector {
 	int8_t Caste;
 	//Type of person this is, see ESELP enumeration for valid values.
 	int8_t PType;
-	struct Person* Target;
 	bool Relatives;//Only select relatives.
+	struct Person* Target;
 };
 
 struct SettlementSelector {
@@ -85,6 +85,19 @@ struct SettlementSelector {
 struct ProfRec {
 	uint8_t ProfId;
 	uint16_t Count;
+};
+
+struct MerchantAction {
+	enum {
+		BUY,
+		SELL
+	} Action;
+	const struct GoodBase* Good;
+};
+
+struct MerchantNode {
+	struct Settlement* Settlement;
+	struct Array TradeGoods; //MerchantAction.
 };
 
 struct Settlement {
@@ -99,7 +112,6 @@ struct Settlement {
 	struct Array Slaves;//NOTE: Sometimes settlements will forbid slaves or have only a few of them. to save space this should become a global RBTree.
 	struct Government* Government;
 	const struct Culture* Culture;
-	struct Array BuyReqs; //Goods that people need. Array of MarReq*.
 	struct Array Market;//Array of goods being sold. Array of MarReq*.
 	struct Array Tparts; //Settlements nearby this settlement trades with.
 	struct Array Bulletin;
@@ -196,12 +208,12 @@ static inline const struct LnkLst_Node* SettlementPlots(const struct Settlement*
  */
 struct Plot* SettlementFindPlot(const struct Settlement* Settlement, int PlotType, void* PlotData);
 
-static inline int SettlementAllocAcres(struct Settlement* Settlement, int Acres) {
+static inline bool SettlementAllocAcres(struct Settlement* Settlement, int Acres) {
 	if(Settlement->FreeAcres - Acres < 0)
-		return 0;
+		return false;
 	Settlement->UsedAcres += Acres;
 	Settlement->FreeAcres -= Acres;
-	return 1;
+	return true;
 }
 void InitPersonSelector(struct PersonSelector* Selector);
 /*
@@ -217,6 +229,11 @@ static inline void QueryPersonFree(const struct PersonSelector* Selector) {
 }
 struct Settlement** QuerySettlement(const struct SettlementSelector* Selector, uint32_t* OutListSz);
 bool LocationCreateField(struct Family* Family, int Acres);
+static inline void LocationDestroyField(struct Family* Family, int Field) {
+	Family->HomeLoc->FreeAcres += FieldTotalAcres(Family->Farmer.Fields[Field]);
+	DestroyField(Family->Farmer.Fields[Field]);
+	Family->Farmer.Fields[Field] = NULL;
+}
 static inline int SettlementType(const struct Settlement* Settlement) {
 	if(Settlement->People.Size < 100) return SET_HAMLET;
 	else if (Settlement->People.Size < 500) return SET_VILLAGE;
@@ -235,4 +252,7 @@ void SettlementCasteCount(const struct Settlement* Settlement, int (*CasteCount)
  * ProfCount is an array the size of 
  */
 void SettlementProfessionCount(const struct Settlement* Settlement, uint16_t** ProfCount);
+void SettlementChangeProf(struct Settlement* Settlement, const struct Family* Family, int ProfId);
+void MerchantGenerate(struct Settlement* Settlement);
+void MerchantGeneratePath(struct Family* Merchant);
 #endif

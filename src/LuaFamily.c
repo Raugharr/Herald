@@ -67,6 +67,22 @@ static const luaL_Reg g_LuaFuncsProfession[] = {
 	{NULL, NULL}
 };
 
+static const struct LuaEnum g_LuaGoodCatEnum[] = {
+	{"Food", GOOD_FOOD},
+	{"Ingredient", GOOD_INGREDIENT},
+	{"Animal", GOOD_ANIMAL},
+	{"Seed", GOOD_SEED},
+	{"Tool", GOOD_TOOL},
+	{"Material", GOOD_MATERIAL},
+	{"Weapon", GOOD_WEAPON},
+	{"Armor", GOOD_ARMOR},
+	{"Other", GOOD_OTHER},
+	{"Flour", GOOD_FLOUR},
+	{"Wood", GOOD_WOOD},
+	{"Clothing", GOOD_CLOTHING},
+	{NULL, 0}	
+};
+
 static const luaL_Reg g_LuaFuncsFamily[] = {
 	{"GetId", LuaFamilyGetId},
 	{"ChildrenCt", LuaFamilyChildrenCt},
@@ -148,6 +164,7 @@ static const struct LuaObjectReg g_LuaFamilyObjects[] = {
 const struct LuaEnumReg g_LuaFamilyEnums[] = {
 	{"Person", NULL,  g_LuaPersonEnum},
 	{"Animal", NULL, g_LuaAnimalEnum},
+	{"GoodCat", NULL, g_LuaGoodCatEnum},
 	{NULL, NULL}
 };
 

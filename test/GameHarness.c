@@ -11,6 +11,7 @@
 #include "../src/Battle.h"
 #include "../src/sys/LinkedList.h"
 #include "../src/Profession.h"
+#include "../src/Market.h"
 
 #include "../src/sys/Log.h"
 #include "../src/sys/LuaCore.h"
@@ -151,9 +152,43 @@ void FarmTest(struct SettlementResults* Results) {
 	DestroySettlement(Settlement);
 }
 
+const char* PrintProfessions(const struct Settlement* Settlement) {
+	char* Buffer = FrameAlloc(1024);
+	char Temp[10];
+
+	Buffer[0] = 0;
+	for(int i = 0; i < Settlement->ProfCts.Size; ++i) {
+		struct ProfRec* Rec = Settlement->ProfCts.Table[i];
+		const char* Name = ProfessionName(Rec->ProfId);
+
+		strcat(Buffer, Name);
+		strcat(Buffer, ": ");
+		sprintf(Temp, "%d", Rec->Count);
+		strcat(Buffer, Temp);
+		strcat(Buffer, "  ");
+	}
+	strcat(Buffer, "\n");
+	return Buffer;
+}
+
 void MarketTest(struct SettlementResults* Results) {
-	Events();
-	WorldTick(&g_GameWorld);
+	struct Settlement* Settlement = g_GameWorld.Settlements.Table[0];
+
+	for(int i = 0; YEAR(g_GameWorld.Date) <= 3; ++i) {
+		Events();
+		WorldTick(&g_GameWorld);
+		if(DAY(g_GameWorld.Date) == 0) {
+			printf("Year: %d, Month: %d\n", YEAR(g_GameWorld.Date), MONTH(g_GameWorld.Date));
+			printf("%s", PrintProfessions(Settlement));
+			for(int i = 0; i < Settlement->Market.Size; ++i) {
+				struct Product* Req = Settlement->Market.Table[i];
+
+				printf("Good: %s, Quantity: %d, Supply: %d, Demand: %d, Price: %d\n", Req->Base->Name, Req->Quantity, ProductSupply(Req), ProductDemand(Req), Req->Price);
+			}
+			printf("\n");
+		}
+		FrameFree();
+	}
 }
 
 void FarmTestHarness() {
@@ -169,9 +204,10 @@ struct GameTests {
 
 
 static struct GameTests g_GameTests[] = {
-	{BattleTest, "BattleTest", 2},
-	{FarmTestHarness, "FarmTest", 1},
-	{MarketTest, "MarketTest", 1},
+	//{BattleTest, "BattleTest", 2},
+	//{FarmTestHarness, "FarmTest", 1},
+	//{MarketTest, "MarketTest", 1},
+	{MarketTest, "MarketTest", 1000},
 	{NULL, NULL}
 };
 

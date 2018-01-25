@@ -131,7 +131,6 @@ static const luaL_Reg g_LuaFuncsSettlement[] = {
 	{"GetIntelligence", LuaSettlementGetIntelligence},
 	{"GetFine", LuaSettlementGetFine},
 	{"GetType", LuaSettlementGetType},
-	{"Buying", LuaSettlementBuying},
 	{"Selling", LuaSettlementSelling},
 	{"CasteCount", LuaSettlementCasteCount},
 	{"ProfessionCount", LuaSettlementProfessionCount},
@@ -212,7 +211,7 @@ const struct LuaObjectReg g_LuaSettlementObjects[] = {
 	{LOBJ_BIGGUYOPINION, "Opinion", LUA_REFNIL, g_LuaFuncsOpinion},
 	{LOBJ_RETINUE, "Retinue", LUA_REFNIL, g_LuaFuncsRetinue},
 	{LOBJ_BIGGUYTRAIT, "Trait", LUA_REFNIL, g_LuaFuncsBigGuyTrait},
-	{LOBJ_MARREQ, "MarReq", LUA_REFNIL, g_LuaFuncsMarket},
+	{LOBJ_MARREQ, "Product", LUA_REFNIL, g_LuaFuncsMarket},
 	{LUA_REFNIL, NULL, LUA_REFNIL, NULL}
 };
 
@@ -347,7 +346,7 @@ int LuaCrisisType(lua_State* State) {
 }
 
 int LuaMarketGood(lua_State* State) {
-	struct MarReq* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
+	struct Product* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
 
 	lua_pushstring(State, Req->Base->Name);
 	lua_remove(State, -2);
@@ -356,14 +355,14 @@ int LuaMarketGood(lua_State* State) {
 }
 
 int LuaMarketQuantity(lua_State* State) {
-	struct MarReq* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
+	struct Product* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
 
 	lua_pushinteger(State, Req->Quantity);
 	return 1;
 }
 
 int LuaMarketPrice(lua_State* State) {
-	struct MarReq* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
+	struct Product* Req = LuaCheckClass(State, 1, LOBJ_MARREQ);
 
 	lua_pushinteger(State, Req->Price);
 	return 1;
@@ -1086,13 +1085,6 @@ int LuaSettlementGetType(lua_State* State) {
 	struct Settlement* Settlement = LuaCheckClass(State, 1, LOBJ_SETTLEMENT);
 
 	lua_pushstring(State, SettlementString(SettlementType(Settlement)));
-	return 1;
-}
-
-int LuaSettlementBuying(lua_State* State) {
-	struct Settlement* Settlement = LuaCheckClass(State, 1, LOBJ_SETTLEMENT);
-
-	CreateLuaArrayItr(State, &Settlement->BuyReqs, LOBJ_MARREQ);
 	return 1;
 }
 

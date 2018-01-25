@@ -54,7 +54,8 @@ enum {
 	GOOD_OTHER = (1 << 8),
 	GOOD_FLOUR = (1 << 9),
 	GOOD_WOOD = (1 << 10),
-	GOOD_SIZE = 11
+	GOOD_CLOTHING = (1 << 11),
+	GOOD_SIZE = 12
 };
 
 enum {
@@ -105,6 +106,11 @@ struct GoodBase {
 	uint32_t Price; //Value of good.
 	uint16_t WkCost; //Amount of work to complete this object. WORK_DAY = 1 days of work.
 	uint8_t IGSize; //InputGood size.
+	enum {
+		MAT_WOOD,
+		MAT_IRON,
+		MAT_LEATHER
+	} Material;
 };
 
 struct Good {
@@ -264,8 +270,7 @@ struct Good* ArrayRemoveGood(struct Array* GoodList, uint32_t Index, uint32_t Qu
 /*
  * Checks if a good exists in Array. If it doesn't insert it into the array.
  */
-static inline struct Good* CheckGoodTbl(struct Array* Array, const char* GoodName, const struct HashTable* Search) {
-	const struct GoodBase* GoodBase = HashSearch(Search, GoodName);
+static inline struct Good* CheckGoodTbl(struct Array* Array, const struct GoodBase* GoodBase) {
 	struct Good* Good = NULL;
 	
 	if(GoodBase == NULL) return NULL;

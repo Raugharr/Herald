@@ -82,14 +82,14 @@ struct MissionEngine g_MissionEngine;
 //TODO: SearchTree does nothing but be inserted to and removed from. ObjectList should be removed and have a LinkedList for storing thinks replace it.`
 static struct ObjectList g_Objects = {
 	{NULL, 0, (int(*)(const void*, const void*))ObjectCmp, (int(*)(const void*, const void*))ObjectCmp},
-	{{NULL, PersonObjThink, PersonThink, sizeof(struct Person), 100000, 100000, {0}, NULL, (void(*)(void*))DestroyPerson},
-	{NULL, NULL, (ObjectThink) FieldUpdate, sizeof(struct Field), 25000, 5000, {0}, NULL, (void(*)(void*))DestroyField},
+	{{NULL, PersonObjThink, PersonThink, sizeof(struct Person), 200000, 100000, {0}, NULL, (void(*)(void*))DestroyPerson},
+	{NULL, NULL, (ObjectThink) FieldUpdate, sizeof(struct Field), 35000, 5000, {0}, NULL, (void(*)(void*))DestroyField},
 	{NULL, NULL, (ObjectThink) ArmyThink, sizeof(struct Army), 1000, 500,{0}, NULL, (void(*)(void*))DestroyArmy},
 	{NULL, NULL, NULL, sizeof(struct Battle), 1000, 500, {0}, NULL, (void(*)(void*))DestroyBattle},
 	{NULL, NULL, NULL, sizeof(struct Pregnancy), 50000, 1000, {0}, NULL, (void(*)(void*))DestroyPregnancy},
 	{NULL, SettlementObjThink, (ObjectThink) SettlementThink, sizeof(struct Settlement), 20000, 1000, {0}, NULL, (void(*)(void*))DestroySettlement},
 	{NULL, NULL, (ObjectThink) BigGuyThink, sizeof(struct BigGuy), 10000, 1000, {0}, NULL, (void(*)(void*))DestroyBigGuy},
-	{NULL, FamilyObjThink, FamilyThink, sizeof(struct Family), 25000, 5000, {0}, NULL, (void(*)(void*))DestroyFamily},
+	{NULL, FamilyObjThink, FamilyThink, sizeof(struct Family), 35000, 5000, {0}, NULL, (void(*)(void*))DestroyFamily},
 	{NULL, NULL, (ObjectThink) GovernmentThink, sizeof(struct Government), 20000, 1000, {0}, NULL, (void(*)(void*))DestroyGovernment},
 	{NULL, NULL, (ObjectThink) RetinueThink, sizeof(struct Retinue), 20000, 1000, {0}, NULL, (void(*)(void*))DestroyRetinue}
 	}
@@ -118,6 +118,7 @@ void SigSev(int Sig) {
 
 int HeraldInit() {
 	signal(SIGSEGV, SigSev);
+	signal(SIGINT, SigSev);
 	/*FIXME: Is g_Crops, g_GOods, g_BuildMats, and g_Populations not free their memory when HeraldDestroy is called or at al?
 	 */
 	CtorHashTable(&g_Crops, 16);

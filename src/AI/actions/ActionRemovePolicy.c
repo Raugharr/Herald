@@ -10,6 +10,7 @@
 #include "../goap.h"
 #include "../Agent.h"
 
+#include "../../Relation.h"
 #include "../../BigGuy.h"
 #include "../../Plot.h"
 #include "../../Policy.h"
@@ -55,26 +56,26 @@ static int ActionFunction(struct Agent* _Agent, void* _Data) {
 static int ActionUtility(const struct Agent* _Agent, int* _Min, int* _Max, struct WorldState* _State, void* _Data) {
 	int _Utility = 0;
 	int _Caste = PERSON_CASTE(_Agent->Agent->Person); 
-	int _Preference = -PersonGetGovernment(_Agent->Agent->Person)->CastePreference[_Caste];
-	struct BigGuyRelation* _Relation = _Agent->Agent->Relations;
+	//int _Preference = -PersonGetGovernment(_Agent->Agent->Person)->CastePreference[_Caste];
+	struct Relation* _Relation = _Agent->Agent->Relations;
 
 	*_Min = 0;
 	*_Max = 255;
-	if(_Preference <= 0)
-		return 0;
+	//if(_Preference <= 0)
+	//	return 0;
 	//Check for an existing plot to change a policy, if there is join it if it is strong enough.
 	if(_Agent->Blackboard.Plot != NULL) {
 		_Utility = PlotPower(_Agent->Blackboard.Plot, PLOT_ATTACKERS) - PlotPower(_Agent->Blackboard.Plot, PLOT_DEFENDERS);
 		goto func_end;
 	}
 	for(_Relation = _Agent->Agent->Relations; _Relation != NULL; _Relation = _Relation->Next) {
-		if(BigGuyRelAtLeast(_Relation, BGREL_LIKE) != 0) {
-			_Utility += BigGuyPlotPower(_Relation->Person);
+		if(RelAtLeast(_Relation, BGREL_LIKE) != 0) {
+			_Utility += BigGuyPlotPower(_Relation->Target);
 		}
 	}
 	for(_Relation = _Agent->Blackboard.Target->Relations; _Relation != NULL; _Relation = _Relation->Next) {
-		if(BigGuyRelAtLeast(_Relation, BGREL_LIKE) != 0) {
-			_Utility -= BigGuyPlotPower(_Relation->Person);
+		if(RelAtLeast(_Relation, BGREL_LIKE) != 0) {
+			_Utility -= BigGuyPlotPower(_Relation->Target);
 		}
 	}
 	func_end:

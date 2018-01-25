@@ -98,7 +98,6 @@ int LuaSettlementGetCharisma(lua_State* State);
 int LuaSettlementGetIntelligence(lua_State* State);
 int LuaSettlementGetFine(lua_State* State);
 int LuaSettlementGetType(lua_State* State);
-int LuaSettlementBuying(lua_State* State);
 int LuaSettlementSelling(lua_State* State);
 int LuaSettlementCasteCount(lua_State* State);
 int LuaSettlementProfessionCount(lua_State* State);

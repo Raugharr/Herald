@@ -14,6 +14,9 @@ typedef uint16_t TileAx;
 struct Resource;
 struct MapRenderer;
 
+#define TileFarmable(Tile) ((Tile)->Farmable* MILE_ACRE / 255)
+#define TilePasturable(Tile) ((Tile)->Pasturable * MILE_ACRE / 255)
+
 extern const SDL_Point g_TileEvenOffsets[];
 extern const SDL_Point g_TileOddOffsets[];
 extern const SDL_Point g_TileOffsets[];
@@ -47,7 +50,8 @@ struct TileBase {
 };
 
 struct Tile {
-	uint8_t Soil;//How fertile the soil is. Number is between 1-100.
+	uint8_t Farmable;//Percentage of this land that can be farmed.
+	uint8_t Pasturable;//Percent of this land that can be put to pasture.
 	uint8_t TileVar; //Which variation the will render.
 	uint8_t TileSheet;
 	uint8_t Terrain;

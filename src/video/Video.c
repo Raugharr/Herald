@@ -689,7 +689,13 @@ void ZoneColorDefault(SDL_Color* Color) {
 
 void NewZoneColor(SDL_Color* Color) {
 	SDL_Color* c = StackPop(&g_GovCols);
-
+	
+	if(c == NULL) {
+		Color->r = 0;
+		Color->b = 0;
+		Color->g = 0;
+		return;
+	}
 	*Color = *c;
 }
 

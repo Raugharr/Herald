@@ -21,6 +21,9 @@ struct Settlement;
 typedef struct SDL_Texture SDL_Texture;
 typedef struct SDL_Renderer SDL_Renderer;
 
+#define MapSettlementsInRect(Renderer, Rect, List, Size, TableSz) (QTPointInRectangle(&(Renderer)->RenderArea[MAPRENDER_SETTLEMENT], (Rect), SettlementGetPos, (void**)(List), (Size), (TableSz)))
+#define MapUnitsInRect(Renderer, Rect, Data, Size, TableSz) (MapObjectsInRect((Renderer), MAPRENDER_UNIT, (Rect), (Data), (Size), (TableSz)
+
 enum {
 	MAPRENDER_TILE,
 	MAPRENDER_SETTLEMENT,
@@ -100,6 +103,10 @@ void MapDrawColorOverlay(const struct MapRenderer* Renderer, const SDL_Point* Po
 struct Army* MapGetUnit(struct MapRenderer* Renderer, const SDL_Point* Point);
 bool MapUnitCanMove(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point);
 int MapMoveUnit(struct MapRenderer* Renderer, struct Army* Army, const SDL_Point* Point);
+/**
+ * Fill the area around Posx, Posy in Map with the value 0.
+ * Map is a square map with its size = Width.
+ */
 void MapZeroArea(uint8_t* Map, uint16_t Width, int32_t Posx, int32_t Posy);
 uint8_t MapGravBest(uint8_t* Map, TileAx Width, TileAx Posx, TileAx Posy, TileAx* Bestx, TileAx* Besty);
 

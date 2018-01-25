@@ -97,6 +97,8 @@ struct GameWorld {
 	struct Constraint** AgeGroups;
 	struct HashTable* AIHash;
 	struct Queue FreeWarriors;
+	struct ProfTool* CasteGoods[CASTE_SIZE];
+	int CasteGoodSz[CASTE_SIZE];
 	float DecayRate[WORLD_DECAY];//DecayRate?
 	uint8_t PolicySz;
 	bool IsPaused;

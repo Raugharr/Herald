@@ -93,6 +93,7 @@ struct Crop* CreateCrop(lua_State* State, const char* Name, int Type, int PerAcr
 	Crop->GrowingBase = GrowingBase;
 	Crop->SurviveWinter = SurviveWinter;
 	Crop->LuaRef = LuaCropRegister(State, Crop);
+	Crop->Base = Output;
 	HashInsert(&g_Goods, Output->Base.Name, Output);
 	Log(ELOG_INFO, "Crop loaded %s.", Output->Base.Name);
 	return Crop;
@@ -245,19 +246,6 @@ void FieldWork(struct Field* Field, int Total, const struct Array* Goods) {
 			break;
 		}
 	}
-//	if(Field->Status == EHARVESTING) {
-	//	const struct ToolBase* Tool = NULL;
-
-//		for(int i = 0; i < Goods->Size; ++i) {
-//			Tool = (struct ToolBase*) ((struct Good*)Goods->Table[i])->Base;
-//			if(Tool->Category != GOOD_TOOL)
-//				continue;
-//			if((Tool->Function & ETOOL_REAP) != ETOOL_REAP)
-//				continue;
-//			Modifier = Tool->Quality;
-//			break;
-//		}
-//	}
 	Field->StatusTime -= (Total * Modifier) / MAX_WORKRATE;
 	if(Field->StatusTime <= 0) {
 		FieldChangeStatus(Field);
@@ -271,16 +259,13 @@ int FieldHarvest(struct Field* Field, struct Array* Goods, float HarvestMod) {
 	int TempAcres = 0;
 
 	Assert(Field->Status == EHARVESTING);
-	Seeds = CheckGoodTbl(Goods, CropName(Field->Crop), &g_Goods);
+	Seeds = CheckGoodTbl(Goods, HashSearch(&g_Goods, CropName(Field->Crop)));
 	if(Field->Crop->Type == EGRASS) {
 		struct Good* Straw = NULL;
 
-		Straw = CheckGoodTbl(Goods, "Straw", &g_Goods);
+		Straw = CheckGoodTbl(Goods, HashSearch(&g_Goods, "Straw"));
 		Straw->Quantity += Quantity * 4;
 	}
-	//TempAcres = Field->Acres;
-	//Field->Acres = Field->Acres - (Field->Acres - Field->UnusedAcres);
-	//Field->UnusedAcres = TempAcres;
 	FieldSwap(Field);
 	TempAcres = (Field->Acres > Field->UnusedAcres) ? (Field->Acres) : (Field->UnusedAcres);
 	SeedQuantity = ToPound(TempAcres * Field->Crop->SeedsPerAcre);
@@ -355,9 +340,10 @@ int GrowingDegree(int MinTemp, int MaxTemp, int BaseTemp) {
 	return (Mean < BaseTemp) ? (0) : (Mean - 32);
 }
 
-int CropListAdd(struct LinkedList* CropList, const struct Array* const Goods, const struct Crop* Crop, struct GoodBase* CropGood, int NutReq, int PopCt) {
+int CropListAdd(struct LinkedList* CropList, const struct Array* const Goods, const struct Crop* Crop, int NutReq, int PopCt) {
 	struct InputReq* CropInput = (struct InputReq*) malloc(sizeof(struct InputReq));
 	struct InputReq* CropSearch = NULL;
+	const struct GoodBase* CropGood = Crop->Base;
 
 	CropInput->Req = NULL;
 	CropInput->Quantity = 0;
@@ -392,7 +378,7 @@ int SelectCrops(struct Family* Family, struct Field* Fields[], int FieldSz, int 
 //	if(AnimalCt <= 0)
 //		return NewMaxSz;
 	for(int i = 0; g_GameWorld.HumanEats[i] != NULL; ++i) {
-		Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, g_GameWorld.HumanEats[i]->Base.Name), HashSearch(&g_Goods, g_GameWorld.HumanEats[i]->Base.Name), NUTRITION_DAILY, FamSize);
+		Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, g_GameWorld.HumanEats[i]->Base.Name), NUTRITION_DAILY, FamSize);
 	}
 	for(int i = 0; i < AnimalCt; ++i) {
 		//Pick a crop that is needed to feed the population then find out how many acres are needed.
@@ -401,7 +387,7 @@ int SelectCrops(struct Family* Family, struct Field* Fields[], int FieldSz, int 
 
 				if(strcmp(Eats->Base.Name, "Hay") == 0)
 					continue;
-				Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, Eats->Base.Name), HashSearch(&g_Goods, Eats->Base.Name), ((struct Population*)AnList[i]->Req)->Nutrition, AnList[i]->Quantity);
+				Acreage = Acreage + CropListAdd(&Crops, &Family->Goods, HashSearch(&g_Crops, Eats->Base.Name), ((struct Population*)AnList[i]->Req)->Nutrition, AnList[i]->Quantity);
 		}
 	}
 	if(Crops.Size == 0) return 0;

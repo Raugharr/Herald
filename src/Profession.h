@@ -9,6 +9,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 /**
  * FIXME: Each PROF_* profession should have its own Profession* to prevent
@@ -57,6 +58,7 @@ struct ProfSelector {
 struct ProdOrder {
 	const struct GoodBase* Good;
 	uint16_t Quantity;
+	uint16_t GoodIdx; //Index for good from either CraftedGoods or InputGoods.
 	enum {
 		ORDER_MAKE,
 		ORDER_BUY
@@ -83,13 +85,14 @@ struct Profession {
 	 * good can be in the list multiple times as an input to different produced goods.
 	 */
 	struct Array CraftAmt;
-	struct Array Tools; //Array of struct GoodBase*.
+	const struct ProfTool* Tools; //Array of struct GoodBase*.
 	struct ProdOrder* ProdList;
 	uint32_t Payment;
 	uint8_t CraftedGoodCt;
 	uint8_t InputGoodCt;
 	uint8_t ProfReqCt;
 	//int8_t SelCt;
+	uint8_t ToolSz;
 	uint8_t ProdListSz;
 	uint8_t ParentSz;
 	uint8_t Flags;
@@ -97,7 +100,7 @@ struct Profession {
 
 struct ProfTool* CreateProfTool(const struct GoodBase* Good, int Quantity);
 
-struct Profession* CreateProfession(int type, const char* Name, const struct GoodBase** CraftedGoods, const struct GoodBase** ToolGoods, struct ProfSelector** Selectors, int Payment);
+struct Profession* CreateProfession(int type, const char* Name, const struct GoodBase** CraftedGoods, int Payment);
 void DestroyProfession(struct Profession* Profession);
 
 struct Profession* ProfessionLoad(lua_State* State, int Index);
@@ -113,12 +116,21 @@ uint8_t ProfCount();
  * Size size of the returned list.
  */
 //const struct Profession** ProfCanMake(const struct GoodBase* Base, uint8_t* Size);
-static inline bool ProfCanMake(const struct Profession* Prof, const struct GoodBase* Good) {
+//Returns -1 if the profession cannot make the Good, otherwise the good's index in the CraftedGoods array.
+static inline int ProfCanMake(const struct Profession* Prof, const struct GoodBase* Good) {
 	for(int i = 0; i < Prof->CraftedGoodCt; ++i) {
-		if(Prof->CraftedGoods[i] == Good) return true;
+		if(Prof->CraftedGoods[i] == Good) return i;
 	}
-	return false;
+	return -1;
 }
 
 const char* ProfessionName(uint8_t Id);
+static inline void ProfessionToolList(struct Profession* Prof, const struct ProfTool* Tools, uint8_t ToolSz) {
+	Prof->Tools = calloc(ToolSz, sizeof(struct ProfTool));
+
+	for(int i = 0; i < ToolSz; ++i) {
+		*(struct ProfTool*)&Prof->Tools[i] = Tools[i];
+	}
+	Prof->ToolSz = ToolSz;
+}
 #endif

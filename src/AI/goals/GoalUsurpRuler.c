@@ -34,18 +34,21 @@ void GoalChallangeLeaderSetPlot(struct Agent* _Agent) {
 
 int GoalChallangeLeaderUtility(const struct Agent* _Agent, int* _Min, int* _Max) {
 	const struct BigGuy* _Owner = _Agent->Agent;
-	const struct BigGuy* _Leader = FamilyGetSettlement(_Owner->Person->Family)->Government->Leader;
-	const struct BigGuyRelation* _Relation = NULL;
+	const struct BigGuy* _Leader = NULL;
+	const struct Relation* _Relation = NULL;
 	int _Cost = 0;
 
 	*_Min = 25;
 	*_Max = 100;
+	if(IsPrisoner(_Agent->Agent->Person) == true)
+		return 0;
+	_Leader = FamilyGetSettlement(_Owner->Person->Family)->Government->Leader;
 	if(_Owner == _Leader)
 		return 0;
-	_Relation = BigGuyGetRelation(_Owner, _Leader);
-	if(BigGuyRelAtMost(_Relation, BGREL_DISLIKE) == 0)
-		return 0;
-	_Cost = (-_Relation->Modifier) + (-BIGGUY_DISLIKEMIN) + (BigGuyPopularity(_Agent->Agent) - BigGuyPopularity(_Leader)); 
+	_Relation = GetRelation(_Owner->Relations, _Leader);
+	//if(BigGuyRelAtMost(_Relation, BGREL_DISLIKE) == 0)
+	//	return 0;
+	_Cost = (-_Relation->Modifier) + (BigGuyPopularity(_Agent->Agent) - BigGuyPopularity(_Leader)) * (_Agent->Greed / (float)0x80); 
 	return _Cost;
 }
 

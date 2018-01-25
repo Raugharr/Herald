@@ -74,6 +74,19 @@ void SettlementSetBGOpinions(struct LinkedList* List) {
 	}
 }
 
+void SettlementCalcSpace(struct Settlement* Settlement) {
+	SDL_Point Point = {Settlement->Pos.x, Settlement->Pos.y};
+	int TileCt = NumTileRadius(2);
+	struct Tile** Tiles = alloca(sizeof(struct Tile*) * TileCt);
+
+	TileSpiral(g_GameWorld.MapRenderer, &Point, 2, Tiles);
+	for(int i = 0; i < TileCt; ++i) {
+		if(Tiles[i] == NULL) continue;
+		Settlement->Meadow.Acres += TilePasturable(Tiles[i]);
+		Settlement->FreeAcres += TileFarmable(Tiles[i]);
+	}
+}
+
 struct Settlement* CreateSettlement(struct GameWorld* World, int X, int Y, const char* Name, int GovType) {
 	struct Settlement* Loc = CreateObject(OBJECT_LOCATION);
 
@@ -100,21 +113,21 @@ struct Settlement* CreateSettlement(struct GameWorld* World, int X, int Y, const
 	Loc->HarvestMod[HARVEST_YEARS - 1] = 6;
 	//Loc->Sprite =  CreateGameObject(g_GameWorld.MapRenderer, ResourceGet("Settlement.png"), MAPRENDER_SETTLEMENT, &Loc->Pos);
 	Loc->Meadow.Crop = HashSearch(&g_Crops, "Hay");
-	Loc->Meadow.Acres = SETTLEMENT_SPACE / 2;
+	Loc->Meadow.Acres = 0;//SETTLEMENT_SPACE / 2;
 	Loc->Meadow.MonthNut = Loc->Meadow.Acres * ToPound(Loc->Meadow.Crop->SeedsPerAcre) * Loc->Meadow.Crop->YieldMult * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&Loc->HarvestMod); 
 	Loc->Meadow.NutRem = Loc->Meadow.MonthNut;
 	Loc->Food.SlowSpoiled = 0;
 	Loc->Food.FastSpoiled = 0;
 	Loc->Food.AnimalFood = 0;
-	CtorArray(&Loc->BuyReqs, 8);
 	CtorArray(&Loc->Market, 4);
 	CtorArray(&Loc->Tparts, 4);
 	Loc->AdultMen = 0;
 	Loc->AdultWomen = 0;
 	CtorArray(&Loc->Bulletin, 8);
 	Loc->MaxWarriors = 0;
-	Loc->FreeAcres = SETTLEMENT_SPACE - Loc->Meadow.Acres;
+	Loc->FreeAcres = 0;//SETTLEMENT_SPACE - Loc->Meadow.Acres;
 	Loc->UsedAcres = 0;
+	SettlementCalcSpace(Loc);
 	//FIXME: Each family should take an acre of land.
 	CtorFaction(&Loc->Factions, Loc);
 	GenerateStats(CASTE_GENEAT, &Loc->Stats);
@@ -163,6 +176,8 @@ void SettlementObjThink(struct Object* Obj) {
 		struct Settlement* Settlement = (struct Settlement*) Obj;
 
 		if(DAY(g_GameWorld.Date) == 0) {
+				MarketCalcPrice(&Settlement->Market);
+				UpdateProf(Settlement);
 			if(MONTH(g_GameWorld.Date) == JANURARY) {
 				uint16_t MeadowDelta = Settlement->Meadow.Acres * ToPound(Settlement->Meadow.Crop->SeedsPerAcre) * Settlement->Meadow.Crop->YieldMult * HarvestModifier((uint8_t (* const)[HARVEST_YEARS])&Settlement->HarvestMod);
 
@@ -189,7 +204,6 @@ void SettlementObjThink(struct Object* Obj) {
 				GenerateCrisis(Settlement);
 				//if(Settlement->FreeAcres + Settlement->UsedAcres <= MILE_ACRE)
 				//	Settlement->FreeAcres += Settlement->Families.Size;
-				UpdateProf(Settlement);
 			} else if(MONTH(g_GameWorld.Date) == SEPTEMBER) {
 
 			}
@@ -240,37 +254,40 @@ void SettlementObjThink(struct Object* Obj) {
 				struct Good* Good = NULL;
 
 				if(Suitor->Family->Prof == PROF_FARMER) {
-					for(int i = 0; i < Suitor->Family->Goods.Size; ++i) {
-						Good = Suitor->Family->Goods.Table[i];
-						
-						//Give the new family seeds to start a farm.
-						if(Good->Base->Category == GOOD_SEED) {
-							struct Good* NewGood = CreateGood(Good->Base);	
-							struct Crop* Crop = HashSearch(&g_Crops, Good->Base->Name);
-							int Take = Crop->SeedsPerAcre * FAMILY_ACRES;
-							int NutTake = 0;
-							int NutReq = 16; //FamilyNutReq(Family);
+					if(LocationCreateField(Family, FAMILY_ACRES) == true) {
+						for(int i = 0; i < Suitor->Family->Goods.Size; ++i) {
+							Good = Suitor->Family->Goods.Table[i];
 							
-							if(Take > Good->Quantity) Take = Good->Quantity / 2;
-							ArrayInsert_S(&Family->Goods, NewGood);
-							ArrayAddGood(&Family->Goods, Good, Take);
+							//Give the new family seeds to start a farm.
+							if(Good->Base->Category == GOOD_SEED) {
+								struct Good* NewGood = CreateGood(Good->Base);	
+								struct Crop* Crop = HashSearch(&g_Crops, Good->Base->Name);
+								int Take = Crop->SeedsPerAcre * FAMILY_ACRES;
+								int NutTake = 0;
+								int NutReq = NUTRITION_DAILY * 2;
+								
+								if(Take > Good->Quantity) Take = Good->Quantity / 2;
+								ArrayInsert_S(&Family->Goods, NewGood);
+								ArrayAddGood(&Family->Goods, Good, Take);
 
-							NutTake = (NutReq * (YEAR_DAYS / 2));
-							if(NutTake > Family->Parent->Food.SlowSpoiled) NutTake = Family->Parent->Food.SlowSpoiled;
-							Family->Parent->Food.SlowSpoiled -= NutTake;
-							Family->Food.SlowSpoiled += NutTake;
+								NutTake = (NutReq * (YEAR_DAYS / 2));
+								if(NutTake > Family->Parent->Food.SlowSpoiled) NutTake = Family->Parent->Food.SlowSpoiled;
+								Family->Parent->Food.SlowSpoiled -= NutTake;
+								Family->Food.SlowSpoiled += NutTake;
 
-							if(NutTake > Bride->Family->Food.SlowSpoiled) NutTake = Bride->Family->Food.SlowSpoiled;
-							Bride->Family->Food.SlowSpoiled -= NutTake;
-							Family->Food.SlowSpoiled += NutTake;
-							FamilyDivideAnimals(Family, Suitor->Family, Suitor->Family->NumChildren);
-							//Family->Food.SlowSpoiled += 1000;
+								if(NutTake > Bride->Family->Food.SlowSpoiled) NutTake = Bride->Family->Food.SlowSpoiled;
+								Bride->Family->Food.SlowSpoiled -= NutTake;
+								Family->Food.SlowSpoiled += NutTake;
+								goto found_seeds;
+							}
 						}
 					}
+					LocationDestroyField(Family, 0);
+					found_seeds:
+					FamilyDivideAnimals(Family, Suitor->Family, Suitor->Family->NumChildren);
 				#ifdef DEBUG
 					//Assert(Family->Goods.Size > 0);
 				#endif
-				LocationCreateField(Family, FAMILY_ACRES);
 				}
 				FamilyRemovePerson(Suitor->Family, Suitor);
 				FamilyRemovePerson(Bride->Family, Bride);
@@ -312,7 +329,6 @@ void SettlementObjThink(struct Object* Obj) {
 }
 
 void SettlementThink(struct Settlement* Settlement) {
-	MarketCalcPrice(&Settlement->Market);
 	for(int i = 0; i < Settlement->Families.Size; ++i) {
 		struct Family* Family = Settlement->Families.Table[i];
 
@@ -384,18 +400,18 @@ void SettlementPlaceFamily(struct Settlement* Location, struct Family* Family) {
 	}*/
 	ArrayInsertSort_S(&Location->Slaves, Family, ObjectCmp);
 	ArrayInsert_S(&Location->Families, Family);
-	for(int i = 0; i < Location->ProfCts.Size; ++i) {
+	/*for(int i = 0; i < Location->ProfCts.Size; ++i) {
 		struct ProfRec* Rec = Location->ProfCts.Table[i];
 
 		if(Rec->ProfId == Family->Prof) {
 			++Rec->Count;
 			goto skip_add_prof;
 		}
-	}
-	struct ProfRec* Rec = malloc(sizeof(struct ProfRec));
-	Rec->ProfId = Family->Prof;
-	Rec->Count = 1;
-	ArrayInsert_S(&Location->ProfCts, Rec);
+	}*/
+	//struct ProfRec* Rec = malloc(sizeof(struct ProfRec));
+	//Rec->ProfId = Family->Prof;
+	//Rec->Count = 1;
+	//ArrayInsert_S(&Location->ProfCts, Rec);
 	skip_add_prof:
 	return;
 }
@@ -705,10 +721,33 @@ void MigrateFamilies(struct GameWorld* World, struct Settlement* Settlement, uin
 	}
 }
 
+int AddProf(const struct Settlement* Settlement, const struct Array* IGProfArr) {
+	for(int k = 0; k < IGProfArr->Size; ++k) {
+		const struct Profession* ChildProf = IGProfArr->Table[k];
+
+		for(int j = 0; j < Settlement->ProfCts.Size; ++j) {
+			struct ProfRec* Rec = Settlement->ProfCts.Table[j];
+			int WorkReq = 0; //How much work is needed to meet demand.
+
+			if(Rec->ProfId == ChildProf->Id) {
+				for(int l = 0; l < Settlement->Market.Size; ++l) {
+					struct Product* Req = Settlement->Market.Table[l];
+
+					if(ProfCanMake(ChildProf, Req->Base) != -1) {
+						WorkReq += ProductDemand(Req) * Req->Base->WkCost;
+					}
+				}
+				if((Rec->Count * Rec->Count * MONTH_WORKRATE) > WorkReq) return 0;
+			}
+		}
+	}
+	return 1;
+}
+
 void UpdateProf(struct Settlement* Settlement) {
 	struct Array* ProfArr = NULL;
 	uint16_t BestRatio = 0;
-	uint8_t ProfLimit = 0;//How many new professions we can have.
+	int16_t ProfLimit = 0;//How many new professions we can have.
 	const struct Profession* NewProfs[16];
 	const struct GoodBase* GoodList[16];
 	struct InputReq NewGoods[16];
@@ -717,28 +756,40 @@ void UpdateProf(struct Settlement* Settlement) {
 	uint16_t GoodListCt = 0;
 	uint16_t CurrGood = 0;
 	int16_t NewProfCt = 0;
+	int ProfSel = 0;
+	int ProfUsed = 0;
+	int ProdFound = 0;
 
 	memset(GoodList, 0, sizeof(GoodList));
 	for(int i = 0; i < Settlement->ProfCts.Size; ++i) {
 		struct ProfRec* Rec = Settlement->ProfCts.Table[i];
 
 		if(Rec->ProfId == PROF_FARMER) {
-			ProfLimit = Rec->Count / 10;
-			break;
+			ProfLimit = Rec->Count - (Settlement->Families.Size / 10 * 9);
+		} else {
+			ProfUsed += Rec->Count;
 		}
 	}
+	ProfLimit -= ProfUsed;
+	if(ProfLimit <= 0) return;
 	for(int i = 0; i < Settlement->Market.Size; ++i) {
-		const struct MarReq* Req = Settlement->Market.Table[i];
+		const struct Product* Req = Settlement->Market.Table[i];
 		const struct GoodBase* Good = Req->Base;
 		uint16_t Ratio = 0;
 		int Quantity = 0;
+		struct Array* IGProfArr = HashSearch(&g_GameWorld.GoodMakers, Req->Base->Name);
 
 		if(Req->Quantity > 0) continue;
+		if(IGProfArr && AddProf(Settlement, IGProfArr) == 0) continue;
 		Quantity = abs(Req->Quantity);
 		Ratio = (Quantity * WORK_DAY * 100) / Good->WkCost;
 		if(Ratio > BestRatio) {
 			BestRatio = Ratio;
+		//	for(int j = GoodListCt; j >= 0; --j) {
+		//		GoodList[j] = GoodList[j - 1];
+		//	}
 			GoodList[0] = Good;
+		//	GoodListCt++;
 		}
 		NewGoods[NewGoodCt].Req = Good;
 		NewGoods[NewGoodCt].Quantity = Ratio;
@@ -758,7 +809,6 @@ void UpdateProf(struct Settlement* Settlement) {
 		CurrGood = 0;
 		GoodListCt = 1;
 		while(CurrGood < GoodListCt) {
-			if(NewProfCt >= ProfLimit) return;
 			for(int i = 0; i < GoodList[CurrGood]->IGSize; ++i) {
 				struct Array* IGProfArr = HashSearch(&g_GameWorld.GoodMakers, ((struct GoodBase*)GoodList[CurrGood]->InputGoods[i]->Req)->Name);
 
@@ -766,27 +816,60 @@ void UpdateProf(struct Settlement* Settlement) {
 				 * Check all possible professions that can produce the input good if they exist in the settlement or not.
 				 * If none do then pick on and add it to NewProf.
 				 */
+				//Temporary fix for goods that an animal or such produces that is requried by a farmer.
+				if(IGProfArr == NULL) continue;
+				if(AddProf(Settlement, IGProfArr) == 0) goto no_prof;
+				/**
+				 * Check if the number of professions who can make the current good are sufficient.
+				 */
 				for(int k = 0; k < IGProfArr->Size; ++k) {
 					const struct Profession* ChildProf = IGProfArr->Table[k];
 
+					for(int j = 0; j < Settlement->ProfCts.Size; ++j) {
+						struct ProfRec* Rec = Settlement->ProfCts.Table[j];
+						int WorkReq = 0; //How much work is needed to meet demand.
+
+						if(Rec->ProfId == ChildProf->Id) {
+							for(int l = 0; l < Settlement->Market.Size; ++l) {
+								struct Product* Req = Settlement->Market.Table[l];
+
+								if(ProfCanMake(ChildProf, Req->Base) != -1) {
+									WorkReq += ProductDemand(Req) * Req->Base->WkCost;
+								}
+							}
+							if(Rec->Count * MONTH_WORKRATE > WorkReq) goto no_prof;
+						}
+					}
+				}
+
+				for(int k = 0; k < IGProfArr->Size; ++k) {
+					const struct Profession* ChildProf = IGProfArr->Table[k];
+
+					/**
+					 * If the root new profession can make the good, we don't need to add a new profession since
+					 * the root profession is already being added.
+					 */
 					if(ChildProf == NewProfs[0]){
 						 GoodList[GoodListCt++] = ((struct GoodBase*)GoodList[CurrGood]->InputGoods[i]->Req);
 						 break;
 					}
+					/**
+					 * Check if the profession exists in the town use that profession instead of a random one from IGProfArr.
+					 */
 					for(int j = 0; j < Settlement->ProfCts.Size; ++j) {
 						struct ProfRec* Rec = Settlement->ProfCts.Table[j];
 
 						if(Rec->ProfId == ChildProf->Id) {
 							NewProfs[NewProfCt++] = GetProf(Rec->ProfId);
 							GoodList[GoodListCt++] = ((struct GoodBase*)GoodList[CurrGood]->InputGoods[i]->Req);
-							break;
+							goto found_prof;
 						}
 					}
 					//Don't add the same profession twice.
-					for(int j = 0; j < NewProfCt; ++j) {
+					/*for(int j = 0; j < NewProfCt; ++j) {
 						if(NewProfs[j] == ChildProf)
 							break;
-					}
+					}*/
 					/*
 					 * Profession doesn't exist in the town. Add it to profession list and see if we need
 					 * to create more professions to produce it's input goods.
@@ -795,17 +878,38 @@ void UpdateProf(struct Settlement* Settlement) {
 						NewProfs[NewProfCt++] = IGProfArr->Table[Random(0, IGProfArr->Size - 1)];
 						GoodList[GoodListCt++] = ((struct GoodBase*)GoodList[CurrGood]->InputGoods[i]->Req);
 					}
+					found_prof:;
 				}
 			}
 			++CurrGood;
 		}
-		--NewProfCt;
-		for(int i = 0; i < Settlement->Families.Size && NewProfCt >= 0; ++i) {
+		ProfSel = 0;
+		ProdFound = 0;
+		for(int i = 0; i < Settlement->Families.Size && ProfSel < NewProfCt; ++i) {
 			struct Family* Family = Settlement->Families.Table[i];
 
-			if(Family->Prof == PROF_FARMER) {
-				SetProfession(Family, NewProfs[NewProfCt--]->Id);
+			for(int j = 0; j < GoodList[NewProfCt - 1 - ProfSel]->IGSize; ++j) {
+				for(int k = 0; k < Settlement->Market.Size; ++k) {
+					const struct Product* Prod = Settlement->Market.Table[k];
+					
+					if(Prod->Base == GoodList[NewProfCt - 1 - ProfSel]->InputGoods[j]->Req) {
+						if(Prod->Quantity <= 0) goto no_prof;
+						else ProdFound++;
+						//else goto make_prof;
+					}
+				}
+				if(ProdFound < GoodList[NewProfCt - 1 - ProfSel]->IGSize) goto no_prof;
+				ProdFound = 0;
+				//goto no_prof;
+				//make_prod:;
 			}
+			make_prof:
+			if(Family->Prof == PROF_FARMER) {
+				SetProfession(Family, NewProfs[NewProfCt - 1 - ProfSel++]->Id);
+				--ProfLimit;
+			}
+			if(NewProfCt > ProfLimit) return;
+			no_prof:;
 		}
 		++CurrNewGood;
 	}
@@ -817,41 +921,6 @@ void SettlementGetPos(const void* One, SDL_Point* Pos) {
 
 	*Pos = Settlement->Pos;
 }
-
-/*void FamilyBuy(struct Family* Family, struct Settlement* Settlement) {
-	int Weapons = 0;
-	int Armor = 0;
-
-	//if(LeadsRetinue(Family->People[HUSBAND], &g_GameWorld) == false) return;
-	for(int i = 0; i < Family->Goods.Size; ++i) {
-		struct Good* Good = Family->Goods.Table[i];
-
-		if(IsArmor(Good->Base) == true) {
-			++Armor;
-		} else if(IsWeapon(Good->Base) == true) {
-			++Weapons;
-		}
-	}
-	for(int i = 0; i < Settlement->Market.Size; ++i) {
-		struct MarReq* SellReq = Settlement->Market.Table[i];
-		struct MarGood* Sell = NULL;
-		struct Good BuyGood = {0};
-		int Idx = 0;
-		
-		if(IsArmor(SellReq->Base) == false && IsWeapon(SellReq->Base) == false) continue;
-		if(Weapons < 3) continue;
-		Idx = RandByte() % SellReq->Fillers.Size; 
-		Sell = SellReq->Fillers.Table[Idx];
-		--Sell->Quantity;
-		BuyGood.Base = SellReq->Base;
-		BuyGood.Quantity = 1;
-		if(Sell->Quantity <= 0) {
-			ArrayRemove(&SellReq->Fillers, Idx);
-			free(Sell);
-		}
-		ArrayAddGood(&Family->Goods, &BuyGood, 1);
-	}
-}*/
 
 void SettlementTraders(struct Settlement* Settlement) {
 	int Size = FrameSizeRemain();
@@ -891,4 +960,100 @@ void SettlementProfessionCount(const struct Settlement* Settlement, uint16_t** P
 		++(*ProfCount)[Family->Prof];
 	}
 	
+}
+
+void SettlementChangeProf(struct Settlement* Settlement, const struct Family* Family, int ProfId) {
+	int Found = 0;
+
+	if(Family->Prof == ProfId) {
+		for(int i = 0; i < Settlement->ProfCts.Size && Found != 3; ++i) {
+			struct ProfRec* Rec = Settlement->ProfCts.Table[i];
+
+			if(Family->Prof == Rec->ProfId) {
+				++Rec->Count;
+				return;
+			}
+		}
+		goto make_rec;
+	}
+	for(int i = 0; i < Settlement->ProfCts.Size && Found != 3; ++i) {
+		struct ProfRec* Rec = Settlement->ProfCts.Table[i];
+
+		if(Family->Prof == Rec->ProfId) {
+			--Rec->Count;
+			Found |= (1 << 0);
+			continue;
+		}
+		if(ProfId == Rec->ProfId) {
+			++Rec->Count;
+			Found |= (1 << 1);
+			continue;
+		}
+	}
+	if((Found & (1 << 1)) == 0) {
+		make_rec:;
+		struct ProfRec* Rec = malloc(sizeof(struct ProfRec));
+
+		Rec->ProfId = ProfId;
+		Rec->Count = 1;
+		ArrayInsert_S(&Settlement->ProfCts, Rec);
+	}
+}
+
+void MerchantGenerate(struct Settlement* Settlement) {
+	//Temp code.
+	for(int i = 0; i < Settlement->Families.Size; ++i) {
+		struct Family* Family = Settlement->Families.Table[i];
+
+		if(Family->Prof == PROF_FARMER) {
+			SetProfession(Family, PROF_MERCHANT);
+			MerchantGeneratePath(Family);
+			return;
+		}
+	}
+}
+
+void MerchantGeneratePath(struct Family* Merchant) {
+	const struct Settlement* Settlement = Merchant->HomeLoc;
+	SDL_Rect Rect = {Settlement->Pos.x, Settlement->Pos.y, 20, 20};
+	uint32_t TableSz = 0;
+	struct Settlement** SetList = 0;
+	uint32_t ListSize = 0;
+	const struct Product* ProdList[Settlement->Market.Size];
+	int ProdSize = 0;
+
+	for(int i = 0; i < Settlement->Market.Size; ++i) {
+		struct Product* Prod = Settlement->Market.Table[i];	
+
+		if(Prod->Quantity <= 0) continue;
+		ProdList[ProdSize++] = Prod;
+	}
+	if(ProdSize <= 0) return;
+	TableSz = FrameSizeRemain() / sizeof(struct Sprite*);
+	SetList = SAlloc(TableSz * sizeof(struct Sprite*));
+	ListSize = 0;
+	MapSettlementsInRect(g_GameWorld.MapRenderer, &Rect, SetList, &ListSize, TableSz);
+	for(int i = 0; i < ListSize; ++i) {
+		const struct Settlement* TarSet = SetList[i];
+		struct MerchantNode* Node = malloc(sizeof(struct MerchantNode));
+
+		for(int j = 0; j < ProdSize; ++j) {
+			struct Product* SetProd = MarketFindProduct(&Settlement->Market, ProdList[j]->Base);
+
+			for(int k = 0; k < TarSet->Market.Size; ++k) {
+				struct Product* Prod = TarSet->Market.Table[k];
+				struct MerchantAction* Action = NULL;
+
+
+				if(Prod->Demand <= 0) continue;
+				if(Prod->Price * 1.1 <= SetProd->Price) continue;
+				Action = malloc(sizeof(*Action));
+				Action->Action = BUY;
+				Action->Good = Prod->Base;
+				ArrayInsert_S(&Node->TradeGoods, Action);
+			}
+		}
+		ArrayInsert(&Merchant->Merchant.Nodes, Node);
+	}
+	SFree(sizeof(void*) * TableSz);
 }

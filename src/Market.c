@@ -5,6 +5,8 @@
 
 #include "Market.h"
 
+#include "Date.h"
+
 #include "Location.h"
 
 /*
@@ -13,60 +15,67 @@
  * would help in finding buyers/sellers faster and only have to traverse one array.
  */
 
-static inline void MarReqQuantity(struct MarReq* Req, struct MarGood* Good, int64_t Quantity) {
+static int MarGoodCmp(const struct MarGood* One, const struct MarGood* Two) {
+	return One->Owner->Object.Id - Two->Owner->Object.Id;
+}
+
+static inline void ProductQuantity(struct Product* Req, struct MarGood* Good, int64_t Quantity) {
+	//Assert((Req->Supply * (Req->Supply > 0)) - (Req->Demand * (Req->Demand > 0)) == Req->Quantity);
 	Good->Quantity += Quantity;
 	Req->Quantity += Quantity;
+	//Req->Demand -= Quantity;
+	//Req->Supply += Quantity;
+	Req->Demand += (Quantity < 0) * Quantity;
+	Req->Supply += (Quantity > 0) * Quantity;
 }
 
-int MarketSell(struct MarReq* Req, struct MarGood* Seller, int64_t Quantity) {
+int MarketSell(struct Product* Req, struct MarGood* Seller, int64_t Quantity) {
 	int Bought = 0;
-	struct Good* Good = NULL;
 
+	Assert(Seller->Quantity >= 0);
 	if(Seller->Quantity < Quantity) {
-		Quantity -= Seller->Quantity;
 		Bought = Seller->Quantity;
-		MarReqQuantity(Req, Seller, -Seller->Quantity);
-		return Quantity;
+		ProductQuantity(Req, Seller, -Bought);
 	} else {
-		MarReqQuantity(Req, Seller, -Quantity);
+		ProductQuantity(Req, Seller, -Quantity);
 		Bought = Quantity;
-		Quantity = 0;
 	}
-	Good = CheckGoodTbl(&Seller->Owner->Goods, Req->Base->Name, &g_Goods);
-	Good->Quantity += Bought;
-	return Quantity;
+	Assert(Bought >= 0);
+	return Bought;
 }
 
-struct MarReq* CreateMarReq(const struct GoodBase* Base, uint32_t Cost) {
-	struct MarReq* Req = (struct MarReq*) malloc(sizeof(struct MarReq));
+struct Product* CreateProduct(const struct GoodBase* Base, uint32_t Cost) {
+	struct Product* Req = (struct Product*) malloc(sizeof(struct Product));
 
 	Req->Base = Base;
 	Req->Price = Cost;
 	Req->Quantity = 0;
 	Req->Demand = 0;
+	Req->Supply = 0;
 	CtorArray(&Req->Fillers, 4);
 	return Req;
 }
 
-void DestroyMarReq(struct MarReq* Req) {
+void DestroyProduct(struct Product* Req) {
 	for(int i = 0; i < Req->Fillers.Size; ++i) {
 		free(Req->Fillers.Table[i]);
 	}
 	free(Req);
 }
 
-void DestroyMarGood(struct MarReq* Req, struct MarGood* Good, int Idx) {
+void DestroyMarGood(struct Product* Req, struct MarGood* Good, int Idx) {
 	ArrayRemove(&Req->Fillers, Idx);
-	MarReqQuantity(Req, Good, -Good->Quantity);
+	ProductQuantity(Req, Good, -Good->Quantity);
 	free(Good);
 }
 
 int GoodBuy(struct Family* Family, const struct GoodBase* Base, int Quantity) {
 	struct Settlement* Settlement = Family->HomeLoc;
 	struct MarGood* Sell = NULL;
-	struct MarReq* SellReq = NULL;
+	struct Product* SellReq = NULL;
 	int Sold = 0;
 			
+	Assert(Quantity >= 0);
 	//Check the market if there is someone selling the good.
 	for(int i = 0; i < Settlement->Market.Size; ++i) {
 		SellReq = Settlement->Market.Table[i];
@@ -76,44 +85,39 @@ int GoodBuy(struct Family* Family, const struct GoodBase* Base, int Quantity) {
 				for(int j = 0; j < SellReq->Fillers.Size; ++j) {
 					struct MarGood* Sell = SellReq->Fillers.Table[j];
 					
-					Quantity = MarketSell(SellReq, Sell, Quantity);
+					if(Sell->Quantity <= 0) continue;
+					Sold += MarketSell(SellReq, Sell, Quantity);
+					Quantity -= Sold;
+					if(Quantity <= 0) return Sold;
 				}
+			return Sold;
 			} else {
 				//Not enough goods to buy. Create a buy request.
-				for(int i = 0; i < Settlement->Market.Size; ++i) {
-					struct MarReq* Req = Settlement->Market.Table[i];
+				for(int j = 0; j < SellReq->Fillers.Size; ++j) {
+					struct MarGood* Sell = SellReq->Fillers.Table[j];
 
-					if(GoodBaseCmp(Req->Base, Base) == 0) {
+					if(Sell->Owner == Family) {
+						int Amount = Quantity - Sold;
 
-						for(int j = 0; j < Req->Fillers.Size; ++j) {
-							struct MarGood* Sell = Req->Fillers.Table[j];
-
-							if(Sell->Owner == Family) {
-								int Amount = Quantity - Sold;
-
-								MarReqQuantity(Req, Sell, -Amount);
-								//ArrayRemove(&Req->Fillers, j--);
-								goto end;
-							}
-						}
-					SellReq = Req;
-					goto create_margood;
+						ProductQuantity(SellReq, Sell, -Amount);
+						goto end;
 					}
 				}
+				goto create_margood;
 			}
 		}
 	}
 	//MarketRemoveBuy(Family, &Settlement->BuyReqs, Base, Sold);
-	SellReq = CreateMarReq(Base, GoodGetValue(Base));
-	SellReq->Quantity = 0;
+	SellReq = CreateProduct(Base, GoodGetValue(Base));
 	ArrayInsert_S(&Family->HomeLoc->Market, SellReq);
 create_margood:
 	Sell = malloc(sizeof(struct MarGood));
 	Sell->Owner = Family;
-	MarReqQuantity(SellReq, Sell, -(Quantity - Sold));
+	Sell->Quantity = 0;
+	ProductQuantity(SellReq, Sell, -(Quantity - Sold));
 	ArrayInsert_S(&SellReq->Fillers, Sell);
 end:
-	SellReq->Demand += Sold;
+	//SellReq->Demand += Quantity;
 	return Sold;
 }
 
@@ -126,16 +130,16 @@ int MarketQuantity(struct Family* Family, const struct Array* Market, const stru
 void MarketRemoveBuy(struct Family* Family, const struct Array* Market, struct GoodBase* Base, int Quantity) {
 	if(!(Quantity > 0)) return;
 	for(int i = 0; i < Market->Size; ++i) {
-		struct MarReq* MarReq = Market->Table[i];
+		struct Product* Product = Market->Table[i];
 
-		if(MarReq->Base != Base) continue;
-		for(int j = 0; j < MarReq->Fillers.Size; ++j) {
-			struct MarGood* MarGood = MarReq->Fillers.Table[j];
+		if(Product->Base != Base) continue;
+		for(int j = 0; j < Product->Fillers.Size; ++j) {
+			struct MarGood* MarGood = Product->Fillers.Table[j];
 
 			if(MarGood->Owner == Family) {
 				MarGood->Quantity -= Quantity;
 				if(MarGood->Quantity <= 0) {
-					//ArrayRemove(&MarReq->Fillers, j);
+					//ArrayRemove(&Product->Fillers, j);
 				}	
 			}
 		}
@@ -144,11 +148,11 @@ void MarketRemoveBuy(struct Family* Family, const struct Array* Market, struct G
 
 struct MarGood* MarketSearch(struct Family* Family, const struct Array* Market, const struct GoodBase* Base) {
 	for(int i = 0; i < Market->Size; ++i) {
-		struct MarReq* MarReq = Market->Table[i];
+		struct Product* Product = Market->Table[i];
 
-		if(MarReq->Base != Base) continue;
-		for(int j = 0; j < MarReq->Fillers.Size; ++j) {
-			struct MarGood* MarGood = MarReq->Fillers.Table[j];
+		if(Product->Base != Base) continue;
+		for(int j = 0; j < Product->Fillers.Size; ++j) {
+			struct MarGood* MarGood = Product->Fillers.Table[j];
 
 			if(MarGood->Owner == Family) return MarGood;
 		}
@@ -158,13 +162,16 @@ struct MarGood* MarketSearch(struct Family* Family, const struct Array* Market, 
 
 void MarketCalcPrice(struct Array* Market) {
 	for(int i = 0; i < Market->Size; ++i) {
-		struct MarReq* SellReq = Market->Table[i];
+		struct Product* SellReq = Market->Table[i];
+	//	int DmdDelta = SellReq->Demand / MONTHS;
 
 		SellReq->Price = MarketPrice(SellReq);
+	//	DmdDelta += (DmdDelta < 1); //If DmdDelta == 0 then DmdDelta = 1.
+	//	SellReq->Demand -= DmdDelta * ((INT_MIN & (SellReq->Demand - 1)) == 0); //If SellReq->Demand - DmdDelta < 0 then SellReq->Demand = 0.
 	}
 }
 
-int GoodPay(struct Family* Buyer, const struct MarReq* SellReq) {
+int GoodPay(struct Family* Buyer, const struct Product* SellReq) {
 	int Quantity = 0;
 
 	GoodPayInKind(Buyer, SellReq->Price, SellReq->Base, &Quantity);
@@ -172,24 +179,25 @@ int GoodPay(struct Family* Buyer, const struct MarReq* SellReq) {
 	return Quantity;
 }
 
-int MarketCheckBuyers(const struct Family* Family, const struct GoodBase* Base, int Quantity) {
+/*int MarketCheckBuyers(const struct Family* Family, const struct GoodBase* Base, int Quantity) {
 	struct Settlement* Settlement = Family->HomeLoc;
 
-	for(int i = 0; i < Settlement->BuyReqs.Size; ++i) {
-		struct MarReq* Req = Settlement->BuyReqs.Table[i];
+	for(int i = 0; i < Settlement->Market.Size; ++i) {
+		struct Product* Req = Settlement->Market.Table[i];
 
 		if(GoodBaseCmp(Req->Base, Base) == 0) {
 
 			for(int j = 0; j < Req->Fillers.Size; ++j) {
 				struct MarGood* Sell = Req->Fillers.Table[j];
 
+				
 				if(Sell->Quantity < Quantity) {
 					Quantity -= Sell->Quantity;
 					Sell->Quantity = 0;
 					ArrayRemove(&Req->Fillers, j--);
 					if(Req->Quantity < Quantity) Req->Quantity = 0;
 				} else {
-					MarReqQuantity(Req, Sell, -Quantity);
+					ProductQuantity(Req, Sell, -Quantity);
 					return 0;
 				}
 			}
@@ -197,11 +205,12 @@ int MarketCheckBuyers(const struct Family* Family, const struct GoodBase* Base, 
 		}
 	}
 	return Quantity;
-}
+}*/
 
 void GoodSell(const struct Family* Seller, const struct GoodBase* Base, uint32_t Quantity) {
+	struct Product* SellReq = NULL;
 	struct MarGood* Sell = NULL;
-	struct MarReq* SellReq = NULL;
+	struct MarGood* OwnerReq = NULL;
 
 	//Quantity = MarketCheckBuyers(Seller, Base, Quantity);
 	for(int i = 0; i < Seller->HomeLoc->Market.Size; ++i) {
@@ -209,33 +218,30 @@ void GoodSell(const struct Family* Seller, const struct GoodBase* Base, uint32_t
 
 		if(SellReq->Base == Base) {
 			//Someone is trying to buy this good.
-			if(SellReq->Quantity > 0) {
-				for(int j = 0; j < SellReq->Fillers.Size; ++j) {
-					Sell = SellReq->Fillers.Table[j];
-
-					Quantity = MarketSell(SellReq, Sell, Quantity);
-					if(Quantity == 0) return;
-				}
-			}
-			//After we've sold our stock to buyers, fill the market with the remaining amount.
 			for(int j = 0; j < SellReq->Fillers.Size; ++j) {
 				Sell = SellReq->Fillers.Table[j];
-				
+
 				if(Sell->Owner == Seller) {
-					MarReqQuantity(SellReq, Sell, Quantity);
-					return;
+					OwnerReq = Sell;
+					break;
 				}
 			}
-			SellReq->Quantity += Quantity;
+			if(OwnerReq != NULL) {
+				//After we've sold our stock to buyers, fill the market with the remaining amount.
+				ProductQuantity(SellReq, OwnerReq, Quantity);
+				return;
+			}
 			Sell = malloc(sizeof(struct MarGood));
 			Sell->Owner = Seller;
 			Sell->Quantity = Quantity;
+			ProductQuantity(SellReq, Sell, Quantity);
 			ArrayInsert_S(&SellReq->Fillers, Sell);
 			return;
 		}
 	}
-	SellReq = CreateMarReq(Base, GoodGetValue(Base));
+	SellReq = CreateProduct(Base, GoodGetValue(Base));
 	SellReq->Quantity = Quantity;
+	SellReq->Supply += Quantity;
 	Sell = malloc(sizeof(struct MarGood));
 	Sell->Owner = Seller;
 	Sell->Quantity = Quantity;

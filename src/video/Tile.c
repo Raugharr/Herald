@@ -53,6 +53,8 @@ const SDL_Point g_TileOffsets[] = {
 struct Tile* CreateTile(struct MapRenderer* Renderer, uint8_t TileSheet, uint8_t TileVar, int X, int Y) {
 	struct Tile* Tile = (struct Tile*) malloc(sizeof(struct Tile));
 
+	Tile->Farmable = .8l * 255;
+	Tile->Pasturable = .2l * 255;
 	Tile->TileSheet = TileSheet;
 	Tile->TileVar = TileVar;
 	return Tile;

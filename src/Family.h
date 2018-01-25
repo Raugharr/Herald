@@ -18,6 +18,7 @@
 #define FAMILY_FIELDCT (2)
 #define FAMILY_ANMAX (2)
 #define FAMILY_ACRES (20)
+#define MONTH_WORKRATE (DAYS_EVEN * MAX_WORKRATE + (MAX_WORKRATE / 2))
 
 #define HUSBAND (0)
 #define WIFE (1)
@@ -25,6 +26,7 @@
 
 #define IsFarmer(Family) ((Family)->Prof == PROF_FARMER)
 #define IsCraftsman(Family) ((Family)->Prof >= PROF_SIZE)
+#define IsMerchant(family) ((Family)->Prof == PROF_MERCHANT)
 
 //#define FamilyAddAnimal(Family, Animal) AnimalArrayInsert(&(Family)->Animals, (Animal))
 //#define FamilyTakeAnimal(Family, Animal) AnimalArrayRemove(&(Family)->Animals, (Animal))
@@ -45,6 +47,7 @@ struct FamilyType;
 struct Good;
 struct Settlement;
 struct GameWorld;
+struct ProfTool;
 typedef struct lua_State lua_State;
 
 enum CasteEnum {
@@ -53,13 +56,6 @@ enum CasteEnum {
 	CASTE_GENEAT,
 	CASTE_THEGN,
 	CASTE_EALDORMAN,
-/*
-	CASTE_FARMER,
-	CASTE_CRAFTSMAN,
-	CASTE_LOWNOBLE,
-	CASTE_PRIEST,
-	CASTE_WARRIOR,
-	CASTE_NOBLE,*/
 	CASTE_SIZE
 };
 
@@ -103,6 +99,7 @@ struct Family {
 		int32_t AnimalFood; //Accounts for all nutrition that is assumed to be grown from wild plants on the farmers fallow fields. Since it is not harvested
 		// this variable should be set to 0 at harvest time.
 	} Food;
+	int32_t Money;
 	uint8_t NumChildren : 4;
 	uint8_t Caste : 4;
 	uint8_t Faction : 4;
@@ -126,7 +123,7 @@ struct Family {
 			const struct Family* Owner;
 		} Slave;
 		struct {
-			struct LinkedList Path; //List of settlements to visit.
+			struct Array Nodes; //MerchantNode.
 		} Merchant;
 	};
 };
@@ -198,9 +195,9 @@ static inline int StoredFoodSufficient(const struct Family* Family) {
 void FamilyRemovePerson(struct Family* Family, struct Person* Person);
 bool FamilyAddPerson(struct Family* Family, struct Person* Person);
 
-void CreateFarmerFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
-void CreateCrafterFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg);
-void CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
+int CreateFarmerFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
+int CreateCrafterFamilies(struct Settlement* Settlement, int Families, double CastePercent[CASTE_SIZE], struct Constraint * const * const AgeGroups, struct Constraint * const * const BabyAvg);
+int CreateWarriorFamilies(struct Settlement* Settlement, struct Constraint * const *  const AgeGroups, struct Constraint * const * const BabyAvg);
 /*
  * Adds a list of animals to Family's animal array.
  * This function will ensure that all animals of the same population type will be added adjacent to other animal
@@ -221,5 +218,6 @@ struct Family* GetSlave(struct Family* Owner);
 void FamilyDivideAnimals(struct Family* To, struct Family* From, int Divide);
 void SlaughterAnimal(struct Family* Family, const struct Population* PopType, int AnIdx);
 void SetProfession(struct Family* Family, uint8_t Prof);
+void LoadCasteGoods(lua_State* State, struct ProfTool** Tools, int* Size);
 #endif
 

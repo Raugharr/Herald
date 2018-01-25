@@ -55,6 +55,8 @@ static const char* g_GoodCatStr[] = {
 	"Weapon",
 	"Armor",
 	"Other",
+	"Flour",
+	"Clothing",
 	NULL
 };
 
@@ -162,7 +164,8 @@ struct GoodBase* GoodLoad(lua_State* State, int Index) {
 
 	lua_pushstring(State, "Category");
 	lua_rawget(State, Index);
-	Temp = lua_tostring(State, -1);
+	Category = lua_tointeger(State, -1);
+/*	Temp = lua_tostring(State, -1);
 	Return = 1;
 	if(!strcmp("Food", Temp))
 		Category = GOOD_FOOD;
@@ -182,7 +185,10 @@ struct GoodBase* GoodLoad(lua_State* State, int Index) {
 		Category = GOOD_ARMOR;
 	else if(!strcmp("Other", Temp))
 		Category = GOOD_OTHER;
-	else Return = -1;
+	else if(!strcmp("Clothing", Temp))
+		Category = GOOD_CLOTHING;
+	else Return = -1;*/
+	Return = 1;
 	if(Category <= 0 && Return <= 0) {
 		lua_pop(State, 1);
 		Log(ELOG_WARNING, "%s is not a valid category.", Temp);

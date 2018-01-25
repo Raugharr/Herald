@@ -178,6 +178,10 @@ struct MapRenderer* CreateMapRenderer(int MapLength, SDL_Point* RenderSize) {
 	}*/
 	
 	//MapLoad(Map);
+	for(int i = 0; i < Map->TileArea; ++i) {
+		Map->Tiles[i].Farmable = .8l * 255;
+		Map->Tiles[i].Pasturable = .2 * 255;
+	}
 	free(HeightMap);
 	return Map;
 }

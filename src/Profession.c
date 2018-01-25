@@ -27,7 +27,79 @@ struct ProfTool* CreateProfTool(const struct GoodBase* Good, int Quantity) {
 	return Tool;
 }
 
-struct Profession* CreateProfession(int Type, const char* Name, const struct GoodBase** CraftedGoods, const struct GoodBase** ToolGoods, struct ProfSelector** Selectors, int Payment) {
+struct ProfLoadGood {
+	struct Profession* Profession;
+	const uint16_t* CraftAmt;
+	int CraftIdx;
+	int GoodOff;
+	struct Array* Array;
+};
+
+int ProfessionCountGood(const struct Profession* Profession, const struct GoodBase* Good) {
+	int Count = 0;
+
+	for(int i = 0; i < Good->IGSize; ++i) {
+		if(ProfCanMake(Profession, Good->InputGoods[i]->Req) != -1) Count += ProfessionCountGood(Profession, Good->InputGoods[i]->Req) - 1;
+	}
+	Count += Good->IGSize + 1;
+	return Count;
+}
+
+void ProfessionLoadGood(struct ProfLoadGood* Params, const struct GoodBase* OutGood, struct ProdOrder* Order, int Quantity) {
+	for(int i = 0; i < Params->Array->Size; ++i) {
+		struct ProdOrder* Order = Params->Array->Table[i];
+
+		if(Order->Good == OutGood) {
+			Order->Quantity += Params->CraftAmt[Params->CraftIdx] * Quantity;
+			goto input_goods;
+		}
+	}
+	Order->Quantity = Params->CraftAmt[Params->CraftIdx] * Quantity;
+	Order->Good = OutGood;
+	Order->Type = ORDER_MAKE;
+	for(int k = 0; k < Params->Profession->CraftedGoodCt; k++) {
+		const struct GoodBase* Good = Params->Profession->CraftedGoods[k];
+
+		if(Good == Order->Good) {
+			Order->GoodIdx = k;
+			break;
+		}
+	}
+	input_goods:
+	for(int j = 0; j < OutGood->IGSize; ++j) {
+		Assert(Params->GoodOff < Params->Profession->ProdListSz);
+		struct ProdOrder* Order = &Params->Profession->ProdList[Params->GoodOff++];
+
+		if(ProfCanMake(Params->Profession, OutGood->InputGoods[j]->Req) != -1) {
+			ProfessionLoadGood(Params, OutGood->InputGoods[j]->Req, Order, OutGood->InputGoods[j]->Quantity); 
+		} else {
+			for(int k = 0; k < Params->Array->Size; ++k) {
+				struct ProdOrder* Order = Params->Array->Table[k];
+
+				if(Order->Good == OutGood) {
+					Order->Quantity += Params->CraftAmt[Params->CraftIdx] * Quantity;
+					goto input_good_end;
+				}
+			}
+			Order->Quantity = OutGood->InputGoods[j]->Quantity * Quantity;//Params->CraftAmt[Params->CraftIdx];
+			Order->Good = OutGood->InputGoods[j]->Req;
+			Order->Type = ORDER_BUY;
+			for(int k = 0; k < Params->Profession->InputGoodCt; k++) {
+				const struct GoodBase* Good = Params->Profession->InputGoods[k];
+
+				if(Good == Order->Good) {
+					Order->GoodIdx = k;
+					break;
+				}
+			}
+			ArrayInsert_S(Params->Array, Order);
+		}
+		input_good_end:;
+	}
+	ArrayInsert_S(Params->Array, Order);
+}
+
+struct Profession* CreateProfession(int Type, const char* Name, const struct GoodBase** CraftedGoods, int Payment) {
 	struct Profession* Profession = NULL;
 	int GoodSz = 0;
 	unsigned int InGdSz = 0;
@@ -45,17 +117,19 @@ struct Profession* CreateProfession(int Type, const char* Name, const struct Goo
 	Profession->CraftedGoodCt = GoodSz;
 	Profession->InputGoodCt = 0;
 	Profession->ProfReqCt = 0;
+	Profession->Tools = NULL;
+	Profession->ToolSz = 0;
 	//Profession->SelCt = ArrayLen(Selectors);
 	Profession->ProdListSz = 0;
-	CtorArray(&Profession->Tools, 2);
+	//CtorArray(&Profession->Tools, 2);
 	for(int i = 0; i < GoodSz; ++i) {
 		Profession->CraftedGoods[i] = CraftedGoods[i];
 	}
-	if(ToolGoods != NULL) {
+	/*if(ToolGoods != NULL) {
 		for(int i = 0; ToolGoods[i] != NULL; ++i) {
 			ArrayInsert_S(&Profession->Tools, (void*)ToolGoods[i]);
 		}
-	}
+	}*/
 	Profession->Payment = Payment;
 	Profession->CraftedGoods[GoodSz] = NULL;
 	for(int i = 0; i < GoodSz; ++i) {
@@ -108,7 +182,8 @@ struct Profession* CreateProfession(int Type, const char* Name, const struct Goo
 	uint16_t GdOffset = 0;
 
 	for(int i = 0; i < Profession->CraftedGoodCt; ++i) {
-		ProdListSz += Profession->CraftedGoods[i]->IGSize + 1;
+		//ProdListSz += Profession->CraftedGoods[i]->IGSize + 1;
+		ProdListSz += ProfessionCountGood(Profession, Profession->CraftedGoods[i]);
 	}
 	Profession->ProdListSz = ProdListSz;
 	Profession->ProdList = calloc(ProdListSz, sizeof(struct ProdOrder));
@@ -116,23 +191,11 @@ struct Profession* CreateProfession(int Type, const char* Name, const struct Goo
 		const struct GoodBase* OutGood = Profession->CraftedGoods[i];
 		struct ProdOrder* Order = &Profession->ProdList[GdOffset];
 		struct Array* Array = CreateArray(1 + OutGood->IGSize);
+		struct ProfLoadGood LoadGood = {Profession, CraftAmt, 0, GdOffset + 1, Array};
 
-		Order->Quantity = CraftAmt[i];
-		Order->Good = OutGood;
-		Order->Type = ORDER_MAKE;
-		//ArrayInsert_S(&Profession->CraftAmt, Order);
 		ArrayInsert_S(&Profession->CraftAmt, Array);
-		for(int j = 0; j < OutGood->IGSize; ++j) {
-			struct ProdOrder* Order = &Profession->ProdList[GdOffset + j + 1];
-
-			Assert(GdOffset + j + 1 < ProdListSz);
-			Order->Quantity = OutGood->InputGoods[j]->Quantity * CraftAmt[i];
-			Order->Good = OutGood->InputGoods[j]->Req;
-			Order->Type = ORDER_BUY;
-			ArrayInsert_S(Array, Order);
-		}
-		ArrayInsert_S(Array, Order);
-		GdOffset += OutGood->IGSize + 1;
+		ProfessionLoadGood(&LoadGood, OutGood, Order, 1);
+		GdOffset = LoadGood.GoodOff;
 	}
 	/**
 	 * Each input good found to be made by this profession is marked so in InGdFd.
@@ -163,8 +226,11 @@ struct Profession* ProfessionLoad(lua_State* State, int Index) {
 	int GoodSize = 0;
 	const struct GoodBase** GoodList = NULL;
 	const char* Name = NULL;
+	const char* ToolName = NULL;
 	struct Profession* Profession = NULL;
-	struct ProfSelector** SelList = NULL;
+	//struct ProfSelector** SelList = NULL;
+	struct ProfTool* Tools = NULL;
+	int TblSz = 0;
 	int Payment = 0;
 
 	Index = lua_absindex(State, Index);
@@ -268,8 +334,31 @@ struct Profession* ProfessionLoad(lua_State* State, int Index) {
 				lua_pop(State, 1);
 			}
 		lua_pop(State, 1);
-	}*/
-skip_selectors:
+	}
+skip_selectors:*/
+	lua_pushstring(State, "Tools");
+	lua_rawget(State, Index);
+	TblSz = lua_rawlen(State, -1);
+	Tools = alloca(sizeof(struct ProfTool) * (TblSz));
+	if(lua_type(State, -1) != LUA_TTABLE) {
+		lua_pop(State, 1);
+		goto skip_tools;
+	}
+	for(int i = 1; i <= TblSz; ++i) {
+		lua_rawgeti(State, -1, i);
+		if(lua_type(State, -1) != LUA_TTABLE) {
+			lua_pop(State, 1);
+			continue;
+		}
+		lua_rawgeti(State, -1, 1);
+		ToolName = lua_tostring(State, -1);
+		Tools[i - 1].Good = HashSearch(&g_Goods, ToolName);
+		lua_rawgeti(State, -2, 2);
+		Tools[i - 1].Quantity = lua_tointeger(State, -1);
+		lua_pop(State, 3);
+	}
+	lua_pop(State, 1);
+	skip_tools:
 	/*
 	 *
 	 */
@@ -280,7 +369,8 @@ skip_selectors:
 		LnkLstPopFront(&List);
 	}
 	GoodList[GoodSize] = NULL;
-	Profession = CreateProfession(-1, Name, GoodList, NULL, SelList, Payment);
+	Profession = CreateProfession(-1, Name, GoodList, Payment);
+	ProfessionToolList(Profession, Tools, TblSz);
 	return Profession;
 }
 
